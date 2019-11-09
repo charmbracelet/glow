@@ -10,20 +10,6 @@ import (
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
-const tmd = `
-# Test
-
-This is a test yo.
-
-## Dude!
-
-* one
-* two
-* three
-
-[yoda](http://flame.com)
-`
-
 func main() {
 	s := flag.String("s", "", "style json path")
 	flag.Parse()
