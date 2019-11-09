@@ -13,22 +13,6 @@ import (
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
-type RuleKey int
-
-const (
-	Color RuleKey = iota
-	BackgroundColor
-	Underline
-	Bold
-	Italic
-	CrossedOut
-	Faint
-	Conceal
-	Overlined
-	Inverse
-	Blink
-)
-
 type ElementStyle struct {
 	Color           string `json:"color"`
 	BackgroundColor string `json:"background_color"`
