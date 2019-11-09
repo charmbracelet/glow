@@ -44,7 +44,9 @@ type ElementStyle struct {
 }
 
 type Element struct {
-	BaseString string
+	Token string
+	Pre   string
+	Post  string
 }
 
 type TermRenderer struct {
@@ -54,63 +56,171 @@ type TermRenderer struct {
 func NewElement(node *bf.Node) Element {
 	switch node.Type {
 	case bf.Document:
-		return Element{""}
+		return Element{
+			Token: "",
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.BlockQuote:
-		return Element{fmt.Sprintf("```\n%s\n```", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "\n",
+			Post:  "\n",
+		}
 	case bf.List:
-		return Element{""}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "\n",
+			Post:  "\n",
+		}
 	case bf.Item:
-		return Element{fmt.Sprintf("* %s", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "\n",
+			Post:  "\n",
+		}
 	case bf.Paragraph:
-		if node.Prev != nil && node.Prev.Type != bf.Link {
-			return Element{"\n"}
+		if node.Next != nil {
+			return Element{
+				Token: string(node.Literal),
+				Pre:   "\n",
+				Post:  "\n\n",
+			}
 		} else {
-			return Element{""}
+			return Element{
+				Token: string(node.Literal),
+				Pre:   "\n",
+				Post:  "\n",
+			}
 		}
 	case bf.Heading:
-		return Element{fmt.Sprintf("%s ", strings.Repeat("#", node.HeadingData.Level))}
+		return Element{
+			Token: fmt.Sprintf("%s ", strings.Repeat("#", node.HeadingData.Level)),
+			Pre:   "",
+			Post:  "\n",
+		}
 	case bf.HorizontalRule:
-		return Element{"---\n"}
+		return Element{
+			Token: "---",
+			Pre:   "\n",
+			Post:  "\n",
+		}
 	case bf.Emph:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.Strong:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.Del:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.Link:
-		return Element{fmt.Sprintf("[%s](%s)\n", string(node.LastChild.Literal), string(node.LinkData.Destination))}
+		return Element{
+			Token: fmt.Sprintf("[%s](%s)", string(node.LastChild.Literal), string(node.LinkData.Destination)),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.Image:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.Text:
 		if node.Parent != nil && node.Parent.Type != bf.Link {
-			return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+			return Element{
+				Token: string(node.Literal),
+				Pre:   "",
+				Post:  "",
+			}
 		} else {
-			return Element{""}
+			return Element{
+				Token: "",
+				Pre:   "",
+				Post:  "",
+			}
 		}
 	case bf.HTMLBlock:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "\n",
+			Post:  "\n",
+		}
 	case bf.CodeBlock:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: fmt.Sprintf("```\n%s\n```\n\n", string(node.Literal)),
+			Pre:   "",
+			Post:  "\n",
+		}
 	case bf.Softbreak:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "\n",
+		}
 	case bf.Hardbreak:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "\n",
+			Post:  "\n",
+		}
 	case bf.Code:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: fmt.Sprintf("`%s`", string(node.Literal)),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.HTMLSpan:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.Table:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "\n",
+			Post:  "\n",
+		}
 	case bf.TableCell:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.TableHead:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.TableBody:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	case bf.TableRow:
-		return Element{fmt.Sprintf("%s\n", string(node.Literal))}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "\n",
+			Post:  "\n",
+		}
 	default:
-		return Element{""}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "",
+			Post:  "",
+		}
 	}
 
 }
@@ -149,19 +259,26 @@ func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
 }
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
+	// fmt.Fprintf(w, "%s %t", node.Type, entering)
+	el := NewElement(node)
+	if entering && el.Pre != "" {
+		fmt.Fprintf(w, "%s", el.Pre)
+	}
+	if !entering && el.Post != "" {
+		fmt.Fprintf(w, "%s", el.Post)
+	}
 	if !entering {
 		return bf.GoToNext
 	}
-	el := NewElement(node)
-	if el.BaseString == "" {
+	if el.Token == "" {
 		return bf.GoToNext
 	}
 	rules := tr.style[node.Type]
 	if rules == nil {
-		fmt.Fprintf(w, "%s", el.BaseString)
+		fmt.Fprintf(w, "%s", el.Token)
 		return bf.GoToNext
 	}
-	out := aurora.Reset(el.BaseString)
+	out := aurora.Reset(el.Token)
 	if rules.Color != "" {
 		i, err := strconv.Atoi(rules.Color)
 		if err == nil && i >= 0 && i <= 255 {
