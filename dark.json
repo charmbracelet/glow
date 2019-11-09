@@ -1,0 +1,10 @@
+{
+  "link": {
+    "color": "123",
+    "underline": true
+  },
+  "heading": {
+    "bold": true,
+    "inverse": true
+  }
+}

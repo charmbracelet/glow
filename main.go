@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"os"
 
 	"github.com/magicnumbers/gold"
 	bf "gopkg.in/russross/blackfriday.v2"
@@ -22,7 +24,13 @@ This is a test yo.
 `
 
 func main() {
-	r := gold.TermRenderer{}
-	out := bf.Run([]byte(tmd), bf.WithRenderer(&r))
+	s := flag.String("s", "", "style json path")
+	flag.Parse()
+	r, err := gold.NewTermRenderer(*s)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	out := bf.Run([]byte(tmd), bf.WithRenderer(r))
 	fmt.Println(string(out))
 }
