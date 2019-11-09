@@ -5,6 +5,12 @@
   },
   "heading": {
     "bold": true,
-    "inverse": true
+    "color": "3"
+  },
+  "code": {
+    "color": "200"
+  },
+  "code_block": {
+    "color": "200"
   }
 }
