@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/magicnumbers/gold"
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 func main() {
@@ -25,11 +24,10 @@ func main() {
 	}
 	defer f.Close()
 	b, _ := ioutil.ReadAll(f)
-	r, err := gold.NewTermRenderer(*s)
+	out, err := gold.RenderBytes(b, *s)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	out := bf.Run(b, bf.WithRenderer(r))
 	fmt.Printf("%s", string(out))
 }

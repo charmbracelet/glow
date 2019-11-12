@@ -209,6 +209,18 @@ func NewElement(node *bf.Node) Element {
 
 }
 
+func Render(in string, stylePath string) ([]byte, error) {
+	return RenderBytes([]byte(in), stylePath)
+}
+
+func RenderBytes(in []byte, stylePath string) ([]byte, error) {
+	r, err := NewTermRenderer(stylePath)
+	if err != nil {
+		return nil, err
+	}
+	return bf.Run(in, bf.WithRenderer(r)), nil
+}
+
 func NewTermRenderer(stylePath string) (*TermRenderer, error) {
 	if stylePath == "" {
 		return NewTermRendererFromBytes([]byte("{}"))
