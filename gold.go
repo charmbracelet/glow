@@ -79,7 +79,7 @@ func NewElement(node *bf.Node) Element {
 		}
 	case bf.Heading:
 		return Element{
-			Token: fmt.Sprintf("%s ", strings.Repeat("#", node.HeadingData.Level)),
+			Token: fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
 			Pre:   "",
 			Post:  "\n",
 		}
@@ -91,13 +91,13 @@ func NewElement(node *bf.Node) Element {
 		}
 	case bf.Emph:
 		return Element{
-			Token: string(node.Literal),
+			Token: string(node.FirstChild.Literal),
 			Pre:   "",
 			Post:  "",
 		}
 	case bf.Strong:
 		return Element{
-			Token: string(node.Literal),
+			Token: string(node.FirstChild.Literal),
 			Pre:   "",
 			Post:  "",
 		}
@@ -251,6 +251,9 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	if !entering && el.Post != "" {
 		fmt.Fprintf(w, "%s", el.Post)
 	}
+	if isChild(node) {
+		return bf.GoToNext
+	}
 	if !entering {
 		return bf.GoToNext
 	}
@@ -304,6 +307,18 @@ func (tr *TermRenderer) RenderHeader(w io.Writer, ast *bf.Node) {
 }
 
 func (tr *TermRenderer) RenderFooter(w io.Writer, ast *bf.Node) {
+}
+
+func isChild(node *bf.Node) bool {
+	if node.Parent == nil {
+		return false
+	}
+	switch node.Parent.Type {
+	case bf.Heading, bf.Link, bf.Emph, bf.Strong:
+		return true
+	default:
+		return false
+	}
 }
 
 func keyToType(key string) (bf.NodeType, error) {
