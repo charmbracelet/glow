@@ -12,5 +12,11 @@
   },
   "code_block": {
     "color": "200"
+  },
+  "emph": {
+    "italic": true
+  },
+  "strong": {
+    "bold": true
   }
 }
