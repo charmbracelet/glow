@@ -37,6 +37,51 @@ type TermRenderer struct {
 	style map[bf.NodeType]*ElementStyle
 }
 
+func Render(in string, stylePath string) ([]byte, error) {
+	return RenderBytes([]byte(in), stylePath)
+}
+
+func RenderBytes(in []byte, stylePath string) ([]byte, error) {
+	r, err := NewTermRenderer(stylePath)
+	if err != nil {
+		return nil, err
+	}
+	return bf.Run(in, bf.WithRenderer(r)), nil
+}
+
+func NewTermRenderer(stylePath string) (*TermRenderer, error) {
+	if stylePath == "" {
+		return NewTermRendererFromBytes([]byte("{}"))
+	}
+	f, err := os.Open(stylePath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	b, _ := ioutil.ReadAll(f)
+	return NewTermRendererFromBytes(b)
+}
+
+func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
+	e := make(map[string]*ElementStyle, 0)
+	err := json.Unmarshal(b, &e)
+	if err != nil {
+		return nil, err
+	}
+	tr := &TermRenderer{}
+	tr.style = make(map[bf.NodeType]*ElementStyle)
+
+	for k, v := range e {
+		t, err := keyToType(k)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		tr.style[t] = v
+	}
+	return tr, nil
+}
+
 func NewElement(node *bf.Node) Element {
 	switch node.Type {
 	case bf.Document:
@@ -207,51 +252,6 @@ func NewElement(node *bf.Node) Element {
 		}
 	}
 
-}
-
-func Render(in string, stylePath string) ([]byte, error) {
-	return RenderBytes([]byte(in), stylePath)
-}
-
-func RenderBytes(in []byte, stylePath string) ([]byte, error) {
-	r, err := NewTermRenderer(stylePath)
-	if err != nil {
-		return nil, err
-	}
-	return bf.Run(in, bf.WithRenderer(r)), nil
-}
-
-func NewTermRenderer(stylePath string) (*TermRenderer, error) {
-	if stylePath == "" {
-		return NewTermRendererFromBytes([]byte("{}"))
-	}
-	f, err := os.Open(stylePath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	b, _ := ioutil.ReadAll(f)
-	return NewTermRendererFromBytes(b)
-}
-
-func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
-	e := make(map[string]*ElementStyle, 0)
-	err := json.Unmarshal(b, &e)
-	if err != nil {
-		return nil, err
-	}
-	tr := &TermRenderer{}
-	tr.style = make(map[bf.NodeType]*ElementStyle)
-
-	for k, v := range e {
-		t, err := keyToType(k)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		tr.style[t] = v
-	}
-	return tr, nil
 }
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
