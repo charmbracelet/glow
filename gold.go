@@ -115,12 +115,11 @@ func NewElement(node *bf.Node) Element {
 				Pre:   "\n",
 				Post:  "\n\n",
 			}
-		} else {
-			return Element{
-				Token: string(node.Literal),
-				Pre:   "\n",
-				Post:  "\n",
-			}
+		}
+		return Element{
+			Token: string(node.Literal),
+			Pre:   "\n",
+			Post:  "\n",
 		}
 	case bf.Heading:
 		return Element{
@@ -171,12 +170,11 @@ func NewElement(node *bf.Node) Element {
 				Pre:   "",
 				Post:  "",
 			}
-		} else {
-			return Element{
-				Token: "",
-				Pre:   "",
-				Post:  "",
-			}
+		}
+		return Element{
+			Token: "",
+			Pre:   "",
+			Post:  "",
 		}
 	case bf.HTMLBlock:
 		return Element{
