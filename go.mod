@@ -1,4 +1,4 @@
-module github.com/magicnumbers/gold
+module github.com/charmbracelet/gold
 
 go 1.13
 
