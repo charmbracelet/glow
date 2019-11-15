@@ -11,7 +11,7 @@ color and terminal codes instead of CSS properties and hex colors.
 
 ## Usage
 
-See [cmd/gold](cmd/gold).
+See [cmd/gold](cmd/gold/main.go).
 
 ## Colors
 
