@@ -1,4 +1,4 @@
-# Charm Gold
+# Gold
 
 Render markdown on the CLI, with _pizzazz_!
 
