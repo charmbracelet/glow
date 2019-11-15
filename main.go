@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/magicnumbers/gold"
+	"github.com/charmbracelet/gold"
 )
 
 func main() {
