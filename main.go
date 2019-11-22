@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -31,10 +34,25 @@ func readerFromArgument(s string) (io.ReadCloser, error) {
 		return os.Stdin, nil
 	}
 
-	if isGitHubURL(s) {
-		resp, err := findGitHubREADME(s)
+	if u, err := url.ParseRequestURI(s); err == nil {
+		if !strings.HasPrefix(u.Scheme, "http") {
+			return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
+		}
+
+		if isGitHubURL(s) {
+			resp, err := findGitHubREADME(s)
+			if err != nil {
+				return nil, err
+			}
+			return resp.Body, nil
+		}
+
+		resp, err := http.Get(u.String())
 		if err != nil {
 			return nil, err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 		}
 		return resp.Body, nil
 	}
