@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
@@ -17,13 +18,29 @@ func main() {
 		fmt.Println("Missing Markdown file. Usage: ./gold -s STYLE.json FILE.md")
 		os.Exit(1)
 	}
-	f, err := os.Open(args[0])
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+
+	var in io.Reader
+	if isGitHubURL(args[0]) {
+		resp, err := findGitHubREADME(args[0])
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		defer resp.Body.Close()
+		in = resp.Body
+	} else {
+		f, err := os.Open(args[0])
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		defer f.Close()
+		in = f
 	}
-	defer f.Close()
-	b, _ := ioutil.ReadAll(f)
+
+	b, _ := ioutil.ReadAll(in)
 	out, err := gold.RenderBytes(b, *s)
 	if err != nil {
 		fmt.Println(err)
