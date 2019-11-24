@@ -21,6 +21,13 @@ Fetch README from GitHub:
 ./gold -s dark.json https://github.com/charmbracelet/gold
 ```
 
+When `gold` is started without any markdown source, it will try to find a `README.md`
+or `README` file in the current working directory.
+
 ## Colors
 
 Currently `gold` uses the [Aurora ANSI colors](https://godoc.org/github.com/logrusorgru/aurora#Index).
+
+## Example Output
+
+![Gold Dark Theme](https://github.com/charmbracelet/gold/raw/master/cmd/gold/gold_dark.png)
