@@ -109,22 +109,20 @@ func NewElement(node *bf.Node) Element {
 			Post:  "",
 		}
 	case bf.Paragraph:
-		if node.Next != nil {
-			return Element{
-				Token: string(node.Literal),
-				Pre:   "\n",
-				Post:  "\n",
-			}
-		}
 		return Element{
 			Token: string(node.Literal),
-			Pre:   "",
+			Pre:   "\n",
 			Post:  "\n",
 		}
 	case bf.Heading:
+		var pre string
+		if node.Prev != nil {
+			pre = "\n"
+		}
+
 		return Element{
 			Token: fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
-			Pre:   "\n",
+			Pre:   pre,
 			Post:  "\n",
 		}
 	case bf.HorizontalRule:
@@ -249,7 +247,6 @@ func NewElement(node *bf.Node) Element {
 			Post:  "",
 		}
 	}
-
 }
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
