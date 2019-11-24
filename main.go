@@ -16,6 +16,8 @@ import (
 )
 
 var (
+	readmeNames = []string{"README.md", "README"}
+
 	rootCmd = &cobra.Command{
 		Use:           "gold SOURCE",
 		Short:         "Render markdown on the CLI, with pizzazz!",
@@ -23,7 +25,6 @@ var (
 		SilenceUsage:  false,
 		RunE:          execute,
 	}
-
 	style string
 )
 
@@ -55,15 +56,26 @@ func readerFromArg(s string) (io.ReadCloser, error) {
 		return resp.Body, nil
 	}
 
+	if len(s) == 0 {
+		for _, v := range readmeNames {
+			r, err := os.Open(v)
+			if err == nil {
+				return r, err
+			}
+		}
+
+		return nil, errors.New("missing markdown source")
+	}
+
 	return os.Open(s)
 }
 
 func execute(cmd *cobra.Command, args []string) error {
-	if len(args) != 1 {
-		return errors.New("missing markdown source")
+	var arg string
+	if len(args) > 0 {
+		arg = args[0]
 	}
-
-	in, err := readerFromArg(args[0])
+	in, err := readerFromArg(arg)
 	if err != nil {
 		return err
 	}
