@@ -21,15 +21,13 @@ var (
 		Short:         "Render markdown on the CLI, with pizzazz!",
 		SilenceErrors: false,
 		SilenceUsage:  false,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return execute(args)
-		},
+		RunE:          execute,
 	}
 
 	style string
 )
 
-func readerFromArgument(s string) (io.ReadCloser, error) {
+func readerFromArg(s string) (io.ReadCloser, error) {
 	if s == "-" {
 		return os.Stdin, nil
 	}
@@ -60,12 +58,12 @@ func readerFromArgument(s string) (io.ReadCloser, error) {
 	return os.Open(s)
 }
 
-func execute(args []string) error {
+func execute(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("missing markdown source")
 	}
 
-	in, err := readerFromArgument(args[0])
+	in, err := readerFromArg(args[0])
 	if err != nil {
 		return err
 	}
