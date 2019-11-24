@@ -3,6 +3,13 @@
     "color": "123",
     "underline": true
   },
+  "link_text": {
+    "color": "123",
+    "bold": true
+  },
+  "image": {
+    "color": "8"
+  },
   "heading": {
     "bold": true,
     "color": "3"
