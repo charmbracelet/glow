@@ -100,7 +100,7 @@ func NewElement(node *bf.Node) Element {
 		return Element{
 			Token: string(node.Literal),
 			Pre:   "\n",
-			Post:  "\n",
+			Post:  "",
 		}
 	case bf.Item:
 		return Element{
@@ -113,7 +113,7 @@ func NewElement(node *bf.Node) Element {
 			return Element{
 				Token: string(node.Literal),
 				Pre:   "\n",
-				Post:  "\n\n",
+				Post:  "\n",
 			}
 		}
 		return Element{
@@ -124,7 +124,7 @@ func NewElement(node *bf.Node) Element {
 	case bf.Heading:
 		return Element{
 			Token: fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
-			Pre:   "",
+			Pre:   "\n",
 			Post:  "\n",
 		}
 	case bf.HorizontalRule:
@@ -184,8 +184,8 @@ func NewElement(node *bf.Node) Element {
 		}
 	case bf.CodeBlock:
 		return Element{
-			Token: fmt.Sprintf("```\n%s\n```\n\n", string(node.Literal)),
-			Pre:   "",
+			Token: string(node.Literal),
+			Pre:   "\n",
 			Post:  "\n",
 		}
 	case bf.Softbreak:
@@ -202,7 +202,7 @@ func NewElement(node *bf.Node) Element {
 		}
 	case bf.Code:
 		return Element{
-			Token: fmt.Sprintf("`%s`", string(node.Literal)),
+			Token: string(node.Literal),
 			Pre:   "",
 			Post:  "",
 		}
