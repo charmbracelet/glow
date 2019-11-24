@@ -110,7 +110,7 @@ func NewElement(node *bf.Node) Element {
 		}
 	case bf.Paragraph:
 		pre := "\n"
-		if node.Parent != nil && node.Parent.Type == bf.Item {
+		if node.Prev == nil || (node.Parent != nil && node.Parent.Type == bf.Item) {
 			pre = ""
 		}
 
