@@ -109,9 +109,14 @@ func NewElement(node *bf.Node) Element {
 			Post:  "",
 		}
 	case bf.Paragraph:
+		pre := "\n"
+		if node.Parent != nil && node.Parent.Type == bf.Item {
+			pre = ""
+		}
+
 		return Element{
 			Token: string(node.Literal),
-			Pre:   "\n",
+			Pre:   pre,
 			Post:  "\n",
 		}
 	case bf.Heading:
