@@ -82,10 +82,11 @@ func execute(cmd *cobra.Command, args []string) error {
 	defer in.Close()
 
 	b, _ := ioutil.ReadAll(in)
-	out, err := gold.RenderBytes(b, style)
+	r, err := gold.NewTermRenderer(style)
 	if err != nil {
 		return err
 	}
+	out := r.RenderBytes(b)
 	fmt.Printf("%s", string(out))
 	return nil
 }
