@@ -23,9 +23,7 @@ func findGitHubREADME(s string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	u.Host = "raw.githubusercontent.com"
-	readmeNames := []string{"README.md", "README"}
 
 	for _, r := range readmeNames {
 		v := u
