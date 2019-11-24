@@ -13,6 +13,36 @@ import (
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
+type StyleType int
+
+const (
+	Document StyleType = iota
+	BlockQuote
+	List
+	Item
+	Paragraph
+	Heading
+	HorizontalRule
+	Emph
+	Strong
+	Del
+	Link
+	LinkText
+	Image
+	Text
+	HTMLBlock
+	CodeBlock
+	Softbreak
+	Hardbreak
+	Code
+	HTMLSpan
+	Table
+	TableCell
+	TableHead
+	TableBody
+	TableRow
+)
+
 type ElementStyle struct {
 	Color           string `json:"color"`
 	BackgroundColor string `json:"background_color"`
@@ -27,14 +57,21 @@ type ElementStyle struct {
 	Blink           bool   `json:"blink"`
 }
 
-type Element struct {
+type Fragment struct {
 	Token string
 	Pre   string
 	Post  string
+	Style StyleType
+}
+
+type Element struct {
+	Pre       string
+	Post      string
+	Fragments []Fragment
 }
 
 type TermRenderer struct {
-	style map[bf.NodeType]*ElementStyle
+	style map[StyleType]*ElementStyle
 }
 
 func Render(in string, stylePath string) ([]byte, error) {
@@ -63,13 +100,13 @@ func NewTermRenderer(stylePath string) (*TermRenderer, error) {
 }
 
 func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
-	e := make(map[string]*ElementStyle, 0)
+	e := make(map[string]*ElementStyle)
 	err := json.Unmarshal(b, &e)
 	if err != nil {
 		return nil, err
 	}
 	tr := &TermRenderer{}
-	tr.style = make(map[bf.NodeType]*ElementStyle)
+	tr.style = make(map[StyleType]*ElementStyle)
 
 	for k, v := range e {
 		t, err := keyToType(k)
@@ -86,27 +123,39 @@ func NewElement(node *bf.Node) Element {
 	switch node.Type {
 	case bf.Document:
 		return Element{
-			Token: "",
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: "",
+				Style: Document,
+			}},
 		}
 	case bf.BlockQuote:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "\n",
-			Post:  "\n",
+			Pre:  "\n",
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: BlockQuote,
+			}},
 		}
 	case bf.List:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "\n",
-			Post:  "",
+			Pre:  "\n",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: List,
+			}},
 		}
 	case bf.Item:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "• ",
-			Post:  "",
+			Pre:  "• ",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: Item,
+			}},
 		}
 	case bf.Paragraph:
 		pre := "\n"
@@ -115,9 +164,12 @@ func NewElement(node *bf.Node) Element {
 		}
 
 		return Element{
-			Token: string(node.Literal),
-			Pre:   pre,
-			Post:  "\n",
+			Pre:  pre,
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: Paragraph,
+			}},
 		}
 	case bf.Heading:
 		var pre string
@@ -126,130 +178,209 @@ func NewElement(node *bf.Node) Element {
 		}
 
 		return Element{
-			Token: fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
-			Pre:   pre,
-			Post:  "\n",
+			Pre:  pre,
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
+				Style: Heading,
+			}},
 		}
 	case bf.HorizontalRule:
 		return Element{
-			Token: "---",
-			Pre:   "\n",
-			Post:  "\n",
+			Pre:  "\n",
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: "---",
+				Style: HorizontalRule,
+			}},
 		}
 	case bf.Emph:
 		return Element{
-			Token: string(node.FirstChild.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.FirstChild.Literal),
+				Style: Emph,
+			}},
 		}
 	case bf.Strong:
 		return Element{
-			Token: string(node.FirstChild.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.FirstChild.Literal),
+				Style: Strong,
+			}},
 		}
 	case bf.Del:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: Del,
+			}},
 		}
 	case bf.Link:
+		f := []Fragment{}
+		if len(node.LastChild.Literal) > 0 {
+			f = append(f, Fragment{
+				Token: string(node.LastChild.Literal),
+				Style: LinkText,
+			})
+		}
+		if len(node.LinkData.Destination) > 0 {
+			f = append(f, Fragment{
+				Token: string(node.LinkData.Destination),
+				Pre:   " (",
+				Post:  ")",
+				Style: Link,
+			})
+		}
+
 		return Element{
-			Token: fmt.Sprintf("[%s](%s)", string(node.LastChild.Literal), string(node.LinkData.Destination)),
-			Pre:   "",
-			Post:  "",
+			Pre:       "",
+			Post:      "",
+			Fragments: f,
 		}
 	case bf.Image:
+		f := []Fragment{}
+		if len(node.LastChild.Literal) > 0 {
+			f = append(f, Fragment{
+				Token: string(node.LastChild.Literal),
+				Style: Image,
+			})
+		}
+		if len(node.LinkData.Destination) > 0 {
+			f = append(f, Fragment{
+				Token: string(node.LinkData.Destination),
+				Pre:   " [Image: ",
+				Post:  "]",
+				Style: Link,
+			})
+		}
+
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:       "",
+			Post:      "",
+			Fragments: f,
 		}
 	case bf.Text:
-		if node.Parent != nil && node.Parent.Type != bf.Link {
-			return Element{
-				Token: string(node.Literal),
-				Pre:   "",
-				Post:  "",
-			}
-		}
 		return Element{
-			Token: "",
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: Text,
+			}},
 		}
 	case bf.HTMLBlock:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "\n",
-			Post:  "\n",
+			Pre:  "\n",
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: HTMLBlock,
+			}},
 		}
 	case bf.CodeBlock:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "\n",
-			Post:  "\n",
+			Pre:  "\n",
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: CodeBlock,
+			}},
 		}
 	case bf.Softbreak:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "\n",
+			Pre:  "",
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: Softbreak,
+			}},
 		}
 	case bf.Hardbreak:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "\n",
-			Post:  "\n",
+			Pre:  "\n",
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: Hardbreak,
+			}},
 		}
 	case bf.Code:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: Code,
+			}},
 		}
 	case bf.HTMLSpan:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: HTMLSpan,
+			}},
 		}
 	case bf.Table:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "\n",
-			Post:  "\n",
+			Pre:  "\n",
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: Table,
+			}},
 		}
 	case bf.TableCell:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: TableCell,
+			}},
 		}
 	case bf.TableHead:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: TableHead,
+			}},
 		}
 	case bf.TableBody:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: TableBody,
+			}},
 		}
 	case bf.TableRow:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "\n",
-			Post:  "\n",
+			Pre:  "\n",
+			Post: "\n",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+				Style: TableRow,
+			}},
 		}
+
 	default:
 		return Element{
-			Token: string(node.Literal),
-			Pre:   "",
-			Post:  "",
+			Pre:  "",
+			Post: "",
+			Fragments: []Fragment{{
+				Token: string(node.Literal),
+			}},
 		}
 	}
 }
@@ -262,30 +393,14 @@ func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 	return bf.Run(in, bf.WithRenderer(tr))
 }
 
-func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
-	// fmt.Fprintf(w, "%s %t", node.Type, entering)
-	el := NewElement(node)
-	if entering && el.Pre != "" {
-		fmt.Fprintf(w, "%s", el.Pre)
-	}
-	if !entering && el.Post != "" {
-		fmt.Fprintf(w, "%s", el.Post)
-	}
-	if isChild(node) {
-		return bf.GoToNext
-	}
-	if !entering {
-		return bf.GoToNext
-	}
-	if el.Token == "" {
-		return bf.GoToNext
-	}
-	rules := tr.style[node.Type]
+func (tr *TermRenderer) renderFragment(w io.Writer, f Fragment) {
+	rules := tr.style[f.Style]
 	if rules == nil {
-		fmt.Fprintf(w, "%s", el.Token)
-		return bf.GoToNext
+		fmt.Fprintf(w, "%s", f.Token)
+		return
 	}
-	out := aurora.Reset(el.Token)
+
+	out := aurora.Reset(f.Token)
 	if rules.Color != "" {
 		i, err := strconv.Atoi(rules.Color)
 		if err == nil && i >= 0 && i <= 255 {
@@ -319,7 +434,40 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	if rules.Blink {
 		out = out.Blink()
 	}
+
 	w.Write([]byte(aurora.Sprintf("%s", out)))
+}
+
+func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
+	// fmt.Fprintf(w, "%s %t", node.Type, entering)
+	e := NewElement(node)
+	if entering && e.Pre != "" {
+		fmt.Fprintf(w, "%s", e.Pre)
+	}
+	if !entering && e.Post != "" {
+		fmt.Fprintf(w, "%s", e.Post)
+	}
+	if isChild(node) {
+		return bf.GoToNext
+	}
+	if !entering {
+		return bf.GoToNext
+	}
+
+	for _, f := range e.Fragments {
+		if f.Token == "" {
+			continue
+		}
+
+		if f.Pre != "" {
+			fmt.Fprintf(w, "%s", f.Pre)
+		}
+		tr.renderFragment(w, f)
+		if f.Post != "" {
+			fmt.Fprintf(w, "%s", f.Post)
+		}
+	}
+
 	return bf.GoToNext
 }
 
@@ -334,64 +482,67 @@ func isChild(node *bf.Node) bool {
 		return false
 	}
 	switch node.Parent.Type {
-	case bf.Heading, bf.Link, bf.Emph, bf.Strong:
+	case bf.Heading, bf.Link, bf.Image, bf.Emph, bf.Strong:
 		return true
 	default:
 		return false
 	}
 }
 
-func keyToType(key string) (bf.NodeType, error) {
+func keyToType(key string) (StyleType, error) {
 	switch key {
 	case "document":
-		return bf.Document, nil
+		return Document, nil
 	case "block_quote":
-		return bf.BlockQuote, nil
+		return BlockQuote, nil
 	case "list":
-		return bf.List, nil
+		return List, nil
 	case "item":
-		return bf.Item, nil
+		return Item, nil
 	case "paragraph":
-		return bf.Paragraph, nil
+		return Paragraph, nil
 	case "heading":
-		return bf.Heading, nil
+		return Heading, nil
 	case "hr":
-		return bf.HorizontalRule, nil
+		return HorizontalRule, nil
 	case "emph":
-		return bf.Emph, nil
+		return Emph, nil
 	case "strong":
-		return bf.Strong, nil
+		return Strong, nil
 	case "del":
-		return bf.Del, nil
+		return Del, nil
 	case "link":
-		return bf.Link, nil
+		return Link, nil
+	case "link_text":
+		return LinkText, nil
 	case "image":
-		return bf.Image, nil
+		return Image, nil
 	case "text":
-		return bf.Text, nil
+		return Text, nil
 	case "html_block":
-		return bf.HTMLBlock, nil
+		return HTMLBlock, nil
 	case "code_block":
-		return bf.CodeBlock, nil
+		return CodeBlock, nil
 	case "softbreak":
-		return bf.Softbreak, nil
+		return Softbreak, nil
 	case "hardbreak":
-		return bf.Hardbreak, nil
+		return Hardbreak, nil
 	case "code":
-		return bf.Code, nil
+		return Code, nil
 	case "html_span":
-		return bf.HTMLSpan, nil
+		return HTMLSpan, nil
 	case "table":
-		return bf.Table, nil
+		return Table, nil
 	case "table_cel":
-		return bf.TableCell, nil
+		return TableCell, nil
 	case "table_head":
-		return bf.TableHead, nil
+		return TableHead, nil
 	case "table_body":
-		return bf.TableBody, nil
+		return TableBody, nil
 	case "table_row":
-		return bf.TableRow, nil
+		return TableRow, nil
+
 	default:
-		return 0, fmt.Errorf("Invalid element type: %s", key)
+		return 0, fmt.Errorf("Invalid style element type: %s", key)
 	}
 }
