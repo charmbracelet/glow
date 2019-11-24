@@ -105,8 +105,8 @@ func NewElement(node *bf.Node) Element {
 	case bf.Item:
 		return Element{
 			Token: string(node.Literal),
-			Pre:   "\n",
-			Post:  "\n",
+			Pre:   "• ",
+			Post:  "",
 		}
 	case bf.Paragraph:
 		if node.Next != nil {
@@ -118,7 +118,7 @@ func NewElement(node *bf.Node) Element {
 		}
 		return Element{
 			Token: string(node.Literal),
-			Pre:   "\n",
+			Pre:   "",
 			Post:  "\n",
 		}
 	case bf.Heading:
