@@ -46,7 +46,7 @@ func RenderBytes(in []byte, stylePath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return bf.Run(in, bf.WithRenderer(r)), nil
+	return r.RenderBytes(in), nil
 }
 
 func NewTermRenderer(stylePath string) (*TermRenderer, error) {
@@ -252,6 +252,14 @@ func NewElement(node *bf.Node) Element {
 			Post:  "",
 		}
 	}
+}
+
+func (tr *TermRenderer) Render(in string) string {
+	return string(tr.RenderBytes([]byte(in)))
+}
+
+func (tr *TermRenderer) RenderBytes(in []byte) []byte {
+	return bf.Run(in, bf.WithRenderer(tr))
 }
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
