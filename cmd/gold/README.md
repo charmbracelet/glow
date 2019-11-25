@@ -18,7 +18,12 @@ Read from stdin:
 
 Fetch README from GitHub:
 ```
-./gold -s dark.json https://github.com/charmbracelet/gold
+./gold -s dark.json github.com/charmbracelet/gold
+```
+
+Fetch markdown from an HTTP source:
+```
+./gold -s dark.json https://host.tld/file.md
 ```
 
 When `gold` is started without any markdown source, it will try to find a `README.md`
