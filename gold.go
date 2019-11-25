@@ -3,6 +3,7 @@ package gold
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"io/ioutil"
 	"os"
@@ -246,7 +247,7 @@ func NewElement(node *bf.Node) Element {
 			Pre:  "",
 			Post: "",
 			Fragments: []Fragment{{
-				Token: stripper.Sanitize(string(node.Literal)),
+				Token: html.UnescapeString(stripper.Sanitize(string(node.Literal))),
 				Style: Text,
 			}},
 		}
@@ -255,7 +256,7 @@ func NewElement(node *bf.Node) Element {
 			Pre:  "",
 			Post: "",
 			Fragments: []Fragment{{
-				Token: strings.TrimSpace(stripper.Sanitize(string(node.Literal))) + "\n",
+				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
 				Style: HTMLBlock,
 			}},
 		}
@@ -300,7 +301,7 @@ func NewElement(node *bf.Node) Element {
 			Pre:  "",
 			Post: "",
 			Fragments: []Fragment{{
-				Token: strings.TrimSpace(stripper.Sanitize(string(node.Literal))) + "\n",
+				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
 				Style: HTMLSpan,
 			}},
 		}
