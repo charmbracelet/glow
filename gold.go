@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alecthomas/chroma/quick"
 	"github.com/logrusorgru/aurora"
 	bf "gopkg.in/russross/blackfriday.v2"
 )
@@ -425,6 +426,14 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	}
 
 	for _, f := range e.Fragments {
+		if node.Type == bf.CodeBlock {
+			err := quick.Highlight(w, f.Token, string(node.CodeBlockData.Info), "terminal16m", "monokai")
+			if err == nil {
+				continue
+			}
+			// if chroma failed, render the fragment as text below
+		}
+
 		if f.Token == "" {
 			continue
 		}
