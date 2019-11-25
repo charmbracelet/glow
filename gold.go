@@ -18,12 +18,16 @@ var (
 	stripper = bluemonday.StrictPolicy()
 )
 
-type TermRenderer struct {
-	BaseURL     string
-	style       map[StyleType]*ElementStyle
+type TableData struct {
 	table       *tablewriter.Table
 	tableHeader []string
 	tableCell   []string
+}
+
+type TermRenderer struct {
+	BaseURL   string
+	style     map[StyleType]*ElementStyle
+	tableData TableData
 }
 
 func Render(in string, stylePath string) ([]byte, error) {
@@ -94,23 +98,14 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	}
 
 	if !entering {
-		if node.Type == bf.TableRow {
-			tr.table.Append(tr.tableCell)
-			tr.tableCell = []string{}
-		}
-		if node.Type == bf.TableHead {
-			tr.table.SetHeader(tr.tableHeader)
-			tr.tableHeader = []string{}
-		}
-		if node.Type == bf.Table {
-			tr.table.Render()
-			tr.table = nil
-			tr.tableHeader = []string{}
+		if e.Finisher != nil {
+			err := e.Finisher.Finish(w, node, tr)
+			if err != nil {
+				fmt.Println(err)
+				return bf.Terminate
+			}
 		}
 		return bf.GoToNext
-	}
-	if node.Type == bf.Table {
-		tr.table = tablewriter.NewWriter(w)
 	}
 
 	if isChild(node) {
