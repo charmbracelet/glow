@@ -433,18 +433,19 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 
 	for _, f := range e.Fragments {
 		if node.Type == bf.CodeBlock {
-			theme := "monokai"
+			theme := ""
 			if rules, ok := tr.style[f.Style]; ok {
 				if len(rules.Theme) > 0 {
 					theme = rules.Theme
 				}
 			}
-
-			err := quick.Highlight(w, f.Token, string(node.CodeBlockData.Info), "terminal16m", theme)
-			if err == nil {
-				continue
+			if len(theme) > 0 {
+				err := quick.Highlight(w, f.Token, string(node.CodeBlockData.Info), "terminal16m", theme)
+				if err == nil {
+					continue
+				}
+				// if chroma failed, render the fragment as text below
 			}
-			// if chroma failed, render the fragment as text below
 		}
 
 		if f.Token == "" {
