@@ -18,7 +18,8 @@
     "color": "200"
   },
   "code_block": {
-    "color": "200"
+    "color": "200",
+    "theme": "solarized-dark"
   },
   "emph": {
     "italic": true
