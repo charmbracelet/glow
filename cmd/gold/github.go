@@ -8,13 +8,17 @@ import (
 )
 
 // isGitHubURL tests a string to determine if it is a well-structured GitHub URL
-func isGitHubURL(s string) bool {
-	u, err := url.ParseRequestURI(s)
-	if err != nil {
-		return false
+func isGitHubURL(s string) (string, bool) {
+	if strings.HasPrefix(s, "github.com/") {
+		s = "https://" + s
 	}
 
-	return strings.ToLower(u.Host) == "github.com"
+	u, err := url.ParseRequestURI(s)
+	if err != nil {
+		return "", false
+	}
+
+	return u.String(), strings.ToLower(u.Host) == "github.com"
 }
 
 // findGitHubREADME tries to find the correct README filename in a repository
