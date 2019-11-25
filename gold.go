@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"github.com/alecthomas/chroma/quick"
+	"github.com/eliukblau/pixterm/ansimage"
 	"github.com/logrusorgru/aurora"
+	"github.com/lucasb-eyer/go-colorful"
 	"github.com/microcosm-cc/bluemonday"
 	bf "gopkg.in/russross/blackfriday.v2"
 )
@@ -230,9 +232,9 @@ func NewElement(node *bf.Node) Element {
 		if len(node.LinkData.Destination) > 0 {
 			f = append(f, Fragment{
 				Token: string(node.LinkData.Destination),
-				Pre:   " [Image: ",
-				Post:  "]",
-				Style: Link,
+				// Pre:   " [Image: ",
+				// Post:  "]",
+				Style: Image,
 			})
 		}
 
@@ -374,6 +376,18 @@ func (tr *TermRenderer) renderFragment(w io.Writer, f Fragment) {
 	rules := tr.style[f.Style]
 	if rules == nil {
 		fmt.Fprintf(w, "%s", f.Token)
+		return
+	}
+
+	if f.Style == Image {
+		sm := ansimage.ScaleMode(2)
+		dm := ansimage.DitheringMode(0)
+		mc, _ := colorful.Hex("#000000")
+		pix, err := ansimage.NewScaledFromURL(f.Token, 62, 80, mc, sm, dm)
+		if err != nil {
+			return
+		}
+		fmt.Fprintf(w, "%s", pix.Render())
 		return
 	}
 
