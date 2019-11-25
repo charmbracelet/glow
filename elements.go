@@ -147,19 +147,17 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 	case bf.Table:
 		return Element{
 			Entering: "\n",
-			Exiting:  "\n",
 		}
 	case bf.TableCell:
-		return Element{}
+		return Element{
+			Renderer: &TableCellElement{},
+		}
 	case bf.TableHead:
 		return Element{}
 	case bf.TableBody:
 		return Element{}
 	case bf.TableRow:
-		return Element{
-			Entering: "\n",
-			Exiting:  "\n",
-		}
+		return Element{}
 
 	default:
 		return Element{

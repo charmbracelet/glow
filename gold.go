@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/olekukonko/tablewriter"
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
@@ -18,8 +19,11 @@ var (
 )
 
 type TermRenderer struct {
-	BaseURL string
-	style   map[StyleType]*ElementStyle
+	BaseURL     string
+	style       map[StyleType]*ElementStyle
+	table       *tablewriter.Table
+	tableHeader []string
+	tableCell   []string
 }
 
 func Render(in string, stylePath string) ([]byte, error) {
@@ -88,10 +92,28 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	if !entering && e.Exiting != "" {
 		fmt.Fprintf(w, "%s", e.Exiting)
 	}
-	if isChild(node) {
+
+	if !entering {
+		if node.Type == bf.TableRow {
+			tr.table.Append(tr.tableCell)
+			tr.tableCell = []string{}
+		}
+		if node.Type == bf.TableHead {
+			tr.table.SetHeader(tr.tableHeader)
+			tr.tableHeader = []string{}
+		}
+		if node.Type == bf.Table {
+			tr.table.Render()
+			tr.table = nil
+			tr.tableHeader = []string{}
+		}
 		return bf.GoToNext
 	}
-	if !entering {
+	if node.Type == bf.Table {
+		tr.table = tablewriter.NewWriter(w)
+	}
+
+	if isChild(node) {
 		return bf.GoToNext
 	}
 
@@ -117,7 +139,7 @@ func isChild(node *bf.Node) bool {
 		return false
 	}
 	switch node.Parent.Type {
-	case bf.Heading, bf.Link, bf.Image, bf.Emph, bf.Strong:
+	case bf.Heading, bf.Link, bf.Image, bf.TableCell, bf.Emph, bf.Strong:
 		return true
 	default:
 		return false
