@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
@@ -43,7 +42,7 @@ func readerFromArg(s string) (io.ReadCloser, error) {
 	}
 
 	if u, err := url.ParseRequestURI(s); err == nil {
-		if !strings.HasPrefix(u.Scheme, "http") {
+		if u.Scheme != "http" && u.Scheme != "https" {
 			return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
 		}
 
@@ -61,7 +60,7 @@ func readerFromArg(s string) (io.ReadCloser, error) {
 		for _, v := range readmeNames {
 			r, err := os.Open(v)
 			if err == nil {
-				return r, err
+				return r, nil
 			}
 		}
 
