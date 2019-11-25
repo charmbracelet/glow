@@ -34,17 +34,17 @@ func readerFromArg(s string) (io.ReadCloser, error) {
 		return os.Stdin, nil
 	}
 
+	if u, ok := isGitHubURL(s); ok {
+		resp, err := findGitHubREADME(u)
+		if err != nil {
+			return nil, err
+		}
+		return resp.Body, nil
+	}
+
 	if u, err := url.ParseRequestURI(s); err == nil {
 		if !strings.HasPrefix(u.Scheme, "http") {
 			return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
-		}
-
-		if isGitHubURL(s) {
-			resp, err := findGitHubREADME(s)
-			if err != nil {
-				return nil, err
-			}
-			return resp.Body, nil
 		}
 
 		resp, err := http.Get(u.String())
