@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/mattn/go-isatty"
-	"github.com/mitchellh/go-wordwrap"
+	"github.com/muesli/go-wordwrap"
 	"github.com/spf13/cobra"
 
 	"github.com/charmbracelet/gold"
