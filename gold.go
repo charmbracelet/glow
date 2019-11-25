@@ -86,6 +86,10 @@ func RenderBytes(in []byte, stylePath string) ([]byte, error) {
 	return r.RenderBytes(in), nil
 }
 
+func NewPlainTermRenderer() *TermRenderer {
+	return &TermRenderer{}
+}
+
 func NewTermRenderer(stylePath string) (*TermRenderer, error) {
 	if stylePath == "" {
 		return NewTermRendererFromBytes([]byte("{}"))
