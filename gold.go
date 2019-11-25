@@ -11,7 +11,12 @@ import (
 
 	"github.com/alecthomas/chroma/quick"
 	"github.com/logrusorgru/aurora"
+	"github.com/microcosm-cc/bluemonday"
 	bf "gopkg.in/russross/blackfriday.v2"
+)
+
+var (
+	stripper = bluemonday.StrictPolicy()
 )
 
 type Fragment struct {
@@ -247,10 +252,10 @@ func NewElement(node *bf.Node) Element {
 		}
 	case bf.HTMLBlock:
 		return Element{
-			Pre:  "\n",
-			Post: "\n",
+			Pre:  "",
+			Post: "",
 			Fragments: []Fragment{{
-				Token: string(node.Literal),
+				Token: strings.TrimSpace(stripper.Sanitize(string(node.Literal))) + "\n",
 				Style: HTMLBlock,
 			}},
 		}
