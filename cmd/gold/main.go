@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/mattn/go-isatty"
+	"github.com/mitchellh/go-wordwrap"
 	"github.com/spf13/cobra"
 
 	"github.com/charmbracelet/gold"
@@ -25,7 +26,9 @@ var (
 		SilenceUsage:  false,
 		RunE:          execute,
 	}
+
 	style string
+	width uint
 )
 
 func readerFromArg(s string) (io.ReadCloser, error) {
@@ -91,7 +94,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	}
 
 	out := r.RenderBytes(b)
-	fmt.Printf("%s", string(out))
+	fmt.Printf("%s", wordwrap.WrapString(string(out), width))
 	return nil
 }
 
@@ -103,4 +106,5 @@ func main() {
 
 func init() {
 	rootCmd.Flags().StringVarP(&style, "style", "s", "dark.json", "style JSON path")
+	rootCmd.Flags().UintVarP(&width, "width", "w", 100, "word-wrap at width")
 }
