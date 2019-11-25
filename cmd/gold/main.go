@@ -43,6 +43,13 @@ func readerFromArg(s string) (io.ReadCloser, error) {
 		}
 		return resp.Body, nil
 	}
+	if u, ok := isGitLabURL(s); ok {
+		resp, err := findGitLabREADME(u)
+		if err != nil {
+			return nil, err
+		}
+		return resp.Body, nil
+	}
 
 	if u, err := url.ParseRequestURI(s); err == nil {
 		if u.Scheme != "http" && u.Scheme != "https" {
