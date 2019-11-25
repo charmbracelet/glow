@@ -58,25 +58,28 @@ func readerFromArg(s string) (*Source, error) {
 	}
 
 	if u, err := url.ParseRequestURI(s); err == nil {
-		if u.Scheme != "http" && u.Scheme != "https" {
-			return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
-		}
+		if u.Scheme != "" {
+			if u.Scheme != "http" && u.Scheme != "https" {
+				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
+			}
 
-		resp, err := http.Get(u.String())
-		if err != nil {
-			return nil, err
+			resp, err := http.Get(u.String())
+			if err != nil {
+				return nil, err
+			}
+			if resp.StatusCode != http.StatusOK {
+				return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
+			}
+			return &Source{resp.Body, u.String()}, nil
 		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
-		}
-		return &Source{resp.Body, u.String()}, nil
 	}
 
 	if len(s) == 0 {
 		for _, v := range readmeNames {
 			r, err := os.Open(v)
 			if err == nil {
-				return &Source{reader: r}, nil
+				u, _ := filepath.Abs(v)
+				return &Source{r, u}, nil
 			}
 		}
 
@@ -84,7 +87,8 @@ func readerFromArg(s string) (*Source, error) {
 	}
 
 	r, err := os.Open(s)
-	return &Source{reader: r}, err
+	u, _ := filepath.Abs(s)
+	return &Source{r, u}, err
 }
 
 func execute(cmd *cobra.Command, args []string) error {
