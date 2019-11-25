@@ -6,6 +6,8 @@ import (
 	"html"
 	"io"
 	"io/ioutil"
+	"log"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -34,7 +36,8 @@ type Element struct {
 }
 
 type TermRenderer struct {
-	style map[StyleType]*ElementStyle
+	BaseURL string
+	style   map[StyleType]*ElementStyle
 }
 
 func Render(in string, stylePath string) ([]byte, error) {
@@ -86,7 +89,26 @@ func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
 	return tr, nil
 }
 
-func NewElement(node *bf.Node) Element {
+func resolveRelativeURL(baseURL string, rel string) string {
+	u, err := url.Parse(rel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if u.IsAbs() {
+		return rel
+	}
+	if u.Path[0] == '/' {
+		u.Path = u.Path[1:]
+	}
+
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return rel
+	}
+	return base.ResolveReference(u).String()
+}
+
+func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 	switch node.Type {
 	case bf.Document:
 		return Element{
@@ -194,7 +216,7 @@ func NewElement(node *bf.Node) Element {
 
 		if node.LastChild != nil {
 			if node.LastChild.Type == bf.Image {
-				el := NewElement(node.LastChild)
+				el := tr.NewElement(node.LastChild)
 				f = el.Fragments
 			}
 			if len(node.LastChild.Literal) > 0 {
@@ -206,7 +228,7 @@ func NewElement(node *bf.Node) Element {
 		}
 		if len(node.LinkData.Destination) > 0 {
 			f = append(f, Fragment{
-				Token: string(node.LinkData.Destination),
+				Token: resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
 				Pre:   " (",
 				Post:  ")",
 				Style: Link,
@@ -229,7 +251,7 @@ func NewElement(node *bf.Node) Element {
 		}
 		if len(node.LinkData.Destination) > 0 {
 			f = append(f, Fragment{
-				Token: string(node.LinkData.Destination),
+				Token: resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
 				Pre:   " [Image: ",
 				Post:  "]",
 				Style: Link,
@@ -417,7 +439,7 @@ func (tr *TermRenderer) renderFragment(w io.Writer, f Fragment) {
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	// fmt.Fprintf(w, "%s %t", node.Type, entering)
-	e := NewElement(node)
+	e := tr.NewElement(node)
 	if entering && e.Pre != "" {
 		fmt.Fprintf(w, "%s", e.Pre)
 	}
