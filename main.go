@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"github.com/mattn/go-isatty"
 	"github.com/muesli/go-wordwrap"
@@ -31,24 +32,29 @@ var (
 	width uint
 )
 
-func readerFromArg(s string) (io.ReadCloser, error) {
+type Source struct {
+	reader io.ReadCloser
+	URL    string
+}
+
+func readerFromArg(s string) (*Source, error) {
 	if s == "-" {
-		return os.Stdin, nil
+		return &Source{reader: os.Stdin}, nil
 	}
 
 	if u, ok := isGitHubURL(s); ok {
-		resp, err := findGitHubREADME(u)
+		src, err := findGitHubREADME(u)
 		if err != nil {
 			return nil, err
 		}
-		return resp.Body, nil
+		return src, nil
 	}
 	if u, ok := isGitLabURL(s); ok {
-		resp, err := findGitLabREADME(u)
+		src, err := findGitLabREADME(u)
 		if err != nil {
 			return nil, err
 		}
-		return resp.Body, nil
+		return src, nil
 	}
 
 	if u, err := url.ParseRequestURI(s); err == nil {
@@ -63,21 +69,22 @@ func readerFromArg(s string) (io.ReadCloser, error) {
 		if resp.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 		}
-		return resp.Body, nil
+		return &Source{resp.Body, u.String()}, nil
 	}
 
 	if len(s) == 0 {
 		for _, v := range readmeNames {
 			r, err := os.Open(v)
 			if err == nil {
-				return r, nil
+				return &Source{reader: r}, nil
 			}
 		}
 
 		return nil, errors.New("missing markdown source")
 	}
 
-	return os.Open(s)
+	r, err := os.Open(s)
+	return &Source{reader: r}, err
 }
 
 func execute(cmd *cobra.Command, args []string) error {
@@ -85,12 +92,12 @@ func execute(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		arg = args[0]
 	}
-	in, err := readerFromArg(arg)
+	src, err := readerFromArg(arg)
 	if err != nil {
 		return err
 	}
-	defer in.Close()
-	b, _ := ioutil.ReadAll(in)
+	defer src.reader.Close()
+	b, _ := ioutil.ReadAll(src.reader)
 
 	r := gold.NewPlainTermRenderer()
 	if isatty.IsTerminal(os.Stdout.Fd()) {
@@ -98,6 +105,12 @@ func execute(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	u, err := url.ParseRequestURI(src.URL)
+	if err == nil {
+		u.Path = filepath.Dir(u.Path)
+		r.BaseURL = u.String() + "/"
 	}
 
 	out := r.RenderBytes(b)
