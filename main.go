@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
 	"github.com/charmbracelet/gold"
@@ -80,12 +81,16 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer in.Close()
-
 	b, _ := ioutil.ReadAll(in)
-	r, err := gold.NewTermRenderer(style)
-	if err != nil {
-		return err
+
+	r := gold.NewPlainTermRenderer()
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		r, err = gold.NewTermRenderer(style)
+		if err != nil {
+			return err
+		}
 	}
+
 	out := r.RenderBytes(b)
 	fmt.Printf("%s", string(out))
 	return nil
