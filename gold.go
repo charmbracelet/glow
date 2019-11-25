@@ -221,13 +221,21 @@ func NewElement(node *bf.Node) Element {
 				Style: Del,
 			}},
 		}
+
 	case bf.Link:
 		f := []Fragment{}
-		if len(node.LastChild.Literal) > 0 {
-			f = append(f, Fragment{
-				Token: string(node.LastChild.Literal),
-				Style: LinkText,
-			})
+
+		if node.LastChild != nil {
+			if node.LastChild.Type == bf.Image {
+				el := NewElement(node.LastChild)
+				f = el.Fragments
+			}
+			if len(node.LastChild.Literal) > 0 {
+				f = append(f, Fragment{
+					Token: string(node.LastChild.Literal),
+					Style: LinkText,
+				})
+			}
 		}
 		if len(node.LinkData.Destination) > 0 {
 			f = append(f, Fragment{
@@ -243,6 +251,7 @@ func NewElement(node *bf.Node) Element {
 			Post:      "",
 			Fragments: f,
 		}
+
 	case bf.Image:
 		f := []Fragment{}
 		if len(node.LastChild.Literal) > 0 {
@@ -265,6 +274,7 @@ func NewElement(node *bf.Node) Element {
 			Post:      "",
 			Fragments: f,
 		}
+
 	case bf.Text:
 		return Element{
 			Pre:  "",
