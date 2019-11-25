@@ -433,7 +433,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 
 	for _, f := range e.Fragments {
 		if node.Type == bf.CodeBlock {
-			theme := ""
+			var theme string
 			if rules, ok := tr.style[f.Style]; ok {
 				if len(rules.Theme) > 0 {
 					theme = rules.Theme
