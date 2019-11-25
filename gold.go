@@ -246,7 +246,7 @@ func NewElement(node *bf.Node) Element {
 			Pre:  "",
 			Post: "",
 			Fragments: []Fragment{{
-				Token: string(node.Literal),
+				Token: stripper.Sanitize(string(node.Literal)),
 				Style: Text,
 			}},
 		}
@@ -300,7 +300,7 @@ func NewElement(node *bf.Node) Element {
 			Pre:  "",
 			Post: "",
 			Fragments: []Fragment{{
-				Token: string(node.Literal),
+				Token: strings.TrimSpace(stripper.Sanitize(string(node.Literal))) + "\n",
 				Style: HTMLSpan,
 			}},
 		}
