@@ -16,9 +16,9 @@ func (e *ListElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}
 
 	el := &BaseElement{
-		Pre:   pre,
-		Token: string(node.Literal),
-		Style: List,
+		Prefix: pre,
+		Token:  string(node.Literal),
+		Style:  List,
 	}
 	return el.Render(w, node, tr)
 }

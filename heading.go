@@ -18,9 +18,9 @@ func (e *HeadingElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) er
 	}
 
 	el := &BaseElement{
-		Pre:   pre,
-		Token: fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
-		Style: Heading,
+		Prefix: pre,
+		Token:  fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
+		Style:  Heading,
 	}
 	return el.Render(w, node, tr)
 }

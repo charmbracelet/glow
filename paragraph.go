@@ -16,9 +16,9 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 
 	el := &BaseElement{
-		Pre:   pre,
-		Token: string(node.Literal),
-		Style: Paragraph,
+		Prefix: pre,
+		Token:  string(node.Literal),
+		Style:  Paragraph,
 	}
 	return el.Render(w, node, tr)
 }

@@ -10,19 +10,19 @@ import (
 )
 
 type BaseElement struct {
-	Token string
-	Pre   string
-	Post  string
-	Style StyleType
+	Token  string
+	Prefix string
+	Suffix string
+	Style  StyleType
 }
 
 func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	if e.Pre != "" {
-		fmt.Fprintf(w, "%s", e.Pre)
+	if e.Prefix != "" {
+		fmt.Fprintf(w, "%s", e.Prefix)
 	}
 	defer func() {
-		if e.Post != "" {
-			fmt.Fprintf(w, "%s", e.Post)
+		if e.Suffix != "" {
+			fmt.Fprintf(w, "%s", e.Suffix)
 		}
 	}()
 

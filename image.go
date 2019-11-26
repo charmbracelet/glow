@@ -19,10 +19,10 @@ func (e *ImageElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 	}
 	if len(node.LinkData.Destination) > 0 {
 		el := &BaseElement{
-			Token: resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
-			Pre:   " [Image: ",
-			Post:  "]",
-			Style: Link,
+			Token:  resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
+			Prefix: " [Image: ",
+			Suffix: "]",
+			Style:  Link,
 		}
 		el.Render(w, node, tr)
 	}
