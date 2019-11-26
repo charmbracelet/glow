@@ -3,17 +3,12 @@ package gold
 import (
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
-	"strconv"
-	"strings"
 
-	"github.com/alecthomas/chroma/quick"
-	"github.com/logrusorgru/aurora"
 	"github.com/microcosm-cc/bluemonday"
 	bf "gopkg.in/russross/blackfriday.v2"
 )
@@ -21,19 +16,6 @@ import (
 var (
 	stripper = bluemonday.StrictPolicy()
 )
-
-type Fragment struct {
-	Token string
-	Pre   string
-	Post  string
-	Style StyleType
-}
-
-type Element struct {
-	Pre       string
-	Post      string
-	Fragments []Fragment
-}
 
 type TermRenderer struct {
 	BaseURL string
@@ -89,364 +71,12 @@ func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
 	return tr, nil
 }
 
-func resolveRelativeURL(baseURL string, rel string) string {
-	u, err := url.Parse(rel)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if u.IsAbs() {
-		return rel
-	}
-	if u.Path[0] == '/' {
-		u.Path = u.Path[1:]
-	}
-
-	base, err := url.Parse(baseURL)
-	if err != nil {
-		return rel
-	}
-	return base.ResolveReference(u).String()
-}
-
-func (tr *TermRenderer) NewElement(node *bf.Node) Element {
-	switch node.Type {
-	case bf.Document:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: "",
-				Style: Document,
-			}},
-		}
-	case bf.BlockQuote:
-		return Element{
-			Pre:  "\n",
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: BlockQuote,
-			}},
-		}
-	case bf.List:
-		pre := ""
-		if node.Parent.Type != bf.Item {
-			pre = "\n"
-		}
-		return Element{
-			Pre:  pre,
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: List,
-			}},
-		}
-	case bf.Item:
-		l := 0
-		n := node
-		for n.Parent != nil && (n.Parent.Type == bf.List || n.Parent.Type == bf.Item) {
-			if n.Parent.Type == bf.List {
-				l++
-			}
-			n = n.Parent
-		}
-		return Element{
-			Pre:  strings.Repeat("  ", l-1) + "• ",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: Item,
-			}},
-		}
-	case bf.Paragraph:
-		pre := "\n"
-		if node.Prev == nil || (node.Parent != nil && node.Parent.Type == bf.Item) {
-			pre = ""
-		}
-
-		return Element{
-			Pre:  pre,
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: Paragraph,
-			}},
-		}
-	case bf.Heading:
-		var pre string
-		if node.Prev != nil {
-			pre = "\n"
-		}
-
-		return Element{
-			Pre:  pre,
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
-				Style: Heading,
-			}},
-		}
-	case bf.HorizontalRule:
-		return Element{
-			Pre:  "\n",
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: "---",
-				Style: HorizontalRule,
-			}},
-		}
-	case bf.Emph:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.FirstChild.Literal),
-				Style: Emph,
-			}},
-		}
-	case bf.Strong:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.FirstChild.Literal),
-				Style: Strong,
-			}},
-		}
-	case bf.Del:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: Del,
-			}},
-		}
-
-	case bf.Link:
-		f := []Fragment{}
-
-		if node.LastChild != nil {
-			if node.LastChild.Type == bf.Image {
-				el := tr.NewElement(node.LastChild)
-				f = el.Fragments
-			}
-			if len(node.LastChild.Literal) > 0 {
-				f = append(f, Fragment{
-					Token: string(node.LastChild.Literal),
-					Style: LinkText,
-				})
-			}
-		}
-		if len(node.LinkData.Destination) > 0 {
-			f = append(f, Fragment{
-				Token: resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
-				Pre:   " (",
-				Post:  ")",
-				Style: Link,
-			})
-		}
-
-		return Element{
-			Pre:       "",
-			Post:      "",
-			Fragments: f,
-		}
-
-	case bf.Image:
-		f := []Fragment{}
-		if len(node.LastChild.Literal) > 0 {
-			f = append(f, Fragment{
-				Token: string(node.LastChild.Literal),
-				Style: Image,
-			})
-		}
-		if len(node.LinkData.Destination) > 0 {
-			f = append(f, Fragment{
-				Token: resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
-				Pre:   " [Image: ",
-				Post:  "]",
-				Style: Link,
-			})
-		}
-
-		return Element{
-			Pre:       "",
-			Post:      "",
-			Fragments: f,
-		}
-
-	case bf.Text:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: html.UnescapeString(stripper.Sanitize(string(node.Literal))),
-				Style: Text,
-			}},
-		}
-	case bf.HTMLBlock:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
-				Style: HTMLBlock,
-			}},
-		}
-	case bf.CodeBlock:
-		return Element{
-			Pre:  "\n",
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: CodeBlock,
-			}},
-		}
-	case bf.Softbreak:
-		return Element{
-			Pre:  "",
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: Softbreak,
-			}},
-		}
-	case bf.Hardbreak:
-		return Element{
-			Pre:  "",
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: Hardbreak,
-			}},
-		}
-	case bf.Code:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: Code,
-			}},
-		}
-	case bf.HTMLSpan:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
-				Style: HTMLSpan,
-			}},
-		}
-	case bf.Table:
-		return Element{
-			Pre:  "\n",
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: Table,
-			}},
-		}
-	case bf.TableCell:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: TableCell,
-			}},
-		}
-	case bf.TableHead:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: TableHead,
-			}},
-		}
-	case bf.TableBody:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: TableBody,
-			}},
-		}
-	case bf.TableRow:
-		return Element{
-			Pre:  "\n",
-			Post: "\n",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-				Style: TableRow,
-			}},
-		}
-
-	default:
-		return Element{
-			Pre:  "",
-			Post: "",
-			Fragments: []Fragment{{
-				Token: string(node.Literal),
-			}},
-		}
-	}
-}
-
 func (tr *TermRenderer) Render(in string) string {
 	return string(tr.RenderBytes([]byte(in)))
 }
 
 func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 	return bf.Run(in, bf.WithRenderer(tr))
-}
-
-func (tr *TermRenderer) renderFragment(w io.Writer, f Fragment) {
-	rules := tr.style[f.Style]
-	if rules == nil {
-		fmt.Fprintf(w, "%s", f.Token)
-		return
-	}
-
-	out := aurora.Reset(f.Token)
-	if rules.Color != "" {
-		i, err := strconv.Atoi(rules.Color)
-		if err == nil && i >= 0 && i <= 255 {
-			out = out.Index(uint8(i))
-		}
-	}
-	if rules.BackgroundColor != "" {
-		i, err := strconv.Atoi(rules.BackgroundColor)
-		if err == nil && i >= 0 && i <= 255 {
-			out = out.Index(uint8(i))
-		}
-	}
-	if rules.Underline {
-		out = out.Underline()
-	}
-	if rules.Bold {
-		out = out.Bold()
-	}
-	if rules.Italic {
-		out = out.Italic()
-	}
-	if rules.CrossedOut {
-		out = out.CrossedOut()
-	}
-	if rules.Overlined {
-		out = out.Overlined()
-	}
-	if rules.Inverse {
-		out = out.Reverse()
-	}
-	if rules.Blink {
-		out = out.Blink()
-	}
-
-	w.Write([]byte(aurora.Sprintf("%s", out)))
 }
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
@@ -465,33 +95,10 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 		return bf.GoToNext
 	}
 
-	for _, f := range e.Fragments {
-		if node.Type == bf.CodeBlock {
-			var theme string
-			if rules, ok := tr.style[f.Style]; ok {
-				if len(rules.Theme) > 0 {
-					theme = rules.Theme
-				}
-			}
-			if len(theme) > 0 {
-				err := quick.Highlight(w, f.Token, string(node.CodeBlockData.Info), "terminal16m", theme)
-				if err == nil {
-					continue
-				}
-				// if chroma failed, render the fragment as text below
-			}
-		}
-
-		if f.Token == "" {
-			continue
-		}
-
-		if f.Pre != "" {
-			fmt.Fprintf(w, "%s", f.Pre)
-		}
-		tr.renderFragment(w, f)
-		if f.Post != "" {
-			fmt.Fprintf(w, "%s", f.Post)
+	if e.Renderer != nil {
+		err := e.Renderer.Render(w, node, tr)
+		if err == nil {
+			return bf.GoToNext
 		}
 	}
 
@@ -514,4 +121,23 @@ func isChild(node *bf.Node) bool {
 	default:
 		return false
 	}
+}
+
+func resolveRelativeURL(baseURL string, rel string) string {
+	u, err := url.Parse(rel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if u.IsAbs() {
+		return rel
+	}
+	if u.Path[0] == '/' {
+		u.Path = u.Path[1:]
+	}
+
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return rel
+	}
+	return base.ResolveReference(u).String()
 }
