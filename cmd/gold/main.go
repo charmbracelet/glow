@@ -12,9 +12,11 @@ import (
 
 	"github.com/mattn/go-isatty"
 	"github.com/muesli/go-wordwrap"
+	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cobra"
 
 	"github.com/charmbracelet/gold"
+	_ "github.com/charmbracelet/gold/cmd/gold/statik"
 )
 
 var (
@@ -91,6 +93,27 @@ func readerFromArg(s string) (*Source, error) {
 	return &Source{r, u}, err
 }
 
+func loadStyle(f string) ([]byte, error) {
+	var r io.ReadCloser
+	var err error
+
+	r, err = os.Open(f)
+	if err != nil {
+		statikFS, err := fs.New()
+		if err != nil {
+			return nil, err
+		}
+
+		r, err = statikFS.Open("/" + f + ".json")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	defer r.Close()
+	return ioutil.ReadAll(r)
+}
+
 func execute(cmd *cobra.Command, args []string) error {
 	var arg string
 	if len(args) > 0 {
@@ -105,7 +128,12 @@ func execute(cmd *cobra.Command, args []string) error {
 
 	r := gold.NewPlainTermRenderer()
 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		r, err = gold.NewTermRenderer(style)
+		json, err := loadStyle(style)
+		if err != nil {
+			return err
+		}
+
+		r, err = gold.NewTermRendererFromBytes(json)
 		if err != nil {
 			return err
 		}
@@ -129,6 +157,6 @@ func main() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&style, "style", "s", "dark.json", "style JSON path")
+	rootCmd.Flags().StringVarP(&style, "style", "s", "dark", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 100, "word-wrap at width")
 }
