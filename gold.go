@@ -129,8 +129,12 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			}},
 		}
 	case bf.List:
+		pre := ""
+		if node.Parent.Type != bf.Item {
+			pre = "\n"
+		}
 		return Element{
-			Pre:  "\n",
+			Pre:  pre,
 			Post: "",
 			Fragments: []Fragment{{
 				Token: string(node.Literal),
@@ -138,8 +142,16 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			}},
 		}
 	case bf.Item:
+		l := 0
+		n := node
+		for n.Parent != nil && (n.Parent.Type == bf.List || n.Parent.Type == bf.Item) {
+			if n.Parent.Type == bf.List {
+				l++
+			}
+			n = n.Parent
+		}
 		return Element{
-			Pre:  "• ",
+			Pre:  strings.Repeat("  ", l-1) + "• ",
 			Post: "",
 			Fragments: []Fragment{{
 				Token: string(node.Literal),
@@ -302,7 +314,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.Hardbreak:
 		return Element{
-			Pre:  "\n",
+			Pre:  "",
 			Post: "\n",
 			Fragments: []Fragment{{
 				Token: string(node.Literal),
