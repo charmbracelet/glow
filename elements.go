@@ -12,10 +12,15 @@ type ElementRenderer interface {
 	Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 }
 
+type ElementFinisher interface {
+	Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error
+}
+
 type Element struct {
 	Entering string
 	Exiting  string
 	Renderer ElementRenderer
+	Finisher ElementFinisher
 }
 
 func (tr *TermRenderer) NewElement(node *bf.Node) Element {
@@ -147,18 +152,22 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 	case bf.Table:
 		return Element{
 			Entering: "\n",
-			Exiting:  "\n",
+			Renderer: &TableElement{},
+			Finisher: &TableElement{},
 		}
 	case bf.TableCell:
-		return Element{}
+		return Element{
+			Renderer: &TableCellElement{},
+		}
 	case bf.TableHead:
-		return Element{}
+		return Element{
+			Finisher: &TableHeadElement{},
+		}
 	case bf.TableBody:
 		return Element{}
 	case bf.TableRow:
 		return Element{
-			Entering: "\n",
-			Exiting:  "\n",
+			Finisher: &TableRowElement{},
 		}
 
 	default:

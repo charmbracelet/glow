@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/olekukonko/tablewriter"
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
@@ -17,9 +18,16 @@ var (
 	stripper = bluemonday.StrictPolicy()
 )
 
+type TableData struct {
+	table       *tablewriter.Table
+	tableHeader []string
+	tableCell   []string
+}
+
 type TermRenderer struct {
-	BaseURL string
-	style   map[StyleType]*ElementStyle
+	BaseURL   string
+	style     map[StyleType]*ElementStyle
+	tableData TableData
 }
 
 func Render(in string, stylePath string) ([]byte, error) {
@@ -88,10 +96,19 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	if !entering && e.Exiting != "" {
 		fmt.Fprintf(w, "%s", e.Exiting)
 	}
-	if isChild(node) {
+
+	if !entering {
+		if e.Finisher != nil {
+			err := e.Finisher.Finish(w, node, tr)
+			if err != nil {
+				fmt.Println(err)
+				return bf.Terminate
+			}
+		}
 		return bf.GoToNext
 	}
-	if !entering {
+
+	if isChild(node) {
 		return bf.GoToNext
 	}
 
@@ -117,7 +134,7 @@ func isChild(node *bf.Node) bool {
 		return false
 	}
 	switch node.Parent.Type {
-	case bf.Heading, bf.Link, bf.Image, bf.Emph, bf.Strong:
+	case bf.Heading, bf.Link, bf.Image, bf.TableCell, bf.Emph, bf.Strong:
 		return true
 	default:
 		return false
