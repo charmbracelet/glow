@@ -90,14 +90,24 @@ func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	// fmt.Fprintf(w, "%s %t", node.Type, entering)
 	e := tr.NewElement(node)
-	if entering && e.Entering != "" {
-		fmt.Fprintf(w, "%s", e.Entering)
-	}
-	if !entering && e.Exiting != "" {
-		fmt.Fprintf(w, "%s", e.Exiting)
-	}
 
-	if !entering {
+	if entering {
+		if e.Entering != "" {
+			fmt.Fprintf(w, "%s", e.Entering)
+		}
+
+		if isChild(node) {
+			return bf.GoToNext
+		}
+
+		if e.Renderer != nil {
+			err := e.Renderer.Render(w, node, tr)
+			if err != nil {
+				fmt.Println(err)
+				return bf.Terminate
+			}
+		}
+	} else {
 		if e.Finisher != nil {
 			err := e.Finisher.Finish(w, node, tr)
 			if err != nil {
@@ -105,18 +115,9 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 				return bf.Terminate
 			}
 		}
-		return bf.GoToNext
-	}
 
-	if isChild(node) {
-		return bf.GoToNext
-	}
-
-	if e.Renderer != nil {
-		err := e.Renderer.Render(w, node, tr)
-		if err != nil {
-			fmt.Println(err)
-			return bf.Terminate
+		if e.Exiting != "" {
+			fmt.Fprintf(w, "%s", e.Exiting)
 		}
 	}
 
