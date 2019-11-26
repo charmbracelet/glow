@@ -67,6 +67,6 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		out = out.Blink()
 	}
 
-	w.Write([]byte(aurora.Sprintf("%s", out)))
-	return nil
+	_, err := w.Write([]byte(aurora.Sprintf("%s", out)))
+	return err
 }

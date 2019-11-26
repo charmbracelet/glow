@@ -13,14 +13,20 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	if node.LastChild != nil {
 		if node.LastChild.Type == bf.Image {
 			el := tr.NewElement(node.LastChild)
-			el.Renderer.Render(w, node.LastChild, tr)
+			err := el.Renderer.Render(w, node.LastChild, tr)
+			if err != nil {
+				return err
+			}
 		}
 		if len(node.LastChild.Literal) > 0 {
 			el := &BaseElement{
 				Token: string(node.LastChild.Literal),
 				Style: LinkText,
 			}
-			el.Render(w, node.LastChild, tr)
+			err := el.Render(w, node.LastChild, tr)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	if len(node.LinkData.Destination) > 0 {
@@ -30,7 +36,10 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 			Suffix: ")",
 			Style:  Link,
 		}
-		el.Render(w, node, tr)
+		err := el.Render(w, node, tr)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

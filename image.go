@@ -15,7 +15,10 @@ func (e *ImageElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 			Token: string(node.LastChild.Literal),
 			Style: Image,
 		}
-		el.Render(w, node.LastChild, tr)
+		err := el.Render(w, node.LastChild, tr)
+		if err != nil {
+			return err
+		}
 	}
 	if len(node.LinkData.Destination) > 0 {
 		el := &BaseElement{
@@ -24,7 +27,10 @@ func (e *ImageElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 			Suffix: "]",
 			Style:  Link,
 		}
-		el.Render(w, node, tr)
+		err := el.Render(w, node, tr)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
