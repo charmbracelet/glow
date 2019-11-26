@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/olekukonko/tablewriter"
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
@@ -18,16 +17,10 @@ var (
 	stripper = bluemonday.StrictPolicy()
 )
 
-type TableData struct {
-	table       *tablewriter.Table
-	tableHeader []string
-	tableCell   []string
-}
-
 type TermRenderer struct {
-	BaseURL   string
-	style     map[StyleType]*ElementStyle
-	tableData TableData
+	BaseURL string
+	style   map[StyleType]*ElementStyle
+	table   TableElement
 }
 
 func Render(in string, stylePath string) ([]byte, error) {

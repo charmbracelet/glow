@@ -8,6 +8,9 @@ import (
 )
 
 type TableElement struct {
+	writer *tablewriter.Table
+	header []string
+	cell   []string
 }
 
 type TableRowElement struct {
@@ -20,25 +23,25 @@ type TableCellElement struct {
 }
 
 func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	tr.tableData.table = tablewriter.NewWriter(w)
+	tr.table.writer = tablewriter.NewWriter(w)
 	return nil
 }
 
 func (e *TableElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	tr.tableData.table.Render()
-	tr.tableData = TableData{}
+	tr.table.writer.Render()
+	tr.table.writer = nil
 	return nil
 }
 
 func (e *TableRowElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	tr.tableData.table.Append(tr.tableData.tableCell)
-	tr.tableData.tableCell = []string{}
+	tr.table.writer.Append(tr.table.cell)
+	tr.table.cell = []string{}
 	return nil
 }
 
 func (e *TableHeadElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	tr.tableData.table.SetHeader(tr.tableData.tableHeader)
-	tr.tableData.tableHeader = []string{}
+	tr.table.writer.SetHeader(tr.table.header)
+	tr.table.header = []string{}
 	return nil
 }
 
@@ -52,9 +55,9 @@ func (e *TableCellElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 
 	if node.Parent.Parent.Type == bf.TableHead {
-		tr.tableData.tableHeader = append(tr.tableData.tableHeader, s)
+		tr.table.header = append(tr.table.header, s)
 	} else {
-		tr.tableData.tableCell = append(tr.tableData.tableCell, s)
+		tr.table.cell = append(tr.table.cell, s)
 	}
 
 	return nil
