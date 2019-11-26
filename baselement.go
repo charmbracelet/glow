@@ -31,6 +31,14 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		fmt.Fprintf(w, "%s", e.Token)
 		return nil
 	}
+	if rules.Prefix != "" {
+		fmt.Fprintf(w, "%s", rules.Prefix)
+	}
+	defer func() {
+		if rules.Suffix != "" {
+			fmt.Fprintf(w, "%s", rules.Suffix)
+		}
+	}()
 
 	out := aurora.Reset(e.Token)
 	if rules.Color != "" {

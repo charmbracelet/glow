@@ -47,6 +47,8 @@ type ElementStyle struct {
 	Inverse         bool   `json:"inverse"`
 	Blink           bool   `json:"blink"`
 	Theme           string `json:"theme"`
+	Prefix          string `json:"prefix"`
+	Suffix          string `json:"suffix"`
 }
 
 func keyToType(key string) (StyleType, error) {
