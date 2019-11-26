@@ -82,11 +82,11 @@ func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	// fmt.Fprintf(w, "%s %t", node.Type, entering)
 	e := tr.NewElement(node)
-	if entering && e.Pre != "" {
-		fmt.Fprintf(w, "%s", e.Pre)
+	if entering && e.Entering != "" {
+		fmt.Fprintf(w, "%s", e.Entering)
 	}
-	if !entering && e.Post != "" {
-		fmt.Fprintf(w, "%s", e.Post)
+	if !entering && e.Exiting != "" {
+		fmt.Fprintf(w, "%s", e.Exiting)
 	}
 	if isChild(node) {
 		return bf.GoToNext

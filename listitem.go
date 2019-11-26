@@ -21,9 +21,9 @@ func (e *ItemElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}
 
 	el := &BaseElement{
-		Pre:   strings.Repeat("  ", l-1) + "• ",
-		Token: string(node.Literal),
-		Style: Item,
+		Prefix: strings.Repeat("  ", l-1) + "• ",
+		Token:  string(node.Literal),
+		Style:  Item,
 	}
 	return el.Render(w, node, tr)
 }

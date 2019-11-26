@@ -25,10 +25,10 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}
 	if len(node.LinkData.Destination) > 0 {
 		el := &BaseElement{
-			Token: resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
-			Pre:   " (",
-			Post:  ")",
-			Style: Link,
+			Token:  resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
+			Prefix: " (",
+			Suffix: ")",
+			Style:  Link,
 		}
 		el.Render(w, node, tr)
 	}

@@ -13,8 +13,8 @@ type ElementRenderer interface {
 }
 
 type Element struct {
-	Pre      string
-	Post     string
+	Entering string
+	Exiting  string
 	Renderer ElementRenderer
 }
 
@@ -28,8 +28,8 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.BlockQuote:
 		return Element{
-			Pre:  "\n",
-			Post: "\n",
+			Entering: "\n",
+			Exiting:  "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
 				Style: BlockQuote,
@@ -45,18 +45,18 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.Paragraph:
 		return Element{
-			Post:     "\n",
+			Exiting:  "\n",
 			Renderer: &ParagraphElement{},
 		}
 	case bf.Heading:
 		return Element{
-			Post:     "\n",
+			Exiting:  "\n",
 			Renderer: &HeadingElement{},
 		}
 	case bf.HorizontalRule:
 		return Element{
-			Pre:  "\n",
-			Post: "\n",
+			Entering: "\n",
+			Exiting:  "\n",
 			Renderer: &BaseElement{
 				Token: "---",
 				Style: HorizontalRule,
@@ -107,8 +107,8 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.CodeBlock:
 		return Element{
-			Pre:  "\n",
-			Post: "\n",
+			Entering: "\n",
+			Exiting:  "\n",
 			Renderer: &CodeBlockElement{
 				Code:     string(node.Literal),
 				Language: string(node.CodeBlockData.Info),
@@ -116,7 +116,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.Softbreak:
 		return Element{
-			Post: "\n",
+			Exiting: "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
 				Style: Softbreak,
@@ -124,7 +124,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.Hardbreak:
 		return Element{
-			Post: "\n",
+			Exiting: "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
 				Style: Hardbreak,
@@ -146,8 +146,8 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.Table:
 		return Element{
-			Pre:  "\n",
-			Post: "\n",
+			Entering: "\n",
+			Exiting:  "\n",
 		}
 	case bf.TableCell:
 		return Element{}
@@ -157,8 +157,8 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		return Element{}
 	case bf.TableRow:
 		return Element{
-			Pre:  "\n",
-			Post: "\n",
+			Entering: "\n",
+			Exiting:  "\n",
 		}
 
 	default:
