@@ -26,5 +26,8 @@
   },
   "strong": {
     "bold": true
+  },
+  "item": {
+    "prefix": "• "
   }
 }
