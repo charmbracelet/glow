@@ -97,8 +97,9 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 
 	if e.Renderer != nil {
 		err := e.Renderer.Render(w, node, tr)
-		if err == nil {
-			return bf.GoToNext
+		if err != nil {
+			fmt.Println(err)
+			return bf.Terminate
 		}
 	}
 
