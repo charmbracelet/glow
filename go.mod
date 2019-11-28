@@ -7,7 +7,7 @@ require (
 	github.com/logrusorgru/aurora v0.0.0-20191017060258-dc85c304c434
 	github.com/mattn/go-isatty v0.0.10
 	github.com/microcosm-cc/bluemonday v1.0.2
-	github.com/muesli/reflow v0.0.0-20191128011458-f4f606856be2
+	github.com/muesli/reflow v0.0.0-20191128051140-93fa6301a46e
 	github.com/olekukonko/tablewriter v0.0.3
 	github.com/rakyll/statik v0.1.6
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
