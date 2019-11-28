@@ -1,6 +1,7 @@
 package gold
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"os"
 
 	"github.com/microcosm-cc/bluemonday"
+	"github.com/muesli/reflow"
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
@@ -18,9 +20,12 @@ var (
 )
 
 type TermRenderer struct {
-	BaseURL string
-	style   map[StyleType]*ElementStyle
-	table   TableElement
+	BaseURL  string
+	WordWrap int
+
+	style     map[StyleType]*ElementStyle
+	table     TableElement
+	paragraph bytes.Buffer
 }
 
 func Render(in string, stylePath string) ([]byte, error) {
@@ -85,16 +90,20 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	e := tr.NewElement(node)
 
 	if entering {
-		if e.Entering != "" {
-			fmt.Fprintf(w, "%s", e.Entering)
+		if node.Type == bf.Paragraph {
+			w.Write(tr.paragraph.Bytes())
+			tr.paragraph.Reset()
 		}
-
 		if isChild(node) {
 			return bf.GoToNext
 		}
 
+		if e.Entering != "" {
+			fmt.Fprintf(&tr.paragraph, "%s", e.Entering)
+		}
+
 		if e.Renderer != nil {
-			err := e.Renderer.Render(w, node, tr)
+			err := e.Renderer.Render(&tr.paragraph, node, tr)
 			if err != nil {
 				fmt.Println(err)
 				return bf.Terminate
@@ -102,7 +111,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 		}
 	} else {
 		if e.Finisher != nil {
-			err := e.Finisher.Finish(w, node, tr)
+			err := e.Finisher.Finish(&tr.paragraph, node, tr)
 			if err != nil {
 				fmt.Println(err)
 				return bf.Terminate
@@ -110,7 +119,12 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 		}
 
 		if e.Exiting != "" {
-			fmt.Fprintf(w, "%s", e.Exiting)
+			fmt.Fprintf(&tr.paragraph, "%s", e.Exiting)
+		}
+
+		if node.Type == bf.Paragraph {
+			w.Write(reflow.ReflowBytes(tr.paragraph.Bytes(), tr.WordWrap))
+			tr.paragraph.Reset()
 		}
 	}
 
