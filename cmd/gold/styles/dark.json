@@ -1,13 +1,20 @@
 {
   "link": {
     "color": "123",
-    "underline": true
+    "underline": true,
+    "prefix": "(",
+    "suffix": ")"
   },
   "link_text": {
     "color": "123",
     "bold": true
   },
   "image": {
+    "color": "123",
+    "prefix": "[Image: ",
+    "suffix": "]"
+  },
+  "image_text": {
     "color": "8"
   },
   "heading": {
