@@ -2,7 +2,7 @@
 
 for style in ./styles/*.json; do
     echo "Generating screenshot for ${style}"
-    filename="gold_`basename -s .json ${style}`.png"
+    filename="`basename -s .json ${style}`.png"
 
     light=""
     if [[ $style == *"light"* ]]; then
