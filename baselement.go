@@ -16,31 +16,8 @@ type BaseElement struct {
 	Style  StyleType
 }
 
-func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	if e.Prefix != "" {
-		fmt.Fprintf(w, "%s", e.Prefix)
-	}
-	defer func() {
-		if e.Suffix != "" {
-			fmt.Fprintf(w, "%s", e.Suffix)
-		}
-	}()
-
-	rules := tr.style[e.Style]
-	if rules == nil {
-		fmt.Fprintf(w, "%s", e.Token)
-		return nil
-	}
-	if rules.Prefix != "" {
-		fmt.Fprintf(w, "%s", rules.Prefix)
-	}
-	defer func() {
-		if rules.Suffix != "" {
-			fmt.Fprintf(w, "%s", rules.Suffix)
-		}
-	}()
-
-	out := aurora.Reset(e.Token)
+func (e *BaseElement) renderText(w io.Writer, rules *ElementStyle, s string) error {
+	out := aurora.Reset(s)
 	if rules.Color != "" {
 		i, err := strconv.Atoi(rules.Color)
 		if err == nil && i >= 0 && i <= 255 {
@@ -53,6 +30,7 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 			out = out.Index(uint8(i))
 		}
 	}
+
 	if rules.Underline {
 		out = out.Underline()
 	}
@@ -77,4 +55,32 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 
 	_, err := w.Write([]byte(aurora.Sprintf("%s", out)))
 	return err
+}
+
+func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	if e.Prefix != "" {
+		fmt.Fprintf(w, "%s", e.Prefix)
+	}
+	defer func() {
+		if e.Suffix != "" {
+			fmt.Fprintf(w, "%s", e.Suffix)
+		}
+	}()
+
+	rules := tr.style[e.Style]
+	if rules == nil {
+		fmt.Fprintf(w, "%s", e.Token)
+		return nil
+	}
+
+	if rules.Prefix != "" {
+		e.renderText(w, rules, rules.Prefix)
+	}
+	defer func() {
+		if rules.Suffix != "" {
+			e.renderText(w, rules, rules.Suffix)
+		}
+	}()
+
+	return e.renderText(w, rules, e.Token)
 }
