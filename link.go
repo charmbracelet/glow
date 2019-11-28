@@ -32,8 +32,7 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	if len(node.LinkData.Destination) > 0 {
 		el := &BaseElement{
 			Token:  resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
-			Prefix: " (",
-			Suffix: ")",
+			Prefix: " ",
 			Style:  Link,
 		}
 		err := el.Render(w, node, tr)
