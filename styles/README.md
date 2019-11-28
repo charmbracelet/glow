@@ -4,10 +4,10 @@
 
 `gold -s dark`
 
-![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/cmd/gold/styles/gold_dark.png)
+![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/cmd/gold/styles/dark.png)
 
 ## Light
 
 `gold -s light`
 
-![Gold Light Style](https://github.com/charmbracelet/gold/raw/master/cmd/gold/styles/gold_light.png)
+![Gold Light Style](https://github.com/charmbracelet/gold/raw/master/cmd/gold/styles/light.png)
