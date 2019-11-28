@@ -1,7 +1,6 @@
 package gold
 
 import (
-	"fmt"
 	"io"
 	"strconv"
 
@@ -16,7 +15,7 @@ type BaseElement struct {
 	Style  StyleType
 }
 
-func (e *BaseElement) renderText(w io.Writer, rules *ElementStyle, s string) error {
+func (e *BaseElement) renderText(w io.Writer, rules *ElementStyle, s string) {
 	out := aurora.Reset(s)
 	if rules.Color != "" {
 		i, err := strconv.Atoi(rules.Color)
@@ -53,23 +52,22 @@ func (e *BaseElement) renderText(w io.Writer, rules *ElementStyle, s string) err
 		out = out.Blink()
 	}
 
-	_, err := w.Write([]byte(aurora.Sprintf("%s", out)))
-	return err
+	_, _ = w.Write([]byte(out.String()))
 }
 
 func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	if e.Prefix != "" {
-		fmt.Fprintf(w, "%s", e.Prefix)
+		_, _ = w.Write([]byte(e.Prefix))
 	}
 	defer func() {
 		if e.Suffix != "" {
-			fmt.Fprintf(w, "%s", e.Suffix)
+			_, _ = w.Write([]byte(e.Suffix))
 		}
 	}()
 
 	rules := tr.style[e.Style]
 	if rules == nil {
-		fmt.Fprintf(w, "%s", e.Token)
+		_, _ = w.Write([]byte(e.Token))
 		return nil
 	}
 
@@ -82,5 +80,6 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		}
 	}()
 
-	return e.renderText(w, rules, e.Token)
+	e.renderText(w, rules, e.Token)
+	return nil
 }
