@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	"github.com/mattn/go-isatty"
-	"github.com/muesli/go-wordwrap"
 	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cobra"
 
@@ -138,6 +137,7 @@ func execute(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+	r.WordWrap = int(width)
 
 	u, err := url.ParseRequestURI(src.URL)
 	if err == nil {
@@ -146,7 +146,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	}
 
 	out := r.RenderBytes(b)
-	fmt.Printf("%s", wordwrap.WrapString(string(out), width))
+	fmt.Printf("%s", string(out))
 	return nil
 }
 
