@@ -91,7 +91,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 
 	if entering {
 		if node.Type == bf.Paragraph {
-			w.Write(tr.paragraph.Bytes())
+			_, _ = w.Write(tr.paragraph.Bytes())
 			tr.paragraph.Reset()
 		}
 		if isChild(node) {
@@ -99,9 +99,8 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 		}
 
 		if e.Entering != "" {
-			fmt.Fprintf(&tr.paragraph, "%s", e.Entering)
+			tr.paragraph.WriteString(e.Entering)
 		}
-
 		if e.Renderer != nil {
 			err := e.Renderer.Render(&tr.paragraph, node, tr)
 			if err != nil {
@@ -117,13 +116,12 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 				return bf.Terminate
 			}
 		}
-
 		if e.Exiting != "" {
-			fmt.Fprintf(&tr.paragraph, "%s", e.Exiting)
+			tr.paragraph.WriteString(e.Exiting)
 		}
 
 		if node.Type == bf.Paragraph {
-			w.Write(reflow.ReflowBytes(tr.paragraph.Bytes(), tr.WordWrap))
+			_, _ = w.Write(reflow.ReflowBytes(tr.paragraph.Bytes(), tr.WordWrap))
 			tr.paragraph.Reset()
 		}
 	}
