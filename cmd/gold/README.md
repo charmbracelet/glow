@@ -38,6 +38,8 @@ You can supply a JSON stylesheet with the `-s` flag:
 
 ![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/cmd/gold/styles/gold_dark.png)
 
+Check out the [Gold Style Gallery](https://github.com/charmbracelet/gold/blob/master/cmd/gold/styles/README.md)!
+
 ## Colors
 
 Currently `gold` uses the [Aurora ANSI colors](https://godoc.org/github.com/logrusorgru/aurora#Index).
