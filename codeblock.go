@@ -25,7 +25,7 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 
 	// fallback rendering
 	el := &BaseElement{
-		Token: string(node.Literal),
+		Token: string(e.Code),
 		Style: CodeBlock,
 	}
 	return el.Render(w, node, tr)

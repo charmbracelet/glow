@@ -113,7 +113,6 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 	case bf.CodeBlock:
 		return Element{
 			Entering: "\n",
-			Exiting:  "\n",
 			Renderer: &CodeBlockElement{
 				Code:     string(node.Literal),
 				Language: string(node.CodeBlockData.Info),
