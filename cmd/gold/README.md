@@ -37,7 +37,7 @@ You can supply a JSON stylesheet with the `-s` flag:
 Style definitions located in `styles/` can be embedded into the binary by
 running [statik](https://github.com/rakyll/statik).
 ```
-statik -f -src styles
+statik -f -src styles -include "*.json"
 ```
 
 ## Colors
@@ -46,4 +46,4 @@ Currently `gold` uses the [Aurora ANSI colors](https://godoc.org/github.com/logr
 
 ## Example Output
 
-![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/cmd/gold/gold_dark.png)
+![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/cmd/gold/styles/gold_dark.png)
