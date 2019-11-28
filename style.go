@@ -20,6 +20,7 @@ const (
 	Link
 	LinkText
 	Image
+	ImageText
 	Text
 	HTMLBlock
 	CodeBlock
@@ -79,6 +80,8 @@ func keyToType(key string) (StyleType, error) {
 		return LinkText, nil
 	case "image":
 		return Image, nil
+	case "image_text":
+		return ImageText, nil
 	case "text":
 		return Text, nil
 	case "html_block":

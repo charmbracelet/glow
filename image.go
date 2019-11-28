@@ -13,7 +13,7 @@ func (e *ImageElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 	if len(node.LastChild.Literal) > 0 {
 		el := &BaseElement{
 			Token: string(node.LastChild.Literal),
-			Style: Image,
+			Style: ImageText,
 		}
 		err := el.Render(w, node.LastChild, tr)
 		if err != nil {
@@ -23,9 +23,8 @@ func (e *ImageElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 	if len(node.LinkData.Destination) > 0 {
 		el := &BaseElement{
 			Token:  resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
-			Prefix: " [Image: ",
-			Suffix: "]",
-			Style:  Link,
+			Prefix: " ",
+			Style:  Image,
 		}
 		err := el.Render(w, node, tr)
 		if err != nil {
