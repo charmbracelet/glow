@@ -1,4 +1,9 @@
 {
+  "document": {
+    "indent": 2,
+    "prefix": "\n",
+    "suffix": "\n"
+  },
   "link": {
     "color": "123",
     "underline": true,
