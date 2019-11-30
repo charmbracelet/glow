@@ -26,7 +26,7 @@ func (e *BaseElement) renderText(w io.Writer, rules *ElementStyle, s string) {
 	if rules.BackgroundColor != "" {
 		i, err := strconv.Atoi(rules.BackgroundColor)
 		if err == nil && i >= 0 && i <= 255 {
-			out = out.Index(uint8(i))
+			out = out.BgIndex(uint8(i))
 		}
 	}
 
