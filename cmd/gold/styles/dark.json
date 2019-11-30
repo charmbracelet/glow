@@ -19,7 +19,8 @@
   },
   "heading": {
     "bold": true,
-    "color": "3"
+    "color": "3",
+    "background_color": "57"
   },
   "table": {
     "indent": 4
