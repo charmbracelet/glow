@@ -49,9 +49,11 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Renderer: &ItemElement{},
 		}
 	case bf.Paragraph:
+		pe := &ParagraphElement{}
 		return Element{
 			Exiting:  "\n",
-			Renderer: &ParagraphElement{},
+			Renderer: pe,
+			Finisher: pe,
 		}
 	case bf.Heading:
 		return Element{
@@ -149,10 +151,11 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			},
 		}
 	case bf.Table:
+		te := &TableElement{}
 		return Element{
 			Entering: "\n",
-			Renderer: &TableElement{},
-			Finisher: &TableElement{},
+			Renderer: te,
+			Finisher: te,
 		}
 	case bf.TableCell:
 		return Element{

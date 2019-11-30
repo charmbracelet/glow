@@ -14,13 +14,21 @@ type CodeBlockElement struct {
 
 func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var theme string
+	var indent uint
+
 	rules := tr.style[CodeBlock]
 	if rules != nil {
+		indent = rules.Indent
 		theme = rules.Theme
 	}
 
+	iw := &IndentWriter{
+		Indent:  indent,
+		Forward: w,
+	}
+
 	if len(theme) > 0 {
-		return quick.Highlight(w, e.Code, e.Language, "terminal16m", theme)
+		return quick.Highlight(iw, e.Code, e.Language, "terminal16m", theme)
 	}
 
 	// fallback rendering
@@ -28,5 +36,5 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		Token: string(e.Code),
 		Style: CodeBlock,
 	}
-	return el.Render(w, node, tr)
+	return el.Render(iw, node, tr)
 }
