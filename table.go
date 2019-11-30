@@ -23,7 +23,17 @@ type TableCellElement struct {
 }
 
 func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	tr.table.writer = tablewriter.NewWriter(w)
+	var indent uint
+	rules := tr.style[Table]
+	if rules != nil {
+		indent = rules.Indent
+	}
+	iw := &IndentWriter{
+		Indent:  indent,
+		Forward: w,
+	}
+
+	tr.table.writer = tablewriter.NewWriter(iw)
 	return nil
 }
 

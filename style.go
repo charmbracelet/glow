@@ -26,6 +26,7 @@ const (
 	CodeBlock
 	Softbreak
 	Hardbreak
+	Indent
 	Code
 	HTMLSpan
 	Table
@@ -47,6 +48,7 @@ type ElementStyle struct {
 	Overlined       bool   `json:"overlined"`
 	Inverse         bool   `json:"inverse"`
 	Blink           bool   `json:"blink"`
+	Indent          uint   `json:"indent"`
 	Theme           string `json:"theme"`
 	Prefix          string `json:"prefix"`
 	Suffix          string `json:"suffix"`
@@ -92,6 +94,8 @@ func keyToType(key string) (StyleType, error) {
 		return Softbreak, nil
 	case "hardbreak":
 		return Hardbreak, nil
+	case "indent":
+		return Indent, nil
 	case "code":
 		return Code, nil
 	case "html_span":
