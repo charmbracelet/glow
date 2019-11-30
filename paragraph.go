@@ -16,20 +16,31 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		pre = ""
 	}
 
-	el := &BaseElement{
-		Prefix: pre,
-		Token:  string(node.Literal),
-		Style:  Paragraph,
+	rules := tr.style[Paragraph]
+	if rules == nil {
+		_, _ = w.Write([]byte(pre))
+	} else {
+		renderText(w, rules, pre)
+
+		if rules.Prefix != "" {
+			renderText(w, rules, rules.Prefix)
+		}
 	}
-	return el.Render(w, node, tr)
+	return nil
 }
 
 func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var indent uint
+	suffix := ""
 	rules := tr.style[Paragraph]
 	if rules != nil {
 		indent = rules.Indent
+		suffix = rules.Suffix
 	}
+	if suffix != "" {
+		renderText(tr.paragraph, rules, suffix)
+	}
+
 	iw := &IndentWriter{
 		Indent:  indent,
 		Forward: w,

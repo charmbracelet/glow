@@ -26,10 +26,10 @@ type Element struct {
 func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 	switch node.Type {
 	case bf.Document:
+		de := &DocumentElement{}
 		return Element{
-			Renderer: &BaseElement{
-				Style: Document,
-			},
+			Renderer: de,
+			Finisher: de,
 		}
 	case bf.BlockQuote:
 		return Element{

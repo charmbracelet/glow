@@ -15,7 +15,7 @@ type BaseElement struct {
 	Style  StyleType
 }
 
-func (e *BaseElement) renderText(w io.Writer, rules *ElementStyle, s string) {
+func renderText(w io.Writer, rules *ElementStyle, s string) {
 	out := aurora.Reset(s)
 	if rules.Color != "" {
 		i, err := strconv.Atoi(rules.Color)
@@ -72,14 +72,14 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}
 
 	if rules.Prefix != "" {
-		e.renderText(w, rules, rules.Prefix)
+		renderText(w, rules, rules.Prefix)
 	}
 	defer func() {
 		if rules.Suffix != "" {
-			e.renderText(w, rules, rules.Suffix)
+			renderText(w, rules, rules.Suffix)
 		}
 	}()
 
-	e.renderText(w, rules, e.Token)
+	renderText(w, rules, e.Token)
 	return nil
 }

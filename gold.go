@@ -23,8 +23,9 @@ type TermRenderer struct {
 	WordWrap int
 
 	style     map[StyleType]*ElementStyle
-	table     TableElement
+	document  bytes.Buffer
 	paragraph *bytes.Buffer
+	table     TableElement
 }
 
 func Render(in string, stylePath string) ([]byte, error) {
@@ -85,6 +86,8 @@ func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 }
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
+	writeTo := io.Writer(&tr.document)
+
 	if isChild(node) {
 		return bf.GoToNext
 	}
@@ -92,10 +95,9 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	e := tr.NewElement(node)
 	if entering {
 		if e.Entering != "" {
-			_, _ = w.Write([]byte(e.Entering))
+			_, _ = tr.document.Write([]byte(e.Entering))
 		}
 
-		writeTo := w
 		if node.Type == bf.Paragraph {
 			tr.paragraph = &bytes.Buffer{}
 		}
@@ -111,8 +113,12 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			}
 		}
 	} else {
+		if node.Type == bf.Document {
+			writeTo = w
+		}
+
 		if e.Finisher != nil {
-			err := e.Finisher.Finish(w, node, tr)
+			err := e.Finisher.Finish(writeTo, node, tr)
 			if err != nil {
 				fmt.Println(err)
 				return bf.Terminate
@@ -120,11 +126,10 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 		}
 
 		if node.Type == bf.Paragraph {
-			_, _ = w.Write(tr.paragraph.Bytes())
 			tr.paragraph = nil
 		}
 		if e.Exiting != "" {
-			_, _ = w.Write([]byte(e.Exiting))
+			_, _ = tr.document.Write([]byte(e.Exiting))
 		}
 	}
 
