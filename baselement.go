@@ -17,39 +17,42 @@ type BaseElement struct {
 
 func renderText(w io.Writer, rules *ElementStyle, s string) {
 	out := aurora.Reset(s)
-	if rules.Color != "" {
-		i, err := strconv.Atoi(rules.Color)
-		if err == nil && i >= 0 && i <= 255 {
-			out = out.Index(uint8(i))
-		}
-	}
-	if rules.BackgroundColor != "" {
-		i, err := strconv.Atoi(rules.BackgroundColor)
-		if err == nil && i >= 0 && i <= 255 {
-			out = out.BgIndex(uint8(i))
-		}
-	}
 
-	if rules.Underline {
-		out = out.Underline()
-	}
-	if rules.Bold {
-		out = out.Bold()
-	}
-	if rules.Italic {
-		out = out.Italic()
-	}
-	if rules.CrossedOut {
-		out = out.CrossedOut()
-	}
-	if rules.Overlined {
-		out = out.Overlined()
-	}
-	if rules.Inverse {
-		out = out.Reverse()
-	}
-	if rules.Blink {
-		out = out.Blink()
+	if rules != nil {
+		if rules.Color != "" {
+			i, err := strconv.Atoi(rules.Color)
+			if err == nil && i >= 0 && i <= 255 {
+				out = out.Index(uint8(i))
+			}
+		}
+		if rules.BackgroundColor != "" {
+			i, err := strconv.Atoi(rules.BackgroundColor)
+			if err == nil && i >= 0 && i <= 255 {
+				out = out.BgIndex(uint8(i))
+			}
+		}
+
+		if rules.Underline {
+			out = out.Underline()
+		}
+		if rules.Bold {
+			out = out.Bold()
+		}
+		if rules.Italic {
+			out = out.Italic()
+		}
+		if rules.CrossedOut {
+			out = out.CrossedOut()
+		}
+		if rules.Overlined {
+			out = out.Overlined()
+		}
+		if rules.Inverse {
+			out = out.Reverse()
+		}
+		if rules.Blink {
+			out = out.Blink()
+		}
 	}
 
 	_, _ = w.Write([]byte(out.String()))
