@@ -12,6 +12,7 @@ type DocumentElement struct {
 func (e *DocumentElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	rules := tr.style[Document]
 	if rules != nil {
+		tr.blockStyle.Push(rules)
 		if rules.Prefix != "" {
 			renderText(w, rules, rules.Prefix)
 		}
@@ -38,6 +39,7 @@ func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) e
 		return err
 	}
 	tr.document.Reset()
+	tr.blockStyle.Pop()
 
 	if suffix != "" {
 		renderText(iw, rules, suffix)

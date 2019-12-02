@@ -68,7 +68,7 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		}
 	}()
 
-	rules := tr.style[e.Style]
+	rules := cascadeStyles(tr.blockStyle, tr.style[e.Style])
 	if rules == nil {
 		_, _ = w.Write([]byte(e.Token))
 		return nil

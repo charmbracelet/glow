@@ -22,10 +22,11 @@ type TermRenderer struct {
 	BaseURL  string
 	WordWrap int
 
-	style     map[StyleType]*ElementStyle
-	document  bytes.Buffer
-	paragraph *bytes.Buffer
-	table     TableElement
+	style      map[StyleType]*ElementStyle
+	document   bytes.Buffer
+	paragraph  *bytes.Buffer
+	blockStyle StyleStack
+	table      TableElement
 }
 
 func Render(in string, stylePath string) ([]byte, error) {

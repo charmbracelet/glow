@@ -23,6 +23,7 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	if rules == nil {
 		_, _ = w.Write([]byte(pre))
 	} else {
+		tr.blockStyle.Push(rules)
 		renderText(w, rules, pre)
 
 		if rules.Prefix != "" {
@@ -52,5 +53,6 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	_, err := iw.Write(reflow.ReflowBytes(tr.paragraph.Bytes(), tr.WordWrap-int(indent)))
 	tr.paragraph.Reset()
 	tr.paragraph = nil
+	tr.blockStyle.Pop()
 	return err
 }
