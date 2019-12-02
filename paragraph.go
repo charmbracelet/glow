@@ -13,13 +13,14 @@ type ParagraphElement struct {
 
 func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	tr.paragraph = &bytes.Buffer{}
+	rules := tr.style[Paragraph]
 
 	pre := "\n"
 	if node.Prev == nil || (node.Parent != nil && node.Parent.Type == bf.Item) {
 		pre = ""
+		rules.Indent = 0
 	}
 
-	rules := tr.style[Paragraph]
 	if rules == nil {
 		_, _ = w.Write([]byte(pre))
 	} else {
