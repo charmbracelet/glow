@@ -1,6 +1,7 @@
 package gold
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/muesli/reflow"
@@ -11,6 +12,8 @@ type ParagraphElement struct {
 }
 
 func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	tr.paragraph = &bytes.Buffer{}
+
 	pre := "\n"
 	if node.Prev == nil || (node.Parent != nil && node.Parent.Type == bf.Item) {
 		pre = ""
@@ -48,5 +51,6 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 
 	_, err := iw.Write(reflow.ReflowBytes(tr.paragraph.Bytes(), tr.WordWrap-int(indent)))
 	tr.paragraph.Reset()
+	tr.paragraph = nil
 	return err
 }

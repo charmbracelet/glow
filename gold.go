@@ -98,9 +98,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			_, _ = tr.document.Write([]byte(e.Entering))
 		}
 
-		if node.Type == bf.Paragraph {
-			tr.paragraph = &bytes.Buffer{}
-		}
+		// each paragraph gets rendered into a separate buffer
 		if tr.paragraph != nil {
 			writeTo = tr.paragraph
 		}
@@ -113,6 +111,8 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			}
 		}
 	} else {
+		// if we're finished rendering the entire document,
+		// flush to the real writer
 		if node.Type == bf.Document {
 			writeTo = w
 		}
@@ -125,9 +125,6 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			}
 		}
 
-		if node.Type == bf.Paragraph {
-			tr.paragraph = nil
-		}
 		if e.Exiting != "" {
 			_, _ = tr.document.Write([]byte(e.Exiting))
 		}
