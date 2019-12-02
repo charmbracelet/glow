@@ -54,6 +54,67 @@ type ElementStyle struct {
 	Suffix          string `json:"suffix"`
 }
 
+type StyleStack []*ElementStyle
+
+func (s *StyleStack) Push(style *ElementStyle) {
+	*s = append(*s, style)
+}
+
+func (s *StyleStack) Pop() {
+	stack := *s
+	if len(stack) == 0 {
+		return
+	}
+
+	stack = stack[0 : len(stack)-1]
+	*s = stack
+}
+
+func (s StyleStack) Current() *ElementStyle {
+	if len(s) == 0 {
+		return nil
+	}
+
+	return s[len(s)-1]
+}
+
+func cascadeStyle(parent *ElementStyle, child *ElementStyle) *ElementStyle {
+	if parent == nil {
+		return child
+	}
+
+	s := ElementStyle{}
+	if child != nil {
+		s = *child
+	}
+
+	s.Color = parent.Color
+	s.BackgroundColor = parent.BackgroundColor
+
+	if child != nil {
+		if child.Color != "" {
+			s.Color = child.Color
+		}
+		if child.BackgroundColor != "" {
+			s.BackgroundColor = child.BackgroundColor
+		}
+	}
+
+	return &s
+}
+
+func cascadeStyles(parents StyleStack, child *ElementStyle) *ElementStyle {
+	if len(parents) == 0 {
+		return child
+	}
+	parent := parents[0]
+	for i := 1; i < len(parents); i++ {
+		parent = cascadeStyle(parent, parents[i])
+	}
+
+	return cascadeStyle(parent, child)
+}
+
 func keyToType(key string) (StyleType, error) {
 	switch key {
 	case "document":
