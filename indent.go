@@ -14,6 +14,10 @@ type IndentWriter struct {
 
 // Write is used to write content to the indent buffer.
 func (w *IndentWriter) Write(b []byte) (int, error) {
+	if w.Indent == 0 {
+		return w.Forward.Write(b)
+	}
+
 	for _, c := range string(b) {
 		if !w.skipIndent {
 			_, err := w.Forward.Write([]byte(strings.Repeat(" ", int(w.Indent))))
@@ -23,7 +27,7 @@ func (w *IndentWriter) Write(b []byte) (int, error) {
 			w.skipIndent = true
 		}
 
-		_, err := w.Forward.Write([]byte{byte(c)})
+		_, err := w.Forward.Write([]byte(string(c)))
 		if err != nil {
 			return 0, err
 		}
