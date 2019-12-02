@@ -60,11 +60,11 @@ func renderText(w io.Writer, rules *ElementStyle, s string) {
 
 func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	if e.Prefix != "" {
-		_, _ = w.Write([]byte(e.Prefix))
+		renderText(w, tr.blockStyle.Current(), e.Prefix)
 	}
 	defer func() {
 		if e.Suffix != "" {
-			_, _ = w.Write([]byte(e.Suffix))
+			renderText(w, tr.blockStyle.Current(), e.Suffix)
 		}
 	}()
 
