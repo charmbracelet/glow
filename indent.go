@@ -16,11 +16,17 @@ type IndentWriter struct {
 func (w *IndentWriter) Write(b []byte) (int, error) {
 	for _, c := range string(b) {
 		if !w.skipIndent {
-			w.Forward.Write([]byte(strings.Repeat(" ", int(w.Indent))))
+			_, err := w.Forward.Write([]byte(strings.Repeat(" ", int(w.Indent))))
+			if err != nil {
+				return 0, err
+			}
 			w.skipIndent = true
 		}
 
-		w.Forward.Write([]byte{byte(c)})
+		_, err := w.Forward.Write([]byte{byte(c)})
+		if err != nil {
+			return 0, err
+		}
 		if c == '\n' {
 			// end of current line
 			w.skipIndent = false
