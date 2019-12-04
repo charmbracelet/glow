@@ -26,7 +26,7 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, tr.blockStyle.Parent(), " ")
+			renderText(w, tr.blockStack.Parent().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,

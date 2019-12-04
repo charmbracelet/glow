@@ -1,6 +1,7 @@
 package gold
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -55,13 +56,18 @@ type ElementStyle struct {
 	Suffix          string `json:"suffix"`
 }
 
-type StyleStack []*ElementStyle
-
-func (s *StyleStack) Push(style *ElementStyle) {
-	*s = append(*s, style)
+type BlockElement struct {
+	Block *bytes.Buffer
+	Style *ElementStyle
 }
 
-func (s *StyleStack) Pop() {
+type BlockStack []BlockElement
+
+func (s *BlockStack) Push(e BlockElement) {
+	*s = append(*s, e)
+}
+
+func (s *BlockStack) Pop() {
 	stack := *s
 	if len(stack) == 0 {
 		return
@@ -71,50 +77,52 @@ func (s *StyleStack) Pop() {
 	*s = stack
 }
 
-func (s StyleStack) Indent() uint {
+func (s BlockStack) Indent() uint {
 	var i uint
 
 	for _, v := range s {
-		if v == nil {
+		if v.Style == nil {
 			continue
 		}
-		i += v.Indent
+		i += v.Style.Indent
 	}
 
 	return i
 }
 
-func (s StyleStack) Margin() uint {
+func (s BlockStack) Margin() uint {
 	var i uint
 
 	for _, v := range s {
-		if v == nil {
+		if v.Style == nil {
 			continue
 		}
-		i += v.Margin
+		i += v.Style.Margin
 	}
 
 	return i
 }
 
-func (s StyleStack) Parent() *ElementStyle {
+func (s BlockStack) Parent() BlockElement {
 	if len(s) < 2 {
 		return s.Current()
 	}
 
-	return cascadeStyles(s[0:len(s)-2], s[len(s)-2])
+	return s[len(s)-2]
 }
 
-func (s StyleStack) Current() *ElementStyle {
+func (s BlockStack) Current() BlockElement {
 	if len(s) == 0 {
-		return nil
+		return BlockElement{
+			Block: &bytes.Buffer{},
+		}
 	}
 
-	return cascadeStyles(s[0:len(s)-1], s[len(s)-1])
+	return s[len(s)-1]
 }
 
-func (s StyleStack) With(child *ElementStyle) *ElementStyle {
-	return cascadeStyles(s, child)
+func (s BlockStack) With(child *ElementStyle) *ElementStyle {
+	return cascadeStyle(s.Current().Style, child)
 }
 
 func cascadeStyle(parent *ElementStyle, child *ElementStyle) *ElementStyle {
@@ -140,18 +148,6 @@ func cascadeStyle(parent *ElementStyle, child *ElementStyle) *ElementStyle {
 	}
 
 	return &s
-}
-
-func cascadeStyles(parents StyleStack, child *ElementStyle) *ElementStyle {
-	if len(parents) == 0 {
-		return child
-	}
-	parent := parents[0]
-	for i := 1; i < len(parents); i++ {
-		parent = cascadeStyle(parent, parents[i])
-	}
-
-	return cascadeStyle(parent, child)
 }
 
 func keyToType(key string) (StyleType, error) {

@@ -1,7 +1,6 @@
 package gold
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,9 +22,7 @@ type TermRenderer struct {
 	WordWrap int
 
 	style      map[StyleType]*ElementStyle
-	document   bytes.Buffer
-	paragraph  *bytes.Buffer
-	blockStyle StyleStack
+	blockStack BlockStack
 	table      TableElement
 }
 
@@ -87,7 +84,8 @@ func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 }
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
-	writeTo := io.Writer(&tr.document)
+	//tr.document.Write([]byte(node.Type.String()))
+	writeTo := io.Writer(nil)
 
 	if isChild(node) {
 		return bf.GoToNext
@@ -95,11 +93,9 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 
 	e := tr.NewElement(node)
 	if entering {
-		_, _ = tr.document.Write([]byte(e.Entering))
-
-		// each paragraph gets rendered into a separate buffer
-		if tr.paragraph != nil {
-			writeTo = tr.paragraph
+		if len(tr.blockStack) > 0 {
+			writeTo = io.Writer(tr.blockStack.Current().Block)
+			_, _ = writeTo.Write([]byte(e.Entering))
 		}
 
 		if e.Renderer != nil {
@@ -110,6 +106,10 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			}
 		}
 	} else {
+		if len(tr.blockStack) > 0 {
+			writeTo = io.Writer(tr.blockStack.Parent().Block)
+		}
+
 		// if we're finished rendering the entire document,
 		// flush to the real writer
 		if node.Type == bf.Document {
@@ -124,7 +124,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			}
 		}
 
-		_, _ = tr.document.Write([]byte(e.Exiting))
+		_, _ = writeTo.Write([]byte(e.Exiting))
 	}
 
 	return bf.GoToNext

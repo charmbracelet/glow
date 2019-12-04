@@ -63,12 +63,12 @@ func renderText(w io.Writer, rules *ElementStyle, s string) {
 }
 
 func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	renderText(w, tr.blockStyle.Current(), e.Prefix)
+	renderText(w, tr.blockStack.Current().Style, e.Prefix)
 	defer func() {
-		renderText(w, tr.blockStyle.Current(), e.Suffix)
+		renderText(w, tr.blockStack.Current().Style, e.Suffix)
 	}()
 
-	rules := tr.blockStyle.With(tr.style[e.Style])
+	rules := tr.blockStack.With(tr.style[e.Style])
 	if rules != nil {
 		renderText(w, rules, rules.Prefix)
 		defer func() {
