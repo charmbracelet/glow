@@ -24,7 +24,7 @@ func (w *AnsiWriter) Write(b []byte) (int, error) {
 			w.ansiseq += string(c)
 		} else if w.ansi {
 			w.ansiseq += string(c)
-			if (c >= 0x40 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a) {
+			if (c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a) {
 				// ANSI sequence terminated
 				w.ansi = false
 
