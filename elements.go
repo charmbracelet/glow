@@ -51,7 +51,6 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 	case bf.Paragraph:
 		pe := &ParagraphElement{}
 		return Element{
-			Exiting:  "\n",
 			Renderer: pe,
 			Finisher: pe,
 		}
