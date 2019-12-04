@@ -12,12 +12,13 @@ type DocumentElement struct {
 
 func (e *DocumentElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	rules := tr.style[Document]
+	be := BlockElement{
+		Block: &bytes.Buffer{},
+		Style: rules,
+	}
+	tr.blockStack.Push(be)
+
 	if rules != nil {
-		be := BlockElement{
-			Block: &bytes.Buffer{},
-			Style: rules,
-		}
-		tr.blockStack.Push(be)
 		renderText(tr.blockStack.Current().Block, rules, rules.Prefix)
 	}
 	return nil
