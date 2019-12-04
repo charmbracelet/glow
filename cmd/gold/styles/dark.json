@@ -51,6 +51,11 @@
   "strong": {
     "bold": true
   },
+  "list": {
+    "margin": 4,
+    "background_color": "52",
+    "color": "15"
+  },
   "item": {
     "prefix": "• "
   }
