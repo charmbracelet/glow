@@ -16,6 +16,10 @@ type BaseElement struct {
 }
 
 func renderText(w io.Writer, rules *ElementStyle, s string) {
+	if len(s) == 0 {
+		return
+	}
+
 	out := aurora.Reset(s)
 
 	if rules != nil {
@@ -59,13 +63,9 @@ func renderText(w io.Writer, rules *ElementStyle, s string) {
 }
 
 func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	if e.Prefix != "" {
-		renderText(w, tr.blockStyle.Current(), e.Prefix)
-	}
+	renderText(w, tr.blockStyle.Current(), e.Prefix)
 	defer func() {
-		if e.Suffix != "" {
-			renderText(w, tr.blockStyle.Current(), e.Suffix)
-		}
+		renderText(w, tr.blockStyle.Current(), e.Suffix)
 	}()
 
 	rules := cascadeStyles(tr.blockStyle, tr.style[e.Style])
@@ -74,13 +74,9 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		return nil
 	}
 
-	if rules.Prefix != "" {
-		renderText(w, rules, rules.Prefix)
-	}
+	renderText(w, rules, rules.Prefix)
 	defer func() {
-		if rules.Suffix != "" {
-			renderText(w, rules, rules.Suffix)
-		}
+		renderText(w, rules, rules.Suffix)
 	}()
 
 	renderText(w, rules, e.Token)

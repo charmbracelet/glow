@@ -13,9 +13,7 @@ func (e *DocumentElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) e
 	rules := tr.style[Document]
 	if rules != nil {
 		tr.blockStyle.Push(rules)
-		if rules.Prefix != "" {
-			renderText(w, rules, rules.Prefix)
-		}
+		renderText(w, rules, rules.Prefix)
 	}
 	return nil
 }
@@ -43,8 +41,6 @@ func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) e
 	tr.document.Reset()
 	tr.blockStyle.Pop()
 
-	if suffix != "" {
-		renderText(w, rules, suffix)
-	}
+	renderText(w, rules, suffix)
 	return nil
 }

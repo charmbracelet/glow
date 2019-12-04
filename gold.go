@@ -95,9 +95,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 
 	e := tr.NewElement(node)
 	if entering {
-		if e.Entering != "" {
-			_, _ = tr.document.Write([]byte(e.Entering))
-		}
+		_, _ = tr.document.Write([]byte(e.Entering))
 
 		// each paragraph gets rendered into a separate buffer
 		if tr.paragraph != nil {
@@ -126,9 +124,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			}
 		}
 
-		if e.Exiting != "" {
-			_, _ = tr.document.Write([]byte(e.Exiting))
-		}
+		_, _ = tr.document.Write([]byte(e.Exiting))
 	}
 
 	return bf.GoToNext

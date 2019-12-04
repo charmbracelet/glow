@@ -22,7 +22,7 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		_, _ = w.Write([]byte("\n"))
 	}
 
-	if rules != nil && rules.Prefix != "" {
+	if rules != nil {
 		renderText(w, tr.blockStyle.Current(), rules.Prefix)
 	}
 	return nil
@@ -40,9 +40,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 			indent = 0
 		}
 	}
-	if suffix != "" {
-		renderText(tr.paragraph, rules, suffix)
-	}
+	renderText(tr.paragraph, rules, suffix)
 
 	pw := &PaddingWriter{
 		Padding: uint(tr.WordWrap + int(indent) - int(tr.blockStyle.Indent())),
