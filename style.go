@@ -49,6 +49,7 @@ type ElementStyle struct {
 	Inverse         bool   `json:"inverse"`
 	Blink           bool   `json:"blink"`
 	Indent          uint   `json:"indent"`
+	Margin          uint   `json:"margin"`
 	Theme           string `json:"theme"`
 	Prefix          string `json:"prefix"`
 	Suffix          string `json:"suffix"`
@@ -78,6 +79,19 @@ func (s StyleStack) Indent() uint {
 			continue
 		}
 		i += v.Indent
+	}
+
+	return i
+}
+
+func (s StyleStack) Margin() uint {
+	var i uint
+
+	for _, v := range s {
+		if v == nil {
+			continue
+		}
+		i += v.Margin
 	}
 
 	return i
