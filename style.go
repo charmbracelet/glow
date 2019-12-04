@@ -70,12 +70,29 @@ func (s *StyleStack) Pop() {
 	*s = stack
 }
 
+func (s StyleStack) Indent() uint {
+	var i uint
+
+	for _, v := range s {
+		if v == nil {
+			continue
+		}
+		i += v.Indent
+	}
+
+	return i
+}
+
 func (s StyleStack) Current() *ElementStyle {
 	if len(s) == 0 {
 		return nil
 	}
 
-	return s[len(s)-1]
+	return cascadeStyles(s[0:len(s)-1], s[len(s)-1])
+}
+
+func (s StyleStack) With(child *ElementStyle) *ElementStyle {
+	return cascadeStyles(s, child)
 }
 
 func cascadeStyle(parent *ElementStyle, child *ElementStyle) *ElementStyle {
