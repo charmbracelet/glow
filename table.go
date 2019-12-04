@@ -24,12 +24,14 @@ type TableCellElement struct {
 
 func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var indent uint
+	var margin uint
 	rules := tr.style[Table]
 	if rules != nil {
 		indent = rules.Indent
+		margin = rules.Margin
 	}
 	iw := &IndentWriter{
-		Indent: indent,
+		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
 			renderText(w, tr.blockStyle.Parent(), " ")
 		},

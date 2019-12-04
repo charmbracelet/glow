@@ -31,21 +31,24 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 
 func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var indent uint
-	suffix := ""
+	var margin uint
+	var suffix string
 	rules := tr.blockStyle.Current()
 	if rules != nil {
 		indent = rules.Indent
+		margin = rules.Margin
 		suffix = rules.Suffix
 
 		if node.Prev == nil || (node.Parent != nil && node.Parent.Type == bf.Item) {
-			// remove indent for list items
+			// remove indent & margin for list items
 			indent = 0
+			margin = 0
 		}
 	}
 	renderText(tr.paragraph, rules, suffix)
 
 	pw := &PaddingWriter{
-		Padding: uint(tr.WordWrap + int(indent) - int(tr.blockStyle.Indent())),
+		Padding: uint(tr.WordWrap - int(tr.blockStyle.Indent()) - int(tr.blockStyle.Margin()*2)),
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},
@@ -54,7 +57,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		},
 	}
 	iw := &IndentWriter{
-		Indent: indent,
+		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
 			renderText(w, tr.blockStyle.Parent(), " ")
 		},
@@ -63,7 +66,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		},
 	}
 
-	_, err := iw.Write(reflow.ReflowBytes(tr.paragraph.Bytes(), tr.WordWrap-int(tr.blockStyle.Indent())))
+	_, err := iw.Write(reflow.ReflowBytes(tr.paragraph.Bytes(), tr.WordWrap-int(tr.blockStyle.Indent())-int(tr.blockStyle.Margin())*2))
 	if err != nil {
 		return err
 	}

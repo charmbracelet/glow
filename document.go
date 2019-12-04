@@ -20,14 +20,16 @@ func (e *DocumentElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) e
 
 func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var indent uint
-	suffix := ""
+	var margin uint
+	var suffix string
 	rules := tr.style[Document]
 	if rules != nil {
 		indent = rules.Indent
+		margin = rules.Margin
 		suffix = rules.Suffix
 	}
 	pw := &PaddingWriter{
-		Padding: uint(tr.WordWrap + int(indent*2)),
+		Padding: uint(tr.WordWrap) - margin,
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},
@@ -36,7 +38,7 @@ func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) e
 		},
 	}
 	iw := &IndentWriter{
-		Indent: indent,
+		Indent: indent + margin,
 		Forward: &AnsiWriter{
 			Forward: pw,
 		},

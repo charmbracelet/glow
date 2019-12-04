@@ -15,14 +15,16 @@ type CodeBlockElement struct {
 func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var theme string
 	var indent uint
+	var margin uint
 	rules := tr.style[CodeBlock]
 	if rules != nil {
 		indent = rules.Indent
+		margin = rules.Margin
 		theme = rules.Theme
 	}
 
 	iw := &IndentWriter{
-		Indent: indent,
+		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
 			renderText(w, tr.blockStyle.Parent(), " ")
 		},
