@@ -84,8 +84,8 @@ func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 }
 
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
-	//tr.document.Write([]byte(node.Type.String()))
-	writeTo := io.Writer(nil)
+	// _, _ = w.Write([]byte(node.Type.String()))
+	writeTo := w
 
 	if isChild(node) {
 		return bf.GoToNext
@@ -95,8 +95,8 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 	if entering {
 		if len(tr.blockStack) > 0 {
 			writeTo = io.Writer(tr.blockStack.Current().Block)
-			_, _ = writeTo.Write([]byte(e.Entering))
 		}
+		_, _ = writeTo.Write([]byte(e.Entering))
 
 		if e.Renderer != nil {
 			err := e.Renderer.Render(writeTo, node, tr)
