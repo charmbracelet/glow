@@ -30,17 +30,17 @@
     "color": "3"
   },
   "table": {
-    "indent": 4
+    "margin": 4
   },
   "paragraph": {
-    "indent": 4,
+    "margin": 4,
     "background_color": "54"
   },
   "code": {
     "color": "200"
   },
   "code_block": {
-    "indent": 4,
+    "margin": 4,
     "color": "200",
     "theme": "solarized-dark"
   },
