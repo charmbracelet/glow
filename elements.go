@@ -41,8 +41,10 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			},
 		}
 	case bf.List:
+		le := &ListElement{}
 		return Element{
-			Renderer: &ListElement{},
+			Renderer: le,
+			Finisher: le,
 		}
 	case bf.Item:
 		return Element{
