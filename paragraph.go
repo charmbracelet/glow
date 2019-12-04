@@ -55,6 +55,9 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 	iw := &IndentWriter{
 		Indent: indent,
+		IndentFunc: func(wr io.Writer) {
+			renderText(w, tr.blockStyle.Parent(), " ")
+		},
 		Forward: &AnsiWriter{
 			Forward: pw,
 		},

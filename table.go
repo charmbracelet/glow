@@ -30,6 +30,9 @@ func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 	}
 	iw := &IndentWriter{
 		Indent: indent,
+		IndentFunc: func(wr io.Writer) {
+			renderText(w, tr.blockStyle.Parent(), " ")
+		},
 		Forward: &AnsiWriter{
 			Forward: w,
 		},
