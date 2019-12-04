@@ -17,7 +17,7 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	rules := tr.style[Paragraph]
 	tr.blockStyle.Push(rules)
 
-	if node.Prev == nil || (node.Parent != nil && node.Parent.Type == bf.Item) {
+	if node.Parent != nil && node.Parent.Type == bf.Item {
 		// list item
 	} else {
 		_, _ = w.Write([]byte("\n"))
@@ -39,7 +39,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		margin = rules.Margin
 		suffix = rules.Suffix
 
-		if node.Prev == nil || (node.Parent != nil && node.Parent.Type == bf.Item) {
+		if node.Parent != nil && node.Parent.Type == bf.Item {
 			// remove indent & margin for list items
 			indent = 0
 			margin = 0
