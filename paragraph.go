@@ -13,6 +13,7 @@ type ParagraphElement struct {
 
 func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	tr.paragraph = &bytes.Buffer{}
+
 	rules := tr.style[Paragraph]
 	tr.blockStyle.Push(rules)
 
@@ -37,6 +38,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		suffix = rules.Suffix
 
 		if node.Prev == nil || (node.Parent != nil && node.Parent.Type == bf.Item) {
+			// remove indent for list items
 			indent = 0
 		}
 	}
@@ -66,9 +68,9 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 
 	tr.paragraph.Reset()
 	tr.paragraph = nil
+
 	if rules != nil {
 		tr.blockStyle.Pop()
 	}
-
 	return nil
 }

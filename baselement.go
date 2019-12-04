@@ -68,16 +68,13 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		renderText(w, tr.blockStyle.Current(), e.Suffix)
 	}()
 
-	rules := cascadeStyles(tr.blockStyle, tr.style[e.Style])
-	if rules == nil {
-		_, _ = w.Write([]byte(e.Token))
-		return nil
+	rules := tr.blockStyle.With(tr.style[e.Style])
+	if rules != nil {
+		renderText(w, rules, rules.Prefix)
+		defer func() {
+			renderText(w, rules, rules.Suffix)
+		}()
 	}
-
-	renderText(w, rules, rules.Prefix)
-	defer func() {
-		renderText(w, rules, rules.Suffix)
-	}()
 
 	renderText(w, rules, e.Token)
 	return nil

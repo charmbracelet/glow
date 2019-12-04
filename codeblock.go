@@ -15,7 +15,6 @@ type CodeBlockElement struct {
 func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var theme string
 	var indent uint
-
 	rules := tr.style[CodeBlock]
 	if rules != nil {
 		indent = rules.Indent
