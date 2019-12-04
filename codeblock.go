@@ -23,8 +23,10 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 
 	iw := &IndentWriter{
-		Indent:  indent,
-		Forward: w,
+		Indent: indent,
+		Forward: &AnsiWriter{
+			Forward: w,
+		},
 	}
 
 	if len(theme) > 0 {
@@ -36,5 +38,6 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		Token: string(e.Code),
 		Style: CodeBlock,
 	}
+
 	return el.Render(iw, node, tr)
 }

@@ -30,19 +30,21 @@ func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) e
 	}
 
 	iw := &IndentWriter{
-		Indent:  indent,
-		Forward: w,
+		Indent: indent,
+		Forward: &AnsiWriter{
+			Forward: w,
+		},
 	}
-
 	_, err := iw.Write(tr.document.Bytes())
 	if err != nil {
 		return err
 	}
+
 	tr.document.Reset()
 	tr.blockStyle.Pop()
 
 	if suffix != "" {
-		renderText(iw, rules, suffix)
+		renderText(w, rules, suffix)
 	}
 	return nil
 }

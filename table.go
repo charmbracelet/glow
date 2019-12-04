@@ -29,8 +29,10 @@ func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 		indent = rules.Indent
 	}
 	iw := &IndentWriter{
-		Indent:  indent,
-		Forward: w,
+		Indent: indent,
+		Forward: &AnsiWriter{
+			Forward: w,
+		},
 	}
 
 	tr.table.writer = tablewriter.NewWriter(iw)
