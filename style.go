@@ -83,6 +83,14 @@ func (s StyleStack) Indent() uint {
 	return i
 }
 
+func (s StyleStack) Parent() *ElementStyle {
+	if len(s) < 2 {
+		return s.Current()
+	}
+
+	return cascadeStyles(s[0:len(s)-2], s[len(s)-2])
+}
+
 func (s StyleStack) Current() *ElementStyle {
 	if len(s) == 0 {
 		return nil
