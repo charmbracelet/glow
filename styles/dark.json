@@ -1,6 +1,7 @@
 {
   "document": {
     "indent": 4,
+    "background_color": "234",
     "prefix": "\n",
     "suffix": "\n"
   },
