@@ -34,7 +34,8 @@
   },
   "paragraph": {
     "margin": 4,
-    "background_color": "54"
+    "background_color": "54",
+    "color": "15"
   },
   "code": {
     "color": "200"
