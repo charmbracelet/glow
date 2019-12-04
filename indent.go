@@ -1,12 +1,16 @@
 package gold
 
 import (
+	"io"
 	"strings"
 )
 
+type IndentFunc = func(w io.Writer)
+
 type IndentWriter struct {
-	Forward *AnsiWriter
-	Indent  uint
+	Forward    *AnsiWriter
+	Indent     uint
+	IndentFunc IndentFunc
 
 	skipIndent bool
 }
@@ -15,12 +19,18 @@ type IndentWriter struct {
 func (w *IndentWriter) Write(b []byte) (int, error) {
 	for _, c := range string(b) {
 		if !w.skipIndent {
-			_, err := w.Forward.Write([]byte(strings.Repeat(" ", int(w.Indent))))
-			if err != nil {
-				return 0, err
+			if w.IndentFunc != nil {
+				for i := 0; i < int(w.Indent); i++ {
+					w.IndentFunc(w.Forward)
+				}
+			} else {
+				_, err := w.Forward.Write([]byte(strings.Repeat(" ", int(w.Indent))))
+				if err != nil {
+					return 0, err
+				}
 			}
-			w.Forward.RestoreAnsi()
 
+			w.Forward.RestoreAnsi()
 			w.skipIndent = true
 		}
 
