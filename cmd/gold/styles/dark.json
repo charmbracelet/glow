@@ -1,6 +1,6 @@
 {
   "document": {
-    "indent": 2,
+    "indent": 4,
     "prefix": "\n",
     "suffix": "\n"
   },
@@ -24,14 +24,16 @@
   },
   "heading": {
     "bold": true,
-    "color": "3",
-    "background_color": "57"
+    "prefix": "\n",
+    "background_color": "57",
+    "color": "3"
   },
   "table": {
     "indent": 4
   },
   "paragraph": {
-    "indent": 1
+    "indent": 4,
+    "background_color": "54"
   },
   "code": {
     "color": "200"
