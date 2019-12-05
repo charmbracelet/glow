@@ -17,7 +17,7 @@
   },
   "image": {
     "color": "123",
-    "prefix": "[Image: ",
+    "prefix": "[📷: ",
     "suffix": "]"
   },
   "image_text": {
