@@ -58,7 +58,7 @@ func (e *ListElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		},
 	}
 
-	_, err := iw.Write(reflow.ReflowBytes(tr.blockStack.Current().Block.Bytes(), tr.WordWrap-int(tr.blockStack.Indent())-int(tr.blockStack.Margin())*2))
+	_, err := iw.Write(reflow.Bytes(tr.blockStack.Current().Block.Bytes(), tr.WordWrap-int(tr.blockStack.Indent())-int(tr.blockStack.Margin())*2))
 	if err != nil {
 		return err
 	}

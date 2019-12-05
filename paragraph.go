@@ -69,7 +69,12 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 
 	if len(strings.TrimSpace(tr.blockStack.Current().Block.String())) > 0 {
-		_, err := iw.Write(reflow.ReflowBytes(tr.blockStack.Current().Block.Bytes(), tr.WordWrap-int(tr.blockStack.Indent())-int(tr.blockStack.Margin())*2))
+		flow := reflow.NewReflow(tr.WordWrap - int(tr.blockStack.Indent()) - int(tr.blockStack.Margin())*2)
+		flow.KeepNewlines = false
+		_, _ = flow.Write(tr.blockStack.Current().Block.Bytes())
+		flow.Close()
+
+		_, err := iw.Write(flow.Bytes())
 		if err != nil {
 			return err
 		}
