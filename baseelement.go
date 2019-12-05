@@ -49,8 +49,8 @@ func renderText(w io.Writer, rules *ElementStyle, s string) {
 		return
 	}
 
-	// FIXME: ugly hack
-	if os.Getenv("COLORTERM") == "truecolor" {
+	// FIXME: ugly true-color ANSI support hack
+	if rules != nil && os.Getenv("COLORTERM") == "truecolor" {
 		bg, err := colorSeq(rules.BackgroundColor)
 		if err == nil {
 			s = "\x1b[48;2;" + bg + s
