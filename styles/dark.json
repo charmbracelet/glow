@@ -1,7 +1,7 @@
 {
   "document": {
     "indent": 4,
-    "background_color": "234",
+    "background_color": "#2f2335",
     "prefix": "\n",
     "suffix": "\n"
   },
@@ -24,18 +24,25 @@
     "color": "8"
   },
   "heading": {
-    "bold": true,
     "prefix": "\n",
+    "margin": 4,
+    "color": "15",
+    "background_color": "57"
+  },
+  "h1": {
     "margin": 2,
-    "background_color": "57",
-    "color": "3"
+    "bold": true,
+    "background_color": "69"
+  },
+  "h2": {
+    "prefix": "\n"
   },
   "table": {
     "margin": 4
   },
   "paragraph": {
     "margin": 4,
-    "background_color": "54",
+    "background_color": "#2f2335",
     "color": "15"
   },
   "code": {
