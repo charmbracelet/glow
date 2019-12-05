@@ -22,7 +22,7 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		_, _ = w.Write([]byte("\n"))
 		be := BlockElement{
 			Block: &bytes.Buffer{},
-			Style: cascadeStyle(tr.blockStack.Current().Style, rules),
+			Style: cascadeStyle(tr.blockStack.Current().Style, rules, true),
 		}
 		tr.blockStack.Push(be)
 	}

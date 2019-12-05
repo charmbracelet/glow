@@ -16,6 +16,22 @@ func (e *HeadingElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) er
 	var indent uint
 	var margin uint
 	rules := tr.style[Heading]
+
+	switch node.HeadingData.Level {
+	case 1:
+		rules = cascadeStyles(false, rules, tr.style[H1])
+	case 2:
+		rules = cascadeStyles(false, rules, tr.style[H2])
+	case 3:
+		rules = cascadeStyles(false, rules, tr.style[H3])
+	case 4:
+		rules = cascadeStyles(false, rules, tr.style[H4])
+	case 5:
+		rules = cascadeStyles(false, rules, tr.style[H5])
+	case 6:
+		rules = cascadeStyles(false, rules, tr.style[H6])
+	}
+
 	if rules != nil {
 		indent = rules.Indent
 		margin = rules.Margin

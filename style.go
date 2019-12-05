@@ -16,6 +16,12 @@ const (
 	Enumeration
 	Paragraph
 	Heading
+	H1
+	H2
+	H3
+	H4
+	H5
+	H6
 	HorizontalRule
 	Emph
 	Strong
@@ -57,7 +63,16 @@ type ElementStyle struct {
 	Suffix          string `json:"suffix"`
 }
 
-func cascadeStyle(parent *ElementStyle, child *ElementStyle) *ElementStyle {
+func cascadeStyles(onlyColors bool, s ...*ElementStyle) *ElementStyle {
+	var r *ElementStyle
+
+	for _, v := range s {
+		r = cascadeStyle(r, v, onlyColors)
+	}
+	return r
+}
+
+func cascadeStyle(parent *ElementStyle, child *ElementStyle, onlyColors bool) *ElementStyle {
 	if parent == nil {
 		return child
 	}
@@ -70,12 +85,23 @@ func cascadeStyle(parent *ElementStyle, child *ElementStyle) *ElementStyle {
 	s.Color = parent.Color
 	s.BackgroundColor = parent.BackgroundColor
 
+	if !onlyColors {
+		s.Margin = parent.Margin
+		s.Indent = parent.Indent
+	}
+
 	if child != nil {
 		if child.Color != "" {
 			s.Color = child.Color
 		}
 		if child.BackgroundColor != "" {
 			s.BackgroundColor = child.BackgroundColor
+		}
+		if child.Margin > 0 {
+			s.Margin = child.Margin
+		}
+		if child.Indent > 0 {
+			s.Indent = child.Indent
 		}
 	}
 
@@ -148,6 +174,18 @@ func keyToType(key string) (StyleType, error) {
 		return Paragraph, nil
 	case "heading":
 		return Heading, nil
+	case "h1":
+		return H1, nil
+	case "h2":
+		return H2, nil
+	case "h3":
+		return H3, nil
+	case "h4":
+		return H4, nil
+	case "h5":
+		return H5, nil
+	case "h6":
+		return H6, nil
 	case "hr":
 		return HorizontalRule, nil
 	case "emph":

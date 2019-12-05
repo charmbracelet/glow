@@ -19,7 +19,7 @@ func (e *ListElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 
 	be := BlockElement{
 		Block: &bytes.Buffer{},
-		Style: cascadeStyle(tr.blockStack.Current().Style, rules),
+		Style: cascadeStyle(tr.blockStack.Current().Style, rules, true),
 	}
 	tr.blockStack.Push(be)
 

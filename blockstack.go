@@ -70,5 +70,5 @@ func (s BlockStack) Current() BlockElement {
 }
 
 func (s BlockStack) With(child *ElementStyle) *ElementStyle {
-	return cascadeStyle(s.Current().Style, child)
+	return cascadeStyle(s.Current().Style, child, true)
 }
