@@ -30,12 +30,14 @@
     "background_color": "57"
   },
   "h1": {
+    "prefix": "\n=> ",
+    "suffix": " <=",
     "margin": 2,
     "bold": true,
     "background_color": "69"
   },
   "h2": {
-    "prefix": "\n"
+    "prefix": "\n# "
   },
   "table": {
     "margin": 4
