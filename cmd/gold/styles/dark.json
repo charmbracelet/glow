@@ -26,6 +26,7 @@
   "heading": {
     "bold": true,
     "prefix": "\n",
+    "margin": 2,
     "background_color": "57",
     "color": "3"
   },
