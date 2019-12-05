@@ -11,6 +11,7 @@ const (
 	BlockQuote
 	List
 	Item
+	Enumeration
 	Paragraph
 	Heading
 	HorizontalRule
@@ -90,6 +91,8 @@ func keyToType(key string) (StyleType, error) {
 		return List, nil
 	case "item":
 		return Item, nil
+	case "enumeration":
+		return Enumeration, nil
 	case "paragraph":
 		return Paragraph, nil
 	case "heading":
