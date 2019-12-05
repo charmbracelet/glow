@@ -2,6 +2,8 @@ package gold
 
 import (
 	"fmt"
+
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 type StyleType int
@@ -79,6 +81,56 @@ func cascadeStyle(parent *ElementStyle, child *ElementStyle) *ElementStyle {
 	}
 
 	return &s
+}
+
+func hexToANSIColor(h string) (int, error) {
+	c, err := colorful.Hex(h)
+	if err != nil {
+		return 0, err
+	}
+
+	v2ci := func(v float64) int {
+		if v < 48 {
+			return 0
+		}
+		if v < 115 {
+			return 1
+		}
+		return int((v - 35) / 40)
+	}
+
+	// Calculate the nearest 0-based color index at 16..231
+	r := v2ci(c.R * 255.0) // 0..5 each
+	g := v2ci(c.G * 255.0)
+	b := v2ci(c.B * 255.0)
+	ci := 36*r + 6*g + b /* 0..215 */
+
+	// Calculate the represented colors back from the index
+	i2cv := [6]int{0, 0x5f, 0x87, 0xaf, 0xd7, 0xff}
+	cr := i2cv[r] // r/g/b, 0..255 each
+	cg := i2cv[g]
+	cb := i2cv[b]
+
+	// Calculate the nearest 0-based gray index at 232..255
+	var grayIdx int
+	average := (r + g + b) / 3
+	if average > 238 {
+		grayIdx = 23
+	} else {
+		grayIdx = (average - 3) / 10 // 0..23
+	}
+	gv := 8 + 10*grayIdx // same value for r/g/b, 0..255
+
+	// Return the one which is nearer to the original input rgb value
+	c2 := colorful.Color{float64(cr) / 255.0, float64(cg) / 255.0, float64(cb) / 255.0}
+	g2 := colorful.Color{float64(gv) / 255.0, float64(gv) / 255.0, float64(gv) / 255.0}
+	colorDist := c.DistanceLab(c2)
+	grayDist := c.DistanceLab(g2)
+
+	if colorDist <= grayDist {
+		return 16 + ci, nil
+	}
+	return 232 + grayIdx, nil
 }
 
 func keyToType(key string) (StyleType, error) {

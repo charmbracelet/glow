@@ -24,13 +24,25 @@ func renderText(w io.Writer, rules *ElementStyle, s string) {
 
 	if rules != nil {
 		if rules.Color != "" {
-			i, err := strconv.Atoi(rules.Color)
+			var i int
+			var err error
+			if rules.Color[0] == '#' {
+				i, err = hexToANSIColor(rules.Color)
+			} else {
+				i, err = strconv.Atoi(rules.Color)
+			}
 			if err == nil && i >= 0 && i <= 255 {
 				out = out.Index(uint8(i))
 			}
 		}
 		if rules.BackgroundColor != "" {
-			i, err := strconv.Atoi(rules.BackgroundColor)
+			var i int
+			var err error
+			if rules.BackgroundColor[0] == '#' {
+				i, err = hexToANSIColor(rules.BackgroundColor)
+			} else {
+				i, err = strconv.Atoi(rules.BackgroundColor)
+			}
 			if err == nil && i >= 0 && i <= 255 {
 				out = out.BgIndex(uint8(i))
 			}
