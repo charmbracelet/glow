@@ -1,9 +1,7 @@
 package gold
 
 import (
-	"fmt"
 	"io"
-	"strings"
 
 	"github.com/muesli/reflow"
 	bf "gopkg.in/russross/blackfriday.v2"
@@ -57,7 +55,7 @@ func (e *HeadingElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) er
 	}
 	el := &BaseElement{
 		Prefix: pre,
-		Token:  fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
+		Token:  string(node.FirstChild.Literal),
 		Style:  rules,
 	}
 	err := el.Render(flow, node, tr)
