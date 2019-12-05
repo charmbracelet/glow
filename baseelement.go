@@ -1,6 +1,7 @@
 package gold
 
 import (
+	"errors"
 	"io"
 	"strconv"
 
@@ -15,6 +16,18 @@ type BaseElement struct {
 	Style  StyleType
 }
 
+func color(c string) (uint8, error) {
+	if len(c) == 0 {
+		return 0, errors.New("Invalid color")
+	}
+	if c[0] == '#' {
+		i, err := hexToANSIColor(c)
+		return uint8(i), err
+	}
+	i, err := strconv.Atoi(c)
+	return uint8(i), err
+}
+
 func renderText(w io.Writer, rules *ElementStyle, s string) {
 	if len(s) == 0 {
 		return
@@ -23,29 +36,13 @@ func renderText(w io.Writer, rules *ElementStyle, s string) {
 	out := aurora.Reset(s)
 
 	if rules != nil {
-		if rules.Color != "" {
-			var i int
-			var err error
-			if rules.Color[0] == '#' {
-				i, err = hexToANSIColor(rules.Color)
-			} else {
-				i, err = strconv.Atoi(rules.Color)
-			}
-			if err == nil && i >= 0 && i <= 255 {
-				out = out.Index(uint8(i))
-			}
+		i, err := color(rules.Color)
+		if err == nil {
+			out = out.Index(i)
 		}
-		if rules.BackgroundColor != "" {
-			var i int
-			var err error
-			if rules.BackgroundColor[0] == '#' {
-				i, err = hexToANSIColor(rules.BackgroundColor)
-			} else {
-				i, err = strconv.Atoi(rules.BackgroundColor)
-			}
-			if err == nil && i >= 0 && i <= 255 {
-				out = out.BgIndex(uint8(i))
-			}
+		i, err = color(rules.BackgroundColor)
+		if err == nil {
+			out = out.BgIndex(i)
 		}
 
 		if rules.Underline {
