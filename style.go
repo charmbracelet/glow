@@ -90,6 +90,8 @@ func cascadeStyle(parent ElementStyle, child ElementStyle, onlyColors bool) Elem
 		s.Overlined = parent.Overlined
 		s.Inverse = parent.Inverse
 		s.Blink = parent.Blink
+		s.Prefix = parent.Prefix
+		s.Suffix = parent.Suffix
 	}
 
 	if child.Color != nil {
@@ -130,6 +132,12 @@ func cascadeStyle(parent ElementStyle, child ElementStyle, onlyColors bool) Elem
 	}
 	if child.Blink != nil {
 		s.Blink = child.Blink
+	}
+	if child.Prefix != "" {
+		s.Prefix = child.Prefix
+	}
+	if child.Suffix != "" {
+		s.Suffix = child.Suffix
 	}
 
 	return s
