@@ -29,10 +29,10 @@ func (s BlockStack) Indent() uint {
 	var i uint
 
 	for _, v := range s {
-		if v.Style == nil {
+		if v.Style == nil || v.Style.Indent == nil {
 			continue
 		}
-		i += v.Style.Indent
+		i += *v.Style.Indent
 	}
 
 	return i
@@ -42,10 +42,10 @@ func (s BlockStack) Margin() uint {
 	var i uint
 
 	for _, v := range s {
-		if v.Style == nil {
+		if v.Style == nil || v.Style.Margin == nil {
 			continue
 		}
-		i += v.Style.Margin
+		i += *v.Style.Margin
 	}
 
 	return i

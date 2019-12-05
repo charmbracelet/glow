@@ -47,17 +47,17 @@ const (
 type ElementStyle struct {
 	Color           string `json:"color"`
 	BackgroundColor string `json:"background_color"`
-	Underline       bool   `json:"underline"`
-	Bold            bool   `json:"bold"`
-	Italic          bool   `json:"italic"`
-	CrossedOut      bool   `json:"crossed_out"`
-	Faint           bool   `json:"faint"`
-	Conceal         bool   `json:"conceal"`
-	Overlined       bool   `json:"overlined"`
-	Inverse         bool   `json:"inverse"`
-	Blink           bool   `json:"blink"`
-	Indent          uint   `json:"indent"`
-	Margin          uint   `json:"margin"`
+	Underline       *bool  `json:"underline"`
+	Bold            *bool  `json:"bold"`
+	Italic          *bool  `json:"italic"`
+	CrossedOut      *bool  `json:"crossed_out"`
+	Faint           *bool  `json:"faint"`
+	Conceal         *bool  `json:"conceal"`
+	Overlined       *bool  `json:"overlined"`
+	Inverse         *bool  `json:"inverse"`
+	Blink           *bool  `json:"blink"`
+	Indent          *uint  `json:"indent"`
+	Margin          *uint  `json:"margin"`
 	Theme           string `json:"theme"`
 	Prefix          string `json:"prefix"`
 	Suffix          string `json:"suffix"`
@@ -86,8 +86,17 @@ func cascadeStyle(parent *ElementStyle, child *ElementStyle, onlyColors bool) *E
 	s.BackgroundColor = parent.BackgroundColor
 
 	if !onlyColors {
-		s.Margin = parent.Margin
 		s.Indent = parent.Indent
+		s.Margin = parent.Margin
+		s.Underline = parent.Underline
+		s.Bold = parent.Bold
+		s.Italic = parent.Italic
+		s.CrossedOut = parent.CrossedOut
+		s.Faint = parent.Faint
+		s.Conceal = parent.Conceal
+		s.Overlined = parent.Overlined
+		s.Inverse = parent.Inverse
+		s.Blink = parent.Blink
 	}
 
 	if child != nil {
@@ -97,11 +106,39 @@ func cascadeStyle(parent *ElementStyle, child *ElementStyle, onlyColors bool) *E
 		if child.BackgroundColor != "" {
 			s.BackgroundColor = child.BackgroundColor
 		}
-		if child.Margin > 0 {
+
+		if child.Indent != nil {
+			s.Indent = child.Indent
+		}
+		if child.Margin != nil {
 			s.Margin = child.Margin
 		}
-		if child.Indent > 0 {
-			s.Indent = child.Indent
+		if child.Underline != nil {
+			s.Underline = child.Underline
+		}
+		if child.Bold != nil {
+			s.Bold = child.Bold
+		}
+		if child.Italic != nil {
+			s.Italic = child.Italic
+		}
+		if child.CrossedOut != nil {
+			s.CrossedOut = child.CrossedOut
+		}
+		if child.Faint != nil {
+			s.Faint = child.Faint
+		}
+		if child.Conceal != nil {
+			s.Conceal = child.Conceal
+		}
+		if child.Overlined != nil {
+			s.Overlined = child.Overlined
+		}
+		if child.Inverse != nil {
+			s.Inverse = child.Inverse
+		}
+		if child.Blink != nil {
+			s.Blink = child.Blink
 		}
 	}
 

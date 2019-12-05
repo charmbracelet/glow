@@ -27,8 +27,12 @@ func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 	var margin uint
 	rules := tr.style[Table]
 	if rules != nil {
-		indent = rules.Indent
-		margin = rules.Margin
+		if rules.Indent != nil {
+			indent = *rules.Indent
+		}
+		if rules.Margin != nil {
+			margin = *rules.Margin
+		}
 	}
 	iw := &IndentWriter{
 		Indent: indent + margin,

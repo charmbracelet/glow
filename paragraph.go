@@ -44,8 +44,12 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 
 	if rules != nil {
-		indent = rules.Indent
-		margin = rules.Margin
+		if rules.Indent != nil {
+			indent = *rules.Indent
+		}
+		if rules.Margin != nil {
+			margin = *rules.Margin
+		}
 		suffix = rules.Suffix
 	}
 	renderText(tr.blockStack.Current().Block, rules, suffix)

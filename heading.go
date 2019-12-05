@@ -33,8 +33,12 @@ func (e *HeadingElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) er
 	}
 
 	if rules != nil {
-		indent = rules.Indent
-		margin = rules.Margin
+		if rules.Indent != nil {
+			indent = *rules.Indent
+		}
+		if rules.Margin != nil {
+			margin = *rules.Margin
+		}
 	}
 
 	iw := &IndentWriter{
@@ -56,7 +60,7 @@ func (e *HeadingElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) er
 	el := &BaseElement{
 		Prefix: pre,
 		Token:  fmt.Sprintf("%s %s", strings.Repeat("#", node.HeadingData.Level), node.FirstChild.Literal),
-		Style:  Heading,
+		Style:  rules,
 	}
 	err := el.Render(flow, node, tr)
 	if err != nil {

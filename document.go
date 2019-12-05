@@ -30,8 +30,12 @@ func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) e
 	var suffix string
 	rules := tr.style[Document]
 	if rules != nil {
-		indent = rules.Indent
-		margin = rules.Margin
+		if rules.Indent != nil {
+			indent = *rules.Indent
+		}
+		if rules.Margin != nil {
+			margin = *rules.Margin
+		}
 		suffix = rules.Suffix
 	}
 	pw := &PaddingWriter{

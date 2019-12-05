@@ -37,7 +37,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Exiting:  "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: BlockQuote,
+				Style: tr.style[BlockQuote],
 			},
 		}
 	case bf.List:
@@ -67,28 +67,28 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Exiting:  "\n",
 			Renderer: &BaseElement{
 				Token: "---",
-				Style: HorizontalRule,
+				Style: tr.style[HorizontalRule],
 			},
 		}
 	case bf.Emph:
 		return Element{
 			Renderer: &BaseElement{
 				Token: string(node.FirstChild.Literal),
-				Style: Emph,
+				Style: tr.style[Emph],
 			},
 		}
 	case bf.Strong:
 		return Element{
 			Renderer: &BaseElement{
 				Token: string(node.FirstChild.Literal),
-				Style: Strong,
+				Style: tr.style[Strong],
 			},
 		}
 	case bf.Del:
 		return Element{
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: Del,
+				Style: tr.style[Del],
 			},
 		}
 	case bf.Link:
@@ -103,14 +103,14 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		return Element{
 			Renderer: &BaseElement{
 				Token: html.UnescapeString(stripper.Sanitize(string(node.Literal))),
-				Style: Text,
+				Style: tr.style[Text],
 			},
 		}
 	case bf.HTMLBlock:
 		return Element{
 			Renderer: &BaseElement{
 				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
-				Style: HTMLBlock,
+				Style: tr.style[HTMLBlock],
 			},
 		}
 	case bf.CodeBlock:
@@ -126,7 +126,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Exiting: "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: Softbreak,
+				Style: tr.style[Softbreak],
 			},
 		}
 	case bf.Hardbreak:
@@ -134,21 +134,21 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Exiting: "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: Hardbreak,
+				Style: tr.style[Hardbreak],
 			},
 		}
 	case bf.Code:
 		return Element{
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: Code,
+				Style: tr.style[Code],
 			},
 		}
 	case bf.HTMLSpan:
 		return Element{
 			Renderer: &BaseElement{
 				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
-				Style: HTMLSpan,
+				Style: tr.style[HTMLSpan],
 			},
 		}
 	case bf.Table:

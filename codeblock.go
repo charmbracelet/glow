@@ -18,8 +18,12 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	var margin uint
 	rules := tr.style[CodeBlock]
 	if rules != nil {
-		indent = rules.Indent
-		margin = rules.Margin
+		if rules.Indent != nil {
+			indent = *rules.Indent
+		}
+		if rules.Margin != nil {
+			margin = *rules.Margin
+		}
 		theme = rules.Theme
 	}
 
@@ -40,7 +44,7 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	// fallback rendering
 	el := &BaseElement{
 		Token: string(e.Code),
-		Style: CodeBlock,
+		Style: rules,
 	}
 
 	return el.Render(iw, node, tr)

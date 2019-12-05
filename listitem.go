@@ -23,13 +23,13 @@ func (e *ItemElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 
 		el = &BaseElement{
 			Token:  string(node.Literal),
-			Style:  Enumeration,
+			Style:  tr.style[Enumeration],
 			Prefix: strconv.FormatInt(l+1, 10),
 		}
 	} else {
 		el = &BaseElement{
 			Token: string(node.Literal),
-			Style: Item,
+			Style: tr.style[Item],
 		}
 	}
 

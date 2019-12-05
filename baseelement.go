@@ -16,7 +16,7 @@ type BaseElement struct {
 	Token  string
 	Prefix string
 	Suffix string
-	Style  StyleType
+	Style  *ElementStyle
 }
 
 func color(c string) (uint8, error) {
@@ -73,25 +73,25 @@ func renderText(w io.Writer, rules *ElementStyle, s string) {
 			out = out.BgIndex(i)
 		}
 
-		if rules.Underline {
+		if rules.Underline != nil && *rules.Underline {
 			out = out.Underline()
 		}
-		if rules.Bold {
+		if rules.Bold != nil && *rules.Bold {
 			out = out.Bold()
 		}
-		if rules.Italic {
+		if rules.Italic != nil && *rules.Italic {
 			out = out.Italic()
 		}
-		if rules.CrossedOut {
+		if rules.CrossedOut != nil && *rules.CrossedOut {
 			out = out.CrossedOut()
 		}
-		if rules.Overlined {
+		if rules.Overlined != nil && *rules.Overlined {
 			out = out.Overlined()
 		}
-		if rules.Inverse {
+		if rules.Inverse != nil && *rules.Inverse {
 			out = out.Reverse()
 		}
-		if rules.Blink {
+		if rules.Blink != nil && *rules.Blink {
 			out = out.Blink()
 		}
 	}
@@ -105,7 +105,7 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		renderText(w, tr.blockStack.Current().Style, e.Suffix)
 	}()
 
-	rules := tr.blockStack.With(tr.style[e.Style])
+	rules := tr.blockStack.With(e.Style)
 	if rules != nil {
 		renderText(w, rules, rules.Prefix)
 		defer func() {
