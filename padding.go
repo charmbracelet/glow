@@ -2,6 +2,8 @@ package gold
 
 import (
 	"io"
+
+	"github.com/mattn/go-runewidth"
 )
 
 type PaddingFunc = func(w io.Writer)
@@ -25,9 +27,10 @@ func (w *PaddingWriter) Write(b []byte) (int, error) {
 			if (c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a) {
 				// ANSI sequence terminated
 				w.ansi = false
-				w.lineLen--
 			}
 		} else {
+			w.lineLen += runewidth.StringWidth(string(c))
+
 			if c == '\n' {
 				// end of current line
 				if w.Padding > 0 && uint(w.lineLen) < w.Padding {
@@ -36,13 +39,10 @@ func (w *PaddingWriter) Write(b []byte) (int, error) {
 					}
 				}
 				w.Forward.ResetAnsi()
-				w.lineLen = -1
+				w.lineLen = 0
 			}
 		}
 
-		if !w.ansi {
-			w.lineLen++
-		}
 		_, err := w.Forward.Write([]byte(string(c)))
 		if err != nil {
 			return 0, err
