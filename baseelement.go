@@ -31,17 +31,36 @@ func color(c *string) (uint8, error) {
 	return uint8(i), err
 }
 
-func colorSeq(c *string) (string, error) {
-	if c == nil || len(*c) == 0 {
-		return "", errors.New("Invalid color")
+func colorSeq(fg *string, bg *string) (string, error) {
+	fc := ""
+	bc := ""
+	if fg != nil {
+		fc = *fg
+	}
+	if bg != nil {
+		bc = *bg
 	}
 
-	col, err := colorful.Hex(*c)
-	if err != nil {
-		return "", err
+	fs := ""
+	bs := ""
+	f, err := colorful.Hex(fc)
+	if err == nil {
+		fs = fmt.Sprintf("38;2;%d;%d;%d", uint8(f.R*255), uint8(f.G*255), uint8(f.B*255))
+	}
+	b, err := colorful.Hex(bc)
+	if err == nil {
+		bs = fmt.Sprintf("48;2;%d;%d;%d", uint8(b.R*255), uint8(b.G*255), uint8(b.B*255))
 	}
 
-	return fmt.Sprintf("%d;%d;%dm", uint8(col.R*255), uint8(col.G*255), uint8(col.B*255)), nil
+	if len(fs) > 0 || len(bs) > 0 {
+		seq := "\x1b[" + fs
+		if len(fs) > 0 {
+			seq += ";"
+		}
+		return seq + bs + "m", nil
+	}
+
+	return "", errors.New("Invalid color")
 }
 
 func renderText(w io.Writer, rules ElementStyle, s string) {
@@ -49,30 +68,31 @@ func renderText(w io.Writer, rules ElementStyle, s string) {
 		return
 	}
 
+	truecolor := os.Getenv("COLORTERM") == "truecolor"
 	// FIXME: ugly true-color ANSI support hack
-	if os.Getenv("COLORTERM") == "truecolor" {
-		bg, err := colorSeq(rules.BackgroundColor)
+	if truecolor {
+		seq, err := colorSeq(rules.Color, rules.BackgroundColor)
 		if err == nil {
-			s = "\x1b[48;2;" + bg + s
-		}
-		fg, err := colorSeq(rules.Color)
-		if err == nil {
-			s = "\x1b[38;2;" + fg + s
+			s = seq + s
+		} else {
+			truecolor = false
 		}
 	}
 
 	out := aurora.Reset(s)
 
-	if rules.Color != nil {
-		i, err := color(rules.Color)
-		if err == nil {
-			out = out.Index(i)
+	if !truecolor {
+		if rules.Color != nil {
+			i, err := color(rules.Color)
+			if err == nil {
+				out = out.Index(i)
+			}
 		}
-	}
-	if rules.BackgroundColor != nil {
-		i, err := color(rules.BackgroundColor)
-		if err == nil {
-			out = out.BgIndex(i)
+		if rules.BackgroundColor != nil {
+			i, err := color(rules.BackgroundColor)
+			if err == nil {
+				out = out.BgIndex(i)
+			}
 		}
 	}
 	if rules.Underline != nil && *rules.Underline {
