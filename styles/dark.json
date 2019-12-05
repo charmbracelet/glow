@@ -1,7 +1,7 @@
 {
   "document": {
     "indent": 4,
-    "background_color": "#2f2335",
+    "background_color": "234",
     "prefix": "\n",
     "suffix": "\n"
   },
@@ -42,8 +42,8 @@
   },
   "paragraph": {
     "margin": 4,
-    "background_color": "#2f2335",
-    "color": "15"
+    "color": "15",
+    "background_color": "235"
   },
   "code": {
     "color": "200"
@@ -61,8 +61,8 @@
   },
   "list": {
     "margin": 4,
-    "background_color": "52",
-    "color": "15"
+    "color": "15",
+    "background_color": "52"
   },
   "item": {
     "prefix": "• "
