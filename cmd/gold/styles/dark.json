@@ -59,5 +59,8 @@
   },
   "item": {
     "prefix": "• "
+  },
+  "enumeration": {
+    "prefix": ". "
   }
 }
