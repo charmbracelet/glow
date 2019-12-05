@@ -10,6 +10,8 @@ type LinkElement struct {
 }
 
 func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	var textRendered bool
+
 	if node.LastChild != nil {
 		if node.LastChild.Type == bf.Image {
 			el := tr.NewElement(node.LastChild)
@@ -18,7 +20,9 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 				return err
 			}
 		}
-		if len(node.LastChild.Literal) > 0 {
+		if len(node.LastChild.Literal) > 0 &&
+			string(node.LastChild.Literal) != string(node.LinkData.Destination) {
+			textRendered = true
 			el := &BaseElement{
 				Token: string(node.LastChild.Literal),
 				Style: tr.style[LinkText],
@@ -29,11 +33,20 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 			}
 		}
 	}
+
 	if len(node.LinkData.Destination) > 0 {
+		style := *tr.style[Link]
+		pre := " "
+		if !textRendered {
+			pre = ""
+			style.Prefix = ""
+			style.Suffix = ""
+		}
+
 		el := &BaseElement{
 			Token:  resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
-			Prefix: " ",
-			Style:  tr.style[Link],
+			Prefix: pre,
+			Style:  &style,
 		}
 		err := el.Render(w, node, tr)
 		if err != nil {
