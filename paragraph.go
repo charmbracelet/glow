@@ -34,10 +34,12 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var indent uint
 	var margin uint
+	keepNewlines := false
 	rules := tr.blockStack.Current().Style
 	if node.Parent != nil && node.Parent.Type == bf.Item {
 		// remove indent & margin for list items
 		rules = tr.blockStack.Current().Style
+		keepNewlines = true
 	}
 
 	if rules.Indent != nil {
@@ -70,7 +72,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 
 	if len(strings.TrimSpace(tr.blockStack.Current().Block.String())) > 0 {
 		flow := reflow.NewReflow(tr.WordWrap - int(tr.blockStack.Indent()) - int(tr.blockStack.Margin())*2)
-		flow.KeepNewlines = false
+		flow.KeepNewlines = keepNewlines
 		_, _ = flow.Write(tr.blockStack.Current().Block.Bytes())
 		flow.Close()
 
