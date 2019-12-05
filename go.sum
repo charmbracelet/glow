@@ -54,16 +54,6 @@ github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrk
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
-github.com/muesli/reflow v0.0.0-20191128011458-f4f606856be2 h1:XvNcEIUJQ6oZic3FIGK2u1V8pF+IeREHttlW8ySBvMM=
-github.com/muesli/reflow v0.0.0-20191128011458-f4f606856be2/go.mod h1:w8tGa//Xq1g6PFmbPclEY93QDv0cnBObujYoEYX/8oI=
-github.com/muesli/reflow v0.0.0-20191128045928-968b9b2020ad h1:jyfh8KHPivRKjfqinvjX+nzZg6gJQ7oTRPfrtuw0Px0=
-github.com/muesli/reflow v0.0.0-20191128045928-968b9b2020ad/go.mod h1:ElDHwEb2eq5uzeCdCvT9KyrqcAfLcQg7VCL7r7JXdcc=
-github.com/muesli/reflow v0.0.0-20191128051140-93fa6301a46e h1:9UdJp/6YtIpyJZISKQJ9YNIDN9eB4yUo49oARFxtzDw=
-github.com/muesli/reflow v0.0.0-20191128051140-93fa6301a46e/go.mod h1:ElDHwEb2eq5uzeCdCvT9KyrqcAfLcQg7VCL7r7JXdcc=
-github.com/muesli/reflow v0.0.0-20191205093112-d357691d258b h1:7iJQNEN0GksbYNXZKyaa6zdMIvX89wAeHJ9EnKRFgZg=
-github.com/muesli/reflow v0.0.0-20191205093112-d357691d258b/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
-github.com/muesli/reflow v0.0.0-20191205201805-1988755a7973 h1:JoaC7SAmUWU4ktck21kJQyFFCuUtZhoFr7gnC170la4=
-github.com/muesli/reflow v0.0.0-20191205201805-1988755a7973/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
 github.com/muesli/reflow v0.0.0-20191205210016-363f169defe8 h1:oxAi+9SI2+btEmUX6WttiY4n5wjH79Jy88SgVrcnlCw=
 github.com/muesli/reflow v0.0.0-20191205210016-363f169defe8/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
 github.com/nkovacs/streamquote v0.0.0-20170412213628-49af9bddb229/go.mod h1:0aYXnNPJ8l7uZxf45rWW1a/uME32OF0rhiYGNQ2oF2E=
