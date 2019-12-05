@@ -21,7 +21,7 @@ type TermRenderer struct {
 	BaseURL  string
 	WordWrap int
 
-	style      map[StyleType]*ElementStyle
+	style      map[StyleType]ElementStyle
 	blockStack BlockStack
 	table      TableElement
 }
@@ -56,13 +56,13 @@ func NewTermRenderer(stylePath string) (*TermRenderer, error) {
 }
 
 func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
-	e := make(map[string]*ElementStyle)
+	e := make(map[string]ElementStyle)
 	err := json.Unmarshal(b, &e)
 	if err != nil {
 		return nil, err
 	}
 	tr := &TermRenderer{}
-	tr.style = make(map[StyleType]*ElementStyle)
+	tr.style = make(map[StyleType]ElementStyle)
 
 	for k, v := range e {
 		t, err := keyToType(k)

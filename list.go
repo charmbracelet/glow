@@ -29,17 +29,14 @@ func (e *ListElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 func (e *ListElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var indent uint
 	var margin uint
-	var suffix string
 	rules := tr.blockStack.Current().Style
-	if rules != nil {
-		if rules.Indent != nil {
-			indent = *rules.Indent
-		}
-		if rules.Margin != nil {
-			margin = *rules.Margin
-		}
-		suffix = rules.Suffix
+	if rules.Indent != nil {
+		indent = *rules.Indent
 	}
+	if rules.Margin != nil {
+		margin = *rules.Margin
+	}
+	suffix := rules.Suffix
 	renderText(tr.blockStack.Current().Block, rules, suffix)
 
 	pw := &PaddingWriter{

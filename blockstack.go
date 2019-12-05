@@ -6,7 +6,7 @@ import (
 
 type BlockElement struct {
 	Block *bytes.Buffer
-	Style *ElementStyle
+	Style ElementStyle
 }
 
 type BlockStack []BlockElement
@@ -29,7 +29,7 @@ func (s BlockStack) Indent() uint {
 	var i uint
 
 	for _, v := range s {
-		if v.Style == nil || v.Style.Indent == nil {
+		if v.Style.Indent == nil {
 			continue
 		}
 		i += *v.Style.Indent
@@ -42,7 +42,7 @@ func (s BlockStack) Margin() uint {
 	var i uint
 
 	for _, v := range s {
-		if v.Style == nil || v.Style.Margin == nil {
+		if v.Style.Margin == nil {
 			continue
 		}
 		i += *v.Style.Margin
@@ -69,6 +69,6 @@ func (s BlockStack) Current() BlockElement {
 	return s[len(s)-1]
 }
 
-func (s BlockStack) With(child *ElementStyle) *ElementStyle {
+func (s BlockStack) With(child ElementStyle) ElementStyle {
 	return cascadeStyle(s.Current().Style, child, true)
 }

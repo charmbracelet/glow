@@ -35,8 +35,8 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}
 
 	if len(node.LinkData.Destination) > 0 {
-		style := *tr.style[Link]
 		pre := " "
+		style := tr.style[Link]
 		if !textRendered {
 			pre = ""
 			style.Prefix = ""
@@ -46,7 +46,7 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		el := &BaseElement{
 			Token:  resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
 			Prefix: pre,
-			Style:  &style,
+			Style:  style,
 		}
 		err := el.Render(w, node, tr)
 		if err != nil {

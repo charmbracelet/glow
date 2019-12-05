@@ -18,26 +18,22 @@ func (e *DocumentElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) e
 	}
 	tr.blockStack.Push(be)
 
-	if rules != nil {
-		renderText(tr.blockStack.Current().Block, rules, rules.Prefix)
-	}
+	renderText(tr.blockStack.Current().Block, rules, rules.Prefix)
 	return nil
 }
 
 func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var indent uint
 	var margin uint
-	var suffix string
 	rules := tr.style[Document]
-	if rules != nil {
-		if rules.Indent != nil {
-			indent = *rules.Indent
-		}
-		if rules.Margin != nil {
-			margin = *rules.Margin
-		}
-		suffix = rules.Suffix
+	if rules.Indent != nil {
+		indent = *rules.Indent
 	}
+	if rules.Margin != nil {
+		margin = *rules.Margin
+	}
+	suffix := rules.Suffix
+
 	pw := &PaddingWriter{
 		Padding: uint(tr.WordWrap) - margin,
 		PadFunc: func(wr io.Writer) {

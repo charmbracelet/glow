@@ -32,13 +32,11 @@ func (e *HeadingElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) er
 		rules = cascadeStyles(false, rules, tr.style[H6])
 	}
 
-	if rules != nil {
-		if rules.Indent != nil {
-			indent = *rules.Indent
-		}
-		if rules.Margin != nil {
-			margin = *rules.Margin
-		}
+	if rules.Indent != nil {
+		indent = *rules.Indent
+	}
+	if rules.Margin != nil {
+		margin = *rules.Margin
 	}
 
 	iw := &IndentWriter{

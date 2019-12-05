@@ -45,26 +45,26 @@ const (
 )
 
 type ElementStyle struct {
-	Color           string `json:"color"`
-	BackgroundColor string `json:"background_color"`
-	Underline       *bool  `json:"underline"`
-	Bold            *bool  `json:"bold"`
-	Italic          *bool  `json:"italic"`
-	CrossedOut      *bool  `json:"crossed_out"`
-	Faint           *bool  `json:"faint"`
-	Conceal         *bool  `json:"conceal"`
-	Overlined       *bool  `json:"overlined"`
-	Inverse         *bool  `json:"inverse"`
-	Blink           *bool  `json:"blink"`
-	Indent          *uint  `json:"indent"`
-	Margin          *uint  `json:"margin"`
-	Theme           string `json:"theme"`
-	Prefix          string `json:"prefix"`
-	Suffix          string `json:"suffix"`
+	Color           *string `json:"color"`
+	BackgroundColor *string `json:"background_color"`
+	Underline       *bool   `json:"underline"`
+	Bold            *bool   `json:"bold"`
+	Italic          *bool   `json:"italic"`
+	CrossedOut      *bool   `json:"crossed_out"`
+	Faint           *bool   `json:"faint"`
+	Conceal         *bool   `json:"conceal"`
+	Overlined       *bool   `json:"overlined"`
+	Inverse         *bool   `json:"inverse"`
+	Blink           *bool   `json:"blink"`
+	Indent          *uint   `json:"indent"`
+	Margin          *uint   `json:"margin"`
+	Theme           string  `json:"theme"`
+	Prefix          string  `json:"prefix"`
+	Suffix          string  `json:"suffix"`
 }
 
-func cascadeStyles(onlyColors bool, s ...*ElementStyle) *ElementStyle {
-	var r *ElementStyle
+func cascadeStyles(onlyColors bool, s ...ElementStyle) ElementStyle {
+	var r ElementStyle
 
 	for _, v := range s {
 		r = cascadeStyle(r, v, onlyColors)
@@ -72,15 +72,8 @@ func cascadeStyles(onlyColors bool, s ...*ElementStyle) *ElementStyle {
 	return r
 }
 
-func cascadeStyle(parent *ElementStyle, child *ElementStyle, onlyColors bool) *ElementStyle {
-	if parent == nil {
-		return child
-	}
-
-	s := ElementStyle{}
-	if child != nil {
-		s = *child
-	}
+func cascadeStyle(parent ElementStyle, child ElementStyle, onlyColors bool) ElementStyle {
+	s := child
 
 	s.Color = parent.Color
 	s.BackgroundColor = parent.BackgroundColor
@@ -99,50 +92,47 @@ func cascadeStyle(parent *ElementStyle, child *ElementStyle, onlyColors bool) *E
 		s.Blink = parent.Blink
 	}
 
-	if child != nil {
-		if child.Color != "" {
-			s.Color = child.Color
-		}
-		if child.BackgroundColor != "" {
-			s.BackgroundColor = child.BackgroundColor
-		}
-
-		if child.Indent != nil {
-			s.Indent = child.Indent
-		}
-		if child.Margin != nil {
-			s.Margin = child.Margin
-		}
-		if child.Underline != nil {
-			s.Underline = child.Underline
-		}
-		if child.Bold != nil {
-			s.Bold = child.Bold
-		}
-		if child.Italic != nil {
-			s.Italic = child.Italic
-		}
-		if child.CrossedOut != nil {
-			s.CrossedOut = child.CrossedOut
-		}
-		if child.Faint != nil {
-			s.Faint = child.Faint
-		}
-		if child.Conceal != nil {
-			s.Conceal = child.Conceal
-		}
-		if child.Overlined != nil {
-			s.Overlined = child.Overlined
-		}
-		if child.Inverse != nil {
-			s.Inverse = child.Inverse
-		}
-		if child.Blink != nil {
-			s.Blink = child.Blink
-		}
+	if child.Color != nil {
+		s.Color = child.Color
+	}
+	if child.BackgroundColor != nil {
+		s.BackgroundColor = child.BackgroundColor
+	}
+	if child.Indent != nil {
+		s.Indent = child.Indent
+	}
+	if child.Margin != nil {
+		s.Margin = child.Margin
+	}
+	if child.Underline != nil {
+		s.Underline = child.Underline
+	}
+	if child.Bold != nil {
+		s.Bold = child.Bold
+	}
+	if child.Italic != nil {
+		s.Italic = child.Italic
+	}
+	if child.CrossedOut != nil {
+		s.CrossedOut = child.CrossedOut
+	}
+	if child.Faint != nil {
+		s.Faint = child.Faint
+	}
+	if child.Conceal != nil {
+		s.Conceal = child.Conceal
+	}
+	if child.Overlined != nil {
+		s.Overlined = child.Overlined
+	}
+	if child.Inverse != nil {
+		s.Inverse = child.Inverse
+	}
+	if child.Blink != nil {
+		s.Blink = child.Blink
 	}
 
-	return &s
+	return s
 }
 
 func hexToANSIColor(h string) (int, error) {

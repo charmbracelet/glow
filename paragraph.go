@@ -13,7 +13,7 @@ type ParagraphElement struct {
 }
 
 func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	var rules *ElementStyle
+	var rules ElementStyle
 	if node.Parent != nil && node.Parent.Type == bf.Item {
 		// list item
 		rules = tr.style[List]
@@ -27,31 +27,26 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		tr.blockStack.Push(be)
 	}
 
-	if rules != nil {
-		renderText(w, tr.blockStack.Current().Style, rules.Prefix)
-	}
+	renderText(w, tr.blockStack.Current().Style, rules.Prefix)
 	return nil
 }
 
 func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
 	var indent uint
 	var margin uint
-	var suffix string
 	rules := tr.blockStack.Current().Style
 	if node.Parent != nil && node.Parent.Type == bf.Item {
 		// remove indent & margin for list items
 		rules = tr.blockStack.Current().Style
 	}
 
-	if rules != nil {
-		if rules.Indent != nil {
-			indent = *rules.Indent
-		}
-		if rules.Margin != nil {
-			margin = *rules.Margin
-		}
-		suffix = rules.Suffix
+	if rules.Indent != nil {
+		indent = *rules.Indent
 	}
+	if rules.Margin != nil {
+		margin = *rules.Margin
+	}
+	suffix := rules.Suffix
 	renderText(tr.blockStack.Current().Block, rules, suffix)
 
 	pw := &PaddingWriter{

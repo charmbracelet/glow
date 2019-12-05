@@ -16,27 +16,27 @@ type BaseElement struct {
 	Token  string
 	Prefix string
 	Suffix string
-	Style  *ElementStyle
+	Style  ElementStyle
 }
 
-func color(c string) (uint8, error) {
-	if len(c) == 0 {
+func color(c *string) (uint8, error) {
+	if c == nil || len(*c) == 0 {
 		return 0, errors.New("Invalid color")
 	}
-	if c[0] == '#' {
-		i, err := hexToANSIColor(c)
+	if (*c)[0] == '#' {
+		i, err := hexToANSIColor(*c)
 		return uint8(i), err
 	}
-	i, err := strconv.Atoi(c)
+	i, err := strconv.Atoi(*c)
 	return uint8(i), err
 }
 
-func colorSeq(c string) (string, error) {
-	if len(c) == 0 {
+func colorSeq(c *string) (string, error) {
+	if c == nil || len(*c) == 0 {
 		return "", errors.New("Invalid color")
 	}
 
-	col, err := colorful.Hex(c)
+	col, err := colorful.Hex(*c)
 	if err != nil {
 		return "", err
 	}
@@ -44,13 +44,13 @@ func colorSeq(c string) (string, error) {
 	return fmt.Sprintf("%d;%d;%dm", uint8(col.R*255), uint8(col.G*255), uint8(col.B*255)), nil
 }
 
-func renderText(w io.Writer, rules *ElementStyle, s string) {
+func renderText(w io.Writer, rules ElementStyle, s string) {
 	if len(s) == 0 {
 		return
 	}
 
 	// FIXME: ugly true-color ANSI support hack
-	if rules != nil && os.Getenv("COLORTERM") == "truecolor" {
+	if os.Getenv("COLORTERM") == "truecolor" {
 		bg, err := colorSeq(rules.BackgroundColor)
 		if err == nil {
 			s = "\x1b[48;2;" + bg + s
@@ -63,37 +63,38 @@ func renderText(w io.Writer, rules *ElementStyle, s string) {
 
 	out := aurora.Reset(s)
 
-	if rules != nil {
+	if rules.Color != nil {
 		i, err := color(rules.Color)
 		if err == nil {
 			out = out.Index(i)
 		}
-		i, err = color(rules.BackgroundColor)
+	}
+	if rules.BackgroundColor != nil {
+		i, err := color(rules.BackgroundColor)
 		if err == nil {
 			out = out.BgIndex(i)
 		}
-
-		if rules.Underline != nil && *rules.Underline {
-			out = out.Underline()
-		}
-		if rules.Bold != nil && *rules.Bold {
-			out = out.Bold()
-		}
-		if rules.Italic != nil && *rules.Italic {
-			out = out.Italic()
-		}
-		if rules.CrossedOut != nil && *rules.CrossedOut {
-			out = out.CrossedOut()
-		}
-		if rules.Overlined != nil && *rules.Overlined {
-			out = out.Overlined()
-		}
-		if rules.Inverse != nil && *rules.Inverse {
-			out = out.Reverse()
-		}
-		if rules.Blink != nil && *rules.Blink {
-			out = out.Blink()
-		}
+	}
+	if rules.Underline != nil && *rules.Underline {
+		out = out.Underline()
+	}
+	if rules.Bold != nil && *rules.Bold {
+		out = out.Bold()
+	}
+	if rules.Italic != nil && *rules.Italic {
+		out = out.Italic()
+	}
+	if rules.CrossedOut != nil && *rules.CrossedOut {
+		out = out.CrossedOut()
+	}
+	if rules.Overlined != nil && *rules.Overlined {
+		out = out.Overlined()
+	}
+	if rules.Inverse != nil && *rules.Inverse {
+		out = out.Reverse()
+	}
+	if rules.Blink != nil && *rules.Blink {
+		out = out.Blink()
 	}
 
 	_, _ = w.Write([]byte(out.String()))
@@ -106,12 +107,10 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}()
 
 	rules := tr.blockStack.With(e.Style)
-	if rules != nil {
-		renderText(w, rules, rules.Prefix)
-		defer func() {
-			renderText(w, rules, rules.Suffix)
-		}()
-	}
+	renderText(w, rules, rules.Prefix)
+	defer func() {
+		renderText(w, rules, rules.Suffix)
+	}()
 
 	renderText(w, rules, e.Token)
 	return nil
