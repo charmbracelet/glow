@@ -29,7 +29,6 @@ const (
 	CodeBlock
 	Softbreak
 	Hardbreak
-	Indent
 	Code
 	HTMLSpan
 	Table
@@ -175,8 +174,6 @@ func keyToType(key string) (StyleType, error) {
 		return Softbreak, nil
 	case "hardbreak":
 		return Hardbreak, nil
-	case "indent":
-		return Indent, nil
 	case "code":
 		return Code, nil
 	case "html_span":
