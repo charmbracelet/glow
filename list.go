@@ -23,9 +23,6 @@ func (e *ListElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}
 	tr.blockStack.Push(be)
 
-	if rules != nil {
-		renderText(w, tr.blockStack.Current().Style, rules.Prefix)
-	}
 	return nil
 }
 
