@@ -2,10 +2,13 @@ package gold
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"os"
 	"strconv"
 
 	"github.com/logrusorgru/aurora"
+	"github.com/lucasb-eyer/go-colorful"
 	bf "gopkg.in/russross/blackfriday.v2"
 )
 
@@ -28,9 +31,34 @@ func color(c string) (uint8, error) {
 	return uint8(i), err
 }
 
+func colorSeq(c string) (string, error) {
+	if len(c) == 0 {
+		return "", errors.New("Invalid color")
+	}
+
+	col, err := colorful.Hex(c)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%d;%d;%dm", uint8(col.R*255), uint8(col.G*255), uint8(col.B*255)), nil
+}
+
 func renderText(w io.Writer, rules *ElementStyle, s string) {
 	if len(s) == 0 {
 		return
+	}
+
+	// FIXME: ugly hack
+	if os.Getenv("COLORTERM") == "truecolor" {
+		bg, err := colorSeq(rules.BackgroundColor)
+		if err == nil {
+			s = "\x1b[48;2;" + bg + s
+		}
+		fg, err := colorSeq(rules.Color)
+		if err == nil {
+			s = "\x1b[38;2;" + fg + s
+		}
 	}
 
 	out := aurora.Reset(s)
