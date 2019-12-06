@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/url"
-	"os"
 
 	"github.com/microcosm-cc/bluemonday"
 	bf "gopkg.in/russross/blackfriday.v2"
@@ -46,12 +44,11 @@ func NewTermRenderer(stylePath string) (*TermRenderer, error) {
 	if stylePath == "" {
 		return NewTermRendererFromBytes([]byte("{}"))
 	}
-	f, err := os.Open(stylePath)
+
+	b, err := loadStyle(stylePath)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
-	b, _ := ioutil.ReadAll(f)
 	return NewTermRendererFromBytes(b)
 }
 
