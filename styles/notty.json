@@ -1,0 +1,57 @@
+{
+  "document": {
+    "indent": 4,
+    "prefix": "\n",
+    "suffix": "\n"
+  },
+  "link": {
+    "prefix": "(",
+    "suffix": ")"
+  },
+  "image": {
+    "prefix": "[Image: ",
+    "suffix": "]"
+  },
+  "heading": {
+    "prefix": "\n",
+    "margin": 4
+  },
+  "h1": {
+    "prefix": "\n=> ",
+    "suffix": " <=",
+    "margin": 2
+  },
+  "h2": {
+    "prefix": "\n# "
+  },
+  "table": {
+    "margin": 4
+  },
+  "paragraph": {
+    "margin": 4
+  },
+  "code": {
+    "prefix": "`",
+    "suffix": "`"
+  },
+  "code_block": {
+    "margin": 4
+  },
+  "emph": {
+    "prefix": "*",
+    "suffix": "*"
+  },
+  "strong": {
+    "prefix": "**",
+    "suffix": "**"
+  },
+  "list": {
+    "margin": 4
+  },
+  "item": {
+    "prefix": "• "
+  },
+  "enumeration": {
+    "prefix": ". "
+  }
+}
