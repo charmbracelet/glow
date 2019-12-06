@@ -100,7 +100,10 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer src.reader.Close()
-	b, _ := ioutil.ReadAll(src.reader)
+	b, err := ioutil.ReadAll(src.reader)
+	if err != nil {
+		return err
+	}
 
 	r := gold.NewPlainTermRenderer()
 	if isatty.IsTerminal(os.Stdout.Fd()) {
