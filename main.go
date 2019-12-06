@@ -106,12 +106,13 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	r := gold.NewPlainTermRenderer()
-	if isatty.IsTerminal(os.Stdout.Fd()) {
-		r, err = gold.NewTermRenderer(style)
-		if err != nil {
-			return err
-		}
+	if !isatty.IsTerminal(os.Stdout.Fd()) &&
+		!cmd.Flags().Changed("style") {
+		style = "notty"
+	}
+	r, err := gold.NewTermRenderer(style)
+	if err != nil {
+		return err
 	}
 	r.WordWrap = int(width)
 
