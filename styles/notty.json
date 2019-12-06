@@ -1,6 +1,5 @@
 {
   "document": {
-    "indent": 4,
     "prefix": "\n",
     "suffix": "\n"
   },
@@ -14,28 +13,28 @@
   },
   "heading": {
     "prefix": "\n",
-    "margin": 4
+    "indent": 2
   },
   "h1": {
     "prefix": "\n=> ",
     "suffix": " <=",
-    "margin": 2
+    "indent": 0
   },
   "h2": {
     "prefix": "\n# "
   },
   "table": {
-    "margin": 4
+    "indent": 2
   },
   "paragraph": {
-    "margin": 4
+    "indent": 2
   },
   "code": {
     "prefix": "`",
     "suffix": "`"
   },
   "code_block": {
-    "margin": 4
+    "indent": 2
   },
   "emph": {
     "prefix": "*",
@@ -46,7 +45,7 @@
     "suffix": "**"
   },
   "list": {
-    "margin": 4
+    "indent": 2
   },
   "item": {
     "prefix": "• "
