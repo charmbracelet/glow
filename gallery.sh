@@ -9,6 +9,6 @@ for style in ./styles/*.json; do
         light="-l"
     fi
 
-    ./termshot ${light} -o ./styles/ -f "$filename" ./gold -s ${style}
+    ./termshot ${light} -o ./styles/ -f "$filename" ./cmd/gold/gold -s ${style} ./cmd/gold
     pngcrush -ow "./styles/$filename"
 done
