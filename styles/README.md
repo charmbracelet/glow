@@ -17,6 +17,8 @@ The `document` element represents the markdown's body.
 
 ### Example
 
+Style:
+
 ```
 "document": {
     "indent": 2,
@@ -42,6 +44,8 @@ The `paragraph` element represents a paragraph in the document.
 | background_color | color  | Defines the default background color for paragraphs |
 
 ### Example
+
+Style:
 
 ```
 "paragraph": {
@@ -82,6 +86,18 @@ from the `heading` element.
 | inverse          | bool   | Swaps fore- & background colors                   |
 
 ### Example
+
+Markdown:
+
+```
+# h1
+
+## h2
+
+### h3
+```
+
+Style:
 
 ```
 "heading": {
@@ -126,6 +142,8 @@ The `text` element represents a block of text.
 
 ### Example
 
+Style:
+
 ```
 "text": {
     "bold": true,
@@ -150,6 +168,15 @@ The `list` element represents a list in the document.
 | background_color | color  | Defines the default background color for lists |
 
 ### Example
+
+Markdown:
+
+```
+- First Item
+    - Nested List Item
+```
+
+Style:
 
 ```
 "list": {
@@ -183,6 +210,8 @@ The `item` element represents an item in lists.
 
 ### Example
 
+Style:
+
 ```
 "item": {
     "prefix": "• "
@@ -213,6 +242,15 @@ The `enumeration` element represents an item in ordered lists.
 
 ### Example
 
+Markdown:
+
+```
+1. First Item
+2. Second Item
+```
+
+Style:
+
 ```
 "enumeration": {
     "prefix": ". "
@@ -242,6 +280,14 @@ The `link` element represents a link.
 | inverse          | bool   | Swaps fore- & background colors                |
 
 ### Example
+
+Markdown:
+
+```
+This is a [link](https://charm.sh).
+```
+
+Style:
 
 ```
 "link": {
@@ -276,6 +322,8 @@ The `link_text` element represents the text associated with a link.
 
 ### Example
 
+Style:
+
 ```
 "link_text": {
     "color": "123",
@@ -306,6 +354,14 @@ The `image` element represents an image.
 | inverse          | bool   | Swaps fore- & background colors                 |
 
 ### Example
+
+Markdown:
+
+```
+![Image](https://charm.sh/logo.png).
+```
+
+Style:
 
 ```
 "image": {
@@ -339,9 +395,43 @@ The `image_text` element represents the text associated with an image.
 
 ### Example
 
+Style:
+
 ```
 "image_text": {
     "color": "8"
+}
+```
+
+## code
+
+The `code` element represents an inline code segment.
+
+### Attributes
+
+| Attribute        | Value  | Description                                    |
+| ---------------- | ------ | ---------------------------------------------- |
+| prefix           | string | Printed before the code                        |
+| suffix           | string | Printed after the code                         |
+| color            | color  | Defines the default text color for codes       |
+| background_color | color  | Defines the default background color for codes |
+| bold             | bool   | Increases text intensity                       |
+| faint            | bool   | Decreases text intensity                       |
+| italic           | bool   | Prints the text in italic                      |
+| crossed_out      | bool   | Enables strikethrough as text decoration       |
+| underline        | bool   | Enables underline as text decoration           |
+| overlined        | bool   | Enables overline as text decoration            |
+| blink            | bool   | Enables blinking text                          |
+| conceal          | bool   | Conceals / hides the text                      |
+| inverse          | bool   | Swaps fore- & background colors                |
+
+### Example
+
+Style:
+
+```
+"code": {
+    "color": "200"
 }
 ```
 
@@ -362,6 +452,8 @@ The `code_block` element represents a block of code.
 | background_color | color  | Defines the default background color for code blocks  |
 
 ### Example
+
+Style:
 
 ```
 "code_block": {
@@ -388,9 +480,96 @@ The `table` element represents a table of data.
 
 ### Example
 
+Markdown:
+
+```
+| Label  | Value |
+| ------ | ----- |
+| First  | foo   |
+| Second | bar   |
+```
+
+Style:
+
 ```
 "table": {
     "margin": 4
+}
+```
+
+## emph
+
+The `emph` element represents an emphasized text.
+
+### Attributes
+
+| Attribute        | Value  | Description                                       |
+| ---------------- | ------ | ------------------------------------------------- |
+| prefix           | string | Printed before the text                           |
+| suffix           | string | Printed after the text                            |
+| color            | color  | Defines the default text color for the text       |
+| background_color | color  | Defines the default background color for the text |
+| bold             | bool   | Increases text intensity                          |
+| faint            | bool   | Decreases text intensity                          |
+| italic           | bool   | Prints the text in italic                         |
+| crossed_out      | bool   | Enables strikethrough as text decoration          |
+| underline        | bool   | Enables underline as text decoration              |
+| overlined        | bool   | Enables overline as text decoration               |
+| blink            | bool   | Enables blinking text                             |
+| conceal          | bool   | Conceals / hides the text                         |
+| inverse          | bool   | Swaps fore- & background colors                   |
+
+### Example
+
+Markdown:
+
+```
+This text is *emphasized*.
+```
+
+Style:
+
+```
+"emph": {
+    "italic": true
+}
+```
+
+## strong
+
+The `strong` element represents important text.
+
+### Attributes
+
+| Attribute        | Value  | Description                                       |
+| ---------------- | ------ | ------------------------------------------------- |
+| prefix           | string | Printed before the text                           |
+| suffix           | string | Printed after the text                            |
+| color            | color  | Defines the default text color for the text       |
+| background_color | color  | Defines the default background color for the text |
+| bold             | bool   | Increases text intensity                          |
+| faint            | bool   | Decreases text intensity                          |
+| italic           | bool   | Prints the text in italic                         |
+| crossed_out      | bool   | Enables strikethrough as text decoration          |
+| underline        | bool   | Enables underline as text decoration              |
+| overlined        | bool   | Enables overline as text decoration               |
+| blink            | bool   | Enables blinking text                             |
+| conceal          | bool   | Conceals / hides the text                         |
+| inverse          | bool   | Swaps fore- & background colors                   |
+
+### Example
+
+Markdown:
+
+```
+This text is **strong**.
+```
+
+Style:
+
+```
+"strong": {
+    "bold": true
 }
 ```
 
@@ -418,19 +597,23 @@ The `hr` element represents a horizontal rule.
 
 ### Example
 
+Markdown:
+
+```
+---
+```
+
+Style:
+
 ```
 "hr": {
     "prefix": "---"
 }
 ```
 
-
 ## block_quote
-## emph
-## strong
 ## del
-## html_block
 ## softbreak
 ## hardbreak
-## code
+## html_block
 ## html_span
