@@ -15,9 +15,9 @@ See [cmd/gold](cmd/gold/).
 
 ## Example Output
 
-![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/styles/dark.png)
+![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/styles/gallery/dark.png)
 
-Check out the [Gold Style Gallery](https://github.com/charmbracelet/gold/blob/master/styles/README.md)!
+Check out the [Gold Style Gallery](https://github.com/charmbracelet/gold/blob/master/styles/gallery/README.md)!
 
 ## Colors
 
