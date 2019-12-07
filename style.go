@@ -67,6 +67,7 @@ type ElementStyle struct {
 	Theme           string  `json:"theme"`
 	Prefix          string  `json:"prefix"`
 	Suffix          string  `json:"suffix"`
+	Format          string  `json:"format"`
 }
 
 func loadStyle(f string) ([]byte, error) {
@@ -119,6 +120,7 @@ func cascadeStyle(parent ElementStyle, child ElementStyle, onlyColors bool) Elem
 		s.Blink = parent.Blink
 		s.Prefix = parent.Prefix
 		s.Suffix = parent.Suffix
+		s.Format = parent.Format
 	}
 
 	if child.Color != nil {
@@ -165,6 +167,9 @@ func cascadeStyle(parent ElementStyle, child ElementStyle, onlyColors bool) Elem
 	}
 	if child.Suffix != "" {
 		s.Suffix = child.Suffix
+	}
+	if child.Format != "" {
+		s.Format = child.Format
 	}
 
 	return s

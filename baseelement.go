@@ -1,11 +1,13 @@
 package gold
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
+	"text/template"
 
 	"github.com/logrusorgru/aurora"
 	"github.com/lucasb-eyer/go-colorful"
@@ -61,6 +63,21 @@ func colorSeq(fg *string, bg *string) (string, error) {
 	}
 
 	return "", errors.New("Invalid color")
+}
+
+func formatToken(format string, token string) (string, error) {
+	var b bytes.Buffer
+
+	v := make(map[string]interface{})
+	v["text"] = token
+
+	tmpl, err := template.New(format).Parse(format)
+	if err != nil {
+		return "", err
+	}
+
+	err = tmpl.Execute(&b, v)
+	return b.String(), err
 }
 
 func renderText(w io.Writer, rules ElementStyle, s string) {
@@ -132,6 +149,14 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		renderText(w, rules, rules.Suffix)
 	}()
 
-	renderText(w, rules, e.Token)
+	s := e.Token
+	if len(rules.Format) > 0 {
+		var err error
+		s, err = formatToken(rules.Format, s)
+		if err != nil {
+			return err
+		}
+	}
+	renderText(w, rules, s)
 	return nil
 }
