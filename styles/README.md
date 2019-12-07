@@ -2,7 +2,7 @@
 
 ## document
 
-The `document` element defines the markdown's body.
+The `document` element represents the markdown's body.
 
 ### Attributes
 
@@ -28,7 +28,7 @@ The `document` element defines the markdown's body.
 
 ## paragraph
 
-The `paragraph` element defines a paragraph in the document.
+The `paragraph` element represents a paragraph in the document.
 
 ### Attributes
 
@@ -53,11 +53,11 @@ The `paragraph` element defines a paragraph in the document.
 
 ## heading
 
-The `heading` element defines a heading.
+The `heading` element represents a heading.
 
 ## h1 - h6
 
-The `h1` to `h6` elements define headings. `h1` defines the most important
+The `h1` to `h6` elements represent headings. `h1` defines the most important
 heading, `h6` the least important heading. Undefined attributes are inherited
 from the `heading` element.
 
@@ -104,7 +104,7 @@ from the `heading` element.
 
 ## text
 
-The `text` element defines a block of text.
+The `text` element represents a block of text.
 
 ### Attributes
 
@@ -136,7 +136,7 @@ The `text` element defines a block of text.
 
 ## list
 
-The `list` element defines a list in the document.
+The `list` element represents a list in the document.
 
 ### Attributes
 
@@ -161,7 +161,7 @@ The `list` element defines a list in the document.
 
 ## item
 
-The `item` element defines an item in lists.
+The `item` element represents an item in lists.
 
 ### Attributes
 
@@ -191,7 +191,7 @@ The `item` element defines an item in lists.
 
 ## enumeration
 
-The `enumeration` element defines an item in ordered lists.
+The `enumeration` element represents an item in ordered lists.
 
 ### Attributes
 
@@ -219,23 +219,218 @@ The `enumeration` element defines an item in ordered lists.
 }
 ```
 
-## block_quote
+## link
+
+The `link` element represents a link.
+
+### Attributes
+
+| Attribute        | Value  | Description                                    |
+| ---------------- | ------ | ---------------------------------------------- |
+| prefix           | string | Printed before the link                        |
+| suffix           | string | Printed after the link                         |
+| color            | color  | Defines the default text color for links       |
+| background_color | color  | Defines the default background color for links |
+| bold             | bool   | Increases text intensity                       |
+| faint            | bool   | Decreases text intensity                       |
+| italic           | bool   | Prints the text in italic                      |
+| crossed_out      | bool   | Enables strikethrough as text decoration       |
+| underline        | bool   | Enables underline as text decoration           |
+| overlined        | bool   | Enables overline as text decoration            |
+| blink            | bool   | Enables blinking text                          |
+| conceal          | bool   | Conceals / hides the text                      |
+| inverse          | bool   | Swaps fore- & background colors                |
+
+### Example
+
+```
+"link": {
+    "color": "123",
+    "underline": true,
+    "prefix": "(",
+    "suffix": ")"
+}
+```
+
+## link_text
+
+The `link_text` element represents the text associated with a link.
+
+### Attributes
+
+| Attribute        | Value  | Description                                       |
+| ---------------- | ------ | ------------------------------------------------- |
+| prefix           | string | Printed before the text                           |
+| suffix           | string | Printed after the text                            |
+| color            | color  | Defines the default text color for the text       |
+| background_color | color  | Defines the default background color for the text |
+| bold             | bool   | Increases text intensity                          |
+| faint            | bool   | Decreases text intensity                          |
+| italic           | bool   | Prints the text in italic                         |
+| crossed_out      | bool   | Enables strikethrough as text decoration          |
+| underline        | bool   | Enables underline as text decoration              |
+| overlined        | bool   | Enables overline as text decoration               |
+| blink            | bool   | Enables blinking text                             |
+| conceal          | bool   | Conceals / hides the text                         |
+| inverse          | bool   | Swaps fore- & background colors                   |
+
+### Example
+
+```
+"link_text": {
+    "color": "123",
+    "bold": true
+}
+```
+
+## image
+
+The `image` element represents an image.
+
+### Attributes
+
+| Attribute        | Value  | Description                                     |
+| ---------------- | ------ | ----------------------------------------------- |
+| prefix           | string | Printed before an image                         |
+| suffix           | string | Printed after an image                          |
+| color            | color  | Defines the default text color for images       |
+| background_color | color  | Defines the default background color for images |
+| bold             | bool   | Increases text intensity                        |
+| faint            | bool   | Decreases text intensity                        |
+| italic           | bool   | Prints the text in italic                       |
+| crossed_out      | bool   | Enables strikethrough as text decoration        |
+| underline        | bool   | Enables underline as text decoration            |
+| overlined        | bool   | Enables overline as text decoration             |
+| blink            | bool   | Enables blinking text                           |
+| conceal          | bool   | Conceals / hides the text                       |
+| inverse          | bool   | Swaps fore- & background colors                 |
+
+### Example
+
+```
+"image": {
+    "color": "123",
+    "prefix": "[Image: ",
+    "suffix": "]"
+}
+```
+
+## image_text
+
+The `image_text` element represents the text associated with an image.
+
+### Attributes
+
+| Attribute        | Value  | Description                                       |
+| ---------------- | ------ | ------------------------------------------------- |
+| prefix           | string | Printed before the text                           |
+| suffix           | string | Printed after the text                            |
+| color            | color  | Defines the default text color for the text       |
+| background_color | color  | Defines the default background color for the text |
+| bold             | bool   | Increases text intensity                          |
+| faint            | bool   | Decreases text intensity                          |
+| italic           | bool   | Prints the text in italic                         |
+| crossed_out      | bool   | Enables strikethrough as text decoration          |
+| underline        | bool   | Enables underline as text decoration              |
+| overlined        | bool   | Enables overline as text decoration               |
+| blink            | bool   | Enables blinking text                             |
+| conceal          | bool   | Conceals / hides the text                         |
+| inverse          | bool   | Swaps fore- & background colors                   |
+
+### Example
+
+```
+"image_text": {
+    "color": "8"
+}
+```
+
+## code_block
+
+The `code_block` element represents a block of code.
+
+### Attributes
+
+| Attribute        | Value  | Description                                           |
+| ---------------- | ------ | ----------------------------------------------------- |
+| prefix           | string | Printed before a code block                           |
+| suffix           | string | Printed after a code block                            |
+| indent           | number | Specifies the indentation of code blocks              |
+| margin           | number | Specifies the margin around code blocks               |
+| theme            | string | Defines the chroma theme used for syntax highlighting |
+| color            | color  | Defines the default text color for code blocks        |
+| background_color | color  | Defines the default background color for code blocks  |
+
+### Example
+
+```
+"code_block": {
+    "margin": 4,
+    "color": "200",
+    "theme": "solarized-dark"
+}
+```
+
+## table
+
+The `table` element represents a table of data.
+
+### Attributes
+
+| Attribute        | Value  | Description                                     |
+| ---------------- | ------ | ----------------------------------------------- |
+| prefix           | string | Printed before a table                          |
+| suffix           | string | Printed after a table                           |
+| indent           | number | Specifies the indentation of tables             |
+| margin           | number | Specifies the margin around tables              |
+| color            | color  | Defines the default text color for tables       |
+| background_color | color  | Defines the default background color for tables |
+
+### Example
+
+```
+"table": {
+    "margin": 4
+}
+```
+
 ## hr
+
+The `hr` element represents a horizontal rule.
+
+### Attributes
+
+| Attribute        | Value  | Description                                                  |
+| ---------------- | ------ | ------------------------------------------------------------ |
+| prefix           | string | Printed before the horizontal rule                           |
+| suffix           | string | Printed after the horizontal rule                            |
+| color            | color  | Defines the default text color for the horizontal rule       |
+| background_color | color  | Defines the default background color for the horizontal rule |
+| bold             | bool   | Increases text intensity                                     |
+| faint            | bool   | Decreases text intensity                                     |
+| italic           | bool   | Prints the text in italic                                    |
+| crossed_out      | bool   | Enables strikethrough as text decoration                     |
+| underline        | bool   | Enables underline as text decoration                         |
+| overlined        | bool   | Enables overline as text decoration                          |
+| blink            | bool   | Enables blinking text                                        |
+| conceal          | bool   | Conceals / hides the text                                    |
+| inverse          | bool   | Swaps fore- & background colors                              |
+
+### Example
+
+```
+"hr": {
+    "prefix": "---"
+}
+```
+
+
+## block_quote
 ## emph
 ## strong
 ## del
-## link
-## link_text
-## image
-## image_text
 ## html_block
-## code_block
 ## softbreak
 ## hardbreak
 ## code
 ## html_span
-## table
-## table_cel
-## table_head
-## table_body
-## table_row
