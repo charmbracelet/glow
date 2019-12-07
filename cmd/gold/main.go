@@ -110,18 +110,19 @@ func execute(cmd *cobra.Command, args []string) error {
 		!cmd.Flags().Changed("style") {
 		style = "notty"
 	}
-	r, err := gold.NewTermRenderer(style)
-	if err != nil {
-		return err
-	}
-	r.WordWrap = int(width)
 
 	u, err := url.ParseRequestURI(src.URL)
 	if err == nil {
 		u.Path = filepath.Dir(u.Path)
-		r.BaseURL = u.String() + "/"
 	}
 
+	r, err := gold.NewTermRenderer(style, gold.Options{
+		BaseURL:  u.String() + "/",
+		WordWrap: int(width),
+	})
+	if err != nil {
+		return err
+	}
 	out := r.RenderBytes(b)
 	fmt.Printf("%s", string(out))
 	return nil

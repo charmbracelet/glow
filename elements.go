@@ -28,9 +28,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 
 	switch node.Type {
 	case bf.Document:
-		de := &DocumentElement{
-			Width: uint(tr.WordWrap),
-		}
+		de := &DocumentElement{}
 		return Element{
 			Renderer: de,
 			Finisher: de,
@@ -46,7 +44,6 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.List:
 		le := &ListElement{
-			Width:  uint(tr.WordWrap),
 			Nested: node.Parent.Type == bf.Item,
 		}
 		return Element{
@@ -72,7 +69,6 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.Paragraph:
 		pe := &ParagraphElement{
-			Width:      uint(tr.WordWrap),
 			InsideList: node.Parent != nil && node.Parent.Type == bf.Item,
 		}
 		return Element{
@@ -83,7 +79,6 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		return Element{
 			Exiting: "\n",
 			Renderer: &HeadingElement{
-				Width: uint(tr.WordWrap),
 				Text:  string(node.FirstChild.Literal),
 				Level: node.HeadingData.Level,
 				First: node.Prev == nil,
@@ -126,7 +121,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		return Element{
 			Renderer: &LinkElement{
 				Text:    text,
-				BaseURL: tr.BaseURL,
+				BaseURL: tr.context.options.BaseURL,
 				URL:     string(node.LinkData.Destination),
 			},
 		}
@@ -138,7 +133,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		return Element{
 			Renderer: &ImageElement{
 				Text:    text,
-				BaseURL: tr.BaseURL,
+				BaseURL: tr.context.options.BaseURL,
 				URL:     string(node.LinkData.Destination),
 			},
 		}

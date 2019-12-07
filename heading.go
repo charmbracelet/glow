@@ -7,7 +7,6 @@ import (
 )
 
 type HeadingElement struct {
-	Width uint
 	Text  string
 	Level int
 	First bool
@@ -51,9 +50,7 @@ func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 		},
 	}
 
-	flow := reflow.NewReflow(int(e.Width) -
-		int(indent) - int(margin*2) -
-		int(bs.Indent()) - int(bs.Margin())*2)
+	flow := reflow.NewReflow(int(bs.Width(ctx) - indent - margin*2))
 
 	var pre string
 	if !e.First {

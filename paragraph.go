@@ -9,7 +9,6 @@ import (
 )
 
 type ParagraphElement struct {
-	Width      uint
 	InsideList bool
 }
 
@@ -53,12 +52,12 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 	if rules.Margin != nil {
 		margin = *rules.Margin
 	}
-	suffix := rules.Suffix
 
+	suffix := rules.Suffix
 	renderText(bs.Current().Block, rules, suffix)
 
 	pw := &PaddingWriter{
-		Padding: uint(int(e.Width) - int(bs.Indent()) - int(bs.Margin()*2)),
+		Padding: bs.Width(ctx),
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},
@@ -77,7 +76,7 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 	}
 
 	if len(strings.TrimSpace(bs.Current().Block.String())) > 0 {
-		flow := reflow.NewReflow(int(e.Width) - int(bs.Indent()) - int(bs.Margin())*2)
+		flow := reflow.NewReflow(int(bs.Width(ctx)))
 		flow.KeepNewlines = keepNewlines
 		_, _ = flow.Write(bs.Current().Block.Bytes())
 		flow.Close()

@@ -51,6 +51,13 @@ func (s BlockStack) Margin() uint {
 	return i
 }
 
+func (s BlockStack) Width(ctx RenderContext) uint {
+	if s.Indent()+s.Margin()*2 > uint(ctx.options.WordWrap) {
+		return 0
+	}
+	return uint(ctx.options.WordWrap) - s.Indent() - s.Margin()*2
+}
+
 func (s BlockStack) Parent() BlockElement {
 	if len(s) < 2 {
 		return s.Current()

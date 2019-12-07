@@ -6,7 +6,6 @@ import (
 )
 
 type DocumentElement struct {
-	Width uint
 }
 
 func (e *DocumentElement) Render(w io.Writer, ctx RenderContext) error {
@@ -37,7 +36,7 @@ func (e *DocumentElement) Finish(w io.Writer, ctx RenderContext) error {
 	suffix := rules.Suffix
 
 	pw := &PaddingWriter{
-		Padding: e.Width - margin,
+		Padding: uint(ctx.options.WordWrap) - margin,
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},

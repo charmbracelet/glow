@@ -8,7 +8,6 @@ import (
 )
 
 type ListElement struct {
-	Width  uint
 	Nested bool
 }
 
@@ -39,11 +38,12 @@ func (e *ListElement) Finish(w io.Writer, ctx RenderContext) error {
 	if rules.Margin != nil {
 		margin = *rules.Margin
 	}
+
 	suffix := rules.Suffix
 	renderText(bs.Current().Block, rules, suffix)
 
 	pw := &PaddingWriter{
-		Padding: uint(int(e.Width) - int(bs.Indent()) - int(bs.Margin()*2)),
+		Padding: bs.Width(ctx),
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},
@@ -61,8 +61,8 @@ func (e *ListElement) Finish(w io.Writer, ctx RenderContext) error {
 		},
 	}
 
-	_, err := iw.Write(reflow.Bytes(bs.Current().Block.Bytes(),
-		int(e.Width)-int(bs.Indent())-int(bs.Margin())*2))
+	_, err := iw.Write(
+		reflow.Bytes(bs.Current().Block.Bytes(), int(bs.Width(ctx))))
 	if err != nil {
 		return err
 	}

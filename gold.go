@@ -15,10 +15,12 @@ var (
 	stripper = bluemonday.StrictPolicy()
 )
 
-type TermRenderer struct {
+type Options struct {
 	BaseURL  string
 	WordWrap int
+}
 
+type TermRenderer struct {
 	context RenderContext
 }
 
@@ -27,43 +29,46 @@ func Render(in string, stylePath string) ([]byte, error) {
 }
 
 func RenderBytes(in []byte, stylePath string) ([]byte, error) {
-	r, err := NewTermRenderer(stylePath)
+	r, err := NewTermRenderer(stylePath, Options{
+		WordWrap: 80,
+	})
 	if err != nil {
 		return nil, err
 	}
 	return r.RenderBytes(in), nil
 }
 
-func NewPlainTermRenderer() *TermRenderer {
-	return &TermRenderer{}
+func NewPlainTermRenderer(options Options) *TermRenderer {
+	return &TermRenderer{
+		context: RenderContext{
+			style:      make(map[StyleType]ElementStyle),
+			blockStack: &BlockStack{},
+			table:      &TableElement{},
+			options:    options,
+		},
+	}
 }
 
-func NewTermRenderer(stylePath string) (*TermRenderer, error) {
+func NewTermRenderer(stylePath string, options Options) (*TermRenderer, error) {
 	if stylePath == "" {
-		return NewTermRendererFromBytes([]byte("{}"))
+		return NewTermRendererFromBytes([]byte("{}"), options)
 	}
 
 	b, err := loadStyle(stylePath)
 	if err != nil {
 		return nil, err
 	}
-	return NewTermRendererFromBytes(b)
+	return NewTermRendererFromBytes(b, options)
 }
 
-func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
+func NewTermRendererFromBytes(b []byte, options Options) (*TermRenderer, error) {
 	e := make(map[string]ElementStyle)
 	err := json.Unmarshal(b, &e)
 	if err != nil {
 		return nil, err
 	}
 
-	tr := &TermRenderer{
-		context: RenderContext{
-			style:      make(map[StyleType]ElementStyle),
-			blockStack: &BlockStack{},
-			table:      &TableElement{},
-		},
-	}
+	tr := NewPlainTermRenderer(options)
 	for k, v := range e {
 		t, err := keyToType(k)
 		if err != nil {
@@ -72,6 +77,7 @@ func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
 		}
 		tr.context.style[t] = v
 	}
+
 	return tr, nil
 }
 
