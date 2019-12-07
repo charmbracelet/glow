@@ -58,9 +58,10 @@ func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
 	if err != nil {
 		return nil, err
 	}
-	tr := &TermRenderer{}
-	tr.style = make(map[StyleType]ElementStyle)
 
+	tr := &TermRenderer{
+		style: make(map[StyleType]ElementStyle),
+	}
 	for k, v := range e {
 		t, err := keyToType(k)
 		if err != nil {
