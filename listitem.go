@@ -3,36 +3,28 @@ package gold
 import (
 	"io"
 	"strconv"
-
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type ItemElement struct {
+	Text        string
+	Enumeration uint
 }
 
-func (e *ItemElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
-
+func (e *ItemElement) Render(w io.Writer, ctx RenderContext) error {
 	var el *BaseElement
-	if node.ListData.ListFlags&bf.ListTypeOrdered > 0 {
-		var l int64
-		n := node
-		for n.Prev != nil && (n.Prev.Type == bf.Item) {
-			l++
-			n = n.Prev
-		}
+	if e.Enumeration > 0 {
 
 		el = &BaseElement{
-			Token:  string(node.Literal),
+			Token:  e.Text,
 			Style:  ctx.style[Enumeration],
-			Prefix: strconv.FormatInt(l+1, 10),
+			Prefix: strconv.FormatInt(int64(e.Enumeration), 10),
 		}
 	} else {
 		el = &BaseElement{
-			Token: string(node.Literal),
+			Token: e.Text,
 			Style: ctx.style[Item],
 		}
 	}
 
-	return el.Render(w, node, tr)
+	return el.Render(w, ctx)
 }

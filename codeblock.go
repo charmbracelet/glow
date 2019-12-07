@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/alecthomas/chroma/quick"
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type CodeBlockElement struct {
@@ -12,9 +11,7 @@ type CodeBlockElement struct {
 	Language string
 }
 
-func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
-
+func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 	var indent uint
 	var margin uint
 	rules := ctx.style[CodeBlock]
@@ -46,5 +43,5 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		Style: rules,
 	}
 
-	return el.Render(iw, node, tr)
+	return el.Render(iw, ctx)
 }

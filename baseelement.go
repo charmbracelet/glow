@@ -11,7 +11,6 @@ import (
 
 	"github.com/logrusorgru/aurora"
 	"github.com/lucasb-eyer/go-colorful"
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type BaseElement struct {
@@ -137,8 +136,8 @@ func renderText(w io.Writer, rules ElementStyle, s string) {
 	_, _ = w.Write([]byte(out.String()))
 }
 
-func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	bs := tr.context.blockStack
+func (e *BaseElement) Render(w io.Writer, ctx RenderContext) error {
+	bs := ctx.blockStack
 
 	renderText(w, bs.Current().Style, e.Prefix)
 	defer func() {

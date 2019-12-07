@@ -2,33 +2,33 @@ package gold
 
 import (
 	"io"
-
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type ImageElement struct {
+	Text    string
+	BaseURL string
+	URL     string
+	Child   ElementRenderer // FIXME
 }
 
-func (e *ImageElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
-
-	if len(node.LastChild.Literal) > 0 {
+func (e *ImageElement) Render(w io.Writer, ctx RenderContext) error {
+	if len(e.Text) > 0 {
 		el := &BaseElement{
-			Token: string(node.LastChild.Literal),
+			Token: e.Text,
 			Style: ctx.style[ImageText],
 		}
-		err := el.Render(w, node.LastChild, tr)
+		err := el.Render(w, ctx)
 		if err != nil {
 			return err
 		}
 	}
-	if len(node.LinkData.Destination) > 0 {
+	if len(e.URL) > 0 {
 		el := &BaseElement{
-			Token:  resolveRelativeURL(tr.BaseURL, string(node.LinkData.Destination)),
+			Token:  resolveRelativeURL(e.BaseURL, string(e.URL)),
 			Prefix: " ",
 			Style:  ctx.style[Image],
 		}
-		err := el.Render(w, node, tr)
+		err := el.Render(w, ctx)
 		if err != nil {
 			return err
 		}

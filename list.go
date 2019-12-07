@@ -5,16 +5,16 @@ import (
 	"io"
 
 	"github.com/muesli/reflow"
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type ListElement struct {
+	Width  uint
+	Nested bool
 }
 
-func (e *ListElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *ListElement) Render(w io.Writer, ctx RenderContext) error {
 	rules := ctx.style[List]
-	if node.Parent.Type != bf.Item {
+	if !e.Nested {
 		_, _ = w.Write([]byte("\n"))
 	}
 
@@ -27,9 +27,9 @@ func (e *ListElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	return nil
 }
 
-func (e *ListElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *ListElement) Finish(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
+
 	var indent uint
 	var margin uint
 	rules := bs.Current().Style
@@ -43,7 +43,7 @@ func (e *ListElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	renderText(bs.Current().Block, rules, suffix)
 
 	pw := &PaddingWriter{
-		Padding: uint(tr.WordWrap - int(bs.Indent()) - int(bs.Margin()*2)),
+		Padding: uint(int(e.Width) - int(bs.Indent()) - int(bs.Margin()*2)),
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},
@@ -62,7 +62,7 @@ func (e *ListElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}
 
 	_, err := iw.Write(reflow.Bytes(bs.Current().Block.Bytes(),
-		tr.WordWrap-int(bs.Indent())-int(bs.Margin())*2))
+		int(e.Width)-int(bs.Indent())-int(bs.Margin())*2))
 	if err != nil {
 		return err
 	}

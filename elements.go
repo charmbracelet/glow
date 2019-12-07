@@ -9,11 +9,11 @@ import (
 )
 
 type ElementRenderer interface {
-	Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
+	Render(w io.Writer, ctx RenderContext) error
 }
 
 type ElementFinisher interface {
-	Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error
+	Finish(w io.Writer, ctx RenderContext) error
 }
 
 type Element struct {
@@ -28,7 +28,9 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 
 	switch node.Type {
 	case bf.Document:
-		de := &DocumentElement{}
+		de := &DocumentElement{
+			Width: uint(tr.WordWrap),
+		}
 		return Element{
 			Renderer: de,
 			Finisher: de,
@@ -43,25 +45,49 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			},
 		}
 	case bf.List:
-		le := &ListElement{}
+		le := &ListElement{
+			Width:  uint(tr.WordWrap),
+			Nested: node.Parent.Type == bf.Item,
+		}
 		return Element{
 			Renderer: le,
 			Finisher: le,
 		}
 	case bf.Item:
+		var l uint
+		if node.ListData.ListFlags&bf.ListTypeOrdered > 0 {
+			l = 1
+			n := node
+			for n.Prev != nil && (n.Prev.Type == bf.Item) {
+				l++
+				n = n.Prev
+			}
+		}
+
 		return Element{
-			Renderer: &ItemElement{},
+			Renderer: &ItemElement{
+				Text:        string(node.Literal),
+				Enumeration: l,
+			},
 		}
 	case bf.Paragraph:
-		pe := &ParagraphElement{}
+		pe := &ParagraphElement{
+			Width:      uint(tr.WordWrap),
+			InsideList: node.Parent != nil && node.Parent.Type == bf.Item,
+		}
 		return Element{
 			Renderer: pe,
 			Finisher: pe,
 		}
 	case bf.Heading:
 		return Element{
-			Exiting:  "\n",
-			Renderer: &HeadingElement{},
+			Exiting: "\n",
+			Renderer: &HeadingElement{
+				Width: uint(tr.WordWrap),
+				Text:  string(node.FirstChild.Literal),
+				Level: node.HeadingData.Level,
+				First: node.Prev == nil,
+			},
 		}
 	case bf.HorizontalRule:
 		return Element{
@@ -94,12 +120,28 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			},
 		}
 	case bf.Link:
+		var text string
+		if node.LastChild != nil {
+			text = string(node.LastChild.Literal)
+		}
 		return Element{
-			Renderer: &LinkElement{},
+			Renderer: &LinkElement{
+				Text:    text,
+				BaseURL: tr.BaseURL,
+				URL:     string(node.LinkData.Destination),
+			},
 		}
 	case bf.Image:
+		var text string
+		if node.LastChild != nil {
+			text = string(node.LastChild.Literal)
+		}
 		return Element{
-			Renderer: &ImageElement{},
+			Renderer: &ImageElement{
+				Text:    text,
+				BaseURL: tr.BaseURL,
+				URL:     string(node.LinkData.Destination),
+			},
 		}
 	case bf.Text:
 		return Element{
@@ -161,8 +203,19 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Finisher: te,
 		}
 	case bf.TableCell:
+		s := ""
+		n := node.FirstChild
+		for n != nil {
+			s += string(n.Literal)
+			s += string(n.LinkData.Destination)
+			n = n.Next
+		}
+
 		return Element{
-			Renderer: &TableCellElement{},
+			Renderer: &TableCellElement{
+				Text: s,
+				Head: node.Parent.Parent.Type == bf.TableHead,
+			},
 		}
 	case bf.TableHead:
 		return Element{

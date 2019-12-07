@@ -6,18 +6,18 @@ import (
 	"strings"
 
 	"github.com/muesli/reflow"
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type ParagraphElement struct {
+	Width      uint
+	InsideList bool
 }
 
-func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *ParagraphElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 
 	var rules ElementStyle
-	if node.Parent != nil && node.Parent.Type == bf.Item {
+	if e.InsideList {
 		// list item
 		rules = ctx.style[List]
 	} else {
@@ -34,15 +34,14 @@ func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	return nil
 }
 
-func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	rules := bs.Current().Style
 
 	var indent uint
 	var margin uint
 	keepNewlines := false
-	if node.Parent != nil && node.Parent.Type == bf.Item {
+	if e.InsideList {
 		// remove indent & margin for list items
 		rules = bs.Current().Style
 		keepNewlines = true
@@ -59,7 +58,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	renderText(bs.Current().Block, rules, suffix)
 
 	pw := &PaddingWriter{
-		Padding: uint(tr.WordWrap - int(bs.Indent()) - int(bs.Margin()*2)),
+		Padding: uint(int(e.Width) - int(bs.Indent()) - int(bs.Margin()*2)),
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},
@@ -78,7 +77,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 
 	if len(strings.TrimSpace(bs.Current().Block.String())) > 0 {
-		flow := reflow.NewReflow(tr.WordWrap - int(bs.Indent()) - int(bs.Margin())*2)
+		flow := reflow.NewReflow(int(e.Width) - int(bs.Indent()) - int(bs.Margin())*2)
 		flow.KeepNewlines = keepNewlines
 		_, _ = flow.Write(bs.Current().Block.Bytes())
 		flow.Close()
@@ -91,8 +90,7 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 
 	bs.Current().Block.Reset()
-	if node.Parent != nil && node.Parent.Type == bf.Item {
-	} else {
+	if !e.InsideList {
 		bs.Pop()
 	}
 	return nil

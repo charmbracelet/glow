@@ -100,7 +100,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 		_, _ = writeTo.Write([]byte(e.Entering))
 
 		if e.Renderer != nil {
-			err := e.Renderer.Render(writeTo, node, tr)
+			err := e.Renderer.Render(writeTo, tr.context)
 			if err != nil {
 				fmt.Println(err)
 				return bf.Terminate
@@ -118,7 +118,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 		}
 
 		if e.Finisher != nil {
-			err := e.Finisher.Finish(writeTo, node, tr)
+			err := e.Finisher.Finish(writeTo, tr.context)
 			if err != nil {
 				fmt.Println(err)
 				return bf.Terminate

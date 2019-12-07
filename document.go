@@ -3,15 +3,13 @@ package gold
 import (
 	"bytes"
 	"io"
-
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type DocumentElement struct {
+	Width uint
 }
 
-func (e *DocumentElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *DocumentElement) Render(w io.Writer, ctx RenderContext) error {
 	rules := ctx.style[Document]
 
 	be := BlockElement{
@@ -24,8 +22,7 @@ func (e *DocumentElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) e
 	return nil
 }
 
-func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *DocumentElement) Finish(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	rules := ctx.style[Document]
 
@@ -40,7 +37,7 @@ func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) e
 	suffix := rules.Suffix
 
 	pw := &PaddingWriter{
-		Padding: uint(tr.WordWrap) - margin,
+		Padding: e.Width - margin,
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},

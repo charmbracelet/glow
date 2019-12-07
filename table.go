@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/olekukonko/tablewriter"
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type TableElement struct {
@@ -20,11 +19,11 @@ type TableHeadElement struct {
 }
 
 type TableCellElement struct {
+	Text string
+	Head bool
 }
 
-func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
-
+func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 	var indent uint
 	var margin uint
 	rules := ctx.style[Table]
@@ -49,42 +48,29 @@ func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 	return nil
 }
 
-func (e *TableElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *TableElement) Finish(w io.Writer, ctx RenderContext) error {
 	ctx.table.writer.Render()
 	ctx.table.writer = nil
 	return nil
 }
 
-func (e *TableRowElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *TableRowElement) Finish(w io.Writer, ctx RenderContext) error {
 	ctx.table.writer.Append(ctx.table.cell)
 	ctx.table.cell = []string{}
 	return nil
 }
 
-func (e *TableHeadElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *TableHeadElement) Finish(w io.Writer, ctx RenderContext) error {
 	ctx.table.writer.SetHeader(ctx.table.header)
 	ctx.table.header = []string{}
 	return nil
 }
 
-func (e *TableCellElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
-
-	s := ""
-	n := node.FirstChild
-	for n != nil {
-		s += string(n.Literal)
-		s += string(n.LinkData.Destination)
-		n = n.Next
-	}
-
-	if node.Parent.Parent.Type == bf.TableHead {
-		ctx.table.header = append(ctx.table.header, s)
+func (e *TableCellElement) Render(w io.Writer, ctx RenderContext) error {
+	if e.Head {
+		ctx.table.header = append(ctx.table.header, e.Text)
 	} else {
-		ctx.table.cell = append(ctx.table.cell, s)
+		ctx.table.cell = append(ctx.table.cell, e.Text)
 	}
 
 	return nil

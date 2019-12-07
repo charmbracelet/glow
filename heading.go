@@ -4,18 +4,20 @@ import (
 	"io"
 
 	"github.com/muesli/reflow"
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type HeadingElement struct {
+	Width uint
+	Text  string
+	Level int
+	First bool
 }
 
-func (e *HeadingElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	ctx := tr.context
+func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	rules := ctx.style[Heading]
 
-	switch node.HeadingData.Level {
+	switch e.Level {
 	case 1:
 		rules = cascadeStyles(false, rules, ctx.style[H1])
 	case 2:
@@ -49,20 +51,20 @@ func (e *HeadingElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) er
 		},
 	}
 
-	flow := reflow.NewReflow(tr.WordWrap -
+	flow := reflow.NewReflow(int(e.Width) -
 		int(indent) - int(margin*2) -
 		int(bs.Indent()) - int(bs.Margin())*2)
 
 	var pre string
-	if node.Prev != nil {
+	if !e.First {
 		pre = "\n"
 	}
 	el := &BaseElement{
 		Prefix: pre,
-		Token:  string(node.FirstChild.Literal),
+		Token:  string(e.Text),
 		Style:  rules,
 	}
-	err := el.Render(flow, node, tr)
+	err := el.Render(flow, ctx)
 	if err != nil {
 		return err
 	}
