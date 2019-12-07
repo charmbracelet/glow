@@ -30,14 +30,15 @@
     "background_color": "57"
   },
   "h1": {
-    "prefix": "\n=> ",
-    "suffix": " <=",
+    "prefix": "\n ",
+    "format": "=> {{.text}} <=",
     "margin": 2,
     "bold": true,
     "background_color": "69"
   },
   "h2": {
-    "prefix": "\n# "
+    "prefix": "\n",
+    "format": "# {{.text}}"
   },
   "table": {
     "margin": 4
@@ -67,9 +68,9 @@
     "background_color": "52"
   },
   "item": {
-    "prefix": "• "
+    "format": "• {{.text}}"
   },
   "enumeration": {
-    "prefix": ". "
+    "format": ". {{.text}}"
   }
 }
