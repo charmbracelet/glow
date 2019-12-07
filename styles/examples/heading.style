@@ -1,0 +1,17 @@
+{
+    "heading": {
+        "margin": 4,
+        "color": "15",
+        "background_color": "57"
+    },
+    "h1": {
+        "prefix": "=> ",
+        "suffix": " <=",
+        "margin": 2,
+        "bold": true,
+        "background_color": "69"
+    },
+    "h2": {
+        "prefix": "# "
+    }
+}

@@ -118,6 +118,9 @@ Style:
 }
 ```
 
+Output:
+![Heading Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/heading.png)
+
 ## text
 
 The `text` element represents a block of text.
@@ -218,6 +221,9 @@ Style:
 }
 ```
 
+Output:
+![List Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/list.png)
+
 ## enumeration
 
 The `enumeration` element represents an item in ordered lists.
@@ -256,6 +262,9 @@ Style:
     "prefix": ". "
 }
 ```
+
+Output:
+![Enumeration Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/enumeration.png)
 
 ## link
 
@@ -297,6 +306,9 @@ Style:
     "suffix": ")"
 }
 ```
+
+Output:
+![Link Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/link.png)
 
 ## link_text
 
@@ -371,6 +383,9 @@ Style:
 }
 ```
 
+Output:
+![Image Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/image.png)
+
 ## image_text
 
 The `image_text` element represents the text associated with an image.
@@ -435,6 +450,9 @@ Style:
 }
 ```
 
+Output:
+![Code Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/code.png)
+
 ## code_block
 
 The `code_block` element represents a block of code.
@@ -462,6 +480,9 @@ Style:
     "theme": "solarized-dark"
 }
 ```
+
+Output:
+![Code Block Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/code_block.png)
 
 ## table
 
@@ -496,6 +517,9 @@ Style:
     "margin": 4
 }
 ```
+
+Output:
+![Table Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/table.png)
 
 ## emph
 
@@ -535,6 +559,9 @@ Style:
 }
 ```
 
+Output:
+![Emph Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/emph.png)
+
 ## strong
 
 The `strong` element represents important text.
@@ -573,6 +600,9 @@ Style:
 }
 ```
 
+Output:
+![Strong Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/strong.png)
+
 ## hr
 
 The `hr` element represents a horizontal rule.
@@ -610,6 +640,9 @@ Style:
     "prefix": "---"
 }
 ```
+
+Output:
+![hr Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/hr.png)
 
 ## block_quote
 ## del

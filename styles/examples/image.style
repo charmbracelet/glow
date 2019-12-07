@@ -1,0 +1,10 @@
+{
+    "image": {
+        "color": "123",
+        "prefix": "[Image: ",
+        "suffix": "]"
+    },
+    "image_text": {
+        "color": "8"
+    }
+}
