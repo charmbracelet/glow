@@ -119,6 +119,7 @@ Style:
 ```
 
 Output:
+
 ![Heading Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/heading.png)
 
 ## text
@@ -222,6 +223,7 @@ Style:
 ```
 
 Output:
+
 ![List Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/list.png)
 
 ## enumeration
@@ -264,6 +266,7 @@ Style:
 ```
 
 Output:
+
 ![Enumeration Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/enumeration.png)
 
 ## link
@@ -308,6 +311,7 @@ Style:
 ```
 
 Output:
+
 ![Link Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/link.png)
 
 ## link_text
@@ -384,6 +388,7 @@ Style:
 ```
 
 Output:
+
 ![Image Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/image.png)
 
 ## image_text
@@ -451,6 +456,7 @@ Style:
 ```
 
 Output:
+
 ![Code Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/code.png)
 
 ## code_block
@@ -482,6 +488,7 @@ Style:
 ```
 
 Output:
+
 ![Code Block Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/code_block.png)
 
 ## table
@@ -519,6 +526,7 @@ Style:
 ```
 
 Output:
+
 ![Table Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/table.png)
 
 ## emph
@@ -560,6 +568,7 @@ Style:
 ```
 
 Output:
+
 ![Emph Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/emph.png)
 
 ## strong
@@ -601,6 +610,7 @@ Style:
 ```
 
 Output:
+
 ![Strong Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/strong.png)
 
 ## hr
@@ -642,6 +652,7 @@ Style:
 ```
 
 Output:
+
 ![hr Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/hr.png)
 
 ## block_quote
