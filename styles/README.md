@@ -54,7 +54,7 @@ The `text` element defines a block of text.
 
 ```
 "text": {
-    "bold": true
+    "bold": true,
     "color": "15",
     "background_color": "57"
 }
