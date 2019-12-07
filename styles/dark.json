@@ -30,14 +30,12 @@
     "background_color": "57"
   },
   "h1": {
-    "prefix": "\n ",
     "format": "=> {{(Join (Split .text \"\") \" \")}} <=",
     "margin": 2,
     "bold": true,
     "background_color": "69"
   },
   "h2": {
-    "prefix": "\n",
     "format": "# {{.text}}"
   },
   "table": {
