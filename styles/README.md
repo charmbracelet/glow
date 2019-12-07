@@ -1,12 +1,10 @@
-# Gold Styles
+# Gold Style Reference
 
-## Elements
-
-### document
+## document
 
 The `document` element defines the markdown's body.
 
-#### Attributes
+### Attributes
 
 | Attribute        | Value  | Description                                           |
 | ---------------- | ------ | ----------------------------------------------------- |
@@ -17,7 +15,7 @@ The `document` element defines the markdown's body.
 | color            | color  | Defines the default text color for the document       |
 | background_color | color  | Defines the default background color for the document |
 
-#### Example
+### Example
 
 ```
 "document": {
@@ -28,11 +26,11 @@ The `document` element defines the markdown's body.
 }
 ```
 
-### paragraph
+## paragraph
 
 The `paragraph` element defines a paragraph in the document.
 
-#### Attributes
+### Attributes
 
 | Attribute        | Value  | Description                                         |
 | ---------------- | ------ | --------------------------------------------------- |
@@ -43,7 +41,7 @@ The `paragraph` element defines a paragraph in the document.
 | color            | color  | Defines the default text color for paragraphs       |
 | background_color | color  | Defines the default background color for paragraphs |
 
-#### Example
+### Example
 
 ```
 "paragraph": {
@@ -53,17 +51,17 @@ The `paragraph` element defines a paragraph in the document.
 }
 ```
 
-### heading
+## heading
 
 The `heading` element defines a heading.
 
-### h1 - h6
+## h1 - h6
 
 The `h1` to `h6` elements define headings. `h1` defines the most important
 heading, `h6` the least important heading. Undefined attributes are inherited
 from the `heading` element.
 
-#### Attributes
+### Attributes
 
 | Attribute        | Value  | Description                                       |
 | ---------------- | ------ | ------------------------------------------------- |
@@ -83,7 +81,7 @@ from the `heading` element.
 | conceal          | bool   | Conceals / hides the text                         |
 | inverse          | bool   | Swaps fore- & background colors                   |
 
-#### Example
+### Example
 
 ```
 "heading": {
@@ -104,11 +102,11 @@ from the `heading` element.
 }
 ```
 
-### text
+## text
 
 The `text` element defines a block of text.
 
-#### Attributes
+### Attributes
 
 | Attribute        | Value  | Description                                           |
 | ---------------- | ------ | ----------------------------------------------------- |
@@ -126,7 +124,7 @@ The `text` element defines a block of text.
 | conceal          | bool   | Conceals / hides the text                             |
 | inverse          | bool   | Swaps fore- & background colors                       |
 
-#### Example
+### Example
 
 ```
 "text": {
@@ -136,11 +134,11 @@ The `text` element defines a block of text.
 }
 ```
 
-### list
+## list
 
 The `list` element defines a list in the document.
 
-#### Attributes
+### Attributes
 
 | Attribute        | Value  | Description                                    |
 | ---------------- | ------ | ---------------------------------------------- |
@@ -151,7 +149,7 @@ The `list` element defines a list in the document.
 | color            | color  | Defines the default text color for lists       |
 | background_color | color  | Defines the default background color for lists |
 
-#### Example
+### Example
 
 ```
 "list": {
@@ -161,11 +159,11 @@ The `list` element defines a list in the document.
 }
 ```
 
-### item
+## item
 
 The `item` element defines an item in lists.
 
-#### Attributes
+### Attributes
 
 | Attribute        | Value  | Description                                    |
 | ---------------- | ------ | ---------------------------------------------- |
@@ -183,7 +181,7 @@ The `item` element defines an item in lists.
 | conceal          | bool   | Conceals / hides the text                      |
 | inverse          | bool   | Swaps fore- & background colors                |
 
-#### Example
+### Example
 
 ```
 "item": {
@@ -191,11 +189,11 @@ The `item` element defines an item in lists.
 }
 ```
 
-### enumeration
+## enumeration
 
 The `enumeration` element defines an item in ordered lists.
 
-#### Attributes
+### Attributes
 
 | Attribute        | Value  | Description                                    |
 | ---------------- | ------ | ---------------------------------------------- |
@@ -213,7 +211,7 @@ The `enumeration` element defines an item in ordered lists.
 | conceal          | bool   | Conceals / hides the text                      |
 | inverse          | bool   | Swaps fore- & background colors                |
 
-#### Example
+### Example
 
 ```
 "enumeration": {
@@ -221,23 +219,23 @@ The `enumeration` element defines an item in ordered lists.
 }
 ```
 
-### block_quote
-### hr
-### emph
-### strong
-### del
-### link
-### link_text
-### image
-### image_text
-### html_block
-### code_block
-### softbreak
-### hardbreak
-### code
-### html_span
-### table
-### table_cel
-### table_head
-### table_body
-### table_row
+## block_quote
+## hr
+## emph
+## strong
+## del
+## link
+## link_text
+## image
+## image_text
+## html_block
+## code_block
+## softbreak
+## hardbreak
+## code
+## html_span
+## table
+## table_cel
+## table_head
+## table_body
+## table_row
