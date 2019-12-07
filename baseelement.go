@@ -144,9 +144,9 @@ func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	}()
 
 	rules := tr.blockStack.With(e.Style)
-	renderText(w, rules, rules.Prefix)
+	renderText(w, tr.blockStack.Current().Style, rules.Prefix)
 	defer func() {
-		renderText(w, rules, rules.Suffix)
+		renderText(w, tr.blockStack.Current().Style, rules.Suffix)
 	}()
 
 	s := e.Token
