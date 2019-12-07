@@ -13,9 +13,11 @@ type CodeBlockElement struct {
 }
 
 func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	ctx := tr.context
+
 	var indent uint
 	var margin uint
-	rules := tr.style[CodeBlock]
+	rules := ctx.style[CodeBlock]
 	if rules.Indent != nil {
 		indent = *rules.Indent
 	}
@@ -27,7 +29,7 @@ func (e *CodeBlockElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, tr.blockStack.Parent().Style, " ")
+			renderText(w, ctx.blockStack.Parent().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,

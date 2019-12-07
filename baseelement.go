@@ -138,15 +138,17 @@ func renderText(w io.Writer, rules ElementStyle, s string) {
 }
 
 func (e *BaseElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	renderText(w, tr.blockStack.Current().Style, e.Prefix)
+	bs := tr.context.blockStack
+
+	renderText(w, bs.Current().Style, e.Prefix)
 	defer func() {
-		renderText(w, tr.blockStack.Current().Style, e.Suffix)
+		renderText(w, bs.Current().Style, e.Suffix)
 	}()
 
-	rules := tr.blockStack.With(e.Style)
-	renderText(w, tr.blockStack.Current().Style, rules.Prefix)
+	rules := bs.With(e.Style)
+	renderText(w, bs.Current().Style, rules.Prefix)
 	defer func() {
-		renderText(w, tr.blockStack.Current().Style, rules.Suffix)
+		renderText(w, bs.Current().Style, rules.Suffix)
 	}()
 
 	s := e.Token

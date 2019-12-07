@@ -11,21 +11,26 @@ type DocumentElement struct {
 }
 
 func (e *DocumentElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	rules := tr.style[Document]
+	ctx := tr.context
+	rules := ctx.style[Document]
+
 	be := BlockElement{
 		Block: &bytes.Buffer{},
 		Style: rules,
 	}
-	tr.blockStack.Push(be)
+	ctx.blockStack.Push(be)
 
-	renderText(tr.blockStack.Current().Block, rules, rules.Prefix)
+	renderText(ctx.blockStack.Current().Block, rules, rules.Prefix)
 	return nil
 }
 
 func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	ctx := tr.context
+	bs := ctx.blockStack
+	rules := ctx.style[Document]
+
 	var indent uint
 	var margin uint
-	rules := tr.style[Document]
 	if rules.Indent != nil {
 		indent = *rules.Indent
 	}
@@ -49,14 +54,14 @@ func (e *DocumentElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) e
 			Forward: pw,
 		},
 	}
-	_, err := iw.Write(tr.blockStack.Current().Block.Bytes())
+	_, err := iw.Write(bs.Current().Block.Bytes())
 	if err != nil {
 		return err
 	}
 	renderText(iw, rules, suffix)
 
-	tr.blockStack.Current().Block.Reset()
-	tr.blockStack.Pop()
+	bs.Current().Block.Reset()
+	bs.Pop()
 
 	return nil
 }

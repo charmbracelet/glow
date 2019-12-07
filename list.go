@@ -12,24 +12,27 @@ type ListElement struct {
 }
 
 func (e *ListElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	rules := tr.style[List]
+	ctx := tr.context
+	rules := ctx.style[List]
 	if node.Parent.Type != bf.Item {
 		_, _ = w.Write([]byte("\n"))
 	}
 
 	be := BlockElement{
 		Block: &bytes.Buffer{},
-		Style: cascadeStyle(tr.blockStack.Current().Style, rules, true),
+		Style: cascadeStyle(ctx.blockStack.Current().Style, rules, true),
 	}
-	tr.blockStack.Push(be)
+	ctx.blockStack.Push(be)
 
 	return nil
 }
 
 func (e *ListElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	ctx := tr.context
+	bs := ctx.blockStack
 	var indent uint
 	var margin uint
-	rules := tr.blockStack.Current().Style
+	rules := bs.Current().Style
 	if rules.Indent != nil {
 		indent = *rules.Indent
 	}
@@ -37,10 +40,10 @@ func (e *ListElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error
 		margin = *rules.Margin
 	}
 	suffix := rules.Suffix
-	renderText(tr.blockStack.Current().Block, rules, suffix)
+	renderText(bs.Current().Block, rules, suffix)
 
 	pw := &PaddingWriter{
-		Padding: uint(tr.WordWrap - int(tr.blockStack.Indent()) - int(tr.blockStack.Margin()*2)),
+		Padding: uint(tr.WordWrap - int(bs.Indent()) - int(bs.Margin()*2)),
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},
@@ -51,19 +54,20 @@ func (e *ListElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, tr.blockStack.Parent().Style, " ")
+			renderText(w, bs.Parent().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: pw,
 		},
 	}
 
-	_, err := iw.Write(reflow.Bytes(tr.blockStack.Current().Block.Bytes(), tr.WordWrap-int(tr.blockStack.Indent())-int(tr.blockStack.Margin())*2))
+	_, err := iw.Write(reflow.Bytes(bs.Current().Block.Bytes(),
+		tr.WordWrap-int(bs.Indent())-int(bs.Margin())*2))
 	if err != nil {
 		return err
 	}
 
-	tr.blockStack.Current().Block.Reset()
-	tr.blockStack.Pop()
+	bs.Current().Block.Reset()
+	bs.Pop()
 	return nil
 }

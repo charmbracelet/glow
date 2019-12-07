@@ -13,32 +13,38 @@ type ParagraphElement struct {
 }
 
 func (e *ParagraphElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	ctx := tr.context
+	bs := ctx.blockStack
+
 	var rules ElementStyle
 	if node.Parent != nil && node.Parent.Type == bf.Item {
 		// list item
-		rules = tr.style[List]
+		rules = ctx.style[List]
 	} else {
-		rules = tr.style[Paragraph]
+		rules = ctx.style[Paragraph]
 		_, _ = w.Write([]byte("\n"))
 		be := BlockElement{
 			Block: &bytes.Buffer{},
-			Style: cascadeStyle(tr.blockStack.Current().Style, rules, true),
+			Style: cascadeStyle(bs.Current().Style, rules, true),
 		}
-		tr.blockStack.Push(be)
+		bs.Push(be)
 	}
 
-	renderText(w, tr.blockStack.Current().Style, rules.Prefix)
+	renderText(w, bs.Current().Style, rules.Prefix)
 	return nil
 }
 
 func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	ctx := tr.context
+	bs := ctx.blockStack
+	rules := bs.Current().Style
+
 	var indent uint
 	var margin uint
 	keepNewlines := false
-	rules := tr.blockStack.Current().Style
 	if node.Parent != nil && node.Parent.Type == bf.Item {
 		// remove indent & margin for list items
-		rules = tr.blockStack.Current().Style
+		rules = bs.Current().Style
 		keepNewlines = true
 	}
 
@@ -49,10 +55,11 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		margin = *rules.Margin
 	}
 	suffix := rules.Suffix
-	renderText(tr.blockStack.Current().Block, rules, suffix)
+
+	renderText(bs.Current().Block, rules, suffix)
 
 	pw := &PaddingWriter{
-		Padding: uint(tr.WordWrap - int(tr.blockStack.Indent()) - int(tr.blockStack.Margin()*2)),
+		Padding: uint(tr.WordWrap - int(bs.Indent()) - int(bs.Margin()*2)),
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules, " ")
 		},
@@ -63,17 +70,17 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, tr.blockStack.Parent().Style, " ")
+			renderText(w, bs.Parent().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: pw,
 		},
 	}
 
-	if len(strings.TrimSpace(tr.blockStack.Current().Block.String())) > 0 {
-		flow := reflow.NewReflow(tr.WordWrap - int(tr.blockStack.Indent()) - int(tr.blockStack.Margin())*2)
+	if len(strings.TrimSpace(bs.Current().Block.String())) > 0 {
+		flow := reflow.NewReflow(tr.WordWrap - int(bs.Indent()) - int(bs.Margin())*2)
 		flow.KeepNewlines = keepNewlines
-		_, _ = flow.Write(tr.blockStack.Current().Block.Bytes())
+		_, _ = flow.Write(bs.Current().Block.Bytes())
 		flow.Close()
 
 		_, err := iw.Write(flow.Bytes())
@@ -83,10 +90,10 @@ func (e *ParagraphElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) 
 		_, _ = pw.Write([]byte("\n"))
 	}
 
-	tr.blockStack.Current().Block.Reset()
+	bs.Current().Block.Reset()
 	if node.Parent != nil && node.Parent.Type == bf.Item {
 	} else {
-		tr.blockStack.Pop()
+		bs.Pop()
 	}
 	return nil
 }

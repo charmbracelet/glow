@@ -23,9 +23,11 @@ type TableCellElement struct {
 }
 
 func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	ctx := tr.context
+
 	var indent uint
 	var margin uint
-	rules := tr.style[Table]
+	rules := ctx.style[Table]
 	if rules.Indent != nil {
 		indent = *rules.Indent
 	}
@@ -36,36 +38,41 @@ func (e *TableElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) erro
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, tr.blockStack.Parent().Style, " ")
+			renderText(w, ctx.blockStack.Parent().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
 		},
 	}
 
-	tr.table.writer = tablewriter.NewWriter(iw)
+	ctx.table.writer = tablewriter.NewWriter(iw)
 	return nil
 }
 
 func (e *TableElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	tr.table.writer.Render()
-	tr.table.writer = nil
+	ctx := tr.context
+	ctx.table.writer.Render()
+	ctx.table.writer = nil
 	return nil
 }
 
 func (e *TableRowElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	tr.table.writer.Append(tr.table.cell)
-	tr.table.cell = []string{}
+	ctx := tr.context
+	ctx.table.writer.Append(ctx.table.cell)
+	ctx.table.cell = []string{}
 	return nil
 }
 
 func (e *TableHeadElement) Finish(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	tr.table.writer.SetHeader(tr.table.header)
-	tr.table.header = []string{}
+	ctx := tr.context
+	ctx.table.writer.SetHeader(ctx.table.header)
+	ctx.table.header = []string{}
 	return nil
 }
 
 func (e *TableCellElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
+	ctx := tr.context
+
 	s := ""
 	n := node.FirstChild
 	for n != nil {
@@ -75,9 +82,9 @@ func (e *TableCellElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) 
 	}
 
 	if node.Parent.Parent.Type == bf.TableHead {
-		tr.table.header = append(tr.table.header, s)
+		ctx.table.header = append(ctx.table.header, s)
 	} else {
-		tr.table.cell = append(tr.table.cell, s)
+		ctx.table.cell = append(ctx.table.cell, s)
 	}
 
 	return nil

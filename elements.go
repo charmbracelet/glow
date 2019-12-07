@@ -24,6 +24,8 @@ type Element struct {
 }
 
 func (tr *TermRenderer) NewElement(node *bf.Node) Element {
+	ctx := tr.context
+
 	switch node.Type {
 	case bf.Document:
 		de := &DocumentElement{}
@@ -37,7 +39,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Exiting:  "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: tr.style[BlockQuote],
+				Style: ctx.style[BlockQuote],
 			},
 		}
 	case bf.List:
@@ -67,28 +69,28 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Exiting:  "\n",
 			Renderer: &BaseElement{
 				Token: "---",
-				Style: tr.style[HorizontalRule],
+				Style: ctx.style[HorizontalRule],
 			},
 		}
 	case bf.Emph:
 		return Element{
 			Renderer: &BaseElement{
 				Token: string(node.FirstChild.Literal),
-				Style: tr.style[Emph],
+				Style: ctx.style[Emph],
 			},
 		}
 	case bf.Strong:
 		return Element{
 			Renderer: &BaseElement{
 				Token: string(node.FirstChild.Literal),
-				Style: tr.style[Strong],
+				Style: ctx.style[Strong],
 			},
 		}
 	case bf.Del:
 		return Element{
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: tr.style[Del],
+				Style: ctx.style[Del],
 			},
 		}
 	case bf.Link:
@@ -103,14 +105,14 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		return Element{
 			Renderer: &BaseElement{
 				Token: html.UnescapeString(stripper.Sanitize(string(node.Literal))),
-				Style: tr.style[Text],
+				Style: ctx.style[Text],
 			},
 		}
 	case bf.HTMLBlock:
 		return Element{
 			Renderer: &BaseElement{
 				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
-				Style: tr.style[HTMLBlock],
+				Style: ctx.style[HTMLBlock],
 			},
 		}
 	case bf.CodeBlock:
@@ -126,7 +128,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Exiting: "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: tr.style[Softbreak],
+				Style: ctx.style[Softbreak],
 			},
 		}
 	case bf.Hardbreak:
@@ -134,21 +136,21 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 			Exiting: "\n",
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: tr.style[Hardbreak],
+				Style: ctx.style[Hardbreak],
 			},
 		}
 	case bf.Code:
 		return Element{
 			Renderer: &BaseElement{
 				Token: string(node.Literal),
-				Style: tr.style[Code],
+				Style: ctx.style[Code],
 			},
 		}
 	case bf.HTMLSpan:
 		return Element{
 			Renderer: &BaseElement{
 				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
-				Style: tr.style[HTMLSpan],
+				Style: ctx.style[HTMLSpan],
 			},
 		}
 	case bf.Table:

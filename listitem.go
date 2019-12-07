@@ -11,8 +11,9 @@ type ItemElement struct {
 }
 
 func (e *ItemElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	var el *BaseElement
+	ctx := tr.context
 
+	var el *BaseElement
 	if node.ListData.ListFlags&bf.ListTypeOrdered > 0 {
 		var l int64
 		n := node
@@ -23,13 +24,13 @@ func (e *ItemElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 
 		el = &BaseElement{
 			Token:  string(node.Literal),
-			Style:  tr.style[Enumeration],
+			Style:  ctx.style[Enumeration],
 			Prefix: strconv.FormatInt(l+1, 10),
 		}
 	} else {
 		el = &BaseElement{
 			Token: string(node.Literal),
-			Style: tr.style[Item],
+			Style: ctx.style[Item],
 		}
 	}
 

@@ -19,9 +19,7 @@ type TermRenderer struct {
 	BaseURL  string
 	WordWrap int
 
-	style      map[StyleType]ElementStyle
-	blockStack BlockStack
-	table      TableElement
+	context RenderContext
 }
 
 func Render(in string, stylePath string) ([]byte, error) {
@@ -60,7 +58,11 @@ func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
 	}
 
 	tr := &TermRenderer{
-		style: make(map[StyleType]ElementStyle),
+		context: RenderContext{
+			style:      make(map[StyleType]ElementStyle),
+			blockStack: &BlockStack{},
+			table:      &TableElement{},
+		},
 	}
 	for k, v := range e {
 		t, err := keyToType(k)
@@ -68,7 +70,7 @@ func NewTermRendererFromBytes(b []byte) (*TermRenderer, error) {
 			fmt.Println(err)
 			continue
 		}
-		tr.style[t] = v
+		tr.context.style[t] = v
 	}
 	return tr, nil
 }
@@ -84,6 +86,7 @@ func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf.WalkStatus {
 	// _, _ = w.Write([]byte(node.Type.String()))
 	writeTo := w
+	bs := tr.context.blockStack
 
 	if isChild(node) {
 		return bf.GoToNext
@@ -91,8 +94,8 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 
 	e := tr.NewElement(node)
 	if entering {
-		if len(tr.blockStack) > 0 {
-			writeTo = io.Writer(tr.blockStack.Current().Block)
+		if len(*bs) > 0 {
+			writeTo = io.Writer(bs.Current().Block)
 		}
 		_, _ = writeTo.Write([]byte(e.Entering))
 
@@ -104,8 +107,8 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			}
 		}
 	} else {
-		if len(tr.blockStack) > 0 {
-			writeTo = io.Writer(tr.blockStack.Parent().Block)
+		if len(*bs) > 0 {
+			writeTo = io.Writer(bs.Parent().Block)
 		}
 
 		// if we're finished rendering the entire document,

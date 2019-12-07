@@ -10,8 +10,9 @@ type LinkElement struct {
 }
 
 func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error {
-	var textRendered bool
+	ctx := tr.context
 
+	var textRendered bool
 	if node.LastChild != nil {
 		if node.LastChild.Type == bf.Image {
 			el := tr.NewElement(node.LastChild)
@@ -25,7 +26,7 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 			textRendered = true
 			el := &BaseElement{
 				Token: string(node.LastChild.Literal),
-				Style: tr.style[LinkText],
+				Style: ctx.style[LinkText],
 			}
 			err := el.Render(w, node.LastChild, tr)
 			if err != nil {
@@ -36,7 +37,7 @@ func (e *LinkElement) Render(w io.Writer, node *bf.Node, tr *TermRenderer) error
 
 	if len(node.LinkData.Destination) > 0 {
 		pre := " "
-		style := tr.style[Link]
+		style := ctx.style[Link]
 		if !textRendered {
 			pre = ""
 			style.Prefix = ""
