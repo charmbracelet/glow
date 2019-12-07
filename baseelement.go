@@ -71,7 +71,7 @@ func formatToken(format string, token string) (string, error) {
 	v := make(map[string]interface{})
 	v["text"] = token
 
-	tmpl, err := template.New(format).Parse(format)
+	tmpl, err := template.New(format).Funcs(TemplateFuncMap).Parse(format)
 	if err != nil {
 		return "", err
 	}
