@@ -1,6 +1,5 @@
 {
   "document": {
-    "prefix": "\n",
     "suffix": "\n"
   },
   "link": {
@@ -52,5 +51,8 @@
   },
   "enumeration": {
     "prefix": ". "
+  },
+  "hr": {
+    "format": "\n---\n"
   }
 }

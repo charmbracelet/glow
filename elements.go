@@ -91,10 +91,9 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 		}
 	case bf.HorizontalRule:
 		return Element{
-			Entering: "\n",
+			Entering: "",
 			Exiting:  "\n",
 			Renderer: &BaseElement{
-				Token: "---",
 				Style: ctx.style[HorizontalRule],
 			},
 		}

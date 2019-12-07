@@ -70,5 +70,8 @@
   },
   "enumeration": {
     "format": ". {{.text}}"
+  },
+  "hr": {
+    "format": "\n---\n"
   }
 }
