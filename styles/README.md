@@ -465,15 +465,17 @@ The `code_block` element represents a block of code.
 
 ### Attributes
 
-| Attribute        | Value  | Description                                           |
-| ---------------- | ------ | ----------------------------------------------------- |
-| prefix           | string | Printed before a code block                           |
-| suffix           | string | Printed after a code block                            |
-| indent           | number | Specifies the indentation of code blocks              |
-| margin           | number | Specifies the margin around code blocks               |
-| theme            | string | Defines the chroma theme used for syntax highlighting |
-| color            | color  | Defines the default text color for code blocks        |
-| background_color | color  | Defines the default background color for code blocks  |
+| Attribute        | Value  | Description                                                     |
+| ---------------- | ------ | -----------------------------------------------------           |
+| prefix           | string | Printed before a code block                                     |
+| suffix           | string | Printed after a code block                                      |
+| indent           | number | Specifies the indentation of code blocks                        |
+| margin           | number | Specifies the margin around code blocks                         |
+| theme            | string | Defines the [Chroma][chroma] theme used for syntax highlighting |
+| color            | color  | Defines the default text color for code blocks                  |
+| background_color | color  | Defines the default background color for code blocks            |
+
+[chroma]: https://github.com/alecthomas/chroma
 
 ### Example
 
