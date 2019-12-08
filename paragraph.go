@@ -14,8 +14,8 @@ type ParagraphElement struct {
 
 func (e *ParagraphElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
-
 	var rules ElementStyle
+
 	if e.InsideList {
 		// list item
 		rules = ctx.style[List]
@@ -37,8 +37,6 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	rules := bs.Current().Style
 
-	var indent uint
-	var margin uint
 	keepNewlines := false
 	if e.InsideList {
 		// remove indent & margin for list items
@@ -46,46 +44,20 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 		keepNewlines = true
 	}
 
-	if rules.Indent != nil {
-		indent = *rules.Indent
-	}
-	if rules.Margin != nil {
-		margin = *rules.Margin
-	}
+	renderText(bs.Current().Block, rules, rules.Suffix)
 
-	suffix := rules.Suffix
-	renderText(bs.Current().Block, rules, suffix)
-
-	pw := &PaddingWriter{
-		Padding: bs.Width(ctx),
-		PadFunc: func(wr io.Writer) {
-			renderText(w, rules, " ")
-		},
-		Forward: &AnsiWriter{
-			Forward: w,
-		},
-	}
-	iw := &IndentWriter{
-		Indent: indent + margin,
-		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Parent().Style, " ")
-		},
-		Forward: &AnsiWriter{
-			Forward: pw,
-		},
-	}
-
+	mw := NewMarginWriter(ctx, w, rules)
 	if len(strings.TrimSpace(bs.Current().Block.String())) > 0 {
 		flow := reflow.NewReflow(int(bs.Width(ctx)))
 		flow.KeepNewlines = keepNewlines
 		_, _ = flow.Write(bs.Current().Block.Bytes())
 		flow.Close()
 
-		_, err := iw.Write(flow.Bytes())
+		_, err := mw.Write(flow.Bytes())
 		if err != nil {
 			return err
 		}
-		_, _ = pw.Write([]byte("\n"))
+		_, _ = mw.Write([]byte("\n"))
 	}
 
 	bs.Current().Block.Reset()

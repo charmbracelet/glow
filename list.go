@@ -12,56 +12,29 @@ type ListElement struct {
 }
 
 func (e *ListElement) Render(w io.Writer, ctx RenderContext) error {
+	bs := ctx.blockStack
 	rules := ctx.style[List]
+
 	if !e.Nested {
 		_, _ = w.Write([]byte("\n"))
 	}
 
 	be := BlockElement{
 		Block: &bytes.Buffer{},
-		Style: cascadeStyle(ctx.blockStack.Current().Style, rules, true),
+		Style: cascadeStyle(bs.Current().Style, rules, true),
 	}
-	ctx.blockStack.Push(be)
+	bs.Push(be)
 
 	return nil
 }
 
 func (e *ListElement) Finish(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
-
-	var indent uint
-	var margin uint
 	rules := bs.Current().Style
-	if rules.Indent != nil {
-		indent = *rules.Indent
-	}
-	if rules.Margin != nil {
-		margin = *rules.Margin
-	}
 
-	suffix := rules.Suffix
-	renderText(bs.Current().Block, rules, suffix)
+	renderText(bs.Current().Block, rules, rules.Suffix)
 
-	pw := &PaddingWriter{
-		Padding: bs.Width(ctx),
-		PadFunc: func(wr io.Writer) {
-			renderText(w, rules, " ")
-		},
-		Forward: &AnsiWriter{
-			Forward: w,
-		},
-	}
-	iw := &IndentWriter{
-		Indent: indent + margin,
-		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Parent().Style, " ")
-		},
-		Forward: &AnsiWriter{
-			Forward: pw,
-		},
-	}
-
-	_, err := iw.Write(
+	_, err := NewMarginWriter(ctx, w, rules).Write(
 		reflow.Bytes(bs.Current().Block.Bytes(), int(bs.Width(ctx))))
 	if err != nil {
 		return err

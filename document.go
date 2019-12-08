@@ -25,36 +25,12 @@ func (e *DocumentElement) Finish(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	rules := ctx.style[Document]
 
-	var indent uint
-	var margin uint
-	if rules.Indent != nil {
-		indent = *rules.Indent
-	}
-	if rules.Margin != nil {
-		margin = *rules.Margin
-	}
-	suffix := rules.Suffix
-
-	pw := &PaddingWriter{
-		Padding: uint(ctx.options.WordWrap) - margin,
-		PadFunc: func(wr io.Writer) {
-			renderText(w, rules, " ")
-		},
-		Forward: &AnsiWriter{
-			Forward: w,
-		},
-	}
-	iw := &IndentWriter{
-		Indent: indent + margin,
-		Forward: &AnsiWriter{
-			Forward: pw,
-		},
-	}
-	_, err := iw.Write(bs.Current().Block.Bytes())
+	mw := NewMarginWriter(ctx, w, rules)
+	_, err := mw.Write(bs.Current().Block.Bytes())
 	if err != nil {
 		return err
 	}
-	renderText(iw, rules, suffix)
+	renderText(mw, rules, rules.Suffix)
 
 	bs.Current().Block.Reset()
 	bs.Pop()
