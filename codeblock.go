@@ -26,7 +26,7 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, ctx.blockStack.Parent().Style, " ")
+			renderText(w, ctx.blockStack.Current().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,

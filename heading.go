@@ -43,7 +43,7 @@ func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Parent().Style, " ")
+			renderText(w, bs.Current().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
