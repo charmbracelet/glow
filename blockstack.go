@@ -11,6 +11,10 @@ type BlockElement struct {
 
 type BlockStack []BlockElement
 
+func (s *BlockStack) Len() int {
+	return len(*s)
+}
+
 func (s *BlockStack) Push(e BlockElement) {
 	*s = append(*s, e)
 }

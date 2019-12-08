@@ -100,7 +100,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 
 	e := tr.NewElement(node)
 	if entering {
-		if len(*bs) > 0 {
+		if bs.Len() > 0 {
 			writeTo = io.Writer(bs.Current().Block)
 		}
 		_, _ = writeTo.Write([]byte(e.Entering))
@@ -113,7 +113,7 @@ func (tr *TermRenderer) RenderNode(w io.Writer, node *bf.Node, entering bool) bf
 			}
 		}
 	} else {
-		if len(*bs) > 0 {
+		if bs.Len() > 0 {
 			writeTo = io.Writer(bs.Parent().Block)
 		}
 
