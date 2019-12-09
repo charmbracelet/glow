@@ -137,9 +137,9 @@ func main() {
 }
 
 func init() {
-	if CommitSHA != "" {
+	if len(CommitSHA) >= 7 {
 		vt := rootCmd.VersionTemplate()
-		rootCmd.SetVersionTemplate(vt[:len(vt)-1] + " (" + CommitSHA + ")\n")
+		rootCmd.SetVersionTemplate(vt[:len(vt)-1] + " (" + CommitSHA[0:7] + ")\n")
 	}
 	if Version == "" {
 		Version = "unknown (built from source)"
