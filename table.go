@@ -7,9 +7,10 @@ import (
 )
 
 type TableElement struct {
-	writer *tablewriter.Table
-	header []string
-	cell   []string
+	writer       *tablewriter.Table
+	indentWriter io.Writer
+	header       []string
+	cell         []string
 }
 
 type TableRowElement struct {
@@ -24,6 +25,8 @@ type TableCellElement struct {
 }
 
 func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
+	bs := ctx.blockStack
+
 	var indent uint
 	var margin uint
 	rules := ctx.style[Table]
@@ -34,23 +37,27 @@ func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 		margin = *rules.Margin
 	}
 
-	iw := &IndentWriter{
+	ctx.table.indentWriter = &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, ctx.blockStack.Parent().Style, " ")
+			renderText(w, bs.Current().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
 		},
 	}
 
-	ctx.table.writer = tablewriter.NewWriter(iw)
+	renderText(ctx.table.indentWriter, bs.Current().Style, rules.Prefix)
+	ctx.table.writer = tablewriter.NewWriter(ctx.table.indentWriter)
 	return nil
 }
 
 func (e *TableElement) Finish(w io.Writer, ctx RenderContext) error {
 	ctx.table.writer.Render()
 	ctx.table.writer = nil
+
+	rules := ctx.style[Table]
+	renderText(ctx.table.indentWriter, ctx.blockStack.Current().Style, rules.Suffix)
 	return nil
 }
 
