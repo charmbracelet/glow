@@ -1,78 +1,100 @@
 {
   "document": {
-    "indent": 2,
-    "background_color": "234",
-    "prefix": "\n",
-    "suffix": "\n\n"
+    "indent": 4,
+    "prefix": "\n\n",
+    "suffix": "\n\n",
+    "color": "252"
   },
-  "link": {
-    "color": "123",
-    "underline": true,
-    "prefix": "(",
-    "suffix": ")"
-  },
-  "link_text": {
-    "color": "123",
+  "h1": {
+    "format": "  {{.text}}  ",
+    "suffix": "\n\n",
+    "background_color": "63",
+    "color": "228",
     "bold": true
   },
-  "image": {
-    "color": "123",
-    "prefix": "[📷 ",
-    "suffix": "]"
+  "h2": {
+    "prefix": "\n",
+    "suffix": "\n",
+    "format": "## {{.text}}",
+    "color": "39",
+    "bold": true
+  },
+  "h3": {
+    "format": "### {{.text}}",
+    "suffix": "\n",
+    "color": "39",
+    "bold": true
+  },
+  "h4": {
+    "format": "#### {{.text}}",
+    "suffix": "\n",
+    "color": "39",
+    "bold": true
+  },
+  "h5": {
+    "format": "##### {{.text}}",
+    "suffix": "\n",
+    "color": "39",
+    "bold": true
+  },
+  "h6": {
+    "format": "###### {{.text}}",
+    "suffix": "\n",
+    "color": "35",
+    "bold": false
+  },
+  "text": {},
+  "list": {},
+  "item": {
+    "prefix": "• "
+  },
+  "enumeration": {
+    "prefix": ". "
+  },
+  "link_text": {
+    "color": "35"
+  },
+  "link": {
+    "format": "{{.text}}",
+    "underline": true,
+    "color": "23"
   },
   "image_text": {
-    "color": "8"
+    "format": "Image: {{.text}} ->",
+    "color": "243"
   },
-  "heading": {
+  "image": {
+    "underline": true,
+    "color": "212"
+  },
+  "code": {
+    "format": " {{.text}} ",
+    "background_color": "236",
+    "color": "203"
+  },
+  "code_block": {
     "prefix": "\n",
     "suffix": "\n",
     "margin": 4,
-    "color": "15",
-    "background_color": "57"
-  },
-  "h1": {
-    "format": "=> {{(Join (Split .text \"\") \" \")}} <=",
-    "margin": 2,
-    "bold": true,
-    "background_color": "69"
-  },
-  "h2": {
-    "format": "# {{.text}}"
+    "color": "244"
   },
   "table": {
-    "margin": 4
-  },
-  "paragraph": {
-    "margin": 4,
-    "color": "15",
-    "background_color": "235"
-  },
-  "code": {
-    "color": "200"
-  },
-  "code_block": {
-    "margin": 4,
-    "color": "200",
-    "theme": "solarized-dark"
+    "background_color": "234"
   },
   "emph": {
-    "italic": true
+      "italic": true
   },
   "strong": {
-    "bold": true
-  },
-  "list": {
-    "margin": 4,
-    "color": "15",
-    "background_color": "236"
-  },
-  "item": {
-    "format": "• {{.text}}"
-  },
-  "enumeration": {
-    "format": ". {{.text}}"
+      "bold": true
   },
   "hr": {
-    "format": "\n---\n"
-  }
+    "format": "\n--------\n",
+    "color": "240"
+  },
+  "block_quote": {},
+  "del": {},
+  "softbreak": {},
+  "hardbreak": {},
+  "html_block": {},
+  "html_span": {}
 }
