@@ -12,6 +12,8 @@ type CodeBlockElement struct {
 }
 
 func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
+	bs := ctx.blockStack
+
 	var indent uint
 	var margin uint
 	rules := ctx.style[CodeBlock]
@@ -26,7 +28,7 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, ctx.blockStack.Current().Style, " ")
+			renderText(w, bs.Current().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
@@ -34,7 +36,10 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 	}
 
 	if len(theme) > 0 {
-		return quick.Highlight(iw, e.Code, e.Language, "terminal16m", theme)
+		renderText(iw, bs.Current().Style, rules.Prefix)
+		err := quick.Highlight(iw, e.Code, e.Language, "terminal16m", theme)
+		renderText(iw, bs.Current().Style, rules.Suffix)
+		return err
 	}
 
 	// fallback rendering
