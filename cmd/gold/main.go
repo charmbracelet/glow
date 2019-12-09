@@ -17,7 +17,12 @@ import (
 )
 
 var (
+	Version   = ""
+	CommitSHA = ""
+
 	readmeNames = []string{"README.md", "README"}
+	style       string
+	width       uint
 
 	rootCmd = &cobra.Command{
 		Use:           "gold SOURCE",
@@ -26,9 +31,6 @@ var (
 		SilenceUsage:  false,
 		RunE:          execute,
 	}
-
-	style string
-	width uint
 )
 
 type Source struct {
@@ -135,6 +137,15 @@ func main() {
 }
 
 func init() {
+	if CommitSHA != "" {
+		vt := rootCmd.VersionTemplate()
+		rootCmd.SetVersionTemplate(vt[:len(vt)-1] + " (" + CommitSHA + ")\n")
+	}
+	if Version == "" {
+		Version = "unknown (built from source)"
+	}
+	rootCmd.Version = Version
+
 	rootCmd.Flags().StringVarP(&style, "style", "s", "dark", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 100, "word-wrap at width")
 }
