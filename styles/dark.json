@@ -25,6 +25,7 @@
   },
   "heading": {
     "prefix": "\n",
+    "suffix": "\n",
     "margin": 4,
     "color": "15",
     "background_color": "57"
