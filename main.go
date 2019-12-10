@@ -43,6 +43,7 @@ func readerFromArg(s string) (*Source, error) {
 		return &Source{reader: os.Stdin}, nil
 	}
 
+	// a GitHub or GitLab URL (even without the protocol):
 	if u, ok := isGitHubURL(s); ok {
 		src, err := findGitHubREADME(u)
 		if err != nil {
@@ -58,6 +59,7 @@ func readerFromArg(s string) (*Source, error) {
 		return src, nil
 	}
 
+	// HTTP(S) URLs:
 	if u, err := url.ParseRequestURI(s); err == nil {
 		if u.Scheme != "" {
 			if u.Scheme != "http" && u.Scheme != "https" {
@@ -75,6 +77,7 @@ func readerFromArg(s string) (*Source, error) {
 		}
 	}
 
+	// a valid file or directory:
 	st, err := os.Stat(s)
 	if len(s) == 0 || (err == nil && st.IsDir()) {
 		for _, v := range readmeNames {
@@ -99,6 +102,8 @@ func execute(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		arg = args[0]
 	}
+
+	// create an io.Reader from the markdown source in cli-args
 	src, err := readerFromArg(arg)
 	if err != nil {
 		return err
@@ -109,6 +114,8 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// We want to use a special no-TTY style, when stdout is not a terminal
+	// and there was no specific style passed by arg
 	if !isatty.IsTerminal(os.Stdout.Fd()) &&
 		!cmd.Flags().Changed("style") {
 		style = "notty"
