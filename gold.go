@@ -163,7 +163,7 @@ func resolveRelativeURL(baseURL string, rel string) string {
 	if u.IsAbs() {
 		return rel
 	}
-	if u.Path[0] == '/' {
+	if len(u.Path) > 0 && u.Path[0] == '/' {
 		u.Path = u.Path[1:]
 	}
 
