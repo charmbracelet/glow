@@ -78,9 +78,10 @@ func readerFromArg(s string) (*Source, error) {
 	st, err := os.Stat(s)
 	if len(s) == 0 || (err == nil && st.IsDir()) {
 		for _, v := range readmeNames {
-			r, err := os.Open(filepath.Join(s, v))
+			n := filepath.Join(s, v)
+			r, err := os.Open(n)
 			if err == nil {
-				u, _ := filepath.Abs(v)
+				u, _ := filepath.Abs(n)
 				return &Source{r, u}, nil
 			}
 		}
