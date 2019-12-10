@@ -214,8 +214,8 @@ func hexToANSIColor(h string) (int, error) {
 	gv := 8 + 10*grayIdx // same value for r/g/b, 0..255
 
 	// Return the one which is nearer to the original input rgb value
-	c2 := colorful.Color{float64(cr) / 255.0, float64(cg) / 255.0, float64(cb) / 255.0}
-	g2 := colorful.Color{float64(gv) / 255.0, float64(gv) / 255.0, float64(gv) / 255.0}
+	c2 := colorful.Color{R: float64(cr) / 255.0, G: float64(cg) / 255.0, B: float64(cb) / 255.0}
+	g2 := colorful.Color{R: float64(gv) / 255.0, G: float64(gv) / 255.0, B: float64(gv) / 255.0}
 	colorDist := c.DistanceLab(c2)
 	grayDist := c.DistanceLab(g2)
 
