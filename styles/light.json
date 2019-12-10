@@ -74,8 +74,6 @@
     "color": "203"
   },
   "code_block": {
-    "prefix": "\n",
-    "suffix": "\n",
     "margin": 4,
     "color": "240"
   },
