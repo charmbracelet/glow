@@ -78,9 +78,7 @@
     "margin": 4,
     "color": "244"
   },
-  "table": {
-    "background_color": "234"
-  },
+  "table": {},
   "emph": {
       "italic": true
   },
