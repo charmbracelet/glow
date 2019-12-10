@@ -58,7 +58,7 @@ func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	}
 	el := &BaseElement{
 		Prefix: pre,
-		Token:  string(e.Text),
+		Token:  e.Text,
 		Style:  rules,
 	}
 	err := el.Render(flow, ctx)
