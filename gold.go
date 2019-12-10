@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/url"
+	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	bf "gopkg.in/russross/blackfriday.v2"
@@ -163,9 +164,7 @@ func resolveRelativeURL(baseURL string, rel string) string {
 	if u.IsAbs() {
 		return rel
 	}
-	if len(u.Path) > 0 && u.Path[0] == '/' {
-		u.Path = u.Path[1:]
-	}
+	u.Path = strings.TrimPrefix(u.Path, "/")
 
 	base, err := url.Parse(baseURL)
 	if err != nil {
