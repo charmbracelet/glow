@@ -8,12 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/microcosm-cc/bluemonday"
 	bf "gopkg.in/russross/blackfriday.v2"
-)
-
-var (
-	stripper = bluemonday.StrictPolicy()
 )
 
 type Options struct {
@@ -66,12 +61,7 @@ func NewTermRendererFromBytes(b []byte, options Options) (*TermRenderer, error) 
 	}
 
 	tr := &TermRenderer{
-		context: RenderContext{
-			style:      make(map[StyleType]ElementStyle),
-			blockStack: &BlockStack{},
-			table:      &TableElement{},
-			options:    options,
-		},
+		context: NewRenderContext(options),
 	}
 
 	for k, v := range e {

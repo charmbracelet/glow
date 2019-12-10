@@ -1,9 +1,7 @@
 package gold
 
 import (
-	"html"
 	"io"
-	"strings"
 
 	bf "gopkg.in/russross/blackfriday.v2"
 )
@@ -140,14 +138,14 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 	case bf.Text:
 		return Element{
 			Renderer: &BaseElement{
-				Token: html.UnescapeString(stripper.Sanitize(string(node.Literal))),
+				Token: tr.context.SanitizeHTML(string(node.Literal), false),
 				Style: ctx.style[Text],
 			},
 		}
 	case bf.HTMLBlock:
 		return Element{
 			Renderer: &BaseElement{
-				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
+				Token: tr.context.SanitizeHTML(string(node.Literal), true) + "\n",
 				Style: ctx.style[HTMLBlock],
 			},
 		}
@@ -185,7 +183,7 @@ func (tr *TermRenderer) NewElement(node *bf.Node) Element {
 	case bf.HTMLSpan:
 		return Element{
 			Renderer: &BaseElement{
-				Token: html.UnescapeString(strings.TrimSpace(stripper.Sanitize(string(node.Literal)))) + "\n",
+				Token: tr.context.SanitizeHTML(string(node.Literal), true) + "\n",
 				Style: ctx.style[HTMLSpan],
 			},
 		}
