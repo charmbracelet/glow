@@ -43,17 +43,7 @@ func RenderBytes(in []byte, stylePath string) ([]byte, error) {
 	return r.RenderBytes(in), nil
 }
 
-func NewPlainTermRenderer(options Options) *TermRenderer {
-	return &TermRenderer{
-		context: RenderContext{
-			style:      make(map[StyleType]ElementStyle),
-			blockStack: &BlockStack{},
-			table:      &TableElement{},
-			options:    options,
-		},
-	}
-}
-
+// NewTermRenderer returns a new TermRenderer with style and options set.
 func NewTermRenderer(stylePath string, options Options) (*TermRenderer, error) {
 	if stylePath == "" {
 		return NewTermRendererFromBytes([]byte("{}"), options)
@@ -75,7 +65,15 @@ func NewTermRendererFromBytes(b []byte, options Options) (*TermRenderer, error) 
 		return nil, err
 	}
 
-	tr := NewPlainTermRenderer(options)
+	tr := &TermRenderer{
+		context: RenderContext{
+			style:      make(map[StyleType]ElementStyle),
+			blockStack: &BlockStack{},
+			table:      &TableElement{},
+			options:    options,
+		},
+	}
+
 	for k, v := range e {
 		t, err := keyToType(k)
 		if err != nil {
