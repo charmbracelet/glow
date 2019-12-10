@@ -295,6 +295,6 @@ func keyToType(key string) (StyleType, error) {
 		return TableRow, nil
 
 	default:
-		return 0, fmt.Errorf("Invalid style element type: %s", key)
+		return 0, fmt.Errorf("invalid style element type: %s", key)
 	}
 }

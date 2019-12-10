@@ -13,7 +13,6 @@ type ItemElement struct {
 func (e *ItemElement) Render(w io.Writer, ctx RenderContext) error {
 	var el *BaseElement
 	if e.Enumeration > 0 {
-
 		el = &BaseElement{
 			Token:  e.Text,
 			Style:  ctx.style[Enumeration],

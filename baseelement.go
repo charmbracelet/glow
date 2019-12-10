@@ -22,7 +22,7 @@ type BaseElement struct {
 
 func color(c *string) (uint8, error) {
 	if c == nil || len(*c) == 0 {
-		return 0, errors.New("Invalid color")
+		return 0, errors.New("invalid color")
 	}
 	if (*c)[0] == '#' {
 		i, err := hexToANSIColor(*c)
@@ -61,7 +61,7 @@ func colorSeq(fg *string, bg *string) (string, error) {
 		return seq + bs + "m", nil
 	}
 
-	return "", errors.New("Invalid color")
+	return "", errors.New("invalid color")
 }
 
 func formatToken(format string, token string) (string, error) {
