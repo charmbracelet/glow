@@ -52,12 +52,13 @@
     "prefix": ". "
   },
   "link_text": {
-    "color": "35"
+    "color": "35",
+    "bold": true
   },
   "link": {
     "format": "{{.text}}",
     "underline": true,
-    "color": "23"
+    "color": "30"
   },
   "image_text": {
     "format": "Image: {{.text}} ->",
