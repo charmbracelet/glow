@@ -1,40 +1,59 @@
 {
   "document": {
-    "suffix": "\n"
-  },
-  "link": {
-    "prefix": "(",
-    "suffix": ")"
-  },
-  "image": {
-    "prefix": "[Image: ",
-    "suffix": "]"
-  },
-  "heading": {
-    "prefix": "\n",
-    "indent": 2
+    "indent": 4,
+    "prefix": "\n\n",
+    "suffix": "\n\n"
   },
   "h1": {
-    "prefix": "\n=> ",
-    "suffix": " <=",
-    "indent": 0
+    "format": "# {{.text}}",
+    "suffix": "\n\n"
   },
   "h2": {
-    "prefix": "\n# "
+    "prefix": "\n",
+    "suffix": "\n",
+    "format": "## {{.text}}"
   },
-  "table": {
-    "indent": 2
+  "h3": {
+    "format": "### {{.text}}",
+    "suffix": "\n"
   },
-  "paragraph": {
-    "indent": 2
+  "h4": {
+    "format": "#### {{.text}}",
+    "suffix": "\n"
   },
+  "h5": {
+    "format": "##### {{.text}}",
+    "suffix": "\n"
+  },
+  "h6": {
+    "format": "###### {{.text}}",
+    "suffix": "\n"
+  },
+  "text": {},
+  "list": {},
+  "item": {
+    "prefix": "• "
+  },
+  "enumeration": {
+    "prefix": ". "
+  },
+  "link_text": {},
+  "link": {
+    "format": "({{.text}})"
+  },
+  "image_text": {
+    "format": "Image: {{.text}} ->"
+  },
+  "image": {},
   "code": {
-    "prefix": "`",
-    "suffix": "`"
+    "format": "`{{.text}}`"
   },
   "code_block": {
-    "indent": 2
+    "margin": 4,
+    "prefix": "\n",
+    "suffix": "\n"
   },
+  "table": {},
   "emph": {
     "prefix": "*",
     "suffix": "*"
@@ -43,16 +62,13 @@
     "prefix": "**",
     "suffix": "**"
   },
-  "list": {
-    "indent": 2
-  },
-  "item": {
-    "prefix": "• "
-  },
-  "enumeration": {
-    "prefix": ". "
-  },
   "hr": {
-    "format": "\n---\n"
-  }
+    "format": "\n--------\n"
+  },
+  "block_quote": {},
+  "del": {},
+  "softbreak": {},
+  "hardbreak": {},
+  "html_block": {},
+  "html_span": {}
 }
