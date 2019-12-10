@@ -1,40 +1,99 @@
 {
-    "link": {
-      "color": "245",
-      "underline": true,
-      "prefix": "(",
-      "suffix": ")"
-    },
-    "link_text": {
-      "color": "235",
-      "bold": true
-    },
-    "image": {
-      "color": "245",
-      "prefix": "[Image: ",
-      "suffix": "]"
-    },
-    "image_text": {
-      "color": "235"
-    },
-    "heading": {
-      "bold": true,
-      "color": "1"
-    },
-    "code": {
-      "color": "235"
-    },
-    "code_block": {
-      "color": "235",
-      "theme": "solarized-light"
-    },
-    "emph": {
+  "document": {
+    "indent": 4,
+    "prefix": "\n\n",
+    "suffix": "\n\n",
+    "color": "234"
+  },
+  "h1": {
+    "format": " {{.text}} ",
+    "suffix": "\n\n",
+    "background_color": "63",
+    "color": "228",
+    "bold": true
+  },
+  "h2": {
+    "prefix": "\n",
+    "suffix": "\n",
+    "format": "## {{.text}}",
+    "color": "27",
+    "bold": true
+  },
+  "h3": {
+    "format": "### {{.text}}",
+    "suffix": "\n",
+    "color": "27",
+    "bold": true
+  },
+  "h4": {
+    "format": "#### {{.text}}",
+    "suffix": "\n",
+    "color": "27",
+    "bold": true
+  },
+  "h5": {
+    "format": "##### {{.text}}",
+    "suffix": "\n",
+    "color": "27",
+    "bold": true
+  },
+  "h6": {
+    "format": "###### {{.text}}",
+    "suffix": "\n",
+    "color": "27",
+    "bold": false
+  },
+  "text": {},
+  "list": {},
+  "item": {
+    "prefix": "• "
+  },
+  "enumeration": {
+    "prefix": ". "
+  },
+  "link_text": {
+    "color": "29",
+    "bold": true
+  },
+  "link": {
+    "format": "{{.text}}",
+    "underline": true,
+    "color": "36"
+  },
+  "image_text": {
+    "format": "Image: {{.text}} ->",
+    "color": "243"
+  },
+  "image": {
+    "underline": true,
+    "color": "205"
+  },
+  "code": {
+    "format": " {{.text}} ",
+    "background_color": "254",
+    "color": "203"
+  },
+  "code_block": {
+    "prefix": "\n",
+    "suffix": "\n",
+    "margin": 4,
+    "color": "240"
+  },
+  "table": {},
+  "emph": {
       "italic": true
-    },
-    "strong": {
+  },
+  "strong": {
       "bold": true
-    },
-    "item": {
-      "prefix": "• "
-    }
-  }
+  },
+  "hr": {
+    "format": "\n--------\n",
+    "color": "240"
+  },
+  "block_quote": {},
+  "del": {},
+  "softbreak": {},
+  "hardbreak": {},
+  "html_block": {},
+  "html_span": {}
+}
