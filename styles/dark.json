@@ -6,7 +6,7 @@
     "color": "252"
   },
   "h1": {
-    "format": "  {{.text}}  ",
+    "format": " {{.text}} ",
     "suffix": "\n\n",
     "background_color": "63",
     "color": "228",
