@@ -16,7 +16,6 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/util"
-	bf "gopkg.in/russross/blackfriday.v2"
 )
 
 type Options struct {
@@ -203,14 +202,6 @@ func (tr *TermRenderer) renderNode(w util.BufWriter, source []byte, node ast.Nod
 	}
 
 	return ast.WalkContinue, nil
-}
-
-// RenderHeader renders the markdown's header.
-func (tr *TermRenderer) RenderHeader(w io.Writer, ast *bf.Node) {
-}
-
-// RenderFooter renders the markdown's footer.
-func (tr *TermRenderer) RenderFooter(w io.Writer, ast *bf.Node) {
 }
 
 func isChild(node ast.Node) bool {
