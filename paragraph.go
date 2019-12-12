@@ -23,7 +23,8 @@ func (e *ParagraphElement) Render(w io.Writer, ctx RenderContext) error {
 	}
 	bs.Push(be)
 
-	renderText(w, bs.Current().Style, rules.Prefix)
+	renderText(w, bs.Parent().Style, rules.Prefix)
+	renderText(w, bs.Current().Style, rules.StyledPrefix)
 	return nil
 }
 
@@ -32,8 +33,6 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 	rules := bs.Current().Style
 
 	keepNewlines := false
-
-	renderText(bs.Current().Block, rules, rules.Suffix)
 
 	mw := NewMarginWriter(ctx, w, rules)
 	if len(strings.TrimSpace(bs.Current().Block.String())) > 0 {
@@ -48,6 +47,9 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 		}
 		_, _ = mw.Write([]byte("\n"))
 	}
+
+	renderText(w, bs.Current().Style, rules.StyledSuffix)
+	renderText(w, bs.Parent().Style, rules.Suffix)
 
 	bs.Current().Block.Reset()
 	bs.Pop()
