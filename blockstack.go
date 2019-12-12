@@ -4,11 +4,6 @@ import (
 	"bytes"
 )
 
-type BlockElement struct {
-	Block *bytes.Buffer
-	Style ElementStyle
-}
-
 type BlockStack []BlockElement
 
 func (s *BlockStack) Len() int {
