@@ -53,6 +53,10 @@
     "margin": 4
   },
   "table": {},
+  "strikethrough": {
+    "prefix": "~~",
+    "suffix": "~~"
+  },
   "emph": {
     "prefix": "*",
     "suffix": "*"

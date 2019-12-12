@@ -81,11 +81,14 @@
     "color": "244"
   },
   "table": {},
+  "strikethrough": {
+    "crossed_out": true
+  },
   "emph": {
-      "italic": true
+    "italic": true
   },
   "strong": {
-      "bold": true
+    "bold": true
   },
   "hr": {
     "format": "\n--------\n",
