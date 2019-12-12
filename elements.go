@@ -149,6 +149,18 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 			},
 		}
 
+	case astext.KindStrikethrough:
+		n := node.(*astext.Strikethrough)
+		s := string(n.Text(source))
+		style := ctx.style[Strikethrough]
+
+		return Element{
+			Renderer: &BaseElement{
+				Token: ctx.SanitizeHTML(s, false),
+				Style: style,
+			},
+		}
+
 	case ast.KindThematicBreak:
 		return Element{
 			Entering: "",
