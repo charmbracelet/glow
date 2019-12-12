@@ -63,7 +63,7 @@
     "color": "30"
   },
   "image_text": {
-    "format": "Image: {{.text}} ->",
+    "format": "Image: {{.text}} 🡆 ",
     "color": "243"
   },
   "image": {
@@ -100,7 +100,7 @@
   "definition_list": {},
   "definition_term": {},
   "definition_description": {
-    "prefix": "\n=> "
+    "prefix": "\n🠶 "
   },
   "html_block": {},
   "html_span": {}
