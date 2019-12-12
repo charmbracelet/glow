@@ -25,6 +25,7 @@ const (
 
 	// Text elements
 	Text
+	Strikethrough
 	Emph
 	Strong
 	HorizontalRule
@@ -275,6 +276,8 @@ func keyToType(key string) (StyleType, error) {
 		return H6, nil
 	case "hr":
 		return HorizontalRule, nil
+	case "strikethrough":
+		return Strikethrough, nil
 	case "emph":
 		return Emph, nil
 	case "strong":

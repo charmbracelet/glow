@@ -211,7 +211,7 @@ func isChild(node ast.Node) bool {
 
 	// These types are already rendered by their parent
 	switch node.Parent().Kind() {
-	case ast.KindLink, ast.KindImage, ast.KindEmphasis, ast.KindBlockquote, astext.KindTableCell:
+	case ast.KindLink, ast.KindImage, ast.KindEmphasis, astext.KindStrikethrough, ast.KindBlockquote, astext.KindTableCell:
 		return true
 	default:
 		return false
