@@ -4,29 +4,27 @@
     "prefix": "\n\n",
     "suffix": "\n\n"
   },
+  "heading": {
+    "suffix": "\n"
+  },
   "h1": {
     "suffix": "\n\n",
     "styled_prefix": "# "
   },
   "h2": {
     "prefix": "\n",
-    "suffix": "\n",
     "styled_prefix": "## "
   },
   "h3": {
-    "suffix": "\n",
     "styled_prefix": "### "
   },
   "h4": {
-    "suffix": "\n",
     "styled_prefix": "#### "
   },
   "h5": {
-    "suffix": "\n",
     "styled_prefix": "##### "
   },
   "h6": {
-    "suffix": "\n",
     "styled_prefix": "###### "
   },
   "text": {},
