@@ -1,9 +1,12 @@
 package gold
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 
-	bf "gopkg.in/russross/blackfriday.v2"
+	"github.com/yuin/goldmark/ast"
+	astext "github.com/yuin/goldmark/extension/ast"
 )
 
 type ElementRenderer interface {
@@ -21,210 +24,279 @@ type Element struct {
 	Finisher ElementFinisher
 }
 
-func (tr *TermRenderer) NewElement(node *bf.Node) Element {
+func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	ctx := tr.context
+	// fmt.Print(strings.Repeat("  ", ctx.blockStack.Len()), node.Type(), node.Kind())
+	// defer fmt.Println()
 
-	switch node.Type {
-	case bf.Document:
-		de := &DocumentElement{}
+	switch node.Kind() {
+	// Document
+	case ast.KindDocument:
 		return Element{
-			Renderer: de,
-			Finisher: de,
+			Renderer: &DocumentElement{},
+			Finisher: &DocumentElement{},
 		}
-	case bf.BlockQuote:
+
+	// Heading
+	case ast.KindHeading:
+		n := node.(*ast.Heading)
+		he := &HeadingElement{
+			Level: n.Level,
+			First: node.PreviousSibling() == nil,
+		}
+		return Element{
+			Exiting:  "",
+			Renderer: he,
+			Finisher: he,
+		}
+
+	// Paragraph
+	case ast.KindParagraph:
+		return Element{
+			Renderer: &ParagraphElement{},
+			Finisher: &ParagraphElement{},
+		}
+
+	// Blockquote
+	case ast.KindBlockquote:
+		e := &BlockElement{
+			Block:  &bytes.Buffer{},
+			Style:  cascadeStyle(ctx.blockStack.Current().Style, ctx.style[BlockQuote], true),
+			Margin: true,
+		}
 		return Element{
 			Entering: "\n",
-			Exiting:  "\n",
-			Renderer: &BaseElement{
-				Token: string(node.Literal),
-				Style: ctx.style[BlockQuote],
-			},
+			Renderer: e,
+			Finisher: e,
 		}
-	case bf.List:
-		le := &ListElement{
-			Nested: node.Parent.Type == bf.Item,
+
+	// Lists
+	case ast.KindList:
+		e := &BlockElement{
+			Block:  &bytes.Buffer{},
+			Style:  cascadeStyle(ctx.blockStack.Current().Style, ctx.style[List], true),
+			Margin: true,
 		}
 		return Element{
-			Renderer: le,
-			Finisher: le,
+			Entering: "\n",
+			Renderer: e,
+			Finisher: e,
 		}
-	case bf.Item:
+
+	case ast.KindListItem:
 		var l uint
-		if node.ListData.ListFlags&bf.ListTypeOrdered > 0 {
-			l = 1
-			n := node
-			for n.Prev != nil && (n.Prev.Type == bf.Item) {
-				l++
-				n = n.Prev
+		var e uint
+		l = 1
+		n := node
+		for n.PreviousSibling() != nil && (n.PreviousSibling().Kind() == ast.KindListItem) {
+			l++
+			n = n.PreviousSibling()
+		}
+		if node.Parent().(*ast.List).IsOrdered() {
+			e = l
+		}
+
+		post := "\n"
+		if node.LastChild().Kind() == ast.KindList || node.NextSibling() == nil {
+			post = ""
+		}
+
+		if node.FirstChild().FirstChild().Kind() == astext.KindTaskCheckBox {
+			nc := node.FirstChild().FirstChild().(*astext.TaskCheckBox)
+
+			return Element{
+				Exiting: post,
+				Renderer: &CheckedItemElement{
+					Checked: nc.IsChecked,
+				},
 			}
 		}
 
 		return Element{
+			Exiting: post,
 			Renderer: &ItemElement{
-				Text:        string(node.Literal),
-				Enumeration: l,
+				Enumeration: e,
 			},
 		}
-	case bf.Paragraph:
-		pe := &ParagraphElement{
-			InsideList: node.Parent != nil && node.Parent.Type == bf.Item,
+
+	// Text Elements
+	case ast.KindText:
+		n := node.(*ast.Text)
+		s := string(n.Segment.Value(source))
+
+		if n.HardLineBreak() || (n.SoftLineBreak()) {
+			s += "\n"
 		}
 		return Element{
-			Renderer: pe,
-			Finisher: pe,
-		}
-	case bf.Heading:
-		return Element{
-			Exiting: "\n",
-			Renderer: &HeadingElement{
-				Text:  string(node.FirstChild.Literal),
-				Level: node.HeadingData.Level,
-				First: node.Prev == nil,
+			Renderer: &BaseElement{
+				Token: ctx.SanitizeHTML(s, false),
+				Style: ctx.style[Text],
 			},
 		}
-	case bf.HorizontalRule:
+
+	case ast.KindEmphasis:
+		n := node.(*ast.Emphasis)
+		s := string(n.Text(source))
+		style := ctx.style[Emph]
+		if n.Level > 1 {
+			style = ctx.style[Strong]
+		}
+
+		return Element{
+			Renderer: &BaseElement{
+				Token: ctx.SanitizeHTML(s, false),
+				Style: style,
+			},
+		}
+
+	case ast.KindThematicBreak:
 		return Element{
 			Entering: "",
-			Exiting:  "\n",
+			Exiting:  "",
 			Renderer: &BaseElement{
 				Style: ctx.style[HorizontalRule],
 			},
 		}
-	case bf.Emph:
-		return Element{
-			Renderer: &BaseElement{
-				Token: string(node.FirstChild.Literal),
-				Style: ctx.style[Emph],
-			},
-		}
-	case bf.Strong:
-		return Element{
-			Renderer: &BaseElement{
-				Token: string(node.FirstChild.Literal),
-				Style: ctx.style[Strong],
-			},
-		}
-	case bf.Del:
-		return Element{
-			Renderer: &BaseElement{
-				Token: string(node.Literal),
-				Style: ctx.style[Del],
-			},
-		}
-	case bf.Link:
-		var text string
-		if node.LastChild != nil {
-			text = string(node.LastChild.Literal)
-		}
+
+	// Links
+	case ast.KindLink:
+		n := node.(*ast.Link)
+		text := string(n.Text(source))
 		return Element{
 			Renderer: &LinkElement{
 				Text:    text,
-				BaseURL: tr.context.options.BaseURL,
-				URL:     string(node.LinkData.Destination),
+				BaseURL: ctx.options.BaseURL,
+				URL:     string(n.Destination),
 			},
 		}
-	case bf.Image:
-		var text string
-		if node.LastChild != nil {
-			text = string(node.LastChild.Literal)
+	case ast.KindAutoLink:
+		n := node.(*ast.AutoLink)
+		text := string(n.Text(source))
+		return Element{
+			Renderer: &LinkElement{
+				Text:    text,
+				BaseURL: ctx.options.BaseURL,
+				URL:     string(n.URL(source)),
+			},
 		}
+
+	// Images
+	case ast.KindImage:
+		n := node.(*ast.Image)
+		text := string(n.Text(source))
 		return Element{
 			Renderer: &ImageElement{
 				Text:    text,
-				BaseURL: tr.context.options.BaseURL,
-				URL:     string(node.LinkData.Destination),
+				BaseURL: ctx.options.BaseURL,
+				URL:     string(n.Destination),
 			},
 		}
-	case bf.Text:
-		return Element{
-			Renderer: &BaseElement{
-				Token: tr.context.SanitizeHTML(string(node.Literal), false),
-				Style: ctx.style[Text],
-			},
+
+	// Code
+	case ast.KindFencedCodeBlock:
+		n := node.(*ast.FencedCodeBlock)
+		l := n.Lines().Len()
+		s := ""
+		for i := 0; i < l; i++ {
+			line := n.Lines().At(i)
+			s += string(line.Value(source))
 		}
-	case bf.HTMLBlock:
-		return Element{
-			Renderer: &BaseElement{
-				Token: tr.context.SanitizeHTML(string(node.Literal), true) + "\n",
-				Style: ctx.style[HTMLBlock],
-			},
-		}
-	case bf.CodeBlock:
 		return Element{
 			Entering: "\n",
 			Renderer: &CodeBlockElement{
-				Code:     string(node.Literal),
-				Language: string(node.CodeBlockData.Info),
+				Code:     s,
+				Language: string(n.Language(source)),
 			},
 		}
-	case bf.Softbreak:
+
+	case ast.KindCodeBlock:
+		n := node.(*ast.CodeBlock)
+		l := n.Lines().Len()
+		s := ""
+		for i := 0; i < l; i++ {
+			line := n.Lines().At(i)
+			s += string(line.Value(source))
+		}
 		return Element{
-			Exiting: "\n",
-			Renderer: &BaseElement{
-				Token: string(node.Literal),
-				Style: ctx.style[Softbreak],
+			Entering: "\n",
+			Renderer: &CodeBlockElement{
+				Code: s,
 			},
 		}
-	case bf.Hardbreak:
+
+	case ast.KindCodeSpan:
+		// n := node.(*ast.CodeSpan)
+		e := &BlockElement{
+			Block: &bytes.Buffer{},
+			Style: cascadeStyle(ctx.blockStack.Current().Style, ctx.style[Code], true),
+		}
 		return Element{
-			Exiting: "\n",
-			Renderer: &BaseElement{
-				Token: string(node.Literal),
-				Style: ctx.style[Hardbreak],
-			},
+			Renderer: e,
+			Finisher: e,
 		}
-	case bf.Code:
-		return Element{
-			Renderer: &BaseElement{
-				Token: string(node.Literal),
-				Style: ctx.style[Code],
-			},
-		}
-	case bf.HTMLSpan:
-		return Element{
-			Renderer: &BaseElement{
-				Token: tr.context.SanitizeHTML(string(node.Literal), true) + "\n",
-				Style: ctx.style[HTMLSpan],
-			},
-		}
-	case bf.Table:
+
+	// Tables
+	case astext.KindTable:
 		te := &TableElement{}
 		return Element{
 			Entering: "\n",
 			Renderer: te,
 			Finisher: te,
 		}
-	case bf.TableCell:
+
+	case astext.KindTableCell:
 		s := ""
-		n := node.FirstChild
+		n := node.FirstChild()
 		for n != nil {
-			s += string(n.Literal)
-			s += string(n.LinkData.Destination)
-			n = n.Next
+			s += string(n.Text(source))
+			// s += string(n.LinkData.Destination)
+			n = n.NextSibling()
 		}
 
 		return Element{
 			Renderer: &TableCellElement{
 				Text: s,
-				Head: node.Parent.Parent.Type == bf.TableHead,
+				Head: node.Parent().Kind() == astext.KindTableHeader,
 			},
 		}
-	case bf.TableHead:
+
+	case astext.KindTableHeader:
 		return Element{
 			Finisher: &TableHeadElement{},
 		}
-	case bf.TableBody:
-		return Element{}
-	case bf.TableRow:
+	case astext.KindTableRow:
 		return Element{
 			Finisher: &TableRowElement{},
 		}
 
-	default:
+	// HTML Elements
+	case ast.KindHTMLBlock:
+		n := node.(*ast.HTMLBlock)
 		return Element{
 			Renderer: &BaseElement{
-				Token: string(node.Literal),
+				Token: ctx.SanitizeHTML(string(n.Text(source)), true) + "\n",
+				Style: ctx.style[HTMLBlock],
 			},
 		}
+	case ast.KindRawHTML:
+		n := node.(*ast.RawHTML)
+		return Element{
+			Renderer: &BaseElement{
+				Token: ctx.SanitizeHTML(string(n.Text(source)), true) + "\n",
+				Style: ctx.style[HTMLSpan],
+			},
+		}
+
+	// Handled by parents
+	case astext.KindTaskCheckBox:
+		// handled by KindListItem
+		return Element{}
+	case ast.KindTextBlock:
+		return Element{}
+
+	// Unknown case
+	default:
+		fmt.Println("Warning: unhandled element", node.Kind().String())
+		return Element{}
 	}
 }
