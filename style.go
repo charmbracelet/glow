@@ -54,6 +54,11 @@ const (
 	TableBody
 	TableRow
 
+	// Definition Lists
+	DefinitionList
+	DefinitionTerm
+	DefinitionDescription
+
 	// HTML styles
 	HTMLBlock
 	HTMLSpan
@@ -310,6 +315,12 @@ func keyToType(key string) (StyleType, error) {
 		return TableBody, nil
 	case "table_row":
 		return TableRow, nil
+	case "definition_list":
+		return DefinitionList, nil
+	case "definition_term":
+		return DefinitionTerm, nil
+	case "definition_description":
+		return DefinitionDescription, nil
 
 	default:
 		return 0, fmt.Errorf("invalid style element type: %s", key)
