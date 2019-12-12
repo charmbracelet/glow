@@ -5,6 +5,11 @@
     "suffix": "\n\n",
     "color": "252"
   },
+  "heading": {
+    "suffix": "\n",
+    "color": "39",
+    "bold": true
+  },
   "h1": {
     "suffix": "\n\n",
     "styled_prefix": " ",
@@ -15,31 +20,18 @@
   },
   "h2": {
     "prefix": "\n",
-    "suffix": "\n",
-    "styled_prefix": "## ",
-    "color": "39",
-    "bold": true
+    "styled_prefix": "## "
   },
   "h3": {
-    "suffix": "\n",
-    "styled_prefix": "### ",
-    "color": "39",
-    "bold": true
+    "styled_prefix": "### "
   },
   "h4": {
-    "suffix": "\n",
-    "styled_prefix": "#### ",
-    "color": "39",
-    "bold": true
+    "styled_prefix": "#### "
   },
   "h5": {
-    "suffix": "\n",
-    "styled_prefix": "##### ",
-    "color": "39",
-    "bold": true
+    "styled_prefix": "##### "
   },
   "h6": {
-    "suffix": "\n",
     "styled_prefix": "###### ",
     "color": "35",
     "bold": false
