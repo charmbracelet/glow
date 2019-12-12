@@ -299,6 +299,33 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 			},
 		}
 
+	// Definition Lists
+	case astext.KindDefinitionList:
+		e := &BlockElement{
+			Block:  &bytes.Buffer{},
+			Style:  cascadeStyle(ctx.blockStack.Current().Style, ctx.style[DefinitionList], true),
+			Margin: true,
+		}
+		return Element{
+			Entering: "\n",
+			Renderer: e,
+			Finisher: e,
+		}
+
+	case astext.KindDefinitionTerm:
+		return Element{
+			Renderer: &BaseElement{
+				Style: ctx.style[DefinitionTerm],
+			},
+		}
+
+	case astext.KindDefinitionDescription:
+		return Element{
+			Renderer: &BaseElement{
+				Style: ctx.style[DefinitionDescription],
+			},
+		}
+
 	// Handled by parents
 	case astext.KindTaskCheckBox:
 		// handled by KindListItem

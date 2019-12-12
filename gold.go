@@ -91,7 +91,10 @@ func (tr *TermRenderer) Render(in string) string {
 // RenderBytes returns the markdown rendered into a byte slice.
 func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithExtensions(
+			extension.GFM,
+			extension.DefinitionList,
+		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
