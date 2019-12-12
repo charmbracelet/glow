@@ -1,13 +1,13 @@
 package gold
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/muesli/reflow"
 )
 
 type HeadingElement struct {
-	Text  string
 	Level int
 	First bool
 }
@@ -31,6 +31,25 @@ func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 		rules = cascadeStyles(false, rules, ctx.style[H6])
 	}
 
+	if !e.First {
+		renderText(w, bs.Current().Style, "\n")
+	}
+
+	be := BlockElement{
+		Block: &bytes.Buffer{},
+		Style: cascadeStyle(bs.Current().Style, rules, true),
+	}
+	bs.Push(be)
+
+	renderText(w, bs.Parent().Style, rules.Prefix)
+	renderText(w, bs.Current().Style, rules.StyledPrefix)
+	return nil
+}
+
+func (e *HeadingElement) Finish(w io.Writer, ctx RenderContext) error {
+	bs := ctx.blockStack
+	rules := bs.Current().Style
+
 	var indent uint
 	var margin uint
 	if rules.Indent != nil {
@@ -43,7 +62,7 @@ func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Current().Style, " ")
+			renderText(w, bs.Parent().Style, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
@@ -51,22 +70,21 @@ func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	}
 
 	flow := reflow.NewReflow(int(bs.Width(ctx) - indent - margin*2))
+	_, err := flow.Write(bs.Current().Block.Bytes())
+	if err != nil {
+		return err
+	}
+	flow.Close()
 
-	var pre string
-	if !e.First {
-		pre = "\n"
-	}
-	el := &BaseElement{
-		Prefix: pre,
-		Token:  e.Text,
-		Style:  rules,
-	}
-	err := el.Render(flow, ctx)
+	_, err = iw.Write(flow.Bytes())
 	if err != nil {
 		return err
 	}
 
-	flow.Close()
-	_, err = iw.Write(flow.Bytes())
-	return err
+	renderText(w, bs.Current().Style, rules.StyledSuffix)
+	renderText(w, bs.Parent().Style, rules.Suffix)
+
+	bs.Current().Block.Reset()
+	bs.Pop()
+	return nil
 }

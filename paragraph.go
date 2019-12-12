@@ -9,25 +9,19 @@ import (
 )
 
 type ParagraphElement struct {
-	InsideList bool
 }
 
 func (e *ParagraphElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	var rules ElementStyle
 
-	if e.InsideList {
-		// list item
-		rules = ctx.style[List]
-	} else {
-		rules = ctx.style[Paragraph]
-		_, _ = w.Write([]byte("\n"))
-		be := BlockElement{
-			Block: &bytes.Buffer{},
-			Style: cascadeStyle(bs.Current().Style, rules, true),
-		}
-		bs.Push(be)
+	rules = ctx.style[Paragraph]
+	_, _ = w.Write([]byte("\n"))
+	be := BlockElement{
+		Block: &bytes.Buffer{},
+		Style: cascadeStyle(bs.Current().Style, rules, true),
 	}
+	bs.Push(be)
 
 	renderText(w, bs.Current().Style, rules.Prefix)
 	return nil
@@ -38,11 +32,6 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 	rules := bs.Current().Style
 
 	keepNewlines := false
-	if e.InsideList {
-		// remove indent & margin for list items
-		rules = bs.Current().Style
-		keepNewlines = true
-	}
 
 	renderText(bs.Current().Block, rules, rules.Suffix)
 
@@ -61,8 +50,6 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 	}
 
 	bs.Current().Block.Reset()
-	if !e.InsideList {
-		bs.Pop()
-	}
+	bs.Pop()
 	return nil
 }

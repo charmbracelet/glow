@@ -16,38 +16,54 @@ type StyleType int
 
 const (
 	Document StyleType = iota
+
+	// Block elements
+	Heading
+	Paragraph
 	BlockQuote
 	List
+
+	// Text elements
+	Text
+	Emph
+	Strong
+	HorizontalRule
+
+	// ListItem styles
 	Item
+	CheckedItem
 	Enumeration
-	Paragraph
-	Heading
+
+	// Links
+	Link
+	LinkText
+
+	// Images
+	Image
+	ImageText
+
+	// Code styles
+	CodeBlock
+	Code
+
+	// Table styles
+	Table
+	TableCell
+	TableHead
+	TableBody
+	TableRow
+
+	// HTML styles
+	HTMLBlock
+	HTMLSpan
+
+	// Style definitions for individual heading levels
 	H1
 	H2
 	H3
 	H4
 	H5
 	H6
-	HorizontalRule
-	Emph
-	Strong
-	Del
-	Link
-	LinkText
-	Image
-	ImageText
-	Text
-	HTMLBlock
-	CodeBlock
-	Softbreak
-	Hardbreak
-	Code
-	HTMLSpan
-	Table
-	TableCell
-	TableHead
-	TableBody
-	TableRow
 )
 
 type ElementStyle struct {
@@ -67,6 +83,8 @@ type ElementStyle struct {
 	Theme           string  `json:"theme"`
 	Prefix          string  `json:"prefix"`
 	Suffix          string  `json:"suffix"`
+	StyledPrefix    string  `json:"styled_prefix"`
+	StyledSuffix    string  `json:"styled_suffix"`
 	Format          string  `json:"format"`
 }
 
@@ -235,6 +253,8 @@ func keyToType(key string) (StyleType, error) {
 		return List, nil
 	case "item":
 		return Item, nil
+	case "checked_item":
+		return CheckedItem, nil
 	case "enumeration":
 		return Enumeration, nil
 	case "paragraph":
@@ -259,8 +279,6 @@ func keyToType(key string) (StyleType, error) {
 		return Emph, nil
 	case "strong":
 		return Strong, nil
-	case "del":
-		return Del, nil
 	case "link":
 		return Link, nil
 	case "link_text":
@@ -275,10 +293,6 @@ func keyToType(key string) (StyleType, error) {
 		return HTMLBlock, nil
 	case "code_block":
 		return CodeBlock, nil
-	case "softbreak":
-		return Softbreak, nil
-	case "hardbreak":
-		return Hardbreak, nil
 	case "code":
 		return Code, nil
 	case "html_span":

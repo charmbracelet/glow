@@ -14,5 +14,6 @@ require (
 	github.com/rakyll/statik v0.1.6
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spf13/cobra v0.0.5
+	github.com/yuin/goldmark v1.1.14
 	gopkg.in/russross/blackfriday.v2 v2.0.0
 )
