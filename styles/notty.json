@@ -42,7 +42,7 @@
   "link_text": {},
   "link": {},
   "image_text": {
-    "format": "Image: {{.text}} ->"
+    "format": "Image: {{.text}} 🡆 ",
   },
   "image": {},
   "code": {
@@ -74,7 +74,7 @@
   "definition_list": {},
   "definition_term": {},
   "definition_description": {
-    "prefix": "\n=> "
+    "prefix": "\n🠶 "
   },
   "html_block": {},
   "html_span": {}
