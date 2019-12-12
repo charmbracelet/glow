@@ -97,6 +97,11 @@
   "block_quote": {
     "prefix": "> "
   },
+  "definition_list": {},
+  "definition_term": {},
+  "definition_description": {
+    "prefix": "\n=> "
+  },
   "html_block": {},
   "html_span": {}
 }
