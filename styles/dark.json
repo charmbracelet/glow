@@ -6,8 +6,9 @@
     "color": "252"
   },
   "h1": {
-    "format": " {{.text}} ",
     "suffix": "\n\n",
+    "styled_prefix": " ",
+    "styled_suffix": " ",
     "background_color": "63",
     "color": "228",
     "bold": true
@@ -15,36 +16,38 @@
   "h2": {
     "prefix": "\n",
     "suffix": "\n",
-    "format": "## {{.text}}",
+    "styled_prefix": "## ",
     "color": "39",
     "bold": true
   },
   "h3": {
-    "format": "### {{.text}}",
     "suffix": "\n",
+    "styled_prefix": "### ",
     "color": "39",
     "bold": true
   },
   "h4": {
-    "format": "#### {{.text}}",
     "suffix": "\n",
+    "styled_prefix": "#### ",
     "color": "39",
     "bold": true
   },
   "h5": {
-    "format": "##### {{.text}}",
     "suffix": "\n",
+    "styled_prefix": "##### ",
     "color": "39",
     "bold": true
   },
   "h6": {
-    "format": "###### {{.text}}",
     "suffix": "\n",
+    "styled_prefix": "###### ",
     "color": "35",
     "bold": false
   },
   "text": {},
-  "list": {},
+  "list": {
+    "indent": 4
+  },
   "item": {
     "prefix": "• "
   },
@@ -56,7 +59,6 @@
     "bold": true
   },
   "link": {
-    "format": "{{.text}}",
     "underline": true,
     "color": "30"
   },
@@ -69,7 +71,8 @@
     "color": "212"
   },
   "code": {
-    "format": " {{.text}} ",
+    "styled_prefix": " ",
+    "styled_suffix": " ",
     "background_color": "236",
     "color": "203"
   },
@@ -88,10 +91,9 @@
     "format": "\n--------\n",
     "color": "240"
   },
-  "block_quote": {},
-  "del": {},
-  "softbreak": {},
-  "hardbreak": {},
+  "block_quote": {
+    "prefix": "> "
+  },
   "html_block": {},
   "html_span": {}
 }
