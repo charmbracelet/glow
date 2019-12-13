@@ -32,9 +32,14 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	switch node.Kind() {
 	// Document
 	case ast.KindDocument:
+		e := &BlockElement{
+			Block:  &bytes.Buffer{},
+			Style:  ctx.styles.Document,
+			Margin: true,
+		}
 		return Element{
-			Renderer: &DocumentElement{},
-			Finisher: &DocumentElement{},
+			Renderer: e,
+			Finisher: e,
 		}
 
 	// Heading
