@@ -42,7 +42,7 @@ func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	bs.Push(be)
 
 	renderText(w, bs.Parent().Style.StylePrimitive, rules.Prefix)
-	renderText(w, bs.Current().Style.StylePrimitive, rules.StyledPrefix)
+	renderText(bs.Current().Block, bs.Current().Style.StylePrimitive, rules.StyledPrefix)
 	return nil
 }
 

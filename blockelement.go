@@ -19,7 +19,7 @@ func (e *BlockElement) Render(w io.Writer, ctx RenderContext) error {
 	bs.Push(*e)
 
 	renderText(w, bs.Parent().Style.StylePrimitive, e.Style.Prefix)
-	renderText(w, bs.Current().Style.StylePrimitive, e.Style.StyledPrefix)
+	renderText(bs.Current().Block, bs.Current().Style.StylePrimitive, e.Style.StyledPrefix)
 	return nil
 }
 
