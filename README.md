@@ -6,27 +6,17 @@ Render markdown on the CLI, with _pizzazz_!
 
 Use a markdown source as the primary argument:
 
-Read from file:
-
 ```console
+# Read from file
 gold README.md
-```
 
-Read from stdin:
-
-```console
+# Read from stdin
 gold -
-```
 
-Fetch README from GitHub:
-
-```console
+# Fetch README from GitHub
 gold github.com/charmbracelet/gold
-```
 
-Fetch markdown from an HTTP source:
-
-```console
+# Fetch markdown from an HTTP source
 gold https://host.tld/file.md
 ```
 
