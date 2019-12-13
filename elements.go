@@ -57,6 +57,9 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 
 	// Paragraph
 	case ast.KindParagraph:
+		if node.Parent() != nil && node.Parent().Kind() == ast.KindListItem {
+			return Element{}
+		}
 		return Element{
 			Renderer: &ParagraphElement{},
 			Finisher: &ParagraphElement{},
