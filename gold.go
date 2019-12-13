@@ -19,7 +19,7 @@ import (
 )
 
 type TermRenderer struct {
-	Options ansi.Options
+	md goldmark.Markdown
 }
 
 // Render initializes a new TermRenderer and renders a markdown with a specific
@@ -61,8 +61,23 @@ func NewTermRendererFromBytes(b []byte, options ansi.Options) (*TermRenderer, er
 		return nil, err
 	}
 
+	md := goldmark.New(
+		goldmark.WithExtensions(
+			extension.GFM,
+			extension.DefinitionList,
+		),
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
+	)
+
+	ar := ansi.NewRenderer(options)
+	md.SetRenderer(
+		renderer.NewRenderer(
+			renderer.WithNodeRenderers(util.Prioritized(ar, 1000))))
+
 	return &TermRenderer{
-		Options: options,
+		md: md,
 	}, nil
 }
 
@@ -74,23 +89,8 @@ func (tr *TermRenderer) Render(in string) (string, error) {
 
 // RenderBytes returns the markdown rendered into a byte slice.
 func (tr *TermRenderer) RenderBytes(in []byte) ([]byte, error) {
-	md := goldmark.New(
-		goldmark.WithExtensions(
-			extension.GFM,
-			extension.DefinitionList,
-		),
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-		),
-	)
-
-	ar := ansi.NewRenderer(tr.Options)
-	md.SetRenderer(
-		renderer.NewRenderer(
-			renderer.WithNodeRenderers(util.Prioritized(ar, 1000))))
-
 	var buf bytes.Buffer
-	err := md.Convert(in, &buf)
+	err := tr.md.Convert(in, &buf)
 	return buf.Bytes(), err
 }
 
