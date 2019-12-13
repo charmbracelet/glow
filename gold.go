@@ -41,7 +41,7 @@ func RenderBytes(in []byte, stylePath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return r.RenderBytes(in), nil
+	return r.RenderBytes(in)
 }
 
 // NewTermRenderer returns a new TermRenderer with style and options set.
@@ -73,12 +73,13 @@ func NewTermRendererFromBytes(b []byte, options Options) (*TermRenderer, error) 
 }
 
 // Render returns the markdown rendered into a string.
-func (tr *TermRenderer) Render(in string) string {
-	return string(tr.RenderBytes([]byte(in)))
+func (tr *TermRenderer) Render(in string) (string, error) {
+	b, err := tr.RenderBytes([]byte(in))
+	return string(b), err
 }
 
 // RenderBytes returns the markdown rendered into a byte slice.
-func (tr *TermRenderer) RenderBytes(in []byte) []byte {
+func (tr *TermRenderer) RenderBytes(in []byte) ([]byte, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM,
@@ -93,13 +94,11 @@ func (tr *TermRenderer) RenderBytes(in []byte) []byte {
 			renderer.WithNodeRenderers(util.Prioritized(tr, 1000))))
 
 	var buf bytes.Buffer
-	if err := md.Convert(in, &buf); err != nil {
-		panic(err)
-	}
-	return buf.Bytes()
+	err := md.Convert(in, &buf)
+	return buf.Bytes(), err
 }
 
-// RegisterFuncs implements NodeRenderer.RegisterFuncs .
+// RegisterFuncs implements NodeRenderer.RegisterFuncs.
 func (r *TermRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	// blocks
 	reg.Register(ast.KindDocument, r.renderNode)

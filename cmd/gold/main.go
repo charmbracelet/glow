@@ -133,9 +133,10 @@ func execute(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	out := r.RenderBytes(b)
+
+	out, err := r.RenderBytes(b)
 	fmt.Printf("%s", string(out))
-	return nil
+	return err
 }
 
 func main() {
