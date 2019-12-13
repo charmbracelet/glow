@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/yuin/goldmark/ast"
 	astext "github.com/yuin/goldmark/extension/ast"
@@ -208,12 +209,17 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		}
 	case ast.KindAutoLink:
 		n := node.(*ast.AutoLink)
-		text := string(n.Text(source))
+		u := string(n.URL(source))
+		label := string(n.Label(source))
+		if n.AutoLinkType == ast.AutoLinkEmail && !strings.HasPrefix(strings.ToLower(u), "mailto:") {
+			u = "mailto:" + u
+		}
+
 		return Element{
 			Renderer: &LinkElement{
-				Text:    text,
+				Text:    label,
 				BaseURL: ctx.options.BaseURL,
-				URL:     string(n.URL(source)),
+				URL:     u,
 			},
 		}
 
