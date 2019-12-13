@@ -463,7 +463,7 @@ The `emph` element represents an emphasized text.
 
 Markdown:
 
-```
+```markdown
 This text is *emphasized*.
 ```
 
@@ -489,7 +489,7 @@ The `strong` element represents important text.
 
 Markdown:
 
-```
+```markdown
 This text is **strong**.
 ```
 
@@ -515,7 +515,7 @@ The `hr` element represents a horizontal rule.
 
 Markdown:
 
-```
+```markdown
 ---
 ```
 
