@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/charmbracelet/gold"
+	"github.com/charmbracelet/gold/ansi"
 )
 
 var (
@@ -126,7 +127,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		u.Path = filepath.Dir(u.Path)
 	}
 
-	r, err := gold.NewTermRenderer(style, gold.Options{
+	r, err := gold.NewTermRenderer(style, ansi.Options{
 		BaseURL:  u.String() + "/",
 		WordWrap: int(width),
 	})
