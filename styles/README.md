@@ -10,6 +10,8 @@ The `document` element represents the markdown's body.
 | ---------------- | ------ | ----------------------------------------------------- |
 | prefix           | string | Printed before the first element during rendering     |
 | suffix           | string | Printed after the last element during rendering       |
+| styled_prefix    | string | Printed before the first element during rendering     |
+| styled_suffix    | string | Printed after the last element during rendering       |
 | indent           | number | Specifies the indentation of the document             |
 | margin           | number | Specifies the margin around the document              |
 | color            | color  | Defines the default text color for the document       |
@@ -38,6 +40,8 @@ The `paragraph` element represents a paragraph in the document.
 | ---------------- | ------ | --------------------------------------------------- |
 | prefix           | string | Printed before the first element in a paragraph     |
 | suffix           | string | Printed after the last element in a paragraph       |
+| styled_prefix    | string | Printed before the first element in a paragraph     |
+| styled_suffix    | string | Printed after the last element in a paragraph       |
 | indent           | number | Specifies the indentation of paragraphs             |
 | margin           | number | Specifies the margin around paragraphs              |
 | color            | color  | Defines the default text color for paragraphs       |
@@ -71,6 +75,8 @@ from the `heading` element.
 | ---------------- | ------ | ------------------------------------------------- |
 | prefix           | string | Printed before a heading                          |
 | suffix           | string | Printed after a heading                           |
+| styled_prefix    | string | Printed before a heading                          |
+| styled_suffix    | string | Printed after a heading                           |
 | indent           | number | Specifies the indentation of headings             |
 | margin           | number | Specifies the margin around headings              |
 | color            | color  | Defines the default text color for headings       |
@@ -101,26 +107,61 @@ Style:
 
 ```
 "heading": {
-    "prefix": "\n",
-    "margin": 4,
     "color": "15",
     "background_color": "57"
 },
 "h1": {
-    "prefix": "\n=> ",
-    "suffix": " <=",
+    "styled_prefix": "=> ",
+    "styled_suffix": " <=",
     "margin": 2,
     "bold": true,
     "background_color": "69"
 },
 "h2": {
-    "prefix": "\n# "
+    "styled_prefix": "## ",
+    "margin": 4
+},
+"h3": {
+    "styled_prefix": "### ",
+    "margin": 6
 }
 ```
 
 Output:
 
 ![Heading Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/heading.png)
+
+## block_quote
+
+The `block_quote` element represents a quote.
+
+### Attributes
+
+| Attribute        | Value  | Description                                     |
+| ---------------- | ------ | ----------------------------------------------- |
+| prefix           | string | Printed before a quote                          |
+| suffix           | string | Printed after a quote                           |
+| styled_prefix    | string | Printed before a quote                          |
+| styled_suffix    | string | Printed after a quote                           |
+| indent           | number | Specifies the indentation of quotes             |
+| margin           | number | Specifies the margin around quotes              |
+| color            | color  | Defines the default text color for quotes       |
+| background_color | color  | Defines the default background color for quotes |
+
+### Example
+
+Style:
+
+```
+"block_quote": {
+    "margin": 4,
+    "color": "200"
+}
+```
+
+Output:
+
+![Block Quote Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/block_quote.png)
 
 ## text
 
@@ -132,6 +173,8 @@ The `text` element represents a block of text.
 | ---------------- | ------ | ----------------------------------------------------- |
 | prefix           | string | Printed before a text gets printed                    |
 | suffix           | string | Printed after a text got printed                      |
+| styled_prefix    | string | Printed before a text gets printed                    |
+| styled_suffix    | string | Printed after a text got printed                      |
 | color            | color  | Defines the default text color for the document       |
 | background_color | color  | Defines the default background color for the document |
 | bold             | bool   | Increases text intensity                              |
@@ -166,10 +209,13 @@ The `list` element represents a list in the document.
 | ---------------- | ------ | ---------------------------------------------- |
 | prefix           | string | Printed before a list                          |
 | suffix           | string | Printed after a list                           |
+| styled_prefix    | string | Printed before a list                          |
+| styled_suffix    | string | Printed after a list                           |
 | indent           | number | Specifies the indentation of lists             |
 | margin           | number | Specifies the margin around lists              |
 | color            | color  | Defines the default text color for lists       |
 | background_color | color  | Defines the default background color for lists |
+| level_indent     | number | Specifies the indentation for nested lists     |
 
 ### Example
 
@@ -178,6 +224,7 @@ Markdown:
 ```
 - First Item
     - Nested List Item
+- Second Item
 ```
 
 Style:
@@ -186,7 +233,8 @@ Style:
 "list": {
     "margin": 4,
     "color": "15",
-    "background_color": "52"
+    "background_color": "52",
+    "level_indent": 4
 }
 ```
 
@@ -200,6 +248,8 @@ The `item` element represents an item in lists.
 | ---------------- | ------ | ---------------------------------------------- |
 | prefix           | string | Printed before an item                         |
 | suffix           | string | Printed after an item                          |
+| styled_prefix    | string | Printed before an item                         |
+| styled_suffix    | string | Printed after an item                          |
 | color            | color  | Defines the default text color for items       |
 | background_color | color  | Defines the default background color for items |
 | bold             | bool   | Increases text intensity                       |
@@ -236,6 +286,8 @@ The `enumeration` element represents an item in ordered lists.
 | ---------------- | ------ | ---------------------------------------------- |
 | prefix           | string | Printed before an item                         |
 | suffix           | string | Printed after an item                          |
+| styled_prefix    | string | Printed before an item                         |
+| styled_suffix    | string | Printed after an item                          |
 | color            | color  | Defines the default text color for items       |
 | background_color | color  | Defines the default background color for items |
 | bold             | bool   | Increases text intensity                       |
@@ -269,6 +321,54 @@ Output:
 
 ![Enumeration Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/enumeration.png)
 
+## task
+
+The `task` element represents a task item.
+
+### Attributes
+
+| Attribute        | Value  | Description                                    |
+| ---------------- | ------ | ---------------------------------------------- |
+| prefix           | string | Printed before an item                         |
+| suffix           | string | Printed after an item                          |
+| styled_prefix    | string | Printed before an item                         |
+| styled_suffix    | string | Printed after an item                          |
+| color            | color  | Defines the default text color for items       |
+| background_color | color  | Defines the default background color for items |
+| bold             | bool   | Increases text intensity                       |
+| faint            | bool   | Decreases text intensity                       |
+| italic           | bool   | Prints the text in italic                      |
+| crossed_out      | bool   | Enables strikethrough as text decoration       |
+| underline        | bool   | Enables underline as text decoration           |
+| overlined        | bool   | Enables overline as text decoration            |
+| blink            | bool   | Enables blinking text                          |
+| conceal          | bool   | Conceals / hides the text                      |
+| inverse          | bool   | Swaps fore- & background colors                |
+| ticked           | string | Prefix for finished tasks                      |
+| unticked         | string | Prefix for unfinished tasks                    |
+
+### Example
+
+Markdown:
+
+```
+- [x] Finished Task
+- [ ] Outstanding Task
+```
+
+Style:
+
+```
+"task": {
+    "ticked": "✓ ",
+    "unticked": "✗ "
+}
+```
+
+Output:
+
+![Task Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/task.png)
+
 ## link
 
 The `link` element represents a link.
@@ -279,6 +379,8 @@ The `link` element represents a link.
 | ---------------- | ------ | ---------------------------------------------- |
 | prefix           | string | Printed before the link                        |
 | suffix           | string | Printed after the link                         |
+| styled_prefix    | string | Printed before the link                        |
+| styled_suffix    | string | Printed after the link                         |
 | color            | color  | Defines the default text color for links       |
 | background_color | color  | Defines the default background color for links |
 | bold             | bool   | Increases text intensity                       |
@@ -324,6 +426,8 @@ The `link_text` element represents the text associated with a link.
 | ---------------- | ------ | ------------------------------------------------- |
 | prefix           | string | Printed before the text                           |
 | suffix           | string | Printed after the text                            |
+| styled_prefix    | string | Printed before the text                           |
+| styled_suffix    | string | Printed after the text                            |
 | color            | color  | Defines the default text color for the text       |
 | background_color | color  | Defines the default background color for the text |
 | bold             | bool   | Increases text intensity                          |
@@ -357,6 +461,8 @@ The `image` element represents an image.
 | ---------------- | ------ | ----------------------------------------------- |
 | prefix           | string | Printed before an image                         |
 | suffix           | string | Printed after an image                          |
+| styled_prefix    | string | Printed before an image                         |
+| styled_suffix    | string | Printed after an image                          |
 | color            | color  | Defines the default text color for images       |
 | background_color | color  | Defines the default background color for images |
 | bold             | bool   | Increases text intensity                        |
@@ -401,6 +507,8 @@ The `image_text` element represents the text associated with an image.
 | ---------------- | ------ | ------------------------------------------------- |
 | prefix           | string | Printed before the text                           |
 | suffix           | string | Printed after the text                            |
+| styled_prefix    | string | Printed before the text                           |
+| styled_suffix    | string | Printed after the text                            |
 | color            | color  | Defines the default text color for the text       |
 | background_color | color  | Defines the default background color for the text |
 | bold             | bool   | Increases text intensity                          |
@@ -433,6 +541,8 @@ The `code` element represents an inline code segment.
 | ---------------- | ------ | ---------------------------------------------- |
 | prefix           | string | Printed before the code                        |
 | suffix           | string | Printed after the code                         |
+| styled_prefix    | string | Printed before the code                        |
+| styled_suffix    | string | Printed after the code                         |
 | color            | color  | Defines the default text color for codes       |
 | background_color | color  | Defines the default background color for codes |
 | bold             | bool   | Increases text intensity                       |
@@ -466,9 +576,11 @@ The `code_block` element represents a block of code.
 ### Attributes
 
 | Attribute        | Value  | Description                                                     |
-| ---------------- | ------ | -----------------------------------------------------           |
+| ---------------- | ------ | --------------------------------------------------------------- |
 | prefix           | string | Printed before a code block                                     |
 | suffix           | string | Printed after a code block                                      |
+| styled_prefix    | string | Printed before a code block                                     |
+| styled_suffix    | string | Printed after a code block                                      |
 | indent           | number | Specifies the indentation of code blocks                        |
 | margin           | number | Specifies the margin around code blocks                         |
 | theme            | string | Defines the [Chroma][chroma] theme used for syntax highlighting |
@@ -503,6 +615,8 @@ The `table` element represents a table of data.
 | ---------------- | ------ | ----------------------------------------------- |
 | prefix           | string | Printed before a table                          |
 | suffix           | string | Printed after a table                           |
+| styled_prefix    | string | Printed before a table                          |
+| styled_suffix    | string | Printed after a table                           |
 | indent           | number | Specifies the indentation of tables             |
 | margin           | number | Specifies the margin around tables              |
 | color            | color  | Defines the default text color for tables       |
@@ -541,6 +655,8 @@ The `emph` element represents an emphasized text.
 | ---------------- | ------ | ------------------------------------------------- |
 | prefix           | string | Printed before the text                           |
 | suffix           | string | Printed after the text                            |
+| styled_prefix    | string | Printed before the text                           |
+| styled_suffix    | string | Printed after the text                            |
 | color            | color  | Defines the default text color for the text       |
 | background_color | color  | Defines the default background color for the text |
 | bold             | bool   | Increases text intensity                          |
@@ -583,6 +699,8 @@ The `strong` element represents important text.
 | ---------------- | ------ | ------------------------------------------------- |
 | prefix           | string | Printed before the text                           |
 | suffix           | string | Printed after the text                            |
+| styled_prefix    | string | Printed before the text                           |
+| styled_suffix    | string | Printed after the text                            |
 | color            | color  | Defines the default text color for the text       |
 | background_color | color  | Defines the default background color for the text |
 | bold             | bool   | Increases text intensity                          |
@@ -625,6 +743,8 @@ The `hr` element represents a horizontal rule.
 | ---------------- | ------ | ------------------------------------------------------------ |
 | prefix           | string | Printed before the horizontal rule                           |
 | suffix           | string | Printed after the horizontal rule                            |
+| styled_prefix    | string | Printed before the horizontal rule                           |
+| styled_suffix    | string | Printed after the horizontal rule                            |
 | color            | color  | Defines the default text color for the horizontal rule       |
 | background_color | color  | Defines the default background color for the horizontal rule |
 | bold             | bool   | Increases text intensity                                     |
@@ -653,13 +773,5 @@ Style:
 }
 ```
 
-Output:
-
-![hr Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/hr.png)
-
-## block_quote
-## del
-## softbreak
-## hardbreak
 ## html_block
 ## html_span

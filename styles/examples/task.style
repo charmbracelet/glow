@@ -1,0 +1,11 @@
+{
+    "list": {
+        "margin": 4,
+        "color": "15",
+        "background_color": "52"
+    },
+    "task": {
+        "ticked": "✓ ",
+        "unticked": "✗ "
+    }
+}

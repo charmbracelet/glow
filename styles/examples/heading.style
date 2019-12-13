@@ -1,17 +1,21 @@
 {
     "heading": {
-        "margin": 4,
         "color": "15",
         "background_color": "57"
     },
     "h1": {
-        "prefix": "=> ",
-        "suffix": " <=",
+        "styled_prefix": "=> ",
+        "styled_suffix": " <=",
         "margin": 2,
         "bold": true,
         "background_color": "69"
     },
     "h2": {
-        "prefix": "# "
+        "styled_prefix": "## ",
+        "margin": 4
+    },
+    "h3": {
+        "styled_prefix": "### ",
+        "margin": 6
     }
 }

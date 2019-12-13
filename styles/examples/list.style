@@ -2,7 +2,8 @@
     "list": {
         "margin": 4,
         "color": "15",
-        "background_color": "52"
+        "background_color": "52",
+        "level_indent": 4
     },
     "item": {
         "prefix": "• "
