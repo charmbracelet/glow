@@ -17,7 +17,7 @@ type BaseElement struct {
 	Token  string
 	Prefix string
 	Suffix string
-	Style  ElementStyle
+	Style  StylePrimitive
 }
 
 func color(c *string) (uint8, error) {
@@ -79,7 +79,7 @@ func formatToken(format string, token string) (string, error) {
 	return b.String(), err
 }
 
-func renderText(w io.Writer, rules ElementStyle, s string) {
+func renderText(w io.Writer, rules StylePrimitive, s string) {
 	if len(s) == 0 {
 		return
 	}
@@ -139,15 +139,15 @@ func renderText(w io.Writer, rules ElementStyle, s string) {
 func (e *BaseElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 
-	renderText(w, bs.Current().Style, e.Prefix)
+	renderText(w, bs.Current().Style.StylePrimitive, e.Prefix)
 	defer func() {
-		renderText(w, bs.Current().Style, e.Suffix)
+		renderText(w, bs.Current().Style.StylePrimitive, e.Suffix)
 	}()
 
 	rules := bs.With(e.Style)
-	renderText(w, bs.Current().Style, rules.Prefix)
+	renderText(w, bs.Current().Style.StylePrimitive, rules.Prefix)
 	defer func() {
-		renderText(w, bs.Current().Style, rules.Suffix)
+		renderText(w, bs.Current().Style.StylePrimitive, rules.Suffix)
 	}()
 
 	s := e.Token

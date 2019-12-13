@@ -77,6 +77,8 @@ func (s BlockStack) Current() BlockElement {
 	return s[len(s)-1]
 }
 
-func (s BlockStack) With(child ElementStyle) ElementStyle {
-	return cascadeStyle(s.Current().Style, child, true)
+func (s BlockStack) With(child StylePrimitive) StylePrimitive {
+	sb := StyleBlock{}
+	sb.StylePrimitive = child
+	return cascadeStyle(s.Current().Style, sb, true).StylePrimitive
 }

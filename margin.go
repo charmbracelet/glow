@@ -10,7 +10,7 @@ type MarginWriter struct {
 	iw *IndentWriter
 }
 
-func NewMarginWriter(ctx RenderContext, w io.Writer, rules ElementStyle) *MarginWriter {
+func NewMarginWriter(ctx RenderContext, w io.Writer, rules StyleBlock) *MarginWriter {
 	bs := ctx.blockStack
 
 	var indent uint
@@ -25,7 +25,7 @@ func NewMarginWriter(ctx RenderContext, w io.Writer, rules ElementStyle) *Margin
 	pw := &PaddingWriter{
 		Padding: bs.Width(ctx),
 		PadFunc: func(wr io.Writer) {
-			renderText(w, rules, " ")
+			renderText(w, rules.StylePrimitive, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
@@ -34,7 +34,7 @@ func NewMarginWriter(ctx RenderContext, w io.Writer, rules ElementStyle) *Margin
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Parent().Style, " ")
+			renderText(w, bs.Parent().Style.StylePrimitive, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: pw,

@@ -9,7 +9,7 @@ import (
 
 type RenderContext struct {
 	options Options
-	style   map[StyleType]ElementStyle
+	styles  StyleConfig
 
 	blockStack *BlockStack
 	table      *TableElement
@@ -20,7 +20,6 @@ type RenderContext struct {
 func NewRenderContext(options Options) RenderContext {
 	return RenderContext{
 		options:    options,
-		style:      make(map[StyleType]ElementStyle),
 		blockStack: &BlockStack{},
 		table:      &TableElement{},
 		stripper:   bluemonday.StrictPolicy(),

@@ -60,9 +60,10 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	// Blockquote
 	case ast.KindBlockquote:
 		e := &BlockElement{
-			Block:  &bytes.Buffer{},
-			Style:  cascadeStyle(ctx.blockStack.Current().Style, ctx.style[BlockQuote], true),
-			Margin: true,
+			Block:   &bytes.Buffer{},
+			Style:   cascadeStyle(ctx.blockStack.Current().Style, ctx.styles.BlockQuote, true),
+			Margin:  true,
+			Newline: true,
 		}
 		return Element{
 			Entering: "\n",
@@ -72,10 +73,26 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 
 	// Lists
 	case ast.KindList:
+		s := ctx.styles.List.StyleBlock
+		if s.Indent == nil {
+			var i uint
+			s.Indent = &i
+		}
+		n := node.Parent()
+		for n != nil {
+			if n.Kind() == ast.KindList {
+				i := ctx.styles.List.LevelIndent
+				s.Indent = &i
+				break
+			}
+			n = n.Parent()
+		}
+
 		e := &BlockElement{
-			Block:  &bytes.Buffer{},
-			Style:  cascadeStyle(ctx.blockStack.Current().Style, ctx.style[List], true),
-			Margin: true,
+			Block:   &bytes.Buffer{},
+			Style:   cascadeStyle(ctx.blockStack.Current().Style, s, true),
+			Margin:  true,
+			Newline: true,
 		}
 		return Element{
 			Entering: "\n",
@@ -130,16 +147,16 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		return Element{
 			Renderer: &BaseElement{
 				Token: ctx.SanitizeHTML(s, false),
-				Style: ctx.style[Text],
+				Style: ctx.styles.Text,
 			},
 		}
 
 	case ast.KindEmphasis:
 		n := node.(*ast.Emphasis)
 		s := string(n.Text(source))
-		style := ctx.style[Emph]
+		style := ctx.styles.Emph
 		if n.Level > 1 {
-			style = ctx.style[Strong]
+			style = ctx.styles.Strong
 		}
 
 		return Element{
@@ -152,7 +169,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	case astext.KindStrikethrough:
 		n := node.(*astext.Strikethrough)
 		s := string(n.Text(source))
-		style := ctx.style[Strikethrough]
+		style := ctx.styles.Strikethrough
 
 		return Element{
 			Renderer: &BaseElement{
@@ -166,7 +183,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 			Entering: "",
 			Exiting:  "",
 			Renderer: &BaseElement{
-				Style: ctx.style[HorizontalRule],
+				Style: ctx.styles.HorizontalRule,
 			},
 		}
 
@@ -240,7 +257,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		// n := node.(*ast.CodeSpan)
 		e := &BlockElement{
 			Block: &bytes.Buffer{},
-			Style: cascadeStyle(ctx.blockStack.Current().Style, ctx.style[Code], true),
+			Style: cascadeStyle(ctx.blockStack.Current().Style, ctx.styles.Code, true),
 		}
 		return Element{
 			Renderer: e,
@@ -287,7 +304,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		return Element{
 			Renderer: &BaseElement{
 				Token: ctx.SanitizeHTML(string(n.Text(source)), true) + "\n",
-				Style: ctx.style[HTMLBlock],
+				Style: ctx.styles.HTMLBlock.StylePrimitive,
 			},
 		}
 	case ast.KindRawHTML:
@@ -295,16 +312,17 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		return Element{
 			Renderer: &BaseElement{
 				Token: ctx.SanitizeHTML(string(n.Text(source)), true) + "\n",
-				Style: ctx.style[HTMLSpan],
+				Style: ctx.styles.HTMLSpan.StylePrimitive,
 			},
 		}
 
 	// Definition Lists
 	case astext.KindDefinitionList:
 		e := &BlockElement{
-			Block:  &bytes.Buffer{},
-			Style:  cascadeStyle(ctx.blockStack.Current().Style, ctx.style[DefinitionList], true),
-			Margin: true,
+			Block:   &bytes.Buffer{},
+			Style:   cascadeStyle(ctx.blockStack.Current().Style, ctx.styles.DefinitionList, true),
+			Margin:  true,
+			Newline: true,
 		}
 		return Element{
 			Entering: "\n",
@@ -315,14 +333,14 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	case astext.KindDefinitionTerm:
 		return Element{
 			Renderer: &BaseElement{
-				Style: ctx.style[DefinitionTerm],
+				Style: ctx.styles.DefinitionTerm,
 			},
 		}
 
 	case astext.KindDefinitionDescription:
 		return Element{
 			Renderer: &BaseElement{
-				Style: ctx.style[DefinitionDescription],
+				Style: ctx.styles.DefinitionDescription,
 			},
 		}
 

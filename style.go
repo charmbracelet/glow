@@ -1,7 +1,6 @@
 package gold
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,67 +11,11 @@ import (
 	_ "github.com/charmbracelet/gold/statik"
 )
 
-type StyleType int
-
-const (
-	Document StyleType = iota
-
-	// Block elements
-	Heading
-	Paragraph
-	BlockQuote
-	List
-
-	// Text elements
-	Text
-	Strikethrough
-	Emph
-	Strong
-	HorizontalRule
-
-	// ListItem styles
-	Item
-	CheckedItem
-	Enumeration
-
-	// Links
-	Link
-	LinkText
-
-	// Images
-	Image
-	ImageText
-
-	// Code styles
-	CodeBlock
-	Code
-
-	// Table styles
-	Table
-	TableCell
-	TableHead
-	TableBody
-	TableRow
-
-	// Definition Lists
-	DefinitionList
-	DefinitionTerm
-	DefinitionDescription
-
-	// HTML styles
-	HTMLBlock
-	HTMLSpan
-
-	// Style definitions for individual heading levels
-	H1
-	H2
-	H3
-	H4
-	H5
-	H6
-)
-
-type ElementStyle struct {
+type StylePrimitive struct {
+	Prefix          string  `json:"prefix"`
+	Suffix          string  `json:"suffix"`
+	StyledPrefix    string  `json:"styled_prefix"`
+	StyledSuffix    string  `json:"styled_suffix"`
 	Color           *string `json:"color"`
 	BackgroundColor *string `json:"background_color"`
 	Underline       *bool   `json:"underline"`
@@ -84,14 +27,72 @@ type ElementStyle struct {
 	Overlined       *bool   `json:"overlined"`
 	Inverse         *bool   `json:"inverse"`
 	Blink           *bool   `json:"blink"`
-	Indent          *uint   `json:"indent"`
-	Margin          *uint   `json:"margin"`
-	Theme           string  `json:"theme"`
-	Prefix          string  `json:"prefix"`
-	Suffix          string  `json:"suffix"`
-	StyledPrefix    string  `json:"styled_prefix"`
-	StyledSuffix    string  `json:"styled_suffix"`
 	Format          string  `json:"format"`
+}
+
+type StyleTask struct {
+	StyleBlock
+	Ticked   string `json:"ticked"`
+	Unticked string `json:"unticked"`
+}
+
+type StyleBlock struct {
+	StylePrimitive
+	Indent *uint `json:"indent"`
+	Margin *uint `json:"margin"`
+}
+
+type StyleCodeBlock struct {
+	StyleBlock
+	Theme string `json:"theme"`
+}
+
+type StyleList struct {
+	StyleBlock
+	LevelIndent uint `json:"level_indent"`
+}
+
+type StyleConfig struct {
+	Document   StyleBlock `json:"document"`
+	BlockQuote StyleBlock `json:"block_quote"`
+	Paragraph  StyleBlock `json:"paragraph"`
+	List       StyleList  `json:"list"`
+
+	Heading StyleBlock `json:"heading"`
+	H1      StyleBlock `json:"h1"`
+	H2      StyleBlock `json:"h2"`
+	H3      StyleBlock `json:"h3"`
+	H4      StyleBlock `json:"h4"`
+	H5      StyleBlock `json:"h5"`
+	H6      StyleBlock `json:"h6"`
+
+	Text           StylePrimitive `json:"text"`
+	Strikethrough  StylePrimitive `json:"strike_through"`
+	Emph           StylePrimitive `json:"emph"`
+	Strong         StylePrimitive `json:"strong"`
+	HorizontalRule StylePrimitive `json:"hr"`
+
+	Item        StylePrimitive `json:"item"`
+	Enumeration StylePrimitive `json:"enumeration"`
+	Task        StyleTask      `json:"task"`
+
+	Link     StylePrimitive `json:"link"`
+	LinkText StylePrimitive `json:"link_text"`
+
+	Image     StylePrimitive `json:"image"`
+	ImageText StylePrimitive `json:"image_text"`
+
+	Code      StyleBlock     `json:"code"`
+	CodeBlock StyleCodeBlock `json:"code_block"`
+
+	Table StyleBlock `json:"table"`
+
+	DefinitionList        StyleBlock     `json:"definition_list"`
+	DefinitionTerm        StylePrimitive `json:"definition_term"`
+	DefinitionDescription StylePrimitive `json:"definition_description"`
+
+	HTMLBlock StyleBlock `json:"html_block"`
+	HTMLSpan  StyleBlock `json:"html_span"`
 }
 
 func loadStyle(f string) ([]byte, error) {
@@ -115,8 +116,8 @@ func loadStyle(f string) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func cascadeStyles(onlyColors bool, s ...ElementStyle) ElementStyle {
-	var r ElementStyle
+func cascadeStyles(onlyColors bool, s ...StyleBlock) StyleBlock {
+	var r StyleBlock
 
 	for _, v := range s {
 		r = cascadeStyle(r, v, onlyColors)
@@ -124,7 +125,7 @@ func cascadeStyles(onlyColors bool, s ...ElementStyle) ElementStyle {
 	return r
 }
 
-func cascadeStyle(parent ElementStyle, child ElementStyle, onlyColors bool) ElementStyle {
+func cascadeStyle(parent StyleBlock, child StyleBlock, onlyColors bool) StyleBlock {
 	s := child
 
 	s.Color = parent.Color
@@ -247,82 +248,4 @@ func hexToANSIColor(h string) (int, error) {
 		return 16 + ci, nil
 	}
 	return 232 + grayIdx, nil
-}
-
-func keyToType(key string) (StyleType, error) {
-	switch key {
-	case "document":
-		return Document, nil
-	case "block_quote":
-		return BlockQuote, nil
-	case "list":
-		return List, nil
-	case "item":
-		return Item, nil
-	case "checked_item":
-		return CheckedItem, nil
-	case "enumeration":
-		return Enumeration, nil
-	case "paragraph":
-		return Paragraph, nil
-	case "heading":
-		return Heading, nil
-	case "h1":
-		return H1, nil
-	case "h2":
-		return H2, nil
-	case "h3":
-		return H3, nil
-	case "h4":
-		return H4, nil
-	case "h5":
-		return H5, nil
-	case "h6":
-		return H6, nil
-	case "hr":
-		return HorizontalRule, nil
-	case "strikethrough":
-		return Strikethrough, nil
-	case "emph":
-		return Emph, nil
-	case "strong":
-		return Strong, nil
-	case "link":
-		return Link, nil
-	case "link_text":
-		return LinkText, nil
-	case "image":
-		return Image, nil
-	case "image_text":
-		return ImageText, nil
-	case "text":
-		return Text, nil
-	case "html_block":
-		return HTMLBlock, nil
-	case "code_block":
-		return CodeBlock, nil
-	case "code":
-		return Code, nil
-	case "html_span":
-		return HTMLSpan, nil
-	case "table":
-		return Table, nil
-	case "table_cel":
-		return TableCell, nil
-	case "table_head":
-		return TableHead, nil
-	case "table_body":
-		return TableBody, nil
-	case "table_row":
-		return TableRow, nil
-	case "definition_list":
-		return DefinitionList, nil
-	case "definition_term":
-		return DefinitionTerm, nil
-	case "definition_description":
-		return DefinitionDescription, nil
-
-	default:
-		return 0, fmt.Errorf("invalid style element type: %s", key)
-	}
 }

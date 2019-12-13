@@ -14,25 +14,25 @@ type HeadingElement struct {
 
 func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
-	rules := ctx.style[Heading]
+	rules := ctx.styles.Heading
 
 	switch e.Level {
 	case 1:
-		rules = cascadeStyles(false, rules, ctx.style[H1])
+		rules = cascadeStyles(false, rules, ctx.styles.H1)
 	case 2:
-		rules = cascadeStyles(false, rules, ctx.style[H2])
+		rules = cascadeStyles(false, rules, ctx.styles.H2)
 	case 3:
-		rules = cascadeStyles(false, rules, ctx.style[H3])
+		rules = cascadeStyles(false, rules, ctx.styles.H3)
 	case 4:
-		rules = cascadeStyles(false, rules, ctx.style[H4])
+		rules = cascadeStyles(false, rules, ctx.styles.H4)
 	case 5:
-		rules = cascadeStyles(false, rules, ctx.style[H5])
+		rules = cascadeStyles(false, rules, ctx.styles.H5)
 	case 6:
-		rules = cascadeStyles(false, rules, ctx.style[H6])
+		rules = cascadeStyles(false, rules, ctx.styles.H6)
 	}
 
 	if !e.First {
-		renderText(w, bs.Current().Style, "\n")
+		renderText(w, bs.Current().Style.StylePrimitive, "\n")
 	}
 
 	be := BlockElement{
@@ -41,8 +41,8 @@ func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	}
 	bs.Push(be)
 
-	renderText(w, bs.Parent().Style, rules.Prefix)
-	renderText(w, bs.Current().Style, rules.StyledPrefix)
+	renderText(w, bs.Parent().Style.StylePrimitive, rules.Prefix)
+	renderText(w, bs.Current().Style.StylePrimitive, rules.StyledPrefix)
 	return nil
 }
 
@@ -62,7 +62,7 @@ func (e *HeadingElement) Finish(w io.Writer, ctx RenderContext) error {
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Parent().Style, " ")
+			renderText(w, bs.Parent().Style.StylePrimitive, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
@@ -81,8 +81,8 @@ func (e *HeadingElement) Finish(w io.Writer, ctx RenderContext) error {
 		return err
 	}
 
-	renderText(w, bs.Current().Style, rules.StyledSuffix)
-	renderText(w, bs.Parent().Style, rules.Suffix)
+	renderText(w, bs.Current().Style.StylePrimitive, rules.StyledSuffix)
+	renderText(w, bs.Parent().Style.StylePrimitive, rules.Suffix)
 
 	bs.Current().Block.Reset()
 	bs.Pop()

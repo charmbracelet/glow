@@ -16,7 +16,7 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 
 	var indent uint
 	var margin uint
-	rules := ctx.style[CodeBlock]
+	rules := ctx.styles.CodeBlock
 	if rules.Indent != nil {
 		indent = *rules.Indent
 	}
@@ -28,7 +28,7 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 	iw := &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Current().Style, " ")
+			renderText(w, bs.Current().Style.StylePrimitive, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
@@ -36,16 +36,16 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 	}
 
 	if len(theme) > 0 {
-		renderText(iw, bs.Current().Style, rules.Prefix)
+		renderText(iw, bs.Current().Style.StylePrimitive, rules.Prefix)
 		err := quick.Highlight(iw, e.Code, e.Language, "terminal16m", theme)
-		renderText(iw, bs.Current().Style, rules.Suffix)
+		renderText(iw, bs.Current().Style.StylePrimitive, rules.Suffix)
 		return err
 	}
 
 	// fallback rendering
 	el := &BaseElement{
 		Token: e.Code,
-		Style: rules,
+		Style: rules.StylePrimitive,
 	}
 
 	return el.Render(iw, ctx)

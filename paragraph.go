@@ -13,9 +13,8 @@ type ParagraphElement struct {
 
 func (e *ParagraphElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
-	var rules ElementStyle
+	rules := ctx.styles.Paragraph
 
-	rules = ctx.style[Paragraph]
 	_, _ = w.Write([]byte("\n"))
 	be := BlockElement{
 		Block: &bytes.Buffer{},
@@ -23,8 +22,8 @@ func (e *ParagraphElement) Render(w io.Writer, ctx RenderContext) error {
 	}
 	bs.Push(be)
 
-	renderText(w, bs.Parent().Style, rules.Prefix)
-	renderText(w, bs.Current().Style, rules.StyledPrefix)
+	renderText(w, bs.Parent().Style.StylePrimitive, rules.Prefix)
+	renderText(w, bs.Current().Style.StylePrimitive, rules.StyledPrefix)
 	return nil
 }
 
@@ -32,12 +31,10 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	rules := bs.Current().Style
 
-	keepNewlines := false
-
 	mw := NewMarginWriter(ctx, w, rules)
 	if len(strings.TrimSpace(bs.Current().Block.String())) > 0 {
 		flow := reflow.NewReflow(int(bs.Width(ctx)))
-		flow.KeepNewlines = keepNewlines
+		flow.KeepNewlines = false
 		_, _ = flow.Write(bs.Current().Block.Bytes())
 		flow.Close()
 
@@ -48,8 +45,8 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 		_, _ = mw.Write([]byte("\n"))
 	}
 
-	renderText(w, bs.Current().Style, rules.StyledSuffix)
-	renderText(w, bs.Parent().Style, rules.Suffix)
+	renderText(w, bs.Current().Style.StylePrimitive, rules.StyledSuffix)
+	renderText(w, bs.Parent().Style.StylePrimitive, rules.Suffix)
 
 	bs.Current().Block.Reset()
 	bs.Pop()

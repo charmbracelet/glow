@@ -29,7 +29,7 @@ func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 
 	var indent uint
 	var margin uint
-	rules := ctx.style[Table]
+	rules := ctx.styles.Table
 	if rules.Indent != nil {
 		indent = *rules.Indent
 	}
@@ -40,14 +40,14 @@ func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 	ctx.table.indentWriter = &IndentWriter{
 		Indent: indent + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Current().Style, " ")
+			renderText(w, bs.Current().Style.StylePrimitive, " ")
 		},
 		Forward: &AnsiWriter{
 			Forward: w,
 		},
 	}
 
-	renderText(ctx.table.indentWriter, bs.Current().Style, rules.Prefix)
+	renderText(ctx.table.indentWriter, bs.Current().Style.StylePrimitive, rules.Prefix)
 	ctx.table.writer = tablewriter.NewWriter(ctx.table.indentWriter)
 	return nil
 }
@@ -56,8 +56,8 @@ func (e *TableElement) Finish(w io.Writer, ctx RenderContext) error {
 	ctx.table.writer.Render()
 	ctx.table.writer = nil
 
-	rules := ctx.style[Table]
-	renderText(ctx.table.indentWriter, ctx.blockStack.Current().Style, rules.Suffix)
+	rules := ctx.styles.Table
+	renderText(ctx.table.indentWriter, ctx.blockStack.Current().Style.StylePrimitive, rules.Suffix)
 	return nil
 }
 

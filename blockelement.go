@@ -8,17 +8,18 @@ import (
 )
 
 type BlockElement struct {
-	Block  *bytes.Buffer
-	Style  ElementStyle
-	Margin bool
+	Block   *bytes.Buffer
+	Style   StyleBlock
+	Margin  bool
+	Newline bool
 }
 
 func (e *BlockElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	bs.Push(*e)
 
-	renderText(w, bs.Parent().Style, e.Style.Prefix)
-	renderText(w, bs.Current().Style, e.Style.StyledPrefix)
+	renderText(w, bs.Parent().Style.StylePrimitive, e.Style.Prefix)
+	renderText(w, bs.Current().Style.StylePrimitive, e.Style.StyledPrefix)
 	return nil
 }
 
@@ -32,7 +33,13 @@ func (e *BlockElement) Finish(w io.Writer, ctx RenderContext) error {
 		if err != nil {
 			return err
 		}
-		mw.Write([]byte("\n"))
+
+		if e.Newline {
+			_, err = mw.Write([]byte("\n"))
+			if err != nil {
+				return err
+			}
+		}
 	} else {
 		_, err := bs.Parent().Block.Write(bs.Current().Block.Bytes())
 		if err != nil {
@@ -40,8 +47,8 @@ func (e *BlockElement) Finish(w io.Writer, ctx RenderContext) error {
 		}
 	}
 
-	renderText(w, bs.Current().Style, e.Style.StyledSuffix)
-	renderText(w, bs.Parent().Style, e.Style.Suffix)
+	renderText(w, bs.Current().Style.StylePrimitive, e.Style.StyledSuffix)
+	renderText(w, bs.Parent().Style.StylePrimitive, e.Style.Suffix)
 
 	bs.Current().Block.Reset()
 	bs.Pop()

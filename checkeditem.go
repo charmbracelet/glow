@@ -11,14 +11,14 @@ type CheckedItemElement struct {
 func (e *CheckedItemElement) Render(w io.Writer, ctx RenderContext) error {
 	var el *BaseElement
 
-	pre := "✗ "
+	pre := ctx.styles.Task.Unticked
 	if e.Checked {
-		pre = "✓ "
+		pre = ctx.styles.Task.Ticked
 	}
 
 	el = &BaseElement{
 		Prefix: pre,
-		Style:  ctx.style[CheckedItem],
+		Style:  ctx.styles.Task.StylePrimitive,
 	}
 
 	return el.Render(w, ctx)

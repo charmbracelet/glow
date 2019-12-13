@@ -15,7 +15,7 @@ func (e *ImageElement) Render(w io.Writer, ctx RenderContext) error {
 	if len(e.Text) > 0 {
 		el := &BaseElement{
 			Token: e.Text,
-			Style: ctx.style[ImageText],
+			Style: ctx.styles.ImageText,
 		}
 		err := el.Render(w, ctx)
 		if err != nil {
@@ -26,7 +26,7 @@ func (e *ImageElement) Render(w io.Writer, ctx RenderContext) error {
 		el := &BaseElement{
 			Token:  resolveRelativeURL(e.BaseURL, e.URL),
 			Prefix: " ",
-			Style:  ctx.style[Image],
+			Style:  ctx.styles.Image,
 		}
 		err := el.Render(w, ctx)
 		if err != nil {

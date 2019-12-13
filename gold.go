@@ -3,7 +3,6 @@ package gold
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/url"
@@ -61,23 +60,13 @@ func NewTermRenderer(stylePath string, options Options) (*TermRenderer, error) {
 // NewTermRendererFromBytes returns a new TermRenderer with style and options
 // set.
 func NewTermRendererFromBytes(b []byte, options Options) (*TermRenderer, error) {
-	e := make(map[string]ElementStyle)
-	err := json.Unmarshal(b, &e)
-	if err != nil {
-		return nil, err
-	}
-
 	tr := &TermRenderer{
 		context: NewRenderContext(options),
 	}
 
-	for k, v := range e {
-		t, err := keyToType(k)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		tr.context.style[t] = v
+	err := json.Unmarshal(b, &tr.context.styles)
+	if err != nil {
+		return nil, err
 	}
 
 	return tr, nil
