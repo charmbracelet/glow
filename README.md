@@ -27,7 +27,8 @@ Currently `gold` uses the [Aurora ANSI colors](https://godoc.org/github.com/logr
 
 Style definitions located in `styles/` can be embedded into the binary by
 running [statik](https://github.com/rakyll/statik):
-```
+
+```console
 statik -f -src styles -include "*.json"
 ```
 
