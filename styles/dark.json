@@ -38,7 +38,7 @@
   },
   "text": {},
   "list": {
-    "indent": 4
+    "level_indent": 4
   },
   "item": {
     "prefix": "• "
@@ -73,6 +73,10 @@
     "color": "244"
   },
   "table": {},
+  "task": {
+    "unticked": "✗ ",
+    "ticked": "✓ "
+  },
   "strikethrough": {
     "crossed_out": true
   },
