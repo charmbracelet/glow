@@ -29,16 +29,14 @@ Fetch markdown from an HTTP source:
 When `gold` is started without any markdown source, it will try to find a
 `README.md` or `README` file in the current working directory.
 
-### Flags
-
-#### Word Wrapping
+### Word Wrapping
 
 The `-w` flag lets you set a maximum width, at which the output will be wrapped:
 ```
 ./gold -w 60
 ```
 
-#### Styles
+### Styles
 
 You can choose a style with the `-s` flag (`dark` being the default):
 ```
@@ -50,11 +48,12 @@ Alternatively you can also supply a custom JSON stylesheet:
 ./gold -s mystyle.json
 ```
 
+Check out the [Gold Style Gallery](https://github.com/charmbracelet/gold/blob/master/styles/gallery/README.md)
+to find more available styles!
+
 ## Example Output
 
 ![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/styles/gallery/dark.png)
-
-Check out the [Gold Style Gallery](https://github.com/charmbracelet/gold/blob/master/styles/gallery/README.md)!
 
 ## Colors
 
