@@ -4,7 +4,7 @@ Render markdown on the CLI, with _pizzazz_!
 
 ## Usage
 
-Use a markdown source as the argument:
+Use a markdown source as the primary argument:
 
 Read from file:
 ```
@@ -29,7 +29,23 @@ Fetch markdown from an HTTP source:
 When `gold` is started without any markdown source, it will try to find a
 `README.md` or `README` file in the current working directory.
 
-You can supply a JSON stylesheet with the `-s` flag:
+### Flags
+
+#### Word Wrapping
+
+The `-w` flag lets you set a maximum width, at which the output will be wrapped:
+```
+./gold -w 60
+```
+
+#### Styles
+
+You can choose a style with the `-s` flag (`dark` being the default):
+```
+./gold -s [dark|light]
+```
+
+Alternatively you can also supply a custom JSON stylesheet:
 ```
 ./gold -s mystyle.json
 ```
