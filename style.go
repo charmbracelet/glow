@@ -12,10 +12,10 @@ import (
 )
 
 type StylePrimitive struct {
+	BlockPrefix     string  `json:"block_prefix"`
+	BlockSuffix     string  `json:"block_suffix"`
 	Prefix          string  `json:"prefix"`
 	Suffix          string  `json:"suffix"`
-	StyledPrefix    string  `json:"styled_prefix"`
-	StyledSuffix    string  `json:"styled_suffix"`
 	Color           *string `json:"color"`
 	BackgroundColor *string `json:"background_color"`
 	Underline       *bool   `json:"underline"`
@@ -143,6 +143,8 @@ func cascadeStyle(parent StyleBlock, child StyleBlock, onlyColors bool) StyleBlo
 		s.Overlined = parent.Overlined
 		s.Inverse = parent.Inverse
 		s.Blink = parent.Blink
+		s.BlockPrefix = parent.BlockPrefix
+		s.BlockSuffix = parent.BlockSuffix
 		s.Prefix = parent.Prefix
 		s.Suffix = parent.Suffix
 		s.Format = parent.Format
@@ -186,6 +188,12 @@ func cascadeStyle(parent StyleBlock, child StyleBlock, onlyColors bool) StyleBlo
 	}
 	if child.Blink != nil {
 		s.Blink = child.Blink
+	}
+	if child.BlockPrefix != "" {
+		s.BlockPrefix = child.BlockPrefix
+	}
+	if child.BlockSuffix != "" {
+		s.BlockSuffix = child.BlockSuffix
 	}
 	if child.Prefix != "" {
 		s.Prefix = child.Prefix

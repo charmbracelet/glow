@@ -5,16 +5,16 @@
 Block elements contain other elements and are rendered around them. All block
 elements support the following style settings:
 
-| Attribute        | Value  | Description                                        |
-| ---------------- | ------ | -------------------------------------------------- |
-| prefix           | string | Printed before the block's first element           |
-| suffix           | string | Printed after the block's last element             |
-| styled_prefix    | string | Printed before the block's first element           |
-| styled_suffix    | string | Printed after the block's last element             |
-| indent           | number | Specifies the indentation of the block             |
-| margin           | number | Specifies the margin around the block              |
-| color            | color  | Defines the default text color for the block       |
-| background_color | color  | Defines the default background color for the block |
+| Attribute        | Value  | Description                                                  |
+| ---------------- | ------ | ------------------------------------------------------------ |
+| block_prefix     | string | Printed before the block's first element (in parent's style) |
+| block_suffix     | string | Printed after the block's last element (in parent's style)   |
+| prefix           | string | Printed before the block's first element                     |
+| suffix           | string | Printed after the block's last element                       |
+| indent           | number | Specifies the indentation of the block                       |
+| margin           | number | Specifies the margin around the block                        |
+| color            | color  | Defines the default text color for the block                 |
+| background_color | color  | Defines the default background color for the block           |
 
 Elements inside a block inherit the block's following style settings:
 
@@ -44,8 +44,8 @@ Style:
 "document": {
     "indent": 2,
     "background_color": "234",
-    "prefix": "\n",
-    "suffix": "\n"
+    "block_prefix": "\n",
+    "block_suffix": "\n"
 }
 ```
 
@@ -99,18 +99,18 @@ Style:
     "background_color": "57"
 },
 "h1": {
-    "styled_prefix": "=> ",
-    "styled_suffix": " <=",
+    "prefix": "=> ",
+    "suffix": " <=",
     "margin": 2,
     "bold": true,
     "background_color": "69"
 },
 "h2": {
-    "styled_prefix": "## ",
+    "prefix": "## ",
     "margin": 4
 },
 "h3": {
-    "styled_prefix": "### ",
+    "prefix": "### ",
     "margin": 6
 }
 ```
@@ -223,10 +223,10 @@ All inline elements support the following style settings:
 
 | Attribute        | Value  | Description                                           |
 | ---------------- | ------ | ----------------------------------------------------- |
+| block_prefix     | string | Printed before the element (in parent's style)        |
+| block_suffix     | string | Printed after the element (in parent's style)         |
 | prefix           | string | Printed before the element                            |
 | suffix           | string | Printed after the element                             |
-| styled_prefix    | string | Printed before the element                            |
-| styled_suffix    | string | Printed after the element                             |
 | color            | color  | Defines the default text color for the document       |
 | background_color | color  | Defines the default background color for the document |
 | bold             | bool   | Increases text intensity                              |
@@ -275,7 +275,7 @@ Style:
 
 ```
 "item": {
-    "prefix": "• "
+    "block_prefix": "• "
 }
 ```
 
@@ -302,7 +302,7 @@ Style:
 
 ```
 "enumeration": {
-    "prefix": ". "
+    "block_prefix": ". "
 }
 ```
 
@@ -363,8 +363,8 @@ Style:
 "link": {
     "color": "123",
     "underline": true,
-    "prefix": "(",
-    "suffix": ")"
+    "block_prefix": "(",
+    "block_suffix": ")"
 }
 ```
 
@@ -408,8 +408,8 @@ Style:
 ```
 "image": {
     "color": "123",
-    "prefix": "[Image: ",
-    "suffix": "]"
+    "block_prefix": "[Image: ",
+    "block_suffix": "]"
 }
 ```
 
@@ -523,7 +523,7 @@ Style:
 
 ```
 "hr": {
-    "prefix": "---"
+    "block_prefix": "---"
 }
 ```
 

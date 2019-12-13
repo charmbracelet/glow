@@ -56,8 +56,8 @@ func (e *LinkElement) Render(w io.Writer, ctx RenderContext) error {
 		style := ctx.styles.Link
 		if !textRendered {
 			pre = ""
-			style.Prefix = ""
-			style.Suffix = ""
+			style.BlockPrefix = ""
+			style.BlockSuffix = ""
 		}
 
 		el := &BaseElement{

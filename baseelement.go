@@ -146,15 +146,15 @@ func (e *BaseElement) Render(w io.Writer, ctx RenderContext) error {
 
 	rules := bs.With(e.Style)
 	// render unstyled prefix/suffix
-	renderText(w, bs.Current().Style.StylePrimitive, rules.Prefix)
+	renderText(w, bs.Current().Style.StylePrimitive, rules.BlockPrefix)
 	defer func() {
-		renderText(w, bs.Current().Style.StylePrimitive, rules.Suffix)
+		renderText(w, bs.Current().Style.StylePrimitive, rules.BlockSuffix)
 	}()
 
 	// render styled prefix/suffix
-	renderText(w, rules, rules.StyledPrefix)
+	renderText(w, rules, rules.Prefix)
 	defer func() {
-		renderText(w, rules, rules.StyledSuffix)
+		renderText(w, rules, rules.Suffix)
 	}()
 
 	s := e.Token

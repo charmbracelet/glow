@@ -47,7 +47,7 @@ func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 		},
 	}
 
-	renderText(ctx.table.indentWriter, bs.Current().Style.StylePrimitive, rules.Prefix)
+	renderText(ctx.table.indentWriter, bs.Current().Style.StylePrimitive, rules.BlockPrefix)
 	ctx.table.writer = tablewriter.NewWriter(ctx.table.indentWriter)
 	return nil
 }
@@ -57,7 +57,7 @@ func (e *TableElement) Finish(w io.Writer, ctx RenderContext) error {
 	ctx.table.writer = nil
 
 	rules := ctx.styles.Table
-	renderText(ctx.table.indentWriter, ctx.blockStack.Current().Style.StylePrimitive, rules.Suffix)
+	renderText(ctx.table.indentWriter, ctx.blockStack.Current().Style.StylePrimitive, rules.BlockSuffix)
 	return nil
 }
 

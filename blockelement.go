@@ -18,8 +18,8 @@ func (e *BlockElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	bs.Push(*e)
 
-	renderText(w, bs.Parent().Style.StylePrimitive, e.Style.Prefix)
-	renderText(bs.Current().Block, bs.Current().Style.StylePrimitive, e.Style.StyledPrefix)
+	renderText(w, bs.Parent().Style.StylePrimitive, e.Style.BlockPrefix)
+	renderText(bs.Current().Block, bs.Current().Style.StylePrimitive, e.Style.Prefix)
 	return nil
 }
 
@@ -47,8 +47,8 @@ func (e *BlockElement) Finish(w io.Writer, ctx RenderContext) error {
 		}
 	}
 
-	renderText(w, bs.Current().Style.StylePrimitive, e.Style.StyledSuffix)
-	renderText(w, bs.Parent().Style.StylePrimitive, e.Style.Suffix)
+	renderText(w, bs.Current().Style.StylePrimitive, e.Style.Suffix)
+	renderText(w, bs.Parent().Style.StylePrimitive, e.Style.BlockSuffix)
 
 	bs.Current().Block.Reset()
 	bs.Pop()

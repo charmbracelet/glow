@@ -1,38 +1,38 @@
 {
   "document": {
     "indent": 4,
-    "prefix": "\n\n",
-    "suffix": "\n\n",
+    "block_prefix": "\n\n",
+    "block_suffix": "\n\n",
     "color": "252"
   },
   "heading": {
-    "suffix": "\n",
+    "block_suffix": "\n",
     "color": "39",
     "bold": true
   },
   "h1": {
-    "suffix": "\n\n",
-    "styled_prefix": " ",
-    "styled_suffix": " ",
+    "block_suffix": "\n\n",
+    "prefix": " ",
+    "suffix": " ",
     "background_color": "63",
     "color": "228",
     "bold": true
   },
   "h2": {
-    "prefix": "\n",
-    "styled_prefix": "## "
+    "block_prefix": "\n",
+    "prefix": "## "
   },
   "h3": {
-    "styled_prefix": "### "
+    "prefix": "### "
   },
   "h4": {
-    "styled_prefix": "#### "
+    "prefix": "#### "
   },
   "h5": {
-    "styled_prefix": "##### "
+    "prefix": "##### "
   },
   "h6": {
-    "styled_prefix": "###### ",
+    "prefix": "###### ",
     "color": "35",
     "bold": false
   },
@@ -41,10 +41,10 @@
     "level_indent": 4
   },
   "item": {
-    "prefix": "• "
+    "block_prefix": "• "
   },
   "enumeration": {
-    "prefix": ". "
+    "block_prefix": ". "
   },
   "link_text": {
     "color": "35",
@@ -63,8 +63,8 @@
     "color": "212"
   },
   "code": {
-    "styled_prefix": " ",
-    "styled_suffix": " ",
+    "prefix": " ",
+    "suffix": " ",
     "background_color": "236",
     "color": "203"
   },
@@ -91,12 +91,12 @@
     "color": "240"
   },
   "block_quote": {
-    "prefix": "> "
+    "block_prefix": "> "
   },
   "definition_list": {},
   "definition_term": {},
   "definition_description": {
-    "prefix": "\n🠶 "
+    "block_prefix": "\n🠶 "
   },
   "html_block": {},
   "html_span": {}

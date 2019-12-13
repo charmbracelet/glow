@@ -1,41 +1,41 @@
 {
   "document": {
     "indent": 4,
-    "prefix": "\n\n",
-    "suffix": "\n\n"
+    "block_prefix": "\n\n",
+    "block_suffix": "\n\n"
   },
   "heading": {
-    "suffix": "\n"
+    "block_suffix": "\n"
   },
   "h1": {
-    "suffix": "\n\n",
-    "styled_prefix": "# "
+    "block_suffix": "\n\n",
+    "prefix": "# "
   },
   "h2": {
-    "prefix": "\n",
-    "styled_prefix": "## "
+    "block_prefix": "\n",
+    "prefix": "## "
   },
   "h3": {
-    "styled_prefix": "### "
+    "prefix": "### "
   },
   "h4": {
-    "styled_prefix": "#### "
+    "prefix": "#### "
   },
   "h5": {
-    "styled_prefix": "##### "
+    "prefix": "##### "
   },
   "h6": {
-    "styled_prefix": "###### "
+    "prefix": "###### "
   },
   "text": {},
   "list": {
     "level_indent": 4
   },
   "item": {
-    "prefix": "• "
+    "block_prefix": "• "
   },
   "enumeration": {
-    "prefix": ". "
+    "block_prefix": ". "
   },
   "link_text": {},
   "link": {},
@@ -44,35 +44,35 @@
   },
   "image": {},
   "code": {
-    "prefix": "`",
-    "suffix": "`"
+    "block_prefix": "`",
+    "block_suffix": "`"
   },
   "code_block": {
     "margin": 4
   },
   "table": {},
   "strikethrough": {
-    "prefix": "~~",
-    "suffix": "~~"
+    "block_prefix": "~~",
+    "block_suffix": "~~"
   },
   "emph": {
-    "prefix": "*",
-    "suffix": "*"
+    "block_prefix": "*",
+    "block_suffix": "*"
   },
   "strong": {
-    "prefix": "**",
-    "suffix": "**"
+    "block_prefix": "**",
+    "block_suffix": "**"
   },
   "hr": {
     "format": "\n--------\n"
   },
   "block_quote": {
-    "prefix": "> "
+    "block_prefix": "> "
   },
   "definition_list": {},
   "definition_term": {},
   "definition_description": {
-    "prefix": "\n🠶 "
+    "block_prefix": "\n🠶 "
   },
   "html_block": {},
   "html_span": {}

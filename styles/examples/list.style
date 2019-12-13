@@ -5,6 +5,6 @@
         "level_indent": 4
     },
     "item": {
-        "prefix": "• "
+        "block_prefix": "• "
     }
 }

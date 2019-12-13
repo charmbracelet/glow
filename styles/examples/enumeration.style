@@ -4,6 +4,6 @@
         "background_color": "52"
     },
     "enumeration": {
-        "prefix": ". "
+        "block_prefix": ". "
     }
 }

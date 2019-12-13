@@ -1,8 +1,8 @@
 {
     "image": {
         "color": "123",
-        "prefix": "[Image: ",
-        "suffix": "]"
+        "block_prefix": "[Image: ",
+        "block_suffix": "]"
     },
     "image_text": {
         "color": "8"

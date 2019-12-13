@@ -4,18 +4,18 @@
         "background_color": "57"
     },
     "h1": {
-        "styled_prefix": "=> ",
-        "styled_suffix": " <=",
+        "prefix": "=> ",
+        "suffix": " <=",
         "margin": 2,
         "bold": true,
         "background_color": "69"
     },
     "h2": {
-        "styled_prefix": "## ",
+        "prefix": "## ",
         "margin": 4
     },
     "h3": {
-        "styled_prefix": "### ",
+        "prefix": "### ",
         "margin": 6
     }
 }
