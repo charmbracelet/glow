@@ -7,23 +7,27 @@ Render markdown on the CLI, with _pizzazz_!
 Use a markdown source as the primary argument:
 
 Read from file:
-```
-./gold README.md
+
+```console
+gold README.md
 ```
 
 Read from stdin:
-```
-./gold -
+
+```console
+gold -
 ```
 
 Fetch README from GitHub:
-```
-./gold github.com/charmbracelet/gold
+
+```console
+gold github.com/charmbracelet/gold
 ```
 
 Fetch markdown from an HTTP source:
-```
-./gold https://host.tld/file.md
+
+```console
+gold https://host.tld/file.md
 ```
 
 When `gold` is started without any markdown source, it will try to find a
@@ -32,20 +36,23 @@ When `gold` is started without any markdown source, it will try to find a
 ### Word Wrapping
 
 The `-w` flag lets you set a maximum width, at which the output will be wrapped:
-```
-./gold -w 60
+
+```console
+gold -w 60
 ```
 
 ### Styles
 
 You can choose a style with the `-s` flag (`dark` being the default):
-```
-./gold -s [dark|light]
+
+```console
+gold -s [dark|light]
 ```
 
 Alternatively you can also supply a custom JSON stylesheet:
-```
-./gold -s mystyle.json
+
+```console
+gold -s mystyle.json
 ```
 
 Check out the [Gold Style Gallery](https://github.com/charmbracelet/gold/blob/master/styles/gallery/README.md)
