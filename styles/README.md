@@ -40,7 +40,7 @@ The `document` element represents the markdown's body.
 
 Style:
 
-```
+```json
 "document": {
     "indent": 2,
     "background_color": "234",
@@ -59,7 +59,7 @@ The `paragraph` element represents a paragraph in the document.
 
 Style:
 
-```
+```json
 "paragraph": {
     "margin": 4,
     "color": "15",
@@ -83,7 +83,7 @@ from the `heading` element.
 
 Markdown:
 
-```
+```markdown
 # h1
 
 ## h2
@@ -93,7 +93,7 @@ Markdown:
 
 Style:
 
-```
+```json
 "heading": {
     "color": "15",
     "background_color": "57"
@@ -129,7 +129,7 @@ The `block_quote` element represents a quote.
 
 Style:
 
-```
+```json
 "block_quote": {
     "color": "200"
 }
@@ -153,7 +153,7 @@ The `list` element represents a list in the document.
 
 Style:
 
-```
+```json
 "list": {
     "color": "15",
     "background_color": "52",
@@ -177,7 +177,7 @@ The `code_block` element represents a block of code.
 
 Style:
 
-```
+```json
 "code_block": {
     "color": "200",
     "theme": "solarized-dark"
@@ -198,7 +198,7 @@ The `table` element represents a table of data.
 
 Markdown:
 
-```
+```markdown
 | Label  | Value |
 | ------ | ----- |
 | First  | foo   |
@@ -207,7 +207,7 @@ Markdown:
 
 Style:
 
-```
+```json
 "table": {
     "margin": 4
 }
@@ -247,7 +247,7 @@ The `text` element represents a block of text.
 
 Style:
 
-```
+```json
 "text": {
     "bold": true,
     "color": "15",
@@ -265,7 +265,7 @@ The `item` element represents an item in a list.
 
 Markdown:
 
-```
+```markdown
 - First Item
     - Nested List Item
 - Second Item
@@ -273,7 +273,7 @@ Markdown:
 
 Style:
 
-```
+```json
 "item": {
     "block_prefix": "• "
 }
@@ -293,14 +293,14 @@ The `enumeration` element represents an item in an ordered list.
 
 Markdown:
 
-```
+```markdown
 1. First Item
 2. Second Item
 ```
 
 Style:
 
-```
+```json
 "enumeration": {
     "block_prefix": ". "
 }
@@ -325,14 +325,14 @@ The `task` element represents a task item.
 
 Markdown:
 
-```
+```markdown
 - [x] Finished Task
 - [ ] Outstanding Task
 ```
 
 Style:
 
-```
+```json
 "task": {
     "ticked": "✓ ",
     "unticked": "✗ "
@@ -353,13 +353,13 @@ The `link` element represents a link.
 
 Markdown:
 
-```
+```markdown
 This is a [link](https://charm.sh).
 ```
 
 Style:
 
-```
+```json
 "link": {
     "color": "123",
     "underline": true,
@@ -382,7 +382,7 @@ The `link_text` element represents the text associated with a link.
 
 Style:
 
-```
+```json
 "link_text": {
     "color": "123",
     "bold": true
@@ -399,13 +399,13 @@ The `image` element represents an image.
 
 Markdown:
 
-```
+```markdown
 ![Image](https://charm.sh/logo.png).
 ```
 
 Style:
 
-```
+```json
 "image": {
     "color": "123",
     "block_prefix": "[Image: ",
@@ -427,7 +427,7 @@ The `image_text` element represents the text associated with an image.
 
 Style:
 
-```
+```json
 "image_text": {
     "color": "8"
 }
@@ -443,7 +443,7 @@ The `code` element represents an inline code segment.
 
 Style:
 
-```
+```json
 "code": {
     "color": "200"
 }
@@ -469,7 +469,7 @@ This text is *emphasized*.
 
 Style:
 
-```
+```json
 "emph": {
     "italic": true
 }
@@ -495,7 +495,7 @@ This text is **strong**.
 
 Style:
 
-```
+```json
 "strong": {
     "bold": true
 }
@@ -521,7 +521,7 @@ Markdown:
 
 Style:
 
-```
+```json
 "hr": {
     "block_prefix": "---"
 }
