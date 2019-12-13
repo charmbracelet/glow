@@ -145,9 +145,16 @@ func (e *BaseElement) Render(w io.Writer, ctx RenderContext) error {
 	}()
 
 	rules := bs.With(e.Style)
+	// render unstyled prefix/suffix
 	renderText(w, bs.Current().Style.StylePrimitive, rules.Prefix)
 	defer func() {
 		renderText(w, bs.Current().Style.StylePrimitive, rules.Suffix)
+	}()
+
+	// render styled prefix/suffix
+	renderText(w, rules, rules.StyledPrefix)
+	defer func() {
+		renderText(w, rules, rules.StyledSuffix)
 	}()
 
 	s := e.Token
