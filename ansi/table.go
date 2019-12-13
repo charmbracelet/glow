@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"io"
@@ -29,7 +29,7 @@ func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 
 	var indent uint
 	var margin uint
-	rules := ctx.styles.Table
+	rules := ctx.options.Styles.Table
 	if rules.Indent != nil {
 		indent = *rules.Indent
 	}
@@ -56,7 +56,7 @@ func (e *TableElement) Finish(w io.Writer, ctx RenderContext) error {
 	ctx.table.writer.Render()
 	ctx.table.writer = nil
 
-	rules := ctx.styles.Table
+	rules := ctx.options.Styles.Table
 	renderText(ctx.table.indentWriter, ctx.blockStack.Current().Style.StylePrimitive, rules.BlockSuffix)
 	return nil
 }

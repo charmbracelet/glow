@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"bytes"
@@ -14,21 +14,21 @@ type HeadingElement struct {
 
 func (e *HeadingElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
-	rules := ctx.styles.Heading
+	rules := ctx.options.Styles.Heading
 
 	switch e.Level {
 	case 1:
-		rules = cascadeStyles(false, rules, ctx.styles.H1)
+		rules = cascadeStyles(false, rules, ctx.options.Styles.H1)
 	case 2:
-		rules = cascadeStyles(false, rules, ctx.styles.H2)
+		rules = cascadeStyles(false, rules, ctx.options.Styles.H2)
 	case 3:
-		rules = cascadeStyles(false, rules, ctx.styles.H3)
+		rules = cascadeStyles(false, rules, ctx.options.Styles.H3)
 	case 4:
-		rules = cascadeStyles(false, rules, ctx.styles.H4)
+		rules = cascadeStyles(false, rules, ctx.options.Styles.H4)
 	case 5:
-		rules = cascadeStyles(false, rules, ctx.styles.H5)
+		rules = cascadeStyles(false, rules, ctx.options.Styles.H5)
 	case 6:
-		rules = cascadeStyles(false, rules, ctx.styles.H6)
+		rules = cascadeStyles(false, rules, ctx.options.Styles.H6)
 	}
 
 	if !e.First {

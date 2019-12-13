@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ type ParagraphElement struct {
 
 func (e *ParagraphElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
-	rules := ctx.styles.Paragraph
+	rules := ctx.options.Styles.Paragraph
 
 	_, _ = w.Write([]byte("\n"))
 	be := BlockElement{

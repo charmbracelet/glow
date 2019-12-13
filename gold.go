@@ -4,26 +4,22 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"log"
-	"net/url"
-	"strings"
+	"io/ioutil"
+	"os"
 
+	"github.com/rakyll/statik/fs"
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
-	astext "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/util"
+
+	"github.com/charmbracelet/gold/ansi"
+	_ "github.com/charmbracelet/gold/statik"
 )
 
-type Options struct {
-	BaseURL  string
-	WordWrap int
-}
-
 type TermRenderer struct {
-	context RenderContext
+	Options ansi.Options
 }
 
 // Render initializes a new TermRenderer and renders a markdown with a specific
@@ -35,7 +31,7 @@ func Render(in string, stylePath string) ([]byte, error) {
 // RenderBytes initializes a new TermRenderer and renders a markdown with a
 // specific style.
 func RenderBytes(in []byte, stylePath string) ([]byte, error) {
-	r, err := NewTermRenderer(stylePath, Options{
+	r, err := NewTermRenderer(stylePath, ansi.Options{
 		WordWrap: 80,
 	})
 	if err != nil {
@@ -45,7 +41,7 @@ func RenderBytes(in []byte, stylePath string) ([]byte, error) {
 }
 
 // NewTermRenderer returns a new TermRenderer with style and options set.
-func NewTermRenderer(stylePath string, options Options) (*TermRenderer, error) {
+func NewTermRenderer(stylePath string, options ansi.Options) (*TermRenderer, error) {
 	if stylePath == "" {
 		return NewTermRendererFromBytes([]byte("{}"), options)
 	}
@@ -59,17 +55,15 @@ func NewTermRenderer(stylePath string, options Options) (*TermRenderer, error) {
 
 // NewTermRendererFromBytes returns a new TermRenderer with style and options
 // set.
-func NewTermRendererFromBytes(b []byte, options Options) (*TermRenderer, error) {
-	tr := &TermRenderer{
-		context: NewRenderContext(options),
-	}
-
-	err := json.Unmarshal(b, &tr.context.styles)
+func NewTermRendererFromBytes(b []byte, options ansi.Options) (*TermRenderer, error) {
+	err := json.Unmarshal(b, &options.Styles)
 	if err != nil {
 		return nil, err
 	}
 
-	return tr, nil
+	return &TermRenderer{
+		Options: options,
+	}, nil
 }
 
 // Render returns the markdown rendered into a string.
@@ -89,139 +83,34 @@ func (tr *TermRenderer) RenderBytes(in []byte) ([]byte, error) {
 			parser.WithAutoHeadingID(),
 		),
 	)
+
+	ar := ansi.NewRenderer(tr.Options)
 	md.SetRenderer(
 		renderer.NewRenderer(
-			renderer.WithNodeRenderers(util.Prioritized(tr, 1000))))
+			renderer.WithNodeRenderers(util.Prioritized(ar, 1000))))
 
 	var buf bytes.Buffer
 	err := md.Convert(in, &buf)
 	return buf.Bytes(), err
 }
 
-// RegisterFuncs implements NodeRenderer.RegisterFuncs.
-func (r *TermRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
-	// blocks
-	reg.Register(ast.KindDocument, r.renderNode)
-	reg.Register(ast.KindHeading, r.renderNode)
-	reg.Register(ast.KindBlockquote, r.renderNode)
-	reg.Register(ast.KindCodeBlock, r.renderNode)
-	reg.Register(ast.KindFencedCodeBlock, r.renderNode)
-	reg.Register(ast.KindHTMLBlock, r.renderNode)
-	reg.Register(ast.KindList, r.renderNode)
-	reg.Register(ast.KindListItem, r.renderNode)
-	reg.Register(ast.KindParagraph, r.renderNode)
-	reg.Register(ast.KindTextBlock, r.renderNode)
-	reg.Register(ast.KindThematicBreak, r.renderNode)
+func loadStyle(f string) ([]byte, error) {
+	var r io.ReadCloser
+	var err error
 
-	// inlines
-	reg.Register(ast.KindAutoLink, r.renderNode)
-	reg.Register(ast.KindCodeSpan, r.renderNode)
-	reg.Register(ast.KindEmphasis, r.renderNode)
-	reg.Register(ast.KindImage, r.renderNode)
-	reg.Register(ast.KindLink, r.renderNode)
-	reg.Register(ast.KindRawHTML, r.renderNode)
-	reg.Register(ast.KindText, r.renderNode)
-	reg.Register(ast.KindString, r.renderNode)
-
-	// tables
-	reg.Register(astext.KindTable, r.renderNode)
-	reg.Register(astext.KindTableHeader, r.renderNode)
-	reg.Register(astext.KindTableRow, r.renderNode)
-	reg.Register(astext.KindTableCell, r.renderNode)
-
-	// definitions
-	reg.Register(astext.KindDefinitionList, r.renderNode)
-	reg.Register(astext.KindDefinitionTerm, r.renderNode)
-	reg.Register(astext.KindDefinitionDescription, r.renderNode)
-
-	// footnotes
-	reg.Register(astext.KindFootnote, r.renderNode)
-	reg.Register(astext.KindFootnoteList, r.renderNode)
-	reg.Register(astext.KindFootnoteLink, r.renderNode)
-	reg.Register(astext.KindFootnoteBackLink, r.renderNode)
-
-	// checkboxes
-	reg.Register(astext.KindTaskCheckBox, r.renderNode)
-
-	// strikethrough
-	reg.Register(astext.KindStrikethrough, r.renderNode)
-}
-
-func (tr *TermRenderer) renderNode(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	// _, _ = w.Write([]byte(node.Type.String()))
-	writeTo := io.Writer(w)
-	bs := tr.context.blockStack
-
-	// children get rendered by their parent
-	if isChild(node) {
-		return ast.WalkContinue, nil
-	}
-
-	e := tr.NewElement(node, source)
-	if entering {
-		// everything below the Document element gets rendered into a block buffer
-		if bs.Len() > 0 {
-			writeTo = io.Writer(bs.Current().Block)
-		}
-
-		_, _ = writeTo.Write([]byte(e.Entering))
-		if e.Renderer != nil {
-			err := e.Renderer.Render(writeTo, tr.context)
-			if err != nil {
-				return ast.WalkStop, err
-			}
-		}
-	} else {
-		// everything below the Document element gets rendered into a block buffer
-		if bs.Len() > 0 {
-			writeTo = io.Writer(bs.Parent().Block)
-		}
-
-		// if we're finished rendering the entire document,
-		// flush to the real writer
-		if node.Type() == ast.TypeDocument {
-			writeTo = w
-		}
-
-		if e.Finisher != nil {
-			err := e.Finisher.Finish(writeTo, tr.context)
-			if err != nil {
-				return ast.WalkStop, err
-			}
-		}
-		_, _ = bs.Current().Block.Write([]byte(e.Exiting))
-	}
-
-	return ast.WalkContinue, nil
-}
-
-func isChild(node ast.Node) bool {
-	if node.Parent() == nil {
-		return false
-	}
-
-	// These types are already rendered by their parent
-	switch node.Parent().Kind() {
-	case ast.KindLink, ast.KindImage, ast.KindEmphasis, astext.KindStrikethrough, ast.KindBlockquote, astext.KindTableCell:
-		return true
-	default:
-		return false
-	}
-}
-
-func resolveRelativeURL(baseURL string, rel string) string {
-	u, err := url.Parse(rel)
+	r, err = os.Open(f)
 	if err != nil {
-		log.Fatal(err)
-	}
-	if u.IsAbs() {
-		return rel
-	}
-	u.Path = strings.TrimPrefix(u.Path, "/")
+		statikFS, err := fs.New()
+		if err != nil {
+			return nil, err
+		}
 
-	base, err := url.Parse(baseURL)
-	if err != nil {
-		return rel
+		r, err = statikFS.Open("/" + f + ".json")
+		if err != nil {
+			return nil, err
+		}
 	}
-	return base.ResolveReference(u).String()
+
+	defer r.Close()
+	return ioutil.ReadAll(r)
 }

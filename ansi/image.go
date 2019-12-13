@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"io"
@@ -15,7 +15,7 @@ func (e *ImageElement) Render(w io.Writer, ctx RenderContext) error {
 	if len(e.Text) > 0 {
 		el := &BaseElement{
 			Token: e.Text,
-			Style: ctx.styles.ImageText,
+			Style: ctx.options.Styles.ImageText,
 		}
 		err := el.Render(w, ctx)
 		if err != nil {
@@ -26,7 +26,7 @@ func (e *ImageElement) Render(w io.Writer, ctx RenderContext) error {
 		el := &BaseElement{
 			Token:  resolveRelativeURL(e.BaseURL, e.URL),
 			Prefix: " ",
-			Style:  ctx.styles.Image,
+			Style:  ctx.options.Styles.Image,
 		}
 		err := el.Render(w, ctx)
 		if err != nil {

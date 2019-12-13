@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"io"
@@ -16,7 +16,7 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 
 	var indent uint
 	var margin uint
-	rules := ctx.styles.CodeBlock
+	rules := ctx.options.Styles.CodeBlock
 	if rules.Indent != nil {
 		indent = *rules.Indent
 	}

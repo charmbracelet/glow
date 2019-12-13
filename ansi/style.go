@@ -1,14 +1,7 @@
-package gold
+package ansi
 
 import (
-	"io"
-	"io/ioutil"
-	"os"
-
 	"github.com/lucasb-eyer/go-colorful"
-	"github.com/rakyll/statik/fs"
-
-	_ "github.com/charmbracelet/gold/statik"
 )
 
 type StylePrimitive struct {
@@ -93,27 +86,6 @@ type StyleConfig struct {
 
 	HTMLBlock StyleBlock `json:"html_block"`
 	HTMLSpan  StyleBlock `json:"html_span"`
-}
-
-func loadStyle(f string) ([]byte, error) {
-	var r io.ReadCloser
-	var err error
-
-	r, err = os.Open(f)
-	if err != nil {
-		statikFS, err := fs.New()
-		if err != nil {
-			return nil, err
-		}
-
-		r, err = statikFS.Open("/" + f + ".json")
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	defer r.Close()
-	return ioutil.ReadAll(r)
 }
 
 func cascadeStyles(onlyColors bool, s ...StyleBlock) StyleBlock {

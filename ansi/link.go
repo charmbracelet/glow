@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"io"
@@ -19,7 +19,7 @@ func (e *LinkElement) Render(w io.Writer, ctx RenderContext) error {
 
 		el := &BaseElement{
 			Token: e.Text,
-			Style: ctx.styles.LinkText,
+			Style: ctx.options.Styles.LinkText,
 		}
 		err := el.Render(w, ctx)
 		if err != nil {
@@ -53,7 +53,7 @@ func (e *LinkElement) Render(w io.Writer, ctx RenderContext) error {
 
 	if len(e.URL) > 0 {
 		pre := " "
-		style := ctx.styles.Link
+		style := ctx.options.Styles.Link
 		if !textRendered {
 			pre = ""
 			style.BlockPrefix = ""

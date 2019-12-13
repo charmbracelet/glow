@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"html"
@@ -9,7 +9,6 @@ import (
 
 type RenderContext struct {
 	options Options
-	styles  StyleConfig
 
 	blockStack *BlockStack
 	table      *TableElement

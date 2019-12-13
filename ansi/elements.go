@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"bytes"
@@ -25,7 +25,7 @@ type Element struct {
 	Finisher ElementFinisher
 }
 
-func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
+func (tr *ANSIRenderer) NewElement(node ast.Node, source []byte) Element {
 	ctx := tr.context
 	// fmt.Print(strings.Repeat("  ", ctx.blockStack.Len()), node.Type(), node.Kind())
 	// defer fmt.Println()
@@ -35,7 +35,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	case ast.KindDocument:
 		e := &BlockElement{
 			Block:  &bytes.Buffer{},
-			Style:  ctx.styles.Document,
+			Style:  ctx.options.Styles.Document,
 			Margin: true,
 		}
 		return Element{
@@ -70,7 +70,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	case ast.KindBlockquote:
 		e := &BlockElement{
 			Block:   &bytes.Buffer{},
-			Style:   cascadeStyle(ctx.blockStack.Current().Style, ctx.styles.BlockQuote, true),
+			Style:   cascadeStyle(ctx.blockStack.Current().Style, ctx.options.Styles.BlockQuote, true),
 			Margin:  true,
 			Newline: true,
 		}
@@ -82,7 +82,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 
 	// Lists
 	case ast.KindList:
-		s := ctx.styles.List.StyleBlock
+		s := ctx.options.Styles.List.StyleBlock
 		if s.Indent == nil {
 			var i uint
 			s.Indent = &i
@@ -90,7 +90,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		n := node.Parent()
 		for n != nil {
 			if n.Kind() == ast.KindList {
-				i := ctx.styles.List.LevelIndent
+				i := ctx.options.Styles.List.LevelIndent
 				s.Indent = &i
 				break
 			}
@@ -156,16 +156,16 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		return Element{
 			Renderer: &BaseElement{
 				Token: ctx.SanitizeHTML(s, false),
-				Style: ctx.styles.Text,
+				Style: ctx.options.Styles.Text,
 			},
 		}
 
 	case ast.KindEmphasis:
 		n := node.(*ast.Emphasis)
 		s := string(n.Text(source))
-		style := ctx.styles.Emph
+		style := ctx.options.Styles.Emph
 		if n.Level > 1 {
-			style = ctx.styles.Strong
+			style = ctx.options.Styles.Strong
 		}
 
 		return Element{
@@ -178,7 +178,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	case astext.KindStrikethrough:
 		n := node.(*astext.Strikethrough)
 		s := string(n.Text(source))
-		style := ctx.styles.Strikethrough
+		style := ctx.options.Styles.Strikethrough
 
 		return Element{
 			Renderer: &BaseElement{
@@ -192,7 +192,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 			Entering: "",
 			Exiting:  "",
 			Renderer: &BaseElement{
-				Style: ctx.styles.HorizontalRule,
+				Style: ctx.options.Styles.HorizontalRule,
 			},
 		}
 
@@ -271,7 +271,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		// n := node.(*ast.CodeSpan)
 		e := &BlockElement{
 			Block: &bytes.Buffer{},
-			Style: cascadeStyle(ctx.blockStack.Current().Style, ctx.styles.Code, true),
+			Style: cascadeStyle(ctx.blockStack.Current().Style, ctx.options.Styles.Code, true),
 		}
 		return Element{
 			Renderer: e,
@@ -318,7 +318,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		return Element{
 			Renderer: &BaseElement{
 				Token: ctx.SanitizeHTML(string(n.Text(source)), true) + "\n",
-				Style: ctx.styles.HTMLBlock.StylePrimitive,
+				Style: ctx.options.Styles.HTMLBlock.StylePrimitive,
 			},
 		}
 	case ast.KindRawHTML:
@@ -326,7 +326,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 		return Element{
 			Renderer: &BaseElement{
 				Token: ctx.SanitizeHTML(string(n.Text(source)), true) + "\n",
-				Style: ctx.styles.HTMLSpan.StylePrimitive,
+				Style: ctx.options.Styles.HTMLSpan.StylePrimitive,
 			},
 		}
 
@@ -334,7 +334,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	case astext.KindDefinitionList:
 		e := &BlockElement{
 			Block:   &bytes.Buffer{},
-			Style:   cascadeStyle(ctx.blockStack.Current().Style, ctx.styles.DefinitionList, true),
+			Style:   cascadeStyle(ctx.blockStack.Current().Style, ctx.options.Styles.DefinitionList, true),
 			Margin:  true,
 			Newline: true,
 		}
@@ -347,14 +347,14 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 	case astext.KindDefinitionTerm:
 		return Element{
 			Renderer: &BaseElement{
-				Style: ctx.styles.DefinitionTerm,
+				Style: ctx.options.Styles.DefinitionTerm,
 			},
 		}
 
 	case astext.KindDefinitionDescription:
 		return Element{
 			Renderer: &BaseElement{
-				Style: ctx.styles.DefinitionDescription,
+				Style: ctx.options.Styles.DefinitionDescription,
 			},
 		}
 

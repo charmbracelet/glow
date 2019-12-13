@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"io"
@@ -13,12 +13,12 @@ func (e *ItemElement) Render(w io.Writer, ctx RenderContext) error {
 	var el *BaseElement
 	if e.Enumeration > 0 {
 		el = &BaseElement{
-			Style:  ctx.styles.Enumeration,
+			Style:  ctx.options.Styles.Enumeration,
 			Prefix: strconv.FormatInt(int64(e.Enumeration), 10),
 		}
 	} else {
 		el = &BaseElement{
-			Style: ctx.styles.Item,
+			Style: ctx.options.Styles.Item,
 		}
 	}
 

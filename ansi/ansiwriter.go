@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"io"

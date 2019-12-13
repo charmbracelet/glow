@@ -1,4 +1,4 @@
-package gold
+package ansi
 
 import (
 	"io"
@@ -11,14 +11,14 @@ type TaskElement struct {
 func (e *TaskElement) Render(w io.Writer, ctx RenderContext) error {
 	var el *BaseElement
 
-	pre := ctx.styles.Task.Unticked
+	pre := ctx.options.Styles.Task.Unticked
 	if e.Checked {
-		pre = ctx.styles.Task.Ticked
+		pre = ctx.options.Styles.Task.Ticked
 	}
 
 	el = &BaseElement{
 		Prefix: pre,
-		Style:  ctx.styles.Task.StylePrimitive,
+		Style:  ctx.options.Styles.Task.StylePrimitive,
 	}
 
 	return el.Render(w, ctx)
