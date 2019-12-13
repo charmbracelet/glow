@@ -16,7 +16,7 @@ gold -
 # Fetch README from GitHub
 gold github.com/charmbracelet/gold
 
-# Fetch markdown from an HTTP source
+# Fetch markdown from HTTP
 gold https://host.tld/file.md
 ```
 
