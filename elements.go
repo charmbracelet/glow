@@ -131,7 +131,7 @@ func (tr *TermRenderer) NewElement(node ast.Node, source []byte) Element {
 
 			return Element{
 				Exiting: post,
-				Renderer: &CheckedItemElement{
+				Renderer: &TaskElement{
 					Checked: nc.IsChecked,
 				},
 			}

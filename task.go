@@ -4,11 +4,11 @@ import (
 	"io"
 )
 
-type CheckedItemElement struct {
+type TaskElement struct {
 	Checked bool
 }
 
-func (e *CheckedItemElement) Render(w io.Writer, ctx RenderContext) error {
+func (e *TaskElement) Render(w io.Writer, ctx RenderContext) error {
 	var el *BaseElement
 
 	pre := ctx.styles.Task.Unticked
