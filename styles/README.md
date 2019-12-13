@@ -49,6 +49,8 @@ Style:
 }
 ```
 
+---
+
 ### paragraph
 
 The `paragraph` element represents a paragraph in the document.
@@ -64,6 +66,8 @@ Style:
     "background_color": "235"
 }
 ```
+
+---
 
 ### heading
 
@@ -115,6 +119,8 @@ Output:
 
 ![Heading Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/heading.png)
 
+---
+
 ### block_quote
 
 The `block_quote` element represents a quote.
@@ -132,6 +138,8 @@ Style:
 Output:
 
 ![Block Quote Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/block_quote.png)
+
+---
 
 ### list
 
@@ -152,6 +160,8 @@ Style:
     "level_indent": 4
 }
 ```
+
+---
 
 ### code_block
 
@@ -177,6 +187,8 @@ Style:
 Output:
 
 ![Code Block Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/code_block.png)
+
+---
 
 ### table
 
@@ -243,6 +255,8 @@ Style:
 }
 ```
 
+---
+
 ### item
 
 The `item` element represents an item in a list.
@@ -269,6 +283,8 @@ Output:
 
 ![List Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/list.png)
 
+---
+
 ### enumeration
 
 The `enumeration` element represents an item in an ordered list.
@@ -293,6 +309,8 @@ Style:
 Output:
 
 ![Enumeration Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/enumeration.png)
+
+---
 
 ### task
 
@@ -325,6 +343,8 @@ Output:
 
 ![Task Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/task.png)
 
+---
+
 ### link
 
 The `link` element represents a link.
@@ -352,6 +372,8 @@ Output:
 
 ![Link Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/link.png)
 
+---
+
 ### link_text
 
 The `link_text` element represents the text associated with a link.
@@ -366,6 +388,8 @@ Style:
     "bold": true
 }
 ```
+
+---
 
 ### image
 
@@ -393,6 +417,8 @@ Output:
 
 ![Image Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/image.png)
 
+---
+
 ### image_text
 
 The `image_text` element represents the text associated with an image.
@@ -406,6 +432,8 @@ Style:
     "color": "8"
 }
 ```
+
+---
 
 ### code
 
@@ -424,6 +452,8 @@ Style:
 Output:
 
 ![Code Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/code.png)
+
+---
 
 ### emph
 
@@ -449,6 +479,8 @@ Output:
 
 ![Emph Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/emph.png)
 
+---
+
 ### strong
 
 The `strong` element represents important text.
@@ -472,6 +504,8 @@ Style:
 Output:
 
 ![Strong Example](https://github.com/charmbracelet/gold/raw/master/styles/examples/strong.png)
+
+---
 
 ### hr
 
