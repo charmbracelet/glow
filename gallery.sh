@@ -9,6 +9,12 @@ for style in ./styles/*.json; do
         light="-l"
     fi
 
+    # take screenshot
     ./termshot ${light} -o ./styles/gallery/ -f "$filename" ./cmd/gold/gold -s ${style} ./cmd/gold
+
+    # add border
+    convert -bordercolor black -border 16x16 "./styles/gallery/$filename" "./styles/gallery/$filename"
+
+    # optimize filesize
     pngcrush -ow "./styles/gallery/$filename"
 done
