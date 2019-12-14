@@ -24,7 +24,7 @@ type StylePrimitive struct {
 }
 
 type StyleTask struct {
-	StyleBlock
+	StylePrimitive
 	Ticked   string `json:"ticked"`
 	Unticked string `json:"unticked"`
 }
@@ -37,7 +37,38 @@ type StyleBlock struct {
 
 type StyleCodeBlock struct {
 	StyleBlock
-	Theme string `json:"theme"`
+	Theme               string         `json:"theme"`
+	Text                StylePrimitive `json:"text"`
+	Error               StylePrimitive `json:"error"`
+	Comment             StylePrimitive `json:"comment"`
+	CommentPreproc      StylePrimitive `json:"comment_preproc"`
+	Keyword             StylePrimitive `json:"keyword"`
+	KeywordReserved     StylePrimitive `json:"keyword_reserved"`
+	KeywordNamespace    StylePrimitive `json:"keyword_namespace"`
+	KeywordType         StylePrimitive `json:"keyword_type"`
+	Operator            StylePrimitive `json:"operator"`
+	Punctuation         StylePrimitive `json:"punctuation"`
+	Name                StylePrimitive `json:"name"`
+	NameBuiltin         StylePrimitive `json:"name_builtin"`
+	NameTag             StylePrimitive `json:"name_tag"`
+	NameAttribute       StylePrimitive `json:"name_attribute"`
+	NameClass           StylePrimitive `json:"name_class"`
+	NameConstant        StylePrimitive `json:"name_constant"`
+	NameDecorator       StylePrimitive `json:"name_decorator"`
+	NameException       StylePrimitive `json:"name_exception"`
+	NameFunction        StylePrimitive `json:"name_function"`
+	NameOther           StylePrimitive `json:"name_other"`
+	Literal             StylePrimitive `json:"literal"`
+	LiteralNumber       StylePrimitive `json:"literal_number"`
+	LiteralDate         StylePrimitive `json:"literal_date"`
+	LiteralString       StylePrimitive `json:"literal_string"`
+	LiteralStringEscape StylePrimitive `json:"literal_string_escape"`
+	GenericDeleted      StylePrimitive `json:"generic_deleted"`
+	GenericEmph         StylePrimitive `json:"generic_emph"`
+	GenericInserted     StylePrimitive `json:"generic_inserted"`
+	GenericStrong       StylePrimitive `json:"generic_strong"`
+	GenericSubheading   StylePrimitive `json:"generic_subheading"`
+	Background          StylePrimitive `json:"background"`
 }
 
 type StyleList struct {
