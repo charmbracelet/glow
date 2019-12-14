@@ -69,7 +69,99 @@
   },
   "code_block": {
     "margin": 4,
-    "color": "240"
+    "color": "240",
+    "theme": "charm",
+    "background_color": "#373737",
+    "chroma": {
+      "text": {
+        "color": "#212121"
+      },
+      "error": {
+        "color": "#F1F1F1",
+        "background_color": "#F05B5B"
+      },
+      "comment": {
+        "color": "#8D8D8D"
+      },
+      "comment_preproc": {
+        "color": "#FF875F"
+      },
+      "keyword": {
+        "color": "#00AAFF"
+      },
+      "keyword_reserved": {
+        "color": "#FF5FD2"
+      },
+      "keyword_namespace": {
+        "color": "#FF5F87"
+      },
+      "keyword_type": {
+        "color": "#6E6ED8"
+      },
+      "operator": {
+        "color": "#C69669"
+      },
+      "punctuation": {
+        "color": "#F05B5a"
+      },
+      "name": {
+        "color": "#212121"
+      },
+      "name_builtin": {
+        "color": "#FF8EC7"
+      },
+      "name_tag": {
+        "color": "#B083EA"
+      },
+      "name_attribute": {
+        "color": "#7A7AE6"
+      },
+      "name_class": {
+        "color": "#F1F1F1"
+      },
+      "name_constant": {
+        "color": "#212121"
+      },
+      "name_decorator": {
+        "color": "#FFFF87"
+      },
+      "name_exception": {
+        "color": "#CCCCCC"
+      },
+      "name_function": {
+        "color": "#00D787"
+      },
+      "name_other": {
+        "color": "#212121"
+      },
+      "literal": {
+        "color": "#212121"
+      },
+      "literal_number": {
+        "color": "#6EEFC0"
+      },
+      "literal_date": {
+        "color": "#212121"
+      },
+      "literal_string": {
+        "color": "#C69669"
+      },
+      "literal_string_escape": {
+        "color": "#AFFFD7"
+      },
+      "generic_deleted": {
+        "color": "#FD5B5B"
+      },
+      "generic_inserted": {
+        "color": "#00D787"
+      },
+      "generic_subheading": {
+        "color": "#777777"
+      },
+      "background": {
+        "background_color": "#373737"
+      }
+    }
   },
   "table": {},
   "strikethrough": {
