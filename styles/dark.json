@@ -118,7 +118,9 @@
         "color": "#7A7AE6"
       },
       "name_class": {
-        "color": "#F1F1F1"
+        "color": "#F1F1F1",
+        "bold": true,
+        "underline": true
       },
       "name_constant": {
         "color": "#CCCCCC"
@@ -152,6 +154,12 @@
       },
       "generic_deleted": {
         "color": "#FD5B5B"
+      },
+      "generic_emph": {
+        "italic": true
+      },
+      "generic_strong": {
+        "bold": true
       },
       "generic_inserted": {
         "color": "#00D787"
