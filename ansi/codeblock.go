@@ -13,7 +13,7 @@ type CodeBlockElement struct {
 	Language string
 }
 
-func chromaColor(style StylePrimitive) string {
+func chromaStyle(style StylePrimitive) string {
 	var s string
 
 	if style.Color != nil {
@@ -24,6 +24,24 @@ func chromaColor(style StylePrimitive) string {
 			s += " "
 		}
 		s += "bg:" + *style.BackgroundColor
+	}
+	if style.Italic != nil && *style.Italic {
+		if s != "" {
+			s += " "
+		}
+		s += "italic"
+	}
+	if style.Bold != nil && *style.Bold {
+		if s != "" {
+			s += " "
+		}
+		s += "bold"
+	}
+	if style.Underline != nil && *style.Underline {
+		if s != "" {
+			s += " "
+		}
+		s += "underline"
 	}
 
 	return s
@@ -45,37 +63,37 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 
 	styles.Register(chroma.MustNewStyle("charm",
 		chroma.StyleEntries{
-			chroma.Text:                chromaColor(rules.Chroma.Text),
-			chroma.Error:               chromaColor(rules.Chroma.Error),
-			chroma.Comment:             chromaColor(rules.Chroma.Comment),
-			chroma.CommentPreproc:      chromaColor(rules.Chroma.CommentPreproc),
-			chroma.Keyword:             chromaColor(rules.Chroma.Keyword),
-			chroma.KeywordReserved:     chromaColor(rules.Chroma.KeywordReserved),
-			chroma.KeywordNamespace:    chromaColor(rules.Chroma.KeywordNamespace),
-			chroma.KeywordType:         chromaColor(rules.Chroma.KeywordType),
-			chroma.Operator:            chromaColor(rules.Chroma.Operator),
-			chroma.Punctuation:         chromaColor(rules.Chroma.Punctuation),
-			chroma.Name:                chromaColor(rules.Chroma.Name),
-			chroma.NameBuiltin:         chromaColor(rules.Chroma.NameBuiltin),
-			chroma.NameTag:             chromaColor(rules.Chroma.NameTag),
-			chroma.NameAttribute:       chromaColor(rules.Chroma.NameAttribute),
-			chroma.NameClass:           chromaColor(rules.Chroma.NameClass),
-			chroma.NameConstant:        chromaColor(rules.Chroma.NameConstant),
-			chroma.NameDecorator:       chromaColor(rules.Chroma.NameDecorator),
-			chroma.NameException:       chromaColor(rules.Chroma.NameException),
-			chroma.NameFunction:        chromaColor(rules.Chroma.NameFunction),
-			chroma.NameOther:           chromaColor(rules.Chroma.NameOther),
-			chroma.Literal:             chromaColor(rules.Chroma.Literal),
-			chroma.LiteralNumber:       chromaColor(rules.Chroma.LiteralNumber),
-			chroma.LiteralDate:         chromaColor(rules.Chroma.LiteralDate),
-			chroma.LiteralString:       chromaColor(rules.Chroma.LiteralString),
-			chroma.LiteralStringEscape: chromaColor(rules.Chroma.LiteralStringEscape),
-			chroma.GenericDeleted:      chromaColor(rules.Chroma.GenericDeleted),
-			chroma.GenericEmph:         chromaColor(rules.Chroma.GenericEmph),
-			chroma.GenericInserted:     chromaColor(rules.Chroma.GenericInserted),
-			chroma.GenericStrong:       chromaColor(rules.Chroma.GenericStrong),
-			chroma.GenericSubheading:   chromaColor(rules.Chroma.GenericSubheading),
-			chroma.Background:          chromaColor(rules.Chroma.Background),
+			chroma.Text:                chromaStyle(rules.Chroma.Text),
+			chroma.Error:               chromaStyle(rules.Chroma.Error),
+			chroma.Comment:             chromaStyle(rules.Chroma.Comment),
+			chroma.CommentPreproc:      chromaStyle(rules.Chroma.CommentPreproc),
+			chroma.Keyword:             chromaStyle(rules.Chroma.Keyword),
+			chroma.KeywordReserved:     chromaStyle(rules.Chroma.KeywordReserved),
+			chroma.KeywordNamespace:    chromaStyle(rules.Chroma.KeywordNamespace),
+			chroma.KeywordType:         chromaStyle(rules.Chroma.KeywordType),
+			chroma.Operator:            chromaStyle(rules.Chroma.Operator),
+			chroma.Punctuation:         chromaStyle(rules.Chroma.Punctuation),
+			chroma.Name:                chromaStyle(rules.Chroma.Name),
+			chroma.NameBuiltin:         chromaStyle(rules.Chroma.NameBuiltin),
+			chroma.NameTag:             chromaStyle(rules.Chroma.NameTag),
+			chroma.NameAttribute:       chromaStyle(rules.Chroma.NameAttribute),
+			chroma.NameClass:           chromaStyle(rules.Chroma.NameClass),
+			chroma.NameConstant:        chromaStyle(rules.Chroma.NameConstant),
+			chroma.NameDecorator:       chromaStyle(rules.Chroma.NameDecorator),
+			chroma.NameException:       chromaStyle(rules.Chroma.NameException),
+			chroma.NameFunction:        chromaStyle(rules.Chroma.NameFunction),
+			chroma.NameOther:           chromaStyle(rules.Chroma.NameOther),
+			chroma.Literal:             chromaStyle(rules.Chroma.Literal),
+			chroma.LiteralNumber:       chromaStyle(rules.Chroma.LiteralNumber),
+			chroma.LiteralDate:         chromaStyle(rules.Chroma.LiteralDate),
+			chroma.LiteralString:       chromaStyle(rules.Chroma.LiteralString),
+			chroma.LiteralStringEscape: chromaStyle(rules.Chroma.LiteralStringEscape),
+			chroma.GenericDeleted:      chromaStyle(rules.Chroma.GenericDeleted),
+			chroma.GenericEmph:         chromaStyle(rules.Chroma.GenericEmph),
+			chroma.GenericInserted:     chromaStyle(rules.Chroma.GenericInserted),
+			chroma.GenericStrong:       chromaStyle(rules.Chroma.GenericStrong),
+			chroma.GenericSubheading:   chromaStyle(rules.Chroma.GenericSubheading),
+			chroma.Background:          chromaStyle(rules.Chroma.Background),
 		}))
 
 	iw := &IndentWriter{
