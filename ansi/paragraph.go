@@ -9,13 +9,16 @@ import (
 )
 
 type ParagraphElement struct {
+	First bool
 }
 
 func (e *ParagraphElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 	rules := ctx.options.Styles.Paragraph
 
-	_, _ = w.Write([]byte("\n"))
+	if !e.First {
+		_, _ = w.Write([]byte("\n"))
+	}
 	be := BlockElement{
 		Block: &bytes.Buffer{},
 		Style: cascadeStyle(bs.Current().Style, rules, true),

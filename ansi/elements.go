@@ -62,7 +62,9 @@ func (tr *ANSIRenderer) NewElement(node ast.Node, source []byte) Element {
 			return Element{}
 		}
 		return Element{
-			Renderer: &ParagraphElement{},
+			Renderer: &ParagraphElement{
+				First: node.PreviousSibling() == nil,
+			},
 			Finisher: &ParagraphElement{},
 		}
 
