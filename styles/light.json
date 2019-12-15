@@ -94,7 +94,6 @@
   "code_block": {
     "margin": 4,
     "color": "240",
-    "background_color": "#373737",
     "chroma": {
       "text": {
         "color": "#2A2A2A"
