@@ -61,6 +61,10 @@
     "color": "205"
   },
   "table": {},
+  "task": {
+    "unticked": "✗ ",
+    "ticked": "✓ "
+  },
   "strikethrough": {
     "crossed_out": true
   },
