@@ -39,10 +39,14 @@
   "link_text": {},
   "link": {},
   "image_text": {
-    "format": "Image: {{.text}} 🡆 "
+    "format": "Image: {{.text}} -> "
   },
   "image": {},
   "table": {},
+  "task": {
+    "unticked": "[ ] ",
+    "ticked": "[x] "
+  },
   "strikethrough": {
     "block_prefix": "~~",
     "block_suffix": "~~"
