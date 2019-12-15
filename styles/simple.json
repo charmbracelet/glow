@@ -1,0 +1,73 @@
+{
+  "document": {},
+  "heading": {
+    "block_suffix": "\n"
+  },
+  "h1": {
+    "block_suffix": "\n\n",
+    "prefix": "# "
+  },
+  "h2": {
+    "block_prefix": "\n",
+    "prefix": "## "
+  },
+  "h3": {
+    "prefix": "### "
+  },
+  "h4": {
+    "prefix": "#### "
+  },
+  "h5": {
+    "prefix": "##### "
+  },
+  "h6": {
+    "prefix": "###### "
+  },
+  "text": {},
+  "list": {
+    "level_indent": 4
+  },
+  "item": {
+    "block_prefix": "- "
+  },
+  "enumeration": {
+    "block_prefix": ". "
+  },
+  "link_text": {},
+  "link": {},
+  "image_text": {
+    "format": "Image: {{.text}} => "
+  },
+  "image": {},
+  "code": {
+    "block_prefix": "`",
+    "block_suffix": "`"
+  },
+  "code_block": {},
+  "table": {},
+  "strikethrough": {
+    "block_prefix": "~~",
+    "block_suffix": "~~"
+  },
+  "emph": {
+    "block_prefix": "*",
+    "block_suffix": "*"
+  },
+  "strong": {
+    "block_prefix": "**",
+    "block_suffix": "**"
+  },
+  "hr": {
+    "format": "\n--------\n"
+  },
+  "block_quote": {
+    "block_prefix": "> "
+  },
+  "definition_list": {},
+  "definition_term": {},
+  "definition_description": {
+    "block_prefix": "\n: "
+  },
+  "html_block": {},
+  "html_span": {}
+}
