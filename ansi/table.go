@@ -3,6 +3,8 @@ package ansi
 import (
 	"io"
 
+	"github.com/muesli/reflow/ansi"
+	"github.com/muesli/reflow/indent"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -27,22 +29,22 @@ type TableCellElement struct {
 func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 
-	var indent uint
+	var indentation uint
 	var margin uint
 	rules := ctx.options.Styles.Table
 	if rules.Indent != nil {
-		indent = *rules.Indent
+		indentation = *rules.Indent
 	}
 	if rules.Margin != nil {
 		margin = *rules.Margin
 	}
 
-	ctx.table.indentWriter = &IndentWriter{
-		Indent: indent + margin,
+	ctx.table.indentWriter = &indent.Writer{
+		Indent: indentation + margin,
 		IndentFunc: func(wr io.Writer) {
 			renderText(w, bs.Current().Style.StylePrimitive, " ")
 		},
-		Forward: &AnsiWriter{
+		Forward: &ansi.Writer{
 			Forward: w,
 		},
 	}

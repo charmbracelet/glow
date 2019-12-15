@@ -2,41 +2,45 @@ package ansi
 
 import (
 	"io"
+
+	"github.com/muesli/reflow/ansi"
+	"github.com/muesli/reflow/indent"
+	"github.com/muesli/reflow/padding"
 )
 
 type MarginWriter struct {
 	w  io.Writer
-	pw *PaddingWriter
-	iw *IndentWriter
+	pw *padding.Writer
+	iw *indent.Writer
 }
 
 func NewMarginWriter(ctx RenderContext, w io.Writer, rules StyleBlock) *MarginWriter {
 	bs := ctx.blockStack
 
-	var indent uint
+	var indentation uint
 	var margin uint
 	if rules.Indent != nil {
-		indent = *rules.Indent
+		indentation = *rules.Indent
 	}
 	if rules.Margin != nil {
 		margin = *rules.Margin
 	}
 
-	pw := &PaddingWriter{
+	pw := &padding.Writer{
 		Padding: bs.Width(ctx),
 		PadFunc: func(wr io.Writer) {
 			renderText(w, rules.StylePrimitive, " ")
 		},
-		Forward: &AnsiWriter{
+		Forward: &ansi.Writer{
 			Forward: w,
 		},
 	}
-	iw := &IndentWriter{
-		Indent: indent + margin,
+	iw := &indent.Writer{
+		Indent: indentation + margin,
 		IndentFunc: func(wr io.Writer) {
 			renderText(w, bs.Parent().Style.StylePrimitive, " ")
 		},
-		Forward: &AnsiWriter{
+		Forward: &ansi.Writer{
 			Forward: pw,
 		},
 	}

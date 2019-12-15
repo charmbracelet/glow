@@ -6,6 +6,8 @@ import (
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/quick"
 	"github.com/alecthomas/chroma/styles"
+	"github.com/muesli/reflow/ansi"
+	"github.com/muesli/reflow/indent"
 )
 
 type CodeBlockElement struct {
@@ -50,11 +52,11 @@ func chromaStyle(style StylePrimitive) string {
 func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 	bs := ctx.blockStack
 
-	var indent uint
+	var indentation uint
 	var margin uint
 	rules := ctx.options.Styles.CodeBlock
 	if rules.Indent != nil {
-		indent = *rules.Indent
+		indentation = *rules.Indent
 	}
 	if rules.Margin != nil {
 		margin = *rules.Margin
@@ -96,12 +98,12 @@ func (e *CodeBlockElement) Render(w io.Writer, ctx RenderContext) error {
 			chroma.Background:          chromaStyle(rules.Chroma.Background),
 		}))
 
-	iw := &IndentWriter{
-		Indent: indent + margin,
+	iw := &indent.Writer{
+		Indent: indentation + margin,
 		IndentFunc: func(wr io.Writer) {
 			renderText(w, bs.Current().Style.StylePrimitive, " ")
 		},
-		Forward: &AnsiWriter{
+		Forward: &ansi.Writer{
 			Forward: w,
 		},
 	}
