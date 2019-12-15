@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	examplesDir = "../styles/examples/"
 	generate    = false
+	examplesDir = "../styles/examples/"
 )
 
 func TestRenderer(t *testing.T) {
@@ -29,7 +29,7 @@ func TestRenderer(t *testing.T) {
 	for _, f := range files {
 		bn := strings.TrimSuffix(filepath.Base(f), ".md")
 		sn := filepath.Join(examplesDir, bn+".style")
-		tn := filepath.Join(examplesDir, bn+".test")
+		tn := filepath.Join("../testdata", bn+".test")
 
 		in, err := ioutil.ReadFile(f)
 		if err != nil {
