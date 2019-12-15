@@ -61,6 +61,30 @@
     "underline": true,
     "color": "205"
   },
+  "table": {},
+  "strikethrough": {
+    "crossed_out": true
+  },
+  "emph": {
+    "italic": true
+  },
+  "strong": {
+    "bold": true
+  },
+  "hr": {
+    "format": "\n--------\n",
+    "color": "240"
+  },
+  "block_quote": {
+    "block_prefix": "> "
+  },
+  "definition_list": {},
+  "definition_term": {},
+  "definition_description": {
+    "block_prefix": "\n🠶 "
+  },
+  "html_block": {},
+  "html_span": {},
   "code": {
     "prefix": " ",
     "suffix": " ",
@@ -167,29 +191,5 @@
         "background_color": "#373737"
       }
     }
-  },
-  "table": {},
-  "strikethrough": {
-    "crossed_out": true
-  },
-  "emph": {
-    "italic": true
-  },
-  "strong": {
-    "bold": true
-  },
-  "hr": {
-    "format": "\n--------\n",
-    "color": "240"
-  },
-  "block_quote": {
-    "block_prefix": "> "
-  },
-  "definition_list": {},
-  "definition_term": {},
-  "definition_description": {
-    "block_prefix": "\n🠶 "
-  },
-  "html_block": {},
-  "html_span": {}
+  }
 }
