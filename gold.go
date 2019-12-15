@@ -19,7 +19,9 @@ import (
 )
 
 type TermRenderer struct {
-	md goldmark.Markdown
+	md        goldmark.Markdown
+	buf       bytes.Buffer
+	renderBuf bytes.Buffer
 }
 
 // Render initializes a new TermRenderer and renders a markdown with a specific
@@ -79,6 +81,24 @@ func NewTermRendererFromBytes(b []byte, options ansi.Options) (*TermRenderer, er
 	return &TermRenderer{
 		md: md,
 	}, nil
+}
+
+func (tr *TermRenderer) Read(b []byte) (int, error) {
+	return tr.renderBuf.Read(b)
+}
+
+func (tr *TermRenderer) Write(b []byte) (int, error) {
+	return tr.buf.Write(b)
+}
+
+func (tr *TermRenderer) Close() error {
+	err := tr.md.Convert(tr.buf.Bytes(), &tr.renderBuf)
+	if err != nil {
+		return err
+	}
+
+	tr.buf.Reset()
+	return nil
 }
 
 // Render returns the markdown rendered into a string.
