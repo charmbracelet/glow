@@ -26,8 +26,9 @@ type TermRenderer struct {
 
 // Render initializes a new TermRenderer and renders a markdown with a specific
 // style.
-func Render(in string, stylePath string) ([]byte, error) {
-	return RenderBytes([]byte(in), stylePath)
+func Render(in string, stylePath string) (string, error) {
+	b, err := RenderBytes([]byte(in), stylePath)
+	return string(b), err
 }
 
 // RenderBytes initializes a new TermRenderer and renders a markdown with a
