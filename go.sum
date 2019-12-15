@@ -54,8 +54,8 @@ github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrk
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
-github.com/muesli/reflow v0.0.0-20191205210016-363f169defe8 h1:oxAi+9SI2+btEmUX6WttiY4n5wjH79Jy88SgVrcnlCw=
-github.com/muesli/reflow v0.0.0-20191205210016-363f169defe8/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
+github.com/muesli/reflow v0.0.0-20191215022747-2d83db2ad290 h1:efDGgE60hqLHC7iOwagZe9RrNz/TdFKW74iCD/qylbs=
+github.com/muesli/reflow v0.0.0-20191215022747-2d83db2ad290/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
 github.com/nkovacs/streamquote v0.0.0-20170412213628-49af9bddb229/go.mod h1:0aYXnNPJ8l7uZxf45rWW1a/uME32OF0rhiYGNQ2oF2E=
 github.com/olekukonko/tablewriter v0.0.3 h1:i0LBnzgiChAWHJYTQAZJDOgf8MNxAVYZJ2m63SIDimI=
 github.com/olekukonko/tablewriter v0.0.3/go.mod h1:YZeBtGzYYEsCHp2LST/u/0NDwGkRoBtmn1cIWCJiS6M=

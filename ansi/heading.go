@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/muesli/reflow"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 type HeadingElement struct {
@@ -69,7 +69,7 @@ func (e *HeadingElement) Finish(w io.Writer, ctx RenderContext) error {
 		},
 	}
 
-	flow := reflow.NewReflow(int(bs.Width(ctx) - indent - margin*2))
+	flow := wordwrap.NewWriter(int(bs.Width(ctx) - indent - margin*2))
 	_, err := flow.Write(bs.Current().Block.Bytes())
 	if err != nil {
 		return err

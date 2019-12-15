@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/muesli/reflow"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 type BlockElement struct {
@@ -29,7 +29,7 @@ func (e *BlockElement) Finish(w io.Writer, ctx RenderContext) error {
 	if e.Margin {
 		mw := NewMarginWriter(ctx, w, bs.Current().Style)
 		_, err := mw.Write(
-			reflow.Bytes(bs.Current().Block.Bytes(), int(bs.Width(ctx))))
+			wordwrap.Bytes(bs.Current().Block.Bytes(), int(bs.Width(ctx))))
 		if err != nil {
 			return err
 		}

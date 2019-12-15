@@ -9,7 +9,7 @@ require (
 	github.com/mattn/go-isatty v0.0.10
 	github.com/mattn/go-runewidth v0.0.7
 	github.com/microcosm-cc/bluemonday v1.0.2
-	github.com/muesli/reflow v0.0.0-20191205210016-363f169defe8
+	github.com/muesli/reflow v0.0.0-20191215022747-2d83db2ad290
 	github.com/olekukonko/tablewriter v0.0.3
 	github.com/rakyll/statik v0.1.6
 	github.com/spf13/cobra v0.0.5

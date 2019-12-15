@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/muesli/reflow"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 type ParagraphElement struct {
@@ -33,7 +33,7 @@ func (e *ParagraphElement) Finish(w io.Writer, ctx RenderContext) error {
 
 	mw := NewMarginWriter(ctx, w, rules)
 	if len(strings.TrimSpace(bs.Current().Block.String())) > 0 {
-		flow := reflow.NewReflow(int(bs.Width(ctx)))
+		flow := wordwrap.NewWriter(int(bs.Width(ctx)))
 		flow.KeepNewlines = false
 		_, _ = flow.Write(bs.Current().Block.Bytes())
 		flow.Close()
