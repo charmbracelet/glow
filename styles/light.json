@@ -128,9 +128,6 @@
       "punctuation": {
         "color": "#FA7878"
       },
-      "name": {
-        "color": "#212121"
-      },
       "name_builtin": {
         "color": "#0A1BB1"
       },
@@ -151,17 +148,8 @@
       "name_decorator": {
         "color": "#A3A322"
       },
-      "name_exception": {
-        "color": "#212121"
-      },
       "name_function": {
         "color": "#019F57"
-      },
-      "name_other": {
-        "color": "#212121"
-      },
-      "literal": {
-        "color": "#212121"
       },
       "literal_number": {
         "color": "#22CCAE"

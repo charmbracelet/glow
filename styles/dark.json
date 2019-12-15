@@ -150,23 +150,11 @@
         "bold": true,
         "underline": true
       },
-      "name_constant": {
-        "color": "#CCCCCC"
-      },
       "name_decorator": {
         "color": "#FFFF87"
       },
-      "name_exception": {
-        "color": "#CCCCCC"
-      },
       "name_function": {
         "color": "#00D787"
-      },
-      "name_other": {
-        "color": "#CCCCCC"
-      },
-      "literal": {
-        "color": "#C4C4C4"
       },
       "literal_number": {
         "color": "#6EEFC0"
