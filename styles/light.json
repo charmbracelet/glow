@@ -94,7 +94,6 @@
   "code_block": {
     "margin": 4,
     "color": "240",
-    "theme": "charm",
     "background_color": "#373737",
     "chroma": {
       "text": {
