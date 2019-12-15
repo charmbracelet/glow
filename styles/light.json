@@ -54,7 +54,7 @@
     "color": "36"
   },
   "image_text": {
-    "format": "Image: {{.text}} 🡆 ",
+    "format": "Image: {{.text}} → ",
     "color": "243"
   },
   "image": {
