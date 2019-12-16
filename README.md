@@ -4,10 +4,10 @@ Render markdown on the CLI, with _pizzazz_!
 
 ## What is it?
 
-A Go library that lets you to use JSON-based stylesheets to
-render Markdown files in the terminal. Just like CSS, you can define color and
-style attributes on Markdown elements. The difference is that you use ANSI
-color and terminal codes instead of CSS properties and hex colors.
+A Go library that lets you use JSON-based stylesheets to render Markdown files
+in the terminal. Just like CSS, you can define color and style attributes on
+Markdown elements. The difference is that you use ANSI color and terminal codes
+instead of CSS properties and hex colors.
 
 Available as a library and on the CLI.
 
@@ -35,4 +35,4 @@ statik -f -src styles -include "*.json"
 ```
 
 You can re-generate screenshots of all available styles running `gallery.sh`.
-This requires `termshot` and `pngcrush` installed on your system!
+This requires `termshot`, `convert` and `pngcrush` installed on your system!
