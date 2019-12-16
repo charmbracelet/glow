@@ -1,6 +1,12 @@
-# Gold
+# Gold, the CLI
 
 Render markdown on the CLI, with _pizzazz_!
+
+## Installation
+
+### Go
+
+    go get github.com/charmbracelet/gold/cmd/gold
 
 ## Usage
 
