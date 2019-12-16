@@ -1,14 +1,13 @@
 {
   "document": {
-    "indent": 4,
-    "block_prefix": "\n\n",
-    "block_suffix": "\n\n"
+    "indent": 2,
+    "block_prefix": "\n",
+    "block_suffix": "\n"
   },
   "heading": {
     "block_suffix": "\n"
   },
   "h1": {
-    "block_suffix": "\n\n",
     "prefix": "# "
   },
   "h2": {
@@ -40,17 +39,14 @@
   "link_text": {},
   "link": {},
   "image_text": {
-    "format": "Image: {{.text}} 🡆 "
+    "format": "Image: {{.text}} -> "
   },
   "image": {},
-  "code": {
-    "block_prefix": "`",
-    "block_suffix": "`"
-  },
-  "code_block": {
-    "margin": 4
-  },
   "table": {},
+  "task": {
+    "unticked": "[ ] ",
+    "ticked": "[x] "
+  },
   "strikethrough": {
     "block_prefix": "~~",
     "block_suffix": "~~"
@@ -75,5 +71,12 @@
     "block_prefix": "\n🠶 "
   },
   "html_block": {},
-  "html_span": {}
+  "html_span": {},
+  "code": {
+    "block_prefix": "`",
+    "block_suffix": "`"
+  },
+  "code_block": {
+    "margin": 2
+  }
 }
