@@ -60,7 +60,11 @@
     "underline": true,
     "color": "205"
   },
-  "table": {},
+  "table": {
+    "center_separator": "┼",
+    "column_separator": "│",
+    "row_separator": "─"
+  },
   "task": {
     "unticked": "✗ ",
     "ticked": "✓ "
