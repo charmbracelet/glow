@@ -9,10 +9,10 @@ import (
 )
 
 type TableElement struct {
-	writer       *tablewriter.Table
-	indentWriter io.Writer
-	header       []string
-	cell         []string
+	writer      *tablewriter.Table
+	styleWriter *StyleWriter
+	header      []string
+	cell        []string
 }
 
 type TableRowElement struct {
@@ -39,7 +39,7 @@ func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 		margin = *rules.Margin
 	}
 
-	ctx.table.indentWriter = &indent.Writer{
+	iw := &indent.Writer{
 		Indent: indentation + margin,
 		IndentFunc: func(wr io.Writer) {
 			renderText(w, bs.Current().Style.StylePrimitive, " ")
@@ -49,8 +49,11 @@ func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 		},
 	}
 
-	renderText(ctx.table.indentWriter, bs.Current().Style.StylePrimitive, rules.BlockPrefix)
-	ctx.table.writer = tablewriter.NewWriter(ctx.table.indentWriter)
+	ctx.table.styleWriter = NewStyleWriter(ctx, iw, rules.StylePrimitive)
+
+	renderText(w, bs.Current().Style.StylePrimitive, rules.BlockPrefix)
+	renderText(ctx.table.styleWriter, rules.StylePrimitive, rules.Prefix)
+	ctx.table.writer = tablewriter.NewWriter(ctx.table.styleWriter)
 	return nil
 }
 
@@ -59,8 +62,9 @@ func (e *TableElement) Finish(w io.Writer, ctx RenderContext) error {
 	ctx.table.writer = nil
 
 	rules := ctx.options.Styles.Table
-	renderText(ctx.table.indentWriter, ctx.blockStack.Current().Style.StylePrimitive, rules.BlockSuffix)
-	return nil
+	renderText(ctx.table.styleWriter, rules.StylePrimitive, rules.Suffix)
+	renderText(ctx.table.styleWriter, ctx.blockStack.Current().Style.StylePrimitive, rules.BlockSuffix)
+	return ctx.table.styleWriter.Close()
 }
 
 func (e *TableRowElement) Finish(w io.Writer, ctx RenderContext) error {
