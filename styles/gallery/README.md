@@ -14,6 +14,8 @@
 
 ## NoTTY
 
+Pronounced _naughty_.
+
 `gold -s notty`
 
 ![Gold NoTTY Style](https://github.com/charmbracelet/gold/raw/master/styles/gallery/notty.png)
