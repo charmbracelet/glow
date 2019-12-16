@@ -6,7 +6,7 @@ Render markdown on the CLI, with _pizzazz_!
 
 ### Go
 
-    go get github.com/charmbracelet/gold
+    go get github.com/charmbracelet/gold/cmd/gold
 
 ## Usage
 
