@@ -38,7 +38,7 @@ type StyleBlock struct {
 type StyleCodeBlock struct {
 	StyleBlock
 	Theme  string `json:"theme"`
-	Chroma struct {
+	Chroma *struct {
 		Text                StylePrimitive `json:"text"`
 		Error               StylePrimitive `json:"error"`
 		Comment             StylePrimitive `json:"comment"`
