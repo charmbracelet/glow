@@ -78,6 +78,13 @@ type StyleList struct {
 	LevelIndent uint `json:"level_indent"`
 }
 
+type StyleTable struct {
+	StyleBlock
+	CenterSeparator *string `json:"center_separator"`
+	ColumnSeparator *string `json:"column_separator"`
+	RowSeparator    *string `json:"row_separator"`
+}
+
 type StyleConfig struct {
 	Document   StyleBlock `json:"document"`
 	BlockQuote StyleBlock `json:"block_quote"`
@@ -111,7 +118,7 @@ type StyleConfig struct {
 	Code      StyleBlock     `json:"code"`
 	CodeBlock StyleCodeBlock `json:"code_block"`
 
-	Table StyleBlock `json:"table"`
+	Table StyleTable `json:"table"`
 
 	DefinitionList        StyleBlock     `json:"definition_list"`
 	DefinitionTerm        StylePrimitive `json:"definition_term"`

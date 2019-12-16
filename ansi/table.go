@@ -58,10 +58,22 @@ func (e *TableElement) Render(w io.Writer, ctx RenderContext) error {
 }
 
 func (e *TableElement) Finish(w io.Writer, ctx RenderContext) error {
+	rules := ctx.options.Styles.Table
+
+	ctx.table.writer.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
+	if rules.CenterSeparator != nil {
+		ctx.table.writer.SetCenterSeparator(*rules.CenterSeparator)
+	}
+	if rules.ColumnSeparator != nil {
+		ctx.table.writer.SetColumnSeparator(*rules.ColumnSeparator)
+	}
+	if rules.RowSeparator != nil {
+		ctx.table.writer.SetRowSeparator(*rules.RowSeparator)
+	}
+
 	ctx.table.writer.Render()
 	ctx.table.writer = nil
 
-	rules := ctx.options.Styles.Table
 	renderText(ctx.table.styleWriter, rules.StylePrimitive, rules.Suffix)
 	renderText(ctx.table.styleWriter, ctx.blockStack.Current().Style.StylePrimitive, rules.BlockSuffix)
 	return ctx.table.styleWriter.Close()
