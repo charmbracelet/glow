@@ -3,6 +3,7 @@ package gold
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -61,7 +62,8 @@ func NewTermRenderer(stylePath string, options ansi.Options) (*TermRenderer, err
 func NewTermRendererFromBytes(b []byte, options ansi.Options) (*TermRenderer, error) {
 	err := json.Unmarshal(b, &options.Styles)
 	if err != nil {
-		return nil, err
+		// FIXME: wrap error once we depend on Go 1.13
+		return nil, fmt.Errorf("loading style: %v", err)
 	}
 
 	md := goldmark.New(
@@ -117,9 +119,8 @@ func (tr *TermRenderer) RenderBytes(in []byte) ([]byte, error) {
 
 func loadStyle(f string) ([]byte, error) {
 	var r io.ReadCloser
-	var err error
 
-	r, err = os.Open(f)
+	r, err := os.Open(f)
 	if err != nil {
 		statikFS, err := fs.New()
 		if err != nil {
@@ -128,7 +129,8 @@ func loadStyle(f string) ([]byte, error) {
 
 		r, err = statikFS.Open("/" + f + ".json")
 		if err != nil {
-			return nil, err
+			// FIXME: wrap error once we depend on Go 1.13
+			return nil, fmt.Errorf("loading style %s: %v", f, err)
 		}
 	}
 
