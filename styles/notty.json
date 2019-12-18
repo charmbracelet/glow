@@ -48,8 +48,8 @@
     "row_separator": "─"
   },
   "task": {
-    "unticked": "[ ] ",
-    "ticked": "[x] "
+    "unticked": "✗ ",
+    "ticked": "✓ "
   },
   "strikethrough": {
     "block_prefix": "~~",
