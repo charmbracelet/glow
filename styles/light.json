@@ -83,7 +83,7 @@
   },
   "block_quote": {
     "indent": 1,
-    "indent_token": "> "
+    "indent_token": "│ "
   },
   "definition_list": {},
   "definition_term": {},
