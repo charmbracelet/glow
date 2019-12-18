@@ -63,7 +63,7 @@ func NewTermRendererFromBytes(b []byte, options ansi.Options) (*TermRenderer, er
 	err := json.Unmarshal(b, &options.Styles)
 	if err != nil {
 		// FIXME: wrap error once we depend on Go 1.13
-		return nil, fmt.Errorf("loading style: %v", err)
+		return nil, fmt.Errorf("parsing style: %v", err)
 	}
 
 	md := goldmark.New(
