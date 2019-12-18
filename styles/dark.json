@@ -84,7 +84,8 @@
     "color": "240"
   },
   "block_quote": {
-    "block_prefix": "> "
+    "indent": 1,
+    "indent_token": "> "
   },
   "definition_list": {},
   "definition_term": {},
