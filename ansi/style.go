@@ -31,8 +31,9 @@ type StyleTask struct {
 
 type StyleBlock struct {
 	StylePrimitive
-	Indent *uint `json:"indent"`
-	Margin *uint `json:"margin"`
+	Indent      *uint   `json:"indent"`
+	IndentToken *string `json:"indent_token"`
+	Margin      *uint   `json:"margin"`
 }
 
 type StyleCodeBlock struct {

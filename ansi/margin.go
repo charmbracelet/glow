@@ -35,10 +35,15 @@ func NewMarginWriter(ctx RenderContext, w io.Writer, rules StyleBlock) *MarginWr
 			Forward: w,
 		},
 	}
+
+	ic := " "
+	if rules.IndentToken != nil {
+		ic = *rules.IndentToken
+	}
 	iw := &indent.Writer{
 		Indent: indentation + margin,
 		IndentFunc: func(wr io.Writer) {
-			renderText(w, bs.Parent().Style.StylePrimitive, " ")
+			renderText(w, bs.Parent().Style.StylePrimitive, ic)
 		},
 		Forward: &ansi.Writer{
 			Forward: pw,
