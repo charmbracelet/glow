@@ -12,6 +12,7 @@ elements support the following style settings:
 | prefix           | string | Printed before the block's first element                     |
 | suffix           | string | Printed after the block's last element                       |
 | indent           | number | Specifies the indentation of the block                       |
+| indent_token     | string | Specifies the indentation format                             |
 | margin           | number | Specifies the margin around the block                        |
 | color            | color  | Defines the default text color for the block                 |
 | background_color | color  | Defines the default background color for the block           |
@@ -131,7 +132,8 @@ Style:
 
 ```json
 "block_quote": {
-    "color": "200"
+    "indent": 1,
+    "indent_token": "> "
 }
 ```
 
