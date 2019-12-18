@@ -132,8 +132,9 @@ Style:
 
 ```json
 "block_quote": {
+    "color": "200",
     "indent": 1,
-    "indent_token": "> "
+    "indent_token": "=> "
 }
 ```
 
