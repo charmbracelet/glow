@@ -2,6 +2,8 @@
 
 Render markdown on the CLI, with _pizzazz_!
 
+![Glamour Dark Style](https://github.com/charmbracelet/gold/raw/master/example.png)
+
 
 ## Installation
 
@@ -77,18 +79,13 @@ gold --help
 ```
 
 
-## Example Output
-
-![Glamour Dark Style](https://github.com/charmbracelet/gold/raw/master/example.png)
-
-
 ## Authors
 
 * [Christian Muehlhaeuser](https://github.com/muesli)
 * [Toby Padilla](https://github.com/toby)
 * [Christian Rocha](https://github.com/meowgorithm)
 
-Part of [Charm](https://charm.sh). For more info see: `ssh charm.sh`
+Part of [Charm](https://charm.sh). For more info see `ssh charm.sh`
 
 
 ## License
