@@ -13,8 +13,8 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 
-	"github.com/charmbracelet/gold"
-	"github.com/charmbracelet/gold/ansi"
+	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glamour/ansi"
 )
 
 var (
@@ -127,7 +127,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		u.Path = filepath.Dir(u.Path)
 	}
 
-	r, err := gold.NewTermRenderer(style, ansi.Options{
+	r, err := glamour.NewTermRenderer(style, ansi.Options{
 		BaseURL:  u.String() + "/",
 		WordWrap: int(width),
 	})
