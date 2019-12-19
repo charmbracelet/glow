@@ -4,10 +4,8 @@ Render markdown on the CLI, with _pizzazz_!
 
 ## Installation
 
-### Go
-
 ```console
-go get github.com/charmbracelet/gold/cmd/gold
+go get github.com/charmbracelet/gold
 ```
 
 ## Usage
@@ -53,12 +51,12 @@ Alternatively you can also supply a custom JSON stylesheet:
 gold -s mystyle.json
 ```
 
-Check out the [Gold Style Gallery](https://github.com/charmbracelet/gold/blob/master/styles/gallery/README.md)
+Check out the [Glamour Style Gallery](https://github.com/charmbracelet/glamour/blob/master/styles/gallery/README.md)
 to find more available styles!
 
 ## Example Output
 
-![Gold Dark Style](https://github.com/charmbracelet/gold/raw/master/styles/gallery/dark.png)
+![Glamour Dark Style](https://github.com/charmbracelet/glamour/raw/master/styles/gallery/dark.png)
 
 ## Colors
 
