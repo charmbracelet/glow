@@ -36,6 +36,19 @@ nfpm:
     - deb
     - rpm
   bindir: /usr/bin
+brews:
+  -
+    ids:
+      - glow
+    github:
+      owner: charmbracelet
+      name: homebrew-tap
+    commit_author:
+      name: "Christian Muehlhaeuser"
+      email: "muesli@gmail.com"
+    homepage: "https://charm.sh/"
+    description: "Render markdown on the CLI"
+    # skip_upload: true
 sign:
   artifacts: checksum
 archives:
