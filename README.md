@@ -1,8 +1,8 @@
-# Gold
+# Glow
 
 Render markdown on the CLI, with _pizzazz_!
 
-![Glamour Dark Style](https://github.com/charmbracelet/gold/raw/master/example.png)
+![Glamour Dark Style](https://github.com/charmbracelet/glow/raw/master/example.png)
 
 
 ## Installation
@@ -11,16 +11,16 @@ Use your fave package manager:
 
 ```bash
 # MacOS
-brew install gold
+brew install glow
 
 # Arch Linux (btw)
-pacman -S gold
+yay -S glow
 ```
 
 Or just use `go get`:
 
 ```bash
-go get github.com/charmbracelet/gold
+go get github.com/charmbracelet/glow
 ```
 
 
@@ -30,19 +30,19 @@ Use a markdown source as the primary argument:
 
 ```bash
 # Read from file
-gold README.md
+glow README.md
 
 # Read from stdin
-gold -
+glow -
 
 # Fetch README from GitHub
-gold github.com/charmbracelet/gold
+glow github.com/charmbracelet/glow
 
 # Fetch markdown from HTTP
-gold https://host.tld/file.md
+glow https://host.tld/file.md
 ```
 
-When `gold` is started without a markdown source, it will try to find a
+When `glow` is started without a markdown source, it will try to find a
 `README.md` or `README` file in the current working directory.
 
 ### Word Wrapping
@@ -50,7 +50,7 @@ When `gold` is started without a markdown source, it will try to find a
 The `-w` flag lets you set a maximum width at which the output will be wrapped:
 
 ```bash
-gold -w 60
+glow -w 60
 ```
 
 ### Styles
@@ -58,13 +58,13 @@ gold -w 60
 You can choose a style with the `-s` flag (`dark` being the default):
 
 ```bash
-gold -s [dark|light]
+glow -s [dark|light]
 ```
 
 Alternatively you can also supply a custom JSON stylesheet:
 
 ```bash
-gold -s mystyle.json
+glow -s mystyle.json
 ```
 
 Check out the [Glamour Style Section](https://github.com/charmbracelet/glamour/blob/master/styles/gallery/README.md)
@@ -75,7 +75,7 @@ to find more styles. Or [make your own](https://github.com/charmbracelet/glamour
 For additional usage details see:
 
 ```bash
-gold --help
+glow --help
 ```
 
 
@@ -90,4 +90,4 @@ Part of [Charm](https://charm.sh). For more info see `ssh charm.sh`
 
 ## License
 
-[MIT](https://github.com/charmbracelet/gold/raw/master/LICENSE)
+[MIT](https://github.com/charmbracelet/glow/raw/master/LICENSE)

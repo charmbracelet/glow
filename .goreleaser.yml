@@ -5,7 +5,8 @@ before:
   - go mod download
 builds:
   -
-    binary: gold
+    id: "glow"
+    binary: glow
     ldflags: -s -w -X main.Version={{ .Version }} -X main.CommitSHA={{ .Commit }}
     goos:
       - linux

@@ -1,4 +1,4 @@
-module github.com/charmbracelet/gold
+module github.com/charmbracelet/glow
 
 go 1.13
 

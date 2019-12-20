@@ -26,7 +26,7 @@ var (
 	width       uint
 
 	rootCmd = &cobra.Command{
-		Use:           "gold SOURCE",
+		Use:           "glow SOURCE",
 		Short:         "Render markdown on the CLI, with pizzazz!",
 		SilenceErrors: false,
 		SilenceUsage:  false,
