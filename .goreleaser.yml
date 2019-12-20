@@ -26,6 +26,16 @@ builds:
       - goos: linux
         goarch: arm
         goarm: 7
+nfpm:
+  vendor: charmbracelet
+  homepage: "https://charm.sh/"
+  maintainer: "Christian Muehlhaeuser <muesli@gmail.com>"
+  description: "Render markdown on the CLI"
+  license: MIT
+  formats:
+    - deb
+    - rpm
+  bindir: /usr/bin
 sign:
   artifacts: checksum
 archives:
