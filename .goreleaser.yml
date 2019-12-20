@@ -27,6 +27,27 @@ builds:
       - darwin
     goarch:
       - amd64
+
+archives:
+  - id: default
+    builds:
+      - linux
+      - windows
+    format_overrides:
+      - goos: windows
+        format: zip
+    replacements:
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+  - id: darwin
+    builds:
+      - darwin
+    replacements:
+      darwin: Darwin
+      amd64: x86_64
+
 nfpm:
   vendor: charmbracelet
   homepage: "https://charm.sh/"
@@ -37,10 +58,10 @@ nfpm:
     - deb
     - rpm
   bindir: /usr/bin
+
 brews:
-  -
-    ids:
-      - darwin
+  - ids:
+    - darwin
     github:
       owner: charmbracelet
       name: homebrew-tap
@@ -50,19 +71,10 @@ brews:
     homepage: "https://charm.sh/"
     description: "Render markdown on the CLI"
     # skip_upload: true
+
 sign:
   artifacts: checksum
-archives:
-  -
-    format_overrides:
-      - goos: windows
-        format: zip
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
+
 checksum:
   name_template: 'checksums.txt'
 snapshot:
