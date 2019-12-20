@@ -10,7 +10,6 @@ builds:
     ldflags: -s -w -X main.Version={{ .Version }} -X main.CommitSHA={{ .Commit }}
     goos:
       - linux
-      - darwin
       - windows
     goarch:
       - amd64
@@ -20,12 +19,14 @@ builds:
     goarm:
       - 6
       - 7
-    ignore:
-      - goos: darwin
-        goarch: 386
-      - goos: linux
-        goarch: arm
-        goarm: 7
+  -
+    id: "darwin"
+    binary: "glow"
+    ldflags: -s -w -X main.Version={{ .Version }} -X main.CommitSHA={{ .Commit }}
+    goos:
+      - darwin
+    goarch:
+      - amd64
 nfpm:
   vendor: charmbracelet
   homepage: "https://charm.sh/"
@@ -39,7 +40,7 @@ nfpm:
 brews:
   -
     ids:
-      - glow
+      - darwin
     github:
       owner: charmbracelet
       name: homebrew-tap
