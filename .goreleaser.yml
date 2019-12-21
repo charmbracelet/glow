@@ -31,8 +31,7 @@ builds:
 archives:
   - id: default
     builds:
-      - linux
-      - windows
+      - glow
     format_overrides:
       - goos: windows
         format: zip
