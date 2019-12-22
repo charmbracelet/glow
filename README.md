@@ -11,17 +11,22 @@ Use your fave package manager:
 
 ```bash
 # MacOS
-brew install glow
+brew install charmbracelet/homebrew-tap/glow
 
 # Arch Linux (btw)
 yay -S glow
 ```
+
+Or download a binary from the [releases][] page. Windows, MacOS, and Linux
+(including ARM) binaries are available, as well as Debian and RPM packages.
 
 Or just use `go get`:
 
 ```bash
 go get github.com/charmbracelet/glow
 ```
+
+[releases]: https://github.com/charmbracelet/glow/releases
 
 
 ## Usage
