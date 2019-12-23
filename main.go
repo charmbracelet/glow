@@ -122,13 +122,15 @@ func execute(cmd *cobra.Command, args []string) error {
 		style = "notty"
 	}
 
+	var baseURL string
 	u, err := url.ParseRequestURI(src.URL)
 	if err == nil {
 		u.Path = filepath.Dir(u.Path)
+		baseURL = u.String() + "/"
 	}
 
 	r, err := glamour.NewTermRenderer(style, ansi.Options{
-		BaseURL:  u.String() + "/",
+		BaseURL:  baseURL,
 		WordWrap: int(width),
 	})
 	if err != nil {
