@@ -17,6 +17,9 @@ brew install charmbracelet/homebrew-tap/glow
 
 # Arch Linux (btw)
 yay -S glow
+
+# FreeBSD
+pkg install glow
 ```
 
 Or download a binary from the [releases][] page. Windows, MacOS, and Linux
