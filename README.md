@@ -1,5 +1,7 @@
 # Glow
 
+[![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://godoc.org/github.com/charmbracelet/glow) [![Build Status](https://travis-ci.org/charmbracelet/glow.svg?branch=master)](https://travis-ci.org/charmbracelet/glow) [![Go ReportCard](http://goreportcard.com/badge/charmbracelet/glow)](http://goreportcard.com/report/charmbracelet/glow)
+
 Render markdown on the CLI, with _pizzazz_!
 
 ![Glamour Dark Style](https://github.com/charmbracelet/glow/raw/master/example.png)
