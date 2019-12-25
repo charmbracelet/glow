@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
@@ -138,8 +139,21 @@ func execute(cmd *cobra.Command, args []string) error {
 	}
 
 	out, err := r.RenderBytes(b)
-	fmt.Printf("%s", string(out))
-	return err
+	if err != nil {
+		return err
+	}
+
+	lines := strings.Split(string(out), "\n")
+	for i, s := range lines {
+		fmt.Print(strings.TrimSpace(s))
+
+		// don't add an artifical newline after the last split
+		if i+1 < len(lines) {
+			fmt.Println()
+		}
+	}
+
+	return nil
 }
 
 func main() {
