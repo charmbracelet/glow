@@ -45,7 +45,7 @@ glow README.md
 # Read from stdin
 glow -
 
-# Fetch README from GitHub
+# Fetch README from GitHub / GitLab
 glow github.com/charmbracelet/glow
 
 # Fetch markdown from HTTP
