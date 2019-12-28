@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/ansi"
 )
 
 var (
@@ -130,10 +129,11 @@ func execute(cmd *cobra.Command, args []string) error {
 		baseURL = u.String() + "/"
 	}
 
-	r, err := glamour.NewTermRenderer(style, ansi.Options{
-		BaseURL:  baseURL,
-		WordWrap: int(width),
-	})
+	r, err := glamour.NewTermRenderer(
+		glamour.WithStylePath(style),
+		glamour.WithWordWrap(int(width)),
+		glamour.WithBaseURL(baseURL),
+	)
 	if err != nil {
 		return err
 	}
