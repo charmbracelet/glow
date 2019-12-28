@@ -10,6 +10,7 @@ builds:
     ldflags: -s -w -X main.Version={{ .Version }} -X main.CommitSHA={{ .Commit }}
     goos:
       - linux
+      - freebsd
       - windows
     goarch:
       - amd64
