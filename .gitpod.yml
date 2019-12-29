@@ -1,5 +1,4 @@
-image:
-  file: .gitpod.Dockerfile
+image: gitpod/workspace-full
 
 tasks:
   - init: go get github.com/charmbracelet/glow
