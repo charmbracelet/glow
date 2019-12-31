@@ -47,16 +47,20 @@ archives:
       darwin: Darwin
       amd64: x86_64
 
-nfpm:
-  vendor: charmbracelet
-  homepage: "https://charm.sh/"
-  maintainer: "Christian Muehlhaeuser <muesli@gmail.com>"
-  description: "Render markdown on the CLI"
-  license: MIT
-  formats:
-    - deb
-    - rpm
-  bindir: /usr/bin
+nfpms:
+  -
+    builds:
+    - glow
+
+    vendor: charmbracelet
+    homepage: "https://charm.sh/"
+    maintainer: "Christian Muehlhaeuser <muesli@gmail.com>"
+    description: "Render markdown on the CLI"
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
 
 brews:
   - ids:
@@ -71,8 +75,8 @@ brews:
     description: "Render markdown on the CLI"
     # skip_upload: true
 
-sign:
-  artifacts: checksum
+signs:
+  - artifacts: checksum
 
 checksum:
   name_template: 'checksums.txt'
