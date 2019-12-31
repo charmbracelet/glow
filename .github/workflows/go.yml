@@ -2,8 +2,7 @@ name: Go
 on: [push, pull_request]
 jobs:
 
-  build:
-    name: Build
+  ubuntu-ci:
     runs-on: ubuntu-latest
     steps:
 
@@ -13,8 +12,47 @@ jobs:
         go-version: 1.13
       id: go
 
-    - name: Check out code into the Go module directory
+    - name: Check out code
       uses: actions/checkout@v1
+
+    - name: Download Go modules
+      run: go mod download
+
+    - name: Build
+      run: go build -v .
+
+  macos-ci:
+    runs-on: macos-latest
+    steps:
+
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13.x
+
+    - name: Check out code
+      uses: actions/checkout@v1
+
+    - name: Download Go modules
+      run: go mod download
+
+    - name: Build
+      run: go build -v .
+
+  windows-ci:
+    runs-on: windows-latest
+    steps:
+
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13.x
+
+    - name: Check out code
+      uses: actions/checkout@v1
+
+    - name: Download Go modules
+      run: go mod download
 
     - name: Build
       run: go build -v .
