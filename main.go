@@ -147,7 +147,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	for i, s := range lines {
 		fmt.Print(strings.TrimSpace(s))
 
-		// don't add an artifical newline after the last split
+		// don't add an artificial newline after the last split
 		if i+1 < len(lines) {
 			fmt.Println()
 		}
