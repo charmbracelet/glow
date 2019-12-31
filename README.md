@@ -63,6 +63,11 @@ The `-w` flag lets you set a maximum width at which the output will be wrapped:
 glow -w 60
 ```
 
+### Paging
+
+The output can be displayed in the user's preferred pager with the `-p` flag.
+This defaults to the ANSI-aware `less -r` if `$PAGER` is not explicitly set.
+
 ### Styles
 
 You can choose a style with the `-s` flag (`dark` being the default):
