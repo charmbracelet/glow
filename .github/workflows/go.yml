@@ -18,10 +18,16 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Download Go modules
+      env:
+        GO111MODULE: "on"
       run: go mod download
 
     - name: Build
+      env:
+        GO111MODULE: "on"
       run: go build -v ./...
 
     - name: Test
+      env:
+        GO111MODULE: "on"
       run: go test ./...
