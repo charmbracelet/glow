@@ -1,58 +1,27 @@
 name: Go
 on: [push, pull_request]
 jobs:
-
-  ubuntu-ci:
-    runs-on: ubuntu-latest
+  test:
+    strategy:
+      matrix:
+        go-version: [1.11.x, 1.12.x, 1.13.x]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
     steps:
 
-    - name: Set up Go 1.13
+    - name: Install Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
-      id: go
+        go-version: ${{ matrix.go-version }}
 
-    - name: Check out code
+    - name: Checkout code
       uses: actions/checkout@v1
 
     - name: Download Go modules
       run: go mod download
 
     - name: Build
-      run: go build -v .
+      run: go build -v ./...
 
-  macos-ci:
-    runs-on: macos-latest
-    steps:
-
-    - name: Set up Go
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13.x
-
-    - name: Check out code
-      uses: actions/checkout@v1
-
-    - name: Download Go modules
-      run: go mod download
-
-    - name: Build
-      run: go build -v .
-
-  windows-ci:
-    runs-on: windows-latest
-    steps:
-
-    - name: Set up Go
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13.x
-
-    - name: Check out code
-      uses: actions/checkout@v1
-
-    - name: Download Go modules
-      run: go mod download
-
-    - name: Build
-      run: go build -v .
+    - name: Test
+      run: go test ./...
