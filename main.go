@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -22,6 +23,7 @@ var (
 	CommitSHA = ""
 
 	readmeNames = []string{"README.md", "README"}
+	pager       bool
 	style       string
 	width       uint
 
@@ -122,6 +124,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		style = "notty"
 	}
 
+	// render
 	var baseURL string
 	u, err := url.ParseRequestURI(src.URL)
 	if err == nil {
@@ -143,16 +146,33 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// trim lines
 	lines := strings.Split(string(out), "\n")
+	var content string
 	for i, s := range lines {
-		fmt.Print(strings.TrimSpace(s))
+		content += strings.TrimSpace(s)
 
 		// don't add an artificial newline after the last split
 		if i+1 < len(lines) {
-			fmt.Println()
+			content += "\n"
 		}
 	}
 
+	// display
+	if cmd.Flags().Changed("pager") {
+		pager := os.Getenv("PAGER")
+		if pager == "" {
+			pager = "less -r"
+		}
+
+		pa := strings.Split(pager, " ")
+		c := exec.Command(pa[0], pa[1:]...)
+		c.Stdin = strings.NewReader(content)
+		c.Stdout = os.Stdout
+		return c.Run()
+	}
+
+	fmt.Print(content)
 	return nil
 }
 
@@ -172,6 +192,7 @@ func init() {
 	}
 	rootCmd.Version = Version
 
+	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "dark", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 100, "word-wrap at width")
 }
