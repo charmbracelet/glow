@@ -92,6 +92,15 @@ func readerFromArg(s string) (*Source, error) {
 			}
 		}
 
+		filepath.Walk(s,
+			func(path string, info os.FileInfo, err error) error {
+			if strings.Contains(path, "README") {
+				fmt.Println(path)
+			}
+
+			return nil
+		})
+
 		return nil, errors.New("missing markdown source")
 	}
 
