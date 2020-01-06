@@ -4,7 +4,7 @@
 
 Render markdown on the CLI, with _pizzazz_!
 
-![Glamour Dark Style](https://github.com/charmbracelet/glow/raw/master/example.png)
+![Glow example output](https://github.com/charmbracelet/glow/raw/master/example.png)
 
 
 ## Installation
