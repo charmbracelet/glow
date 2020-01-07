@@ -25,6 +25,7 @@ var (
 	readmeNames = []string{"README.md", "README"}
 	pager       bool
 	style       string
+	walk		bool
 	width       uint
 
 	rootCmd = &cobra.Command{
@@ -41,7 +42,7 @@ type Source struct {
 	URL    string
 }
 
-func readerFromArg(s string) (*Source, error) {
+func readerFromArg(walkCmd bool, s string) (*Source, error) {
 	if s == "-" {
 		return &Source{reader: os.Stdin}, nil
 	}
@@ -80,6 +81,14 @@ func readerFromArg(s string) (*Source, error) {
 		}
 	}
 
+	// walk to root
+	if walkCmd {
+		rootDir, _ := exec.Command(`git`, []string{"-C", s, "rev-parse", "--show-toplevel", "--sq"}...).Output()
+
+		s = string(rootDir)
+		s = strings.TrimSpace(s) + "/"
+	}
+
 	// a valid file or directory:
 	st, err := os.Stat(s)
 	if len(s) == 0 || (err == nil && st.IsDir()) {
@@ -91,16 +100,6 @@ func readerFromArg(s string) (*Source, error) {
 				return &Source{r, u}, nil
 			}
 		}
-
-		filepath.Walk(s,
-			func(path string, info os.FileInfo, err error) error {
-			if strings.Contains(path, "README") {
-				fmt.Println(path)
-			}
-
-			return nil
-		})
-
 		return nil, errors.New("missing markdown source")
 	}
 
@@ -115,8 +114,10 @@ func execute(cmd *cobra.Command, args []string) error {
 		arg = args[0]
 	}
 
+	walk_cmd := cmd.Flags().Changed("walk")
+
 	// create an io.Reader from the markdown source in cli-args
-	src, err := readerFromArg(arg)
+	src, err := readerFromArg(walk_cmd, arg)
 	if err != nil {
 		return err
 	}
@@ -204,4 +205,5 @@ func init() {
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "dark", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 100, "word-wrap at width")
+	rootCmd.Flags().BoolVarP(&walk, "walk", "k", false, "navigate to root directory")
 }

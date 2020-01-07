@@ -4,7 +4,7 @@
 
 Render markdown on the CLI, with _pizzazz_!
 
-![Glamour Dark Style](https://github.com/charmbracelet/glow/raw/master/example.png)
+![Glow example output](https://github.com/charmbracelet/glow/raw/master/example.png)
 
 
 ## Installation
@@ -84,6 +84,18 @@ glow -s mystyle.json
 
 Check out the [Glamour Style Section](https://github.com/charmbracelet/glamour/blob/master/styles/gallery/README.md)
 to find more styles. Or [make your own](https://github.com/charmbracelet/glamour/tree/master/styles)!
+
+### Walk to Root
+
+You can walk back to the root directory looking for README and README.md files with the `-k` or `--walk` flag (`false` being the default):
+
+```bash
+glow --walk <path>
+```
+
+```bash
+glow -k <path>
+```
 
 ***
 
