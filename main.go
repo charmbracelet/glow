@@ -25,8 +25,8 @@ var (
 	readmeNames = []string{"README.md", "README"}
 	pager       bool
 	style       string
+	walk	    bool
 	width       uint
-	walk		bool
 
 	rootCmd = &cobra.Command{
 		Use:           "glow SOURCE",
