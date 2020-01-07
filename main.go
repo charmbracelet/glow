@@ -26,6 +26,7 @@ var (
 	pager       bool
 	style       string
 	width       uint
+	walk		bool
 
 	rootCmd = &cobra.Command{
 		Use:           "glow SOURCE",
@@ -41,7 +42,7 @@ type Source struct {
 	URL    string
 }
 
-func readerFromArg(s string) (*Source, error) {
+func readerFromArg(cmd *cobra.Command, s string) (*Source, error) {
 	if s == "-" {
 		return &Source{reader: os.Stdin}, nil
 	}
@@ -92,16 +93,21 @@ func readerFromArg(s string) (*Source, error) {
 			}
 		}
 
-		filepath.Walk(s,
-			func(path string, info os.FileInfo, err error) error {
-			if strings.Contains(path, "README") {
-				fmt.Println(path)
-			}
+		// walk directory
+		if cmd.Flags().Changed("walk") {
+			filepath.Walk(s,
+				func(path string, info os.FileInfo, err error) error {
+				if strings.Contains(path, "README") {
+					fmt.Println(path)
+				}
 
-			return nil
-		})
+				return nil
+			})
 
-		return nil, errors.New("missing markdown source")
+			fmt.Println("Info: possible markdown sources")
+		}
+
+		return nil, errors.New("missing markdown source in current directory")
 	}
 
 	r, err := os.Open(s)
@@ -116,7 +122,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	}
 
 	// create an io.Reader from the markdown source in cli-args
-	src, err := readerFromArg(arg)
+	src, err := readerFromArg(cmd, arg)
 	if err != nil {
 		return err
 	}
@@ -204,4 +210,5 @@ func init() {
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "dark", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 100, "word-wrap at width")
+	rootCmd.Flags().BoolVarP(&walk, "walk", "k", false, "find README file in directory")
 }
