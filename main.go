@@ -102,18 +102,18 @@ func readerFromArg(s string) (*Source, error) {
 
 func execute(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		return executeArg(cmd, "")
+		return executeArg(cmd, "", os.Stdout)
 	}
 
 	for _, arg := range args {
-		if err := executeArg(cmd, arg); err != nil {
+		if err := executeArg(cmd, arg, os.Stdout); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func executeArg(cmd *cobra.Command, arg string) error {
+func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	// create an io.Reader from the markdown source in cli-args
 	src, err := readerFromArg(arg)
 	if err != nil {
@@ -180,7 +180,7 @@ func executeArg(cmd *cobra.Command, arg string) error {
 		return c.Run()
 	}
 
-	fmt.Print(content)
+	fmt.Fprint(w, content)
 	return nil
 }
 
