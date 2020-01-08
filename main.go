@@ -101,6 +101,10 @@ func readerFromArg(s string) (*Source, error) {
 }
 
 func execute(cmd *cobra.Command, args []string) error {
+	if len(args) == 0 {
+		return executeArg(cmd, "")
+	}
+
 	for _, arg := range args {
 		if err := executeArg(cmd, arg); err != nil {
 			return err
