@@ -101,11 +101,15 @@ func readerFromArg(s string) (*Source, error) {
 }
 
 func execute(cmd *cobra.Command, args []string) error {
-	var arg string
-	if len(args) > 0 {
-		arg = args[0]
+	for _, arg := range args {
+		if err := executeArg(cmd, arg); err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
+func executeArg(cmd *cobra.Command, arg string) error {
 	// create an io.Reader from the markdown source in cli-args
 	src, err := readerFromArg(arg)
 	if err != nil {
