@@ -12,7 +12,10 @@ Render markdown on the CLI, with _pizzazz_!
 Use your fave package manager:
 
 ```bash
-# MacOS
+# macOS or Linux
+brew install glow
+
+# macOS
 brew install charmbracelet/homebrew-tap/glow
 
 # Arch Linux (btw)
