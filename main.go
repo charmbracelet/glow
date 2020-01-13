@@ -80,21 +80,37 @@ func readerFromArg(s string) (*Source, error) {
 		}
 	}
 
-	// a valid file or directory:
+	// a directory:
+	if len(s) == 0 {
+		// use the current working dir if no argument was supplied
+		s = "."
+	}
 	st, err := os.Stat(s)
-	if len(s) == 0 || (err == nil && st.IsDir()) {
-		for _, v := range readmeNames {
-			n := filepath.Join(s, v)
-			r, err := os.Open(n)
-			if err == nil {
-				u, _ := filepath.Abs(n)
-				return &Source{r, u}, nil
+	if err == nil && st.IsDir() {
+		var src *Source
+		_ = filepath.Walk(s, func(path string, info os.FileInfo, err error) error {
+			for _, v := range readmeNames {
+				if strings.EqualFold(filepath.Base(path), v) {
+					r, err := os.Open(path)
+					if err != nil {
+						continue
+					}
+
+					u, _ := filepath.Abs(path)
+					src = &Source{r, u}
+					return errors.New("source found")
+				}
 			}
+			return nil
+		})
+		if src != nil {
+			return src, nil
 		}
 
 		return nil, errors.New("missing markdown source")
 	}
 
+	// a file:
 	r, err := os.Open(s)
 	u, _ := filepath.Abs(s)
 	return &Source{r, u}, err
