@@ -18,6 +18,9 @@ brew install glow
 # Arch Linux (btw)
 yay -S glow
 
+# Nix
+nix-env -iA nixpkgs.glow
+
 # FreeBSD
 pkg install glow
 ```
@@ -100,8 +103,7 @@ glow --help
 * [Toby Padilla](https://github.com/toby)
 * [Christian Rocha](https://github.com/meowgorithm)
 
-Part of [Charm](https://charm.sh). For more info see `ssh charm.sh`
-
+Part of [Charm](https://charm.sh). For more info see `ssh charm.sh`. Charm热爱开源!
 
 ## License
 
