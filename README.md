@@ -73,7 +73,9 @@ This defaults to the ANSI-aware `less -r` if `$PAGER` is not explicitly set.
 
 ### Styles
 
-You can choose a style with the `-s` flag (`dark` being the default):
+You can choose a style with the `-s` flag. When no flag is provided `glow` tries
+to detect your terminal's current background color and automatically picks
+either the `dark` or the `light` style for you.
 
 ```bash
 glow -s [dark|light]

@@ -217,6 +217,6 @@ func init() {
 	rootCmd.Version = Version
 
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
-	rootCmd.Flags().StringVarP(&style, "style", "s", "dark", "style name or JSON path")
+	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 100, "word-wrap at width")
 }
