@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -15,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/ansi"
 )
 
 var (
@@ -23,6 +23,7 @@ var (
 	CommitSHA = ""
 
 	readmeNames = []string{"README.md", "README"}
+	pager       bool
 	style       string
 	width       uint
 
@@ -79,32 +80,56 @@ func readerFromArg(s string) (*Source, error) {
 		}
 	}
 
-	// a valid file or directory:
+	// a directory:
+	if len(s) == 0 {
+		// use the current working dir if no argument was supplied
+		s = "."
+	}
 	st, err := os.Stat(s)
-	if len(s) == 0 || (err == nil && st.IsDir()) {
-		for _, v := range readmeNames {
-			n := filepath.Join(s, v)
-			r, err := os.Open(n)
-			if err == nil {
-				u, _ := filepath.Abs(n)
-				return &Source{r, u}, nil
+	if err == nil && st.IsDir() {
+		var src *Source
+		_ = filepath.Walk(s, func(path string, info os.FileInfo, err error) error {
+			for _, v := range readmeNames {
+				if strings.EqualFold(filepath.Base(path), v) {
+					r, err := os.Open(path)
+					if err != nil {
+						continue
+					}
+
+					u, _ := filepath.Abs(path)
+					src = &Source{r, u}
+					return errors.New("source found")
+				}
 			}
+			return nil
+		})
+		if src != nil {
+			return src, nil
 		}
 
 		return nil, errors.New("missing markdown source")
 	}
 
+	// a file:
 	r, err := os.Open(s)
 	u, _ := filepath.Abs(s)
 	return &Source{r, u}, err
 }
 
 func execute(cmd *cobra.Command, args []string) error {
-	var arg string
-	if len(args) > 0 {
-		arg = args[0]
+	if len(args) == 0 {
+		return executeArg(cmd, "", os.Stdout)
 	}
 
+	for _, arg := range args {
+		if err := executeArg(cmd, arg, os.Stdout); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	// create an io.Reader from the markdown source in cli-args
 	src, err := readerFromArg(arg)
 	if err != nil {
@@ -123,6 +148,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		style = "notty"
 	}
 
+	// render
 	var baseURL string
 	u, err := url.ParseRequestURI(src.URL)
 	if err == nil {
@@ -130,10 +156,11 @@ func execute(cmd *cobra.Command, args []string) error {
 		baseURL = u.String() + "/"
 	}
 
-	r, err := glamour.NewTermRenderer(style, ansi.Options{
-		BaseURL:  baseURL,
-		WordWrap: int(width),
-	})
+	r, err := glamour.NewTermRenderer(
+		glamour.WithStylePath(style),
+		glamour.WithWordWrap(int(width)),
+		glamour.WithBaseURL(baseURL),
+	)
 	if err != nil {
 		return err
 	}
@@ -143,16 +170,33 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// trim lines
 	lines := strings.Split(string(out), "\n")
+	var content string
 	for i, s := range lines {
-		fmt.Print(strings.TrimSpace(s))
+		content += strings.TrimSpace(s)
 
-		// don't add an artifical newline after the last split
+		// don't add an artificial newline after the last split
 		if i+1 < len(lines) {
-			fmt.Println()
+			content += "\n"
 		}
 	}
 
+	// display
+	if cmd.Flags().Changed("pager") {
+		pager := os.Getenv("PAGER")
+		if pager == "" {
+			pager = "less -r"
+		}
+
+		pa := strings.Split(pager, " ")
+		c := exec.Command(pa[0], pa[1:]...)
+		c.Stdin = strings.NewReader(content)
+		c.Stdout = os.Stdout
+		return c.Run()
+	}
+
+	fmt.Fprint(w, content)
 	return nil
 }
 
@@ -172,6 +216,7 @@ func init() {
 	}
 	rootCmd.Version = Version
 
-	rootCmd.Flags().StringVarP(&style, "style", "s", "dark", "style name or JSON path")
+	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
+	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 100, "word-wrap at width")
 }
