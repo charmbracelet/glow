@@ -14,8 +14,8 @@ github.com/alecthomas/kong-hcl v0.1.8-0.20190615233001-b21fea9723c8/go.mod h1:MR
 github.com/alecthomas/repr v0.0.0-20180818092828-117648cd9897 h1:p9Sln00KOTlrYkxI1zYWl1QLnEqAqEARBEYa8FQnQcY=
 github.com/alecthomas/repr v0.0.0-20180818092828-117648cd9897/go.mod h1:xTS7Pm1pD1mvyM075QCDSRqH6qRLXylzS24ZTpRiSzQ=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
-github.com/charmbracelet/glamour v0.1.1-0.20200114010931-28cbdae8e7a9 h1:bFDASzHqTkOChp6d/vJTec7pezqw0htRcsZLF7wJRow=
-github.com/charmbracelet/glamour v0.1.1-0.20200114010931-28cbdae8e7a9/go.mod h1:o4qO9f0Hr86NartqrG8FLNZyNOB1I8r9hN8l8tPNzqw=
+github.com/charmbracelet/glamour v0.1.1-0.20200123183909-83d2d655c9a5 h1:/X7YRey5gylBEWLtTgJroGqiDrpAKvncpykj25WrECA=
+github.com/charmbracelet/glamour v0.1.1-0.20200123183909-83d2d655c9a5/go.mod h1:hCrjHciiwG2s01wOYnBQe+TTsp0vXTSmBhtjBiNrmTc=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
@@ -55,8 +55,8 @@ github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrk
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/muesli/reflow v0.0.0-20191216070243-e5efeac4e302 h1:jOh3Kh03uOFkRPV3PI4Am5tqACv2aELgbPgr7YgNX00=
 github.com/muesli/reflow v0.0.0-20191216070243-e5efeac4e302/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
-github.com/muesli/termenv v0.0.0-20200114005430-a7aeffd54956 h1:OZIYilqRi/+iIIY/9SfuRpZIujheG5Stml2tI1PpAkM=
-github.com/muesli/termenv v0.0.0-20200114005430-a7aeffd54956/go.mod h1:QAW21ZWi5eDIAoYsevV52sibdVVCl44P+TvI0C0VKEU=
+github.com/muesli/termenv v0.2.0 h1:ndm3eEL62aIpsrPlwLLUIFRvM5E/4mmAhtbAI1TaHGY=
+github.com/muesli/termenv v0.2.0/go.mod h1:w4z90GOtP0+Cqm08fVBQ1RlXtVQ9MyHrV/ZtQ3869SM=
 github.com/nkovacs/streamquote v0.0.0-20170412213628-49af9bddb229/go.mod h1:0aYXnNPJ8l7uZxf45rWW1a/uME32OF0rhiYGNQ2oF2E=
 github.com/olekukonko/tablewriter v0.0.4 h1:vHD/YYe1Wolo78koG299f7V/VAS08c6IpCLn+Ejf/w8=
 github.com/olekukonko/tablewriter v0.0.4/go.mod h1:zq6QwlOf5SlnkVbMSr5EoBv3636FWnp+qbPhuoO21uA=
