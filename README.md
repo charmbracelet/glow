@@ -18,6 +18,9 @@ brew install glow
 # Arch Linux (btw)
 yay -S glow
 
+# Void Linux
+xbps-install -S glow
+
 # Nix
 nix-env -iA nixpkgs.glow
 
