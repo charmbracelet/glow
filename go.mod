@@ -3,7 +3,7 @@ module github.com/charmbracelet/glow
 go 1.13
 
 require (
-	github.com/charmbracelet/glamour v0.1.1-0.20200131120649-7467d9e1a515
+	github.com/charmbracelet/glamour v0.1.1-0.20200228061743-9474015b7936
 	github.com/dlclark/regexp2 v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/spf13/cobra v0.0.5
