@@ -1,7 +1,7 @@
 # Glow
 
 [![Latest Release](https://img.shields.io/github/release/charmbracelet/glow.svg)](https://github.com/charmbracelet/glow/releases)
-[![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://godoc.org/github.com/charmbracelet/glow)
+[![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/charmbracelet/glow?tab=doc)
 [![Build Status](https://github.com/charmbracelet/glow/workflows/build/badge.svg)](https://github.com/charmbracelet/glow/actions)
 [![Go ReportCard](http://goreportcard.com/badge/charmbracelet/glow)](http://goreportcard.com/report/charmbracelet/glow)
 
