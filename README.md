@@ -1,11 +1,14 @@
 # Glow
 
-[![Latest Release](https://img.shields.io/github/release/charmbracelet/glow.svg)](https://github.com/charmbracelet/glow/releases)
-[![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](https://pkg.go.dev/github.com/charmbracelet/glow?tab=doc)
-[![Build Status](https://github.com/charmbracelet/glow/workflows/build/badge.svg)](https://github.com/charmbracelet/glow/actions)
-[![Go ReportCard](http://goreportcard.com/badge/charmbracelet/glow)](http://goreportcard.com/report/charmbracelet/glow)
-
 Render markdown on the CLI, with _pizzazz_!
+
+<p align="center">
+    <img src="https://stuff.charm.sh/glow-github.gif" alt="Glow Logo">
+    <a href="https://github.com/charmbracelet/glow/releases"><img src="https://img.shields.io/github/release/charmbracelet/glow.svg" alt="Latest Release"></a>
+    <a href="https://pkg.go.dev/github.com/charmbracelet/glow?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
+    <a href="https://github.com/charmbracelet/glow/actions"><img src="https://github.com/charmbracelet/glow/workflows/build/badge.svg" alt="Build Status"></a>
+    <a href="http://goreportcard.com/badge/charmbracelet/glow"><img src="http://goreportcard.com/badge/charmbracelet/glow" alt="Go ReportCard"></a>
+</p>
 
 ![Glow example output](https://github.com/charmbracelet/glow/raw/master/example.png)
 
