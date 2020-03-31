@@ -36,27 +36,28 @@ var (
 	}
 )
 
-// source provides a readable markdown source
+// source provides a readable markdown source.
 type source struct {
 	reader io.ReadCloser
 	URL    string
 }
 
-func readerFromArg(s string) (*source, error) {
+// sourceFromArg parses an argument and creates a readable source for it.
+func sourceFromArg(arg string) (*source, error) {
 	// from stdin
-	if s == "-" {
+	if arg == "-" {
 		return &source{reader: os.Stdin}, nil
 	}
 
 	// a GitHub or GitLab URL (even without the protocol):
-	if u, ok := isGitHubURL(s); ok {
+	if u, ok := isGitHubURL(arg); ok {
 		src, err := findGitHubREADME(u)
 		if err != nil {
 			return nil, err
 		}
 		return src, nil
 	}
-	if u, ok := isGitLabURL(s); ok {
+	if u, ok := isGitLabURL(arg); ok {
 		src, err := findGitLabREADME(u)
 		if err != nil {
 			return nil, err
@@ -65,7 +66,7 @@ func readerFromArg(s string) (*source, error) {
 	}
 
 	// HTTP(S) URLs:
-	if u, err := url.ParseRequestURI(s); err == nil {
+	if u, err := url.ParseRequestURI(arg); err == nil {
 		if u.Scheme != "" {
 			if u.Scheme != "http" && u.Scheme != "https" {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
@@ -83,14 +84,14 @@ func readerFromArg(s string) (*source, error) {
 	}
 
 	// a directory:
-	if len(s) == 0 {
+	if len(arg) == 0 {
 		// use the current working dir if no argument was supplied
-		s = "."
+		arg = "."
 	}
-	st, err := os.Stat(s)
+	st, err := os.Stat(arg)
 	if err == nil && st.IsDir() {
 		var src *source
-		_ = filepath.Walk(s, func(path string, info os.FileInfo, err error) error {
+		_ = filepath.Walk(arg, func(path string, info os.FileInfo, err error) error {
 			for _, v := range readmeNames {
 				if strings.EqualFold(filepath.Base(path), v) {
 					r, err := os.Open(path)
@@ -116,8 +117,8 @@ func readerFromArg(s string) (*source, error) {
 	}
 
 	// a file:
-	r, err := os.Open(s)
-	u, _ := filepath.Abs(s)
+	r, err := os.Open(arg)
+	u, _ := filepath.Abs(arg)
 	return &source{r, u}, err
 }
 
@@ -136,7 +137,7 @@ func execute(cmd *cobra.Command, args []string) error {
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	// create an io.Reader from the markdown source in cli-args
-	src, err := readerFromArg(arg)
+	src, err := sourceFromArg(arg)
 	if err != nil {
 		return err
 	}
