@@ -36,14 +36,16 @@ var (
 	}
 )
 
-type Source struct {
+// source provides a readable markdown source
+type source struct {
 	reader io.ReadCloser
 	URL    string
 }
 
-func readerFromArg(s string) (*Source, error) {
+func readerFromArg(s string) (*source, error) {
+	// from stdin
 	if s == "-" {
-		return &Source{reader: os.Stdin}, nil
+		return &source{reader: os.Stdin}, nil
 	}
 
 	// a GitHub or GitLab URL (even without the protocol):
@@ -76,7 +78,7 @@ func readerFromArg(s string) (*Source, error) {
 			if resp.StatusCode != http.StatusOK {
 				return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 			}
-			return &Source{resp.Body, u.String()}, nil
+			return &source{resp.Body, u.String()}, nil
 		}
 	}
 
@@ -87,7 +89,7 @@ func readerFromArg(s string) (*Source, error) {
 	}
 	st, err := os.Stat(s)
 	if err == nil && st.IsDir() {
-		var src *Source
+		var src *source
 		_ = filepath.Walk(s, func(path string, info os.FileInfo, err error) error {
 			for _, v := range readmeNames {
 				if strings.EqualFold(filepath.Base(path), v) {
@@ -97,12 +99,15 @@ func readerFromArg(s string) (*Source, error) {
 					}
 
 					u, _ := filepath.Abs(path)
-					src = &Source{r, u}
+					src = &source{r, u}
+
+					// abort filepath.Walk
 					return errors.New("source found")
 				}
 			}
 			return nil
 		})
+
 		if src != nil {
 			return src, nil
 		}
@@ -113,7 +118,7 @@ func readerFromArg(s string) (*Source, error) {
 	// a file:
 	r, err := os.Open(s)
 	u, _ := filepath.Abs(s)
-	return &Source{r, u}, err
+	return &source{r, u}, err
 }
 
 func execute(cmd *cobra.Command, args []string) error {
@@ -156,6 +161,7 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 		baseURL = u.String() + "/"
 	}
 
+	// initialize glamour
 	var gs glamour.TermRendererOption
 	if style == "auto" {
 		gs = glamour.WithAutoStyle()

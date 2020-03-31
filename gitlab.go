@@ -22,7 +22,7 @@ func isGitLabURL(s string) (string, bool) {
 }
 
 // findGitLabREADME tries to find the correct README filename in a repository
-func findGitLabREADME(s string) (*Source, error) {
+func findGitLabREADME(s string) (*source, error) {
 	u, err := url.ParseRequestURI(s)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func findGitLabREADME(s string) (*Source, error) {
 		}
 
 		if resp.StatusCode == http.StatusOK {
-			return &Source{resp.Body, v.String()}, nil
+			return &source{resp.Body, v.String()}, nil
 		}
 	}
 
