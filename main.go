@@ -156,8 +156,15 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 		baseURL = u.String() + "/"
 	}
 
+	var gs glamour.TermRendererOption
+	if style == "auto" {
+		gs = glamour.WithAutoStyle()
+	} else {
+		gs = glamour.WithStylePath(style)
+	}
+
 	r, err := glamour.NewTermRenderer(
-		glamour.WithStylePath(style),
+		gs,
 		glamour.WithWordWrap(int(width)),
 		glamour.WithBaseURL(baseURL),
 	)
