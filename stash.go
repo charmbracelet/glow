@@ -35,6 +35,7 @@ var (
 			if err != nil {
 				return fmt.Errorf("error stashing markdown")
 			}
+			fmt.Println("Stashed!")
 			return nil
 		},
 	}
