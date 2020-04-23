@@ -82,6 +82,27 @@ var (
 			return nil
 		},
 	}
+
+	stashDeleteCmd = &cobra.Command{
+		Use:    "stash-delete",
+		Hidden: false,
+		Short:  "get a stashed markdown by id",
+		Long:   "",
+		Args:   cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, err := strconv.Atoi(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid markdown id")
+			}
+			cc := initCharmClient()
+			err = cc.DeleteMarkdown(id)
+			if err != nil {
+				return fmt.Errorf("error deleting markdown")
+			}
+			fmt.Println("Deleted!")
+			return nil
+		},
+	}
 )
 
 func getCharmConfig() *charm.Config {

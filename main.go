@@ -256,7 +256,5 @@ func init() {
 	rootCmd.Flags().BoolVarP(&forceKey, "force-key", "f", false, "for the use of the SSH key on disk (that is, ignore ssh-agent)")
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
 
-	rootCmd.AddCommand(stashCmd)
-	rootCmd.AddCommand(stashListCmd)
-	rootCmd.AddCommand(stashGetCmd)
+	rootCmd.AddCommand(stashCmd, stashListCmd, stashGetCmd, stashDeleteCmd)
 }
