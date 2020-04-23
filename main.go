@@ -251,4 +251,10 @@ func init() {
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
+
+	stashCmd.PersistentFlags().StringVarP(&identityFile, "identity", "i", "", "path to identity file (that is, an ssh private key)")
+	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
+	stashCmd.Flags().BoolVarP(&forceKey, "force-key", "f", false, "for the use of the SSH key on disk (that is, ignore ssh-agent)")
+
+	rootCmd.AddCommand(stashCmd)
 }
