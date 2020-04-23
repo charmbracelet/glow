@@ -39,6 +39,27 @@ var (
 			return nil
 		},
 	}
+
+	stashListCmd = &cobra.Command{
+		Use:    "stash-list",
+		Hidden: false,
+		Short:  "list your stashed markdowns",
+		Long:   "",
+		Args:   cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cc := initCharmClient()
+			mds, err := cc.GetStash()
+			if err != nil {
+				return fmt.Errorf("error getting stash")
+			}
+			fmt.Println("ID\tNote")
+			fmt.Println("--\t----")
+			for _, md := range mds {
+				fmt.Printf("%d\t%s\n", md.ID, md.Note)
+			}
+			return nil
+		},
+	}
 )
 
 func getCharmConfig() *charm.Config {
