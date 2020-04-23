@@ -258,4 +258,5 @@ func init() {
 
 	rootCmd.AddCommand(stashCmd)
 	rootCmd.AddCommand(stashListCmd)
+	rootCmd.AddCommand(stashGetCmd)
 }

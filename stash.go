@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/charmbracelet/charm"
 	"github.com/spf13/cobra"
@@ -57,6 +58,27 @@ var (
 			for _, md := range mds {
 				fmt.Printf("%d\t%s\n", md.ID, md.Note)
 			}
+			return nil
+		},
+	}
+
+	stashGetCmd = &cobra.Command{
+		Use:    "stash-get",
+		Hidden: false,
+		Short:  "get a stashed markdown by id",
+		Long:   "",
+		Args:   cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, err := strconv.Atoi(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid markdown id")
+			}
+			cc := initCharmClient()
+			md, err := cc.GetMarkdown(id)
+			if err != nil {
+				return fmt.Errorf("error getting markdown")
+			}
+			fmt.Println(md.Body)
 			return nil
 		},
 	}
