@@ -107,15 +107,8 @@ For additional usage details see:
 glow --help
 ```
 
-
-## Authors
-
-* [Christian Muehlhaeuser](https://github.com/muesli)
-* [Toby Padilla](https://github.com/toby)
-* [Christian Rocha](https://github.com/meowgorithm)
-
-Part of [Charm](https://charm.sh). For more info see `ssh charm.sh`. Charm热爱开源!
-
 ## License
 
 [MIT](https://github.com/charmbracelet/glow/raw/master/LICENSE)
+
+Part of [Charm](https://charm.sh). For more info see `ssh charm.sh`. Charm热爱开源!
