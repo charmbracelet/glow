@@ -111,4 +111,10 @@ glow --help
 
 [MIT](https://github.com/charmbracelet/glow/raw/master/LICENSE)
 
-Part of [Charm](https://charm.sh). For more info see `ssh charm.sh`. Charm热爱开源!
+***
+
+Part of [Charm](https://charm.sh).
+
+<img alt="the Charm logo" src="https://stuff.charm.sh/charm-logotype.png" width="400px">
+
+Charm热爱开源!
