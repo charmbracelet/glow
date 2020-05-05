@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/charmbracelet/glamour"
 )
@@ -147,11 +147,24 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 		return err
 	}
 
+	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
 	// We want to use a special no-TTY style, when stdout is not a terminal
 	// and there was no specific style passed by arg
-	if !isatty.IsTerminal(os.Stdout.Fd()) &&
-		!cmd.Flags().Changed("style") {
+	if !isTerminal && !cmd.Flags().Changed("style") {
 		style = "notty"
+	}
+	// Detect terminal width
+	if isTerminal && !cmd.Flags().Changed("width") {
+		w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
+		if err == nil {
+			width = uint(w)
+		}
+	}
+	if width == 0 {
+		width = 80
+	}
+	if width > 120 {
+		width = 120
 	}
 
 	// render
@@ -232,5 +245,5 @@ func init() {
 
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
-	rootCmd.Flags().UintVarP(&width, "width", "w", 80, "word-wrap at width")
+	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 }
