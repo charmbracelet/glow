@@ -122,7 +122,32 @@ func sourceFromArg(arg string) (*source, error) {
 	return &source{r, u}, err
 }
 
+func validateOptions(cmd *cobra.Command) {
+	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
+	// We want to use a special no-TTY style, when stdout is not a terminal
+	// and there was no specific style passed by arg
+	if !isTerminal && !cmd.Flags().Changed("style") {
+		style = "notty"
+	}
+
+	// Detect terminal width
+	if isTerminal && !cmd.Flags().Changed("width") {
+		w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
+		if err == nil {
+			width = uint(w)
+		}
+	}
+	if width == 0 {
+		width = 80
+	}
+	if width > 120 {
+		width = 120
+	}
+}
+
 func execute(cmd *cobra.Command, args []string) error {
+	validateOptions(cmd)
+
 	if len(args) == 0 {
 		return executeArg(cmd, "", os.Stdout)
 	}
@@ -145,26 +170,6 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	b, err := ioutil.ReadAll(src.reader)
 	if err != nil {
 		return err
-	}
-
-	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
-	// We want to use a special no-TTY style, when stdout is not a terminal
-	// and there was no specific style passed by arg
-	if !isTerminal && !cmd.Flags().Changed("style") {
-		style = "notty"
-	}
-	// Detect terminal width
-	if isTerminal && !cmd.Flags().Changed("width") {
-		w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
-		if err == nil {
-			width = uint(w)
-		}
-	}
-	if width == 0 {
-		width = 80
-	}
-	if width > 120 {
-		width = 120
 	}
 
 	// render
