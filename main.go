@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glow/ui"
 )
 
 var (
@@ -149,7 +150,11 @@ func execute(cmd *cobra.Command, args []string) error {
 	validateOptions(cmd)
 
 	if len(args) == 0 {
-		return executeArg(cmd, "", os.Stdout)
+		//return executeArg(cmd, "", os.Stdout)
+		if err := ui.NewProgram().Start(); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	for _, arg := range args {
