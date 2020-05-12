@@ -49,7 +49,7 @@ var (
 		Args:   cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cc := initCharmClient()
-			mds, err := cc.GetStash()
+			mds, err := cc.GetStash(1)
 			if err != nil {
 				return fmt.Errorf("error getting stash")
 			}
@@ -74,7 +74,7 @@ var (
 				return fmt.Errorf("invalid markdown id")
 			}
 			cc := initCharmClient()
-			md, err := cc.GetMarkdown(id)
+			md, err := cc.GetStashMarkdown(id)
 			if err != nil {
 				return fmt.Errorf("error getting markdown")
 			}
