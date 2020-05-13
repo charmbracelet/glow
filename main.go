@@ -164,7 +164,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		}
 		boba.ExitAltScreen()
 
-		fmt.Println("\n  Thanks for using Glow!\n")
+		fmt.Printf("\n  Thanks for using Glow!\n\n")
 		return nil
 	}
 
