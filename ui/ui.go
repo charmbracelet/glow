@@ -32,7 +32,6 @@ const (
 	stateKeygenRunning
 	stateKeygenFinished
 	stateShowStash
-	stateQuitting
 )
 
 type model struct {
@@ -75,8 +74,11 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 	case boba.KeyMsg:
 		switch msg.String() {
+		case "q":
+			fallthrough
+		case "esc":
+			fallthrough
 		case "ctrl+c":
-			m.state = stateQuitting
 			return m, boba.Quit
 		}
 
@@ -164,8 +166,6 @@ func view(mdl boba.Model) string {
 		s += spinner.View(m.spinner) + " Re-initializing..."
 	case stateShowStash:
 		s += stashView(m.stash)
-	case stateQuitting:
-		s += "Thanks for using Glow!"
 	}
 	if m.state != stateShowStash {
 		s = "\n" + indent.String(s, 2)

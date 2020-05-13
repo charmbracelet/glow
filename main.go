@@ -152,13 +152,20 @@ func execute(cmd *cobra.Command, args []string) error {
 
 	if len(args) == 0 {
 		//return executeArg(cmd, "", os.Stdout)
+
 		debug := os.Getenv("GLOW_DEBUG")
 		if debug != "" {
 			boba.UseSysLog("glow")
 		}
+
+		boba.AltScreen()
 		if err := ui.NewProgram().Start(); err != nil {
 			return err
 		}
+		boba.ExitAltScreen()
+
+		fmt.Println("\n  Thanks for using Glow!\n")
+		return nil
 	}
 
 	for _, arg := range args {
