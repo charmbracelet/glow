@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
+	"github.com/muesli/reflow/indent"
 )
 
 // NewProgram returns a new Boba program
@@ -165,6 +166,9 @@ func view(mdl boba.Model) string {
 		s += stashView(m.stash)
 	case stateQuitting:
 		s += "Thanks for using Glow!"
+	}
+	if m.state != stateShowStash {
+		s = "\n" + indent.String(s, 2)
 	}
 	return s + "\n"
 }

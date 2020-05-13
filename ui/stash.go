@@ -1,10 +1,16 @@
 package ui
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/charmbracelet/boba"
 	"github.com/charmbracelet/boba/spinner"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
+	"github.com/muesli/reflow/indent"
+	te "github.com/muesli/termenv"
 )
 
 // MSG
@@ -21,7 +27,7 @@ type stashState int
 
 const (
 	stashStateInit stashState = iota
-	stashStateStashLoaded
+	stashStateLoaded
 )
 
 type stashModel struct {
@@ -65,8 +71,9 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		m.err = msg
 
 	case gotStashMsg:
+		sort.Sort(charm.MarkdownsByCreatedAt(msg)) // sort by date
 		m.documents = msg
-		m.state = stashStateStashLoaded
+		m.state = stashStateLoaded
 
 	case stashSpinnerTickMsg:
 		if m.state == stashStateInit {
@@ -83,11 +90,52 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 func stashView(m stashModel) string {
 	var s string
-	if (m.state & stashStateStashLoaded) != 0 {
-		return "Loaded stash."
+	switch m.state {
+	case stashStateInit:
+		s += spinner.View(m.spinner) + " Loading stash..."
+	case stashStateLoaded:
+		if len(m.documents) == 0 {
+			s += stashEmtpyView(m)
+			break
+		}
+		s += stashPopulatedView(m)
 	}
-	s += spinner.View(m.spinner) + " Loading stash..."
-	return s + "\n"
+	return "\n" + indent.String(s, 2)
+}
+
+func stashEmtpyView(m stashModel) string {
+	return "Nothing stashed yet."
+}
+
+func stashPopulatedView(m stashModel) string {
+	s := "Here's your markdown stash:\n\n"
+	for _, v := range m.documents {
+		s += stashListItemView(*v).renderNormal() + "\n\n"
+	}
+	s = strings.TrimSpace(s)
+	return s
+}
+
+type stashListItemView charm.Markdown
+
+func (m stashListItemView) renderNormal() string {
+	line := common.VerticalLine(common.StateNormal) + " "
+	var s string
+	s += fmt.Sprintf("%s#%d%s\n", line, m.ID, m.title())
+	s += fmt.Sprintf("%sStashed: %s", line, m.date())
+	return s
+}
+
+func (m stashListItemView) date() string {
+	s := m.CreatedAt.Format("02 Jan 2006 15:04:05 MST")
+	return te.String(s).Foreground(common.Indigo.Color()).String()
+}
+
+func (m stashListItemView) title() string {
+	if m.Note == "" {
+		return ""
+	}
+	return ": " + te.String(m.Note).Foreground(common.Indigo.Color()).String()
 }
 
 // CMD
