@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 
+	"github.com/charmbracelet/boba"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/ui"
 )
@@ -151,9 +152,12 @@ func execute(cmd *cobra.Command, args []string) error {
 
 	if len(args) == 0 {
 		//return executeArg(cmd, "", os.Stdout)
+		debug := os.Getenv("GLOW_DEBUG")
+		if debug != "" {
+			boba.UseSysLog("glow")
+		}
 		if err := ui.NewProgram().Start(); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 	}
 

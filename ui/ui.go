@@ -31,6 +31,7 @@ const (
 	stateKeygenRunning
 	stateKeygenFinished
 	stateShowStash
+	stateQuitting
 )
 
 type model struct {
@@ -40,6 +41,7 @@ type model struct {
 	keygen  keygen.Model
 	state   state
 	err     error
+	stash   stashModel
 }
 
 // INIT
@@ -66,14 +68,15 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		return model{err: errors.New("could not perform assertion on model in update")}, boba.Quit
 	}
 
+	var cmd boba.Cmd
+
 	switch msg := msg.(type) {
 
 	case boba.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
+			m.state = stateQuitting
 			return m, boba.Quit
-		default:
-			return m, nil
 		}
 
 	case fatalErrMsg:
@@ -92,16 +95,20 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 			return m, keygen.GenerateKeys
 		}
 
-		// The keygen didn't work
+		// The keygen didn't work and we can't auth
 		m.err = errors.New("SSH authentication failed")
 		return m, boba.Quit
 
 	case spinner.TickMsg:
-		if m.state == stateInitCharmClient {
-			var cmd boba.Cmd
+		switch m.state {
+		case stateInitCharmClient:
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
-			return m, cmd
 		}
+		return m, cmd
+
+	case stashSpinnerTickMsg:
+		m.stash, cmd = stashUpdate(msg, m.stash)
+		return m, cmd
 
 	case keygen.DoneMsg:
 		m.state = stateKeygenFinished
@@ -110,21 +117,25 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 	case newCharmClientMsg:
 		m.cc = msg
 		m.state = stateShowStash
-		return m, nil
+		m.stash, cmd = stashInit(m.cc)
+		return m, cmd
+	}
 
-	default:
-		switch m.state {
-		case stateKeygenRunning:
-			mdl, cmd := keygen.Update(msg, boba.Model(m.keygen))
-			keygenModel, ok := mdl.(keygen.Model)
-			if !ok {
-				m.err = errors.New("could not perform assertion on keygen model in main update")
-				return m, boba.Quit
-			}
-			m.keygen = keygenModel
-			return m, cmd
+	switch m.state {
+
+	case stateKeygenRunning:
+		mdl, cmd := keygen.Update(msg, boba.Model(m.keygen))
+		keygenModel, ok := mdl.(keygen.Model)
+		if !ok {
+			m.err = errors.New("could not perform assertion on keygen model in main update")
+			return m, boba.Quit
 		}
-		return m, nil
+		m.keygen = keygenModel
+		return m, cmd
+
+	case stateShowStash:
+		m.stash, cmd = stashUpdate(msg, m.stash)
+		return m, cmd
 	}
 
 	return m, nil
@@ -139,7 +150,7 @@ func view(mdl boba.Model) string {
 	}
 
 	if m.err != nil {
-		return m.err.Error()
+		return m.err.Error() + "\n"
 	}
 
 	var s string
@@ -151,7 +162,9 @@ func view(mdl boba.Model) string {
 	case stateKeygenFinished:
 		s += spinner.View(m.spinner) + " Re-initializing..."
 	case stateShowStash:
-		s += "Ready."
+		s += stashView(m.stash)
+	case stateQuitting:
+		s += "Thanks for using Glow!"
 	}
 	return s + "\n"
 }

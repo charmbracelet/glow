@@ -13,12 +13,14 @@ type stashErrMsg error
 
 type gotStashMsg []*charm.Markdown
 
+type stashSpinnerTickMsg struct{}
+
 // MODEL
 
 type stashState int
 
 const (
-	stashStateInit stashState = 1 << iota
+	stashStateInit stashState = iota
 	stashStateStashLoaded
 )
 
@@ -37,16 +39,21 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 	s := spinner.NewModel()
 	s.Type = spinner.Dot
 	s.ForegroundColor = common.SpinnerColor
+	s.CustomMsgFunc = newSpinnerTickMsg
 
 	m := stashModel{
 		cc:      cc,
 		spinner: s,
+		page:    1,
 	}
 
 	return m, boba.Batch(
 		getStash(m),
 		spinner.Tick(s),
 	)
+}
+func newSpinnerTickMsg() boba.Msg {
+	return stashSpinnerTickMsg{}
 }
 
 // UPDATE
@@ -59,15 +66,14 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 	case gotStashMsg:
 		m.documents = msg
-		m.state |= stashStateStashLoaded
+		m.state = stashStateStashLoaded
 
-	case spinner.TickMsg:
-		if (m.state & stashStateStashLoaded) == 0 {
+	case stashSpinnerTickMsg:
+		if m.state == stashStateInit {
 			var cmd boba.Cmd
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 			return m, cmd
 		}
-		return m, nil
 	}
 
 	return m, nil
@@ -78,7 +84,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 func stashView(m stashModel) string {
 	var s string
 	if (m.state & stashStateStashLoaded) != 0 {
-
+		return "Loaded stash."
 	}
 	s += spinner.View(m.spinner) + " Loading stash..."
 	return s + "\n"
