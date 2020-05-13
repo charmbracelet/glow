@@ -3,16 +3,16 @@ package ui
 import (
 	"errors"
 
+	"github.com/charmbracelet/boba"
+	"github.com/charmbracelet/boba/spinner"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
-	"github.com/charmbracelet/tea"
-	"github.com/charmbracelet/teaparty/spinner"
 )
 
-// NewProgram returns a new Tea program
-func NewProgram() *tea.Program {
-	return tea.NewProgram(initialize, update, view, subscriptions)
+// NewProgram returns a new Boba program
+func NewProgram() *boba.Program {
+	return boba.NewProgram(initialize, update, view)
 }
 
 // MESSAGES
@@ -30,7 +30,7 @@ const (
 	stateInitCharmClient state = iota
 	stateKeygenRunning
 	stateKeygenFinished
-	stateReady
+	stateShowStash
 )
 
 type model struct {
@@ -44,38 +44,41 @@ type model struct {
 
 // INIT
 
-func initialize() (tea.Model, tea.Cmd) {
+func initialize() (boba.Model, boba.Cmd) {
 	s := spinner.NewModel()
 	s.Type = spinner.Dot
 	s.ForegroundColor = common.SpinnerColor
 
 	return model{
-		spinner: s,
-		state:   stateInitCharmClient,
-	}, newCharmClient
+			spinner: s,
+			state:   stateInitCharmClient,
+		}, boba.Batch(
+			newCharmClient,
+			spinner.Tick(s),
+		)
 }
 
 // UPDATE
 
-func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
+func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 	m, ok := mdl.(model)
 	if !ok {
-		return model{err: errors.New("could not perform assertion on model in update")}, tea.Quit
+		return model{err: errors.New("could not perform assertion on model in update")}, boba.Quit
 	}
 
 	switch msg := msg.(type) {
 
-	case tea.KeyMsg:
+	case boba.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
-			return m, tea.Quit
+			return m, boba.Quit
 		default:
 			return m, nil
 		}
 
 	case fatalErrMsg:
 		m.err = msg
-		return m, tea.Quit
+		return m, boba.Quit
 
 	case errMsg:
 		m.err = msg
@@ -91,11 +94,14 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 		// The keygen didn't work
 		m.err = errors.New("SSH authentication failed")
-		return m, tea.Quit
+		return m, boba.Quit
 
 	case spinner.TickMsg:
-		m.spinner, _ = spinner.Update(msg, m.spinner)
-		return m, nil
+		if m.state == stateInitCharmClient {
+			var cmd boba.Cmd
+			m.spinner, cmd = spinner.Update(msg, m.spinner)
+			return m, cmd
+		}
 
 	case keygen.DoneMsg:
 		m.state = stateKeygenFinished
@@ -103,28 +109,30 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	case newCharmClientMsg:
 		m.cc = msg
-		m.state = stateReady
+		m.state = stateShowStash
 		return m, nil
 
 	default:
 		switch m.state {
 		case stateKeygenRunning:
-			mdl, cmd := keygen.Update(msg, tea.Model(m.keygen))
+			mdl, cmd := keygen.Update(msg, boba.Model(m.keygen))
 			keygenModel, ok := mdl.(keygen.Model)
 			if !ok {
 				m.err = errors.New("could not perform assertion on keygen model in main update")
-				return m, tea.Quit
+				return m, boba.Quit
 			}
 			m.keygen = keygenModel
 			return m, cmd
 		}
 		return m, nil
 	}
+
+	return m, nil
 }
 
 // VIEW
 
-func view(mdl tea.Model) string {
+func view(mdl boba.Model) string {
 	m, ok := mdl.(model)
 	if !ok {
 		return "could not perform assertion on model in view"
@@ -142,43 +150,15 @@ func view(mdl tea.Model) string {
 		s += keygen.View(m.keygen)
 	case stateKeygenFinished:
 		s += spinner.View(m.spinner) + " Re-initializing..."
-	case stateReady:
+	case stateShowStash:
 		s += "Ready."
 	}
-	return s
-}
-
-// SUBSCRIPTIONS
-
-func subscriptions(mdl tea.Model) tea.Subs {
-	m, ok := mdl.(model)
-	if !ok {
-		return nil
-	}
-
-	subs := make(tea.Subs)
-
-	switch m.state {
-	case stateInitCharmClient:
-		fallthrough
-	case stateKeygenFinished:
-		sub, err := spinner.MakeSub(m.spinner)
-		if err == nil {
-			subs["glow-spin"] = sub
-		}
-	case stateKeygenRunning:
-		sub, err := keygen.Spin(m.keygen)
-		if err == nil {
-			subs["keygen-spin"] = sub
-		}
-	}
-
-	return subs
+	return s + "\n"
 }
 
 // COMMANDS
 
-func newCharmClient() tea.Msg {
+func newCharmClient() boba.Msg {
 	cfg, err := charm.ConfigFromEnv()
 	if err != nil {
 		return fatalErrMsg(err)
