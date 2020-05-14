@@ -22,8 +22,9 @@ const (
 )
 
 var (
-	statusBarBg = common.NewColorPair("#242424", "#F4F0F4")
-	statusBarFg = common.NewColorPair("#5A5A5A", "")
+	glowLogoTextColor = common.Color("#ECFD65")
+	statusBarBg       = common.NewColorPair("#242424", "#E6E6E6")
+	statusBarFg       = common.NewColorPair("#5A5A5A", "#949494")
 )
 
 // NewProgram returns a new Boba program
@@ -263,7 +264,7 @@ func statusBarView(m model) string {
 	logoText := " Glow "
 	logo := te.String(logoText).
 		Bold().
-		Foreground(common.YellowGreen.Color()).
+		Foreground(glowLogoTextColor).
 		Background(common.Fuschia.Color()).
 		String()
 
