@@ -2,6 +2,9 @@ package ui
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"strings"
 
 	"github.com/charmbracelet/boba"
 	"github.com/charmbracelet/boba/pager"
@@ -10,6 +13,17 @@ import (
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
 	"github.com/muesli/reflow/indent"
+	te "github.com/muesli/termenv"
+	"golang.org/x/crypto/ssh/terminal"
+)
+
+const (
+	statusBarHeight = 1
+)
+
+var (
+	statusBarBg = common.NewColorPair("#242424", "#F4F0F4")
+	statusBarFg = common.NewColorPair("#5A5A5A", "")
 )
 
 // NewProgram returns a new Boba program
@@ -24,6 +38,15 @@ type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
 
+type terminalSizeMsg struct {
+	width  int
+	height int
+	err    error
+}
+
+func (t terminalSizeMsg) Size() (int, int) { return t.width, t.height }
+func (t terminalSizeMsg) Error() error     { return t.err }
+
 // MODEL
 
 type state int
@@ -37,14 +60,17 @@ const (
 )
 
 type model struct {
-	cc      *charm.Client
-	user    *charm.User
-	spinner spinner.Model
-	keygen  keygen.Model
-	state   state
-	err     error
-	stash   stashModel
-	pager   pager.Model
+	cc             *charm.Client
+	user           *charm.User
+	spinner        spinner.Model
+	keygen         keygen.Model
+	state          state
+	err            error
+	stash          stashModel
+	pager          pager.Model
+	terminalWidth  int
+	terminalHeight int
+	docNote        string
 }
 
 func (m *model) unloadDocument() {
@@ -60,12 +86,20 @@ func initialize() (boba.Model, boba.Cmd) {
 	s.Type = spinner.Dot
 	s.ForegroundColor = common.SpinnerColor
 
+	w, h, err := terminal.GetSize(int(os.Stdout.Fd()))
+
 	return model{
-			spinner: s,
-			state:   stateInitCharmClient,
+			spinner:        s,
+			state:          stateInitCharmClient,
+			err:            err,
+			terminalWidth:  w,
+			terminalHeight: h,
 		}, boba.Batch(
 			newCharmClient,
 			spinner.Tick(s),
+			boba.GetTerminalSize(func(w, h int, err error) boba.TerminalSizeMsg {
+				return terminalSizeMsg{width: w, height: h, err: err}
+			}),
 		)
 }
 
@@ -105,6 +139,16 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		m.err = msg
 		return m, nil
 
+	case terminalSizeMsg:
+		if msg.Error() != nil {
+			m.err = msg.Error()
+			return m, nil
+		}
+		w, h := msg.Size()
+		m.terminalWidth = w
+		m.terminalHeight = h
+		return m, nil
+
 	case sshAuthErrMsg:
 		// If we haven't run the keygen yet, do that
 		if m.state != stateKeygenFinished {
@@ -125,7 +169,9 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		return m, cmd
 
 	case stashSpinnerTickMsg:
-		m.stash, cmd = stashUpdate(msg, m.stash)
+		if m.state == stateShowStash {
+			m.stash, cmd = stashUpdate(msg, m.stash)
+		}
 		return m, cmd
 
 	case keygen.DoneMsg:
@@ -139,10 +185,18 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		return m, cmd
 
 	case gotStashedItemMsg:
+		// TODO: there's a (unlikely) potential race condition that could
+		// happen here where we start the pager before we have received the
+		// terminal size.  We could solve this in a few ways, including by
+		// getting the terminal size imperatively and synchronously
 		m.state = stateShowDocument
-		m.pager = pager.NewModel()
+		m.pager = pager.NewModel(
+			m.terminalWidth,
+			m.terminalHeight-statusBarHeight,
+		)
+		m.docNote = msg.Note
 		m.pager.Content(msg.Body)
-		return m, pager.GetTerminalSize
+		return m, nil
 	}
 
 	switch m.state {
@@ -198,12 +252,47 @@ func view(mdl boba.Model) string {
 	case stateShowStash:
 		s += stashView(m.stash)
 	case stateShowDocument:
-		s += pager.View(m.pager)
+		//return fmt.Sprintf("\n%s\n%s", statusBarView(m), pager.View(m.pager))
+		return fmt.Sprintf("%s\n%s", pager.View(m.pager), statusBarView(m))
 	}
 	if m.state != stateShowStash && m.state != stateShowDocument {
 		s = "\n" + indent.String(s, 2)
 	}
 	return s
+}
+
+func statusBarView(m model) string {
+	// Logo
+	logoText := " Glow "
+	logo := te.String(logoText).
+		Bold().
+		Foreground(common.YellowGreen.Color()).
+		Background(common.Fuschia.Color()).
+		String()
+
+	// Note
+	noteText := m.docNote
+	if len(noteText) == 0 {
+		noteText = "(No title)"
+	}
+	noteText = " " + noteText
+	note := te.String(noteText).
+		Foreground(statusBarFg.Color()).
+		Background(statusBarBg.Color()).String()
+
+	// Scroll percent
+	percentText := fmt.Sprintf(" %3.f%% ", m.pager.ScrollPercent()*100)
+	percent := te.String(percentText).
+		Foreground(statusBarFg.Color()).
+		Background(statusBarBg.Color()).
+		String()
+
+	emptySpace := te.String(" ").Background(statusBarBg.Color()).String()
+
+	return logo + note + strings.Repeat(
+		emptySpace,
+		m.terminalWidth-len(logoText)-len(noteText)-len(percentText),
+	) + percent
 }
 
 // COMMANDS
