@@ -37,6 +37,7 @@ type stashModel struct {
 	documents []*charm.Markdown
 	page      int
 	spinner   spinner.Model
+	index     int
 }
 
 // INIT
@@ -66,6 +67,23 @@ func newSpinnerTickMsg() boba.Msg {
 
 func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	switch msg := msg.(type) {
+
+	case boba.KeyMsg:
+		switch msg.String() {
+
+		case "k":
+			fallthrough
+		case "up":
+			m.index = max(0, m.index-1)
+			return m, nil
+
+		case "j":
+			fallthrough
+		case "down":
+			m.index = min(len(m.documents)-1, m.index+1)
+			return m, nil
+
+		}
 
 	case stashErrMsg:
 		m.err = msg
@@ -109,8 +127,12 @@ func stashEmtpyView(m stashModel) string {
 
 func stashPopulatedView(m stashModel) string {
 	s := "Here's your markdown stash:\n\n"
-	for _, v := range m.documents {
-		s += stashListItemView(*v).renderNormal() + "\n\n"
+	for i, v := range m.documents {
+		state := common.StateNormal
+		if i == m.index {
+			state = common.StateSelected
+		}
+		s += stashListItemView(*v).render(state) + "\n\n"
 	}
 	s = strings.TrimSpace(s)
 	return s
@@ -118,24 +140,37 @@ func stashPopulatedView(m stashModel) string {
 
 type stashListItemView charm.Markdown
 
-func (m stashListItemView) renderNormal() string {
-	line := common.VerticalLine(common.StateNormal) + " "
+func (m stashListItemView) render(state common.State) string {
+	line := common.VerticalLine(state) + " "
+	dateTitleColor := common.NoColor
+	if state == common.StateDeleting {
+		dateTitleColor = common.Red
+	}
+	dateTitle := te.String("Stashed: ").Foreground(dateTitleColor.Color()).String()
 	var s string
-	s += fmt.Sprintf("%s#%d%s\n", line, m.ID, m.title())
-	s += fmt.Sprintf("%sStashed: %s", line, m.date())
+	s += fmt.Sprintf("%s#%d%s\n", line, m.ID, m.title(state))
+	s += fmt.Sprintf("%s%s %s", line, dateTitle, m.date(state))
 	return s
 }
 
-func (m stashListItemView) date() string {
+func (m stashListItemView) date(state common.State) string {
+	c := common.Indigo
+	if state == common.StateDeleting {
+		c = common.FaintRed
+	}
 	s := m.CreatedAt.Format("02 Jan 2006 15:04:05 MST")
-	return te.String(s).Foreground(common.Indigo.Color()).String()
+	return te.String(s).Foreground(c.Color()).String()
 }
 
-func (m stashListItemView) title() string {
+func (m stashListItemView) title(state common.State) string {
 	if m.Note == "" {
 		return ""
 	}
-	return ": " + te.String(m.Note).Foreground(common.Indigo.Color()).String()
+	c := common.Indigo
+	if state == common.StateDeleting {
+		c = common.Red
+	}
+	return ": " + te.String(m.Note).Foreground(c.Color()).String()
 }
 
 // CMD

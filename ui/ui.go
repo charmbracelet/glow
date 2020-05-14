@@ -190,3 +190,19 @@ func newCharmClient() boba.Msg {
 
 	return newCharmClientMsg(cc)
 }
+
+// ETC
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
