@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/charmbracelet/boba"
+	"github.com/charmbracelet/boba/pager"
 	"github.com/charmbracelet/boba/spinner"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
@@ -32,6 +33,7 @@ const (
 	stateKeygenRunning
 	stateKeygenFinished
 	stateShowStash
+	stateShowDocument
 )
 
 type model struct {
@@ -42,6 +44,13 @@ type model struct {
 	state   state
 	err     error
 	stash   stashModel
+	pager   pager.Model
+}
+
+func (m *model) unloadDocument() {
+	m.pager = pager.Model{}
+	m.state = stateShowStash
+	m.stash.state = stashStateLoaded
 }
 
 // INIT
@@ -74,10 +83,16 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 	case boba.KeyMsg:
 		switch msg.String() {
+
 		case "q":
 			fallthrough
 		case "esc":
-			fallthrough
+			if m.state == stateShowDocument {
+				m.unloadDocument()
+				return m, nil
+			}
+			return m, boba.Quit
+
 		case "ctrl+c":
 			return m, boba.Quit
 		}
@@ -122,6 +137,12 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		m.state = stateShowStash
 		m.stash, cmd = stashInit(m.cc)
 		return m, cmd
+
+	case gotStashedItemMsg:
+		m.state = stateShowDocument
+		m.pager = pager.NewModel()
+		m.pager.Content(msg.Body)
+		return m, pager.GetTerminalSize
 	}
 
 	switch m.state {
@@ -138,6 +159,16 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 	case stateShowStash:
 		m.stash, cmd = stashUpdate(msg, m.stash)
+		return m, cmd
+
+	case stateShowDocument:
+		newPagerModel, cmd := pager.Update(msg, boba.Model(m.pager))
+		newPagerModel_, ok := newPagerModel.(pager.Model)
+		if !ok {
+			m.err = errors.New("could not assert boba.Model to pager.Model in main update")
+			return m, nil
+		}
+		m.pager = newPagerModel_
 		return m, cmd
 	}
 
@@ -166,11 +197,13 @@ func view(mdl boba.Model) string {
 		s += spinner.View(m.spinner) + " Re-initializing..."
 	case stateShowStash:
 		s += stashView(m.stash)
+	case stateShowDocument:
+		s += pager.View(m.pager)
 	}
-	if m.state != stateShowStash {
+	if m.state != stateShowStash && m.state != stateShowDocument {
 		s = "\n" + indent.String(s, 2)
 	}
-	return s + "\n"
+	return s
 }
 
 // COMMANDS

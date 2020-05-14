@@ -16,10 +16,9 @@ import (
 // MSG
 
 type stashErrMsg error
-
-type gotStashMsg []*charm.Markdown
-
 type stashSpinnerTickMsg struct{}
+type gotStashMsg []*charm.Markdown
+type gotStashedItemMsg *charm.Markdown
 
 // MODEL
 
@@ -28,6 +27,7 @@ type stashState int
 const (
 	stashStateInit stashState = iota
 	stashStateLoaded
+	stashStateLoadingItem
 )
 
 type stashModel struct {
@@ -55,7 +55,7 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 	}
 
 	return m, boba.Batch(
-		getStash(m),
+		loadStash(m),
 		spinner.Tick(s),
 	)
 }
@@ -83,18 +83,27 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			m.index = min(len(m.documents)-1, m.index+1)
 			return m, nil
 
+		case "enter":
+			m.state = stashStateLoadingItem
+			return m, boba.Batch(
+				loadStashedItem(m.cc, m.documents[m.index].ID),
+				spinner.Tick(m.spinner),
+			)
+
 		}
 
 	case stashErrMsg:
 		m.err = msg
+		return m, nil
 
 	case gotStashMsg:
 		sort.Sort(charm.MarkdownsByCreatedAt(msg)) // sort by date
 		m.documents = msg
 		m.state = stashStateLoaded
+		return m, nil
 
 	case stashSpinnerTickMsg:
-		if m.state == stashStateInit {
+		if m.state == stashStateInit || m.state == stashStateLoadingItem {
 			var cmd boba.Cmd
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 			return m, cmd
@@ -111,6 +120,8 @@ func stashView(m stashModel) string {
 	switch m.state {
 	case stashStateInit:
 		s += spinner.View(m.spinner) + " Loading stash..."
+	case stashStateLoadingItem:
+		s += spinner.View(m.spinner) + " Loading document..."
 	case stashStateLoaded:
 		if len(m.documents) == 0 {
 			s += stashEmtpyView(m)
@@ -175,12 +186,22 @@ func (m stashListItemView) title(state common.State) string {
 
 // CMD
 
-func getStash(m stashModel) boba.Cmd {
+func loadStash(m stashModel) boba.Cmd {
 	return func() boba.Msg {
 		stash, err := m.cc.GetStash(m.page)
 		if err != nil {
 			return stashErrMsg(err)
 		}
 		return gotStashMsg(stash)
+	}
+}
+
+func loadStashedItem(cc *charm.Client, id int) boba.Cmd {
+	return func() boba.Msg {
+		m, err := cc.GetStashMarkdown(id)
+		if err != nil {
+			return stashErrMsg(err)
+		}
+		return gotStashedItemMsg(m)
 	}
 }
