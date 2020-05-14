@@ -250,15 +250,12 @@ func view(mdl boba.Model) string {
 	case stateKeygenFinished:
 		s += spinner.View(m.spinner) + " Re-initializing..."
 	case stateShowStash:
-		s += stashView(m.stash)
+		return stashView(m.stash)
 	case stateShowDocument:
-		//return fmt.Sprintf("\n%s\n%s", statusBarView(m), pager.View(m.pager))
-		return fmt.Sprintf("%s\n%s", pager.View(m.pager), statusBarView(m))
+		return fmt.Sprintf("\n%s\n%s", pager.View(m.pager), statusBarView(m))
 	}
-	if m.state != stateShowStash && m.state != stateShowDocument {
-		s = "\n" + indent.String(s, 2)
-	}
-	return s
+
+	return "\n" + indent.String(s, 2)
 }
 
 func statusBarView(m model) string {
@@ -287,12 +284,11 @@ func statusBarView(m model) string {
 		Background(statusBarBg.Color()).
 		String()
 
-	emptySpace := te.String(" ").Background(statusBarBg.Color()).String()
+	// Empty space
+	emptyCell := te.String(" ").Background(statusBarBg.Color()).String()
+	emptySpace := strings.Repeat(emptyCell, m.terminalWidth-len(logoText)-len(noteText)-len(percentText))
 
-	return logo + note + strings.Repeat(
-		emptySpace,
-		m.terminalWidth-len(logoText)-len(noteText)-len(percentText),
-	) + percent
+	return logo + note + emptySpace + percent
 }
 
 // COMMANDS
