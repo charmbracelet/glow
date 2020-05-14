@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/boba"
@@ -153,14 +154,22 @@ type stashListItemView charm.Markdown
 
 func (m stashListItemView) render(state common.State) string {
 	line := common.VerticalLine(state) + " "
-	dateTitleColor := common.NoColor
-	if state == common.StateDeleting {
-		dateTitleColor = common.Red
+	keyColor := common.NoColor
+	switch state {
+	case common.StateSelected:
+		keyColor = common.Fuschia
+	case common.StateDeleting:
+		keyColor = common.Red
 	}
-	dateTitle := te.String("Stashed: ").Foreground(dateTitleColor.Color()).String()
+	titleKey := strconv.Itoa(m.ID)
+	if m.Note != "" {
+		titleKey += ":"
+	}
+	titleKey = te.String("#" + titleKey).Foreground(keyColor.Color()).String()
+	dateKey := te.String("Stashed:").Foreground(keyColor.Color()).String()
 	var s string
-	s += fmt.Sprintf("%s#%d%s\n", line, m.ID, m.title(state))
-	s += fmt.Sprintf("%s%s %s", line, dateTitle, m.date(state))
+	s += fmt.Sprintf("%s%s %s\n", line, titleKey, m.title(state))
+	s += fmt.Sprintf("%s%s %s", line, dateKey, m.date(state))
 	return s
 }
 
@@ -181,7 +190,7 @@ func (m stashListItemView) title(state common.State) string {
 	if state == common.StateDeleting {
 		c = common.Red
 	}
-	return ": " + te.String(m.Note).Foreground(c.Color()).String()
+	return te.String(m.Note).Foreground(c.Color()).String()
 }
 
 // CMD
