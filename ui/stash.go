@@ -49,7 +49,8 @@ type stashModel struct {
 	index          int
 	terminalWidth  int
 	terminalHeight int
-	confirmDelete  int
+	loading        bool // are we currently loading something?
+	fullyLoaded    bool // Have we loaded everything from the server?
 
 	// This handles the local pagination, which is different than the page
 	// we're fetching from on the server side
@@ -185,14 +186,21 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			m.state = stashStateStashLoaded
 			return m, deleteStashedItem(m.cc, id)
 
-		case "n":
-			m.confirmDelete = -1
 		}
 
 	case stashErrMsg:
 		m.err = msg
 
 	case gotStashMsg:
+		// Stash results have come in from the server
+		m.loading = false
+
+		if len(msg) == 0 {
+			// If the server comes back with nothing then we've got everything
+			m.fullyLoaded = true
+			break
+		}
+
 		sort.Sort(charm.MarkdownsByCreatedAt(msg)) // sort by date
 		m.documents = append(m.documents, msg...)
 		m.state = stashStateStashLoaded
@@ -206,6 +214,8 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	}
 
 	if m.state == stashStateStashLoaded {
+
+		// Update paginator
 		m.paginator, cmd = paginator.Update(msg, m.paginator)
 		cmds = append(cmds, cmd)
 
@@ -214,6 +224,15 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		if m.index > itemsOnPage-1 {
 			m.index = itemsOnPage - 1
 		}
+
+		// If we're on the last page and we haven't loaded everything, get
+		// more stuff.
+		if m.paginator.OnLastPage() && !m.loading && !m.fullyLoaded {
+			m.page++
+			m.loading = true
+			cmds = append(cmds, loadStash(m))
+		}
+
 	}
 
 	// If an item is being confirmed for delete, any key (other than the key
@@ -263,9 +282,13 @@ func stashView(m stashModel) string {
 			header = "Here’s your markdown stash:"
 		}
 
-		var pageView string
+		var pagination string
 		if m.paginator.TotalPages > 1 {
-			pageView = paginator.View(m.paginator)
+			pagination = paginator.View(m.paginator)
+
+			if !m.fullyLoaded {
+				pagination += common.Subtle("···")
+			}
 		}
 
 		s += fmt.Sprintf(
@@ -274,7 +297,7 @@ func stashView(m stashModel) string {
 			header,
 			stashPopulatedView(m),
 			blankLines,
-			pageView,
+			pagination,
 			helpView(m),
 		)
 	}
