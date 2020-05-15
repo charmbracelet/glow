@@ -177,6 +177,12 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	if m.state == stashStateStashLoaded {
 		m.paginator, cmd = paginator.Update(msg, m.paginator)
 		cmds = append(cmds, cmd)
+
+		// Keep the index in bounds when paginating
+		itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
+		if m.index > itemsOnPage-1 {
+			m.index = itemsOnPage - 1
+		}
 	}
 
 	return m, boba.Batch(cmds...)
