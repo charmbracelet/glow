@@ -66,6 +66,12 @@ func (m *stashModel) SetSize(width, height int) {
 	// Update the paginator
 	perPage := (m.terminalHeight - topPadding - bottomPadding) / itemHeight
 	m.paginator.PerPage = perPage
+	m.paginator.SetTotalPages(len(m.documents))
+
+	// Make sure the page stays in bounds
+	if m.paginator.Page >= m.paginator.TotalPages-1 {
+		m.paginator.Page = m.paginator.TotalPages - 1
+	}
 }
 
 // INIT

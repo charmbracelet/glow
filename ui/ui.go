@@ -151,6 +151,8 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		m.terminalWidth = w
 		m.terminalHeight = h
 		m.stash.SetSize(w, h)
+		// TODO: load more stash pages if we've resized, are on the last page,
+		// and haven't loaded more pages yet.
 		return m, nil
 
 	case sshAuthErrMsg:
