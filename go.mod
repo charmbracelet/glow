@@ -16,3 +16,7 @@ require (
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
 	golang.org/x/sys v0.0.0-20200513112337-417ce2331b5c
 )
+
+replace github.com/charmbracelet/charm => ../charm
+
+replace github.com/charmbracelet/boba => ../boba

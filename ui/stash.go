@@ -18,7 +18,7 @@ import (
 const (
 	itemHeight    = 3
 	topPadding    = 3
-	bottomPadding = 2
+	bottomPadding = 4
 )
 
 // MSG
@@ -76,11 +76,15 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 	s.ForegroundColor = common.SpinnerColor
 	s.CustomMsgFunc = func() boba.Msg { return stashSpinnerTickMsg{} }
 
+	p := paginator.NewModel()
+	p.Type = paginator.Dots
+	p.InactiveDot = common.Subtle("•")
+
 	m := stashModel{
 		cc:        cc,
 		spinner:   s,
 		page:      1,
-		paginator: paginator.NewModel(),
+		paginator: p,
 	}
 
 	return m, boba.Batch(
@@ -92,6 +96,11 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 // UPDATE
 
 func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
+	var (
+		cmd  boba.Cmd
+		cmds []boba.Cmd
+	)
+
 	switch msg := msg.(type) {
 
 	case boba.KeyMsg:
@@ -111,7 +120,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		case "j":
 			fallthrough
 		case "down":
-			m.index = min(len(m.documents)-1, m.index+1)
+			m.index = min(m.paginator.PerPage-1, m.index+1)
 			return m, nil
 
 		case "enter":
@@ -125,24 +134,26 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 	case stashErrMsg:
 		m.err = msg
-		return m, nil
 
 	case gotStashMsg:
 		sort.Sort(charm.MarkdownsByCreatedAt(msg)) // sort by date
 		m.documents = append(m.documents, msg...)
 		m.state = stashStateLoaded
 		m.paginator.SetTotalPages(len(m.documents))
-		return m, nil
 
 	case stashSpinnerTickMsg:
 		if m.state == stashStateInit || m.state == stashStateLoadingItem {
-			var cmd boba.Cmd
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 			return m, cmd
 		}
 	}
 
-	return m, nil
+	if m.state == stashStateLoaded {
+		m.paginator, cmd = paginator.Update(msg, m.paginator)
+		cmds = append(cmds, cmd)
+	}
+
+	return m, boba.Batch(cmds...)
 }
 
 // VIEW
@@ -168,7 +179,10 @@ func stashView(m stashModel) string {
 			blankLines = strings.Repeat("\n", numBlankLines)
 		}
 
-		s += stashPopulatedView(m) + blankLines + helpView(m)
+		s += fmt.Sprintf(
+			"Here’s your markdown stash:\n\n%s\n\n%s%s\n\n%s",
+			stashPopulatedView(m), blankLines, paginator.View(m.paginator), helpView(m),
+		)
 	}
 	return "\n" + indent.String(s, 2)
 }
@@ -178,10 +192,11 @@ func stashEmtpyView(m stashModel) string {
 }
 
 func stashPopulatedView(m stashModel) string {
+	var s string
+
 	start, end := m.paginator.GetSliceBounds(len(m.documents))
 	docs := m.documents[start:end]
 
-	s := "Here's your markdown stash:\n\n"
 	for i, v := range docs {
 		state := common.StateNormal
 		if i == m.index {
@@ -189,7 +204,18 @@ func stashPopulatedView(m stashModel) string {
 		}
 		s += stashListItemView(*v).render(state) + "\n\n"
 	}
-	return strings.TrimSpace(s)
+	s = strings.TrimSpace(s) // trim final newlines
+
+	// If there aren't enough items to fill up this page (always the last page)
+	// then we need to add some newlines to fill up the space to push the
+	// footer stuff down elsewhere.
+	itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
+	if itemsOnPage < m.paginator.PerPage {
+		n := (m.paginator.PerPage - itemsOnPage) * itemHeight
+		s += strings.Repeat("\n", n)
+	}
+
+	return s
 }
 
 func helpView(m stashModel) string {
