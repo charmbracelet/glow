@@ -263,14 +263,18 @@ func view(mdl boba.Model) string {
 	return "\n" + indent.String(s, 2)
 }
 
-func statusBarView(m model) string {
-	// Logo
-	logoText := " Glow "
-	logo := te.String(logoText).
+func glowLogoView(text string) string {
+	return te.String(text).
 		Bold().
 		Foreground(glowLogoTextColor).
 		Background(common.Fuschia.Color()).
 		String()
+}
+
+func statusBarView(m model) string {
+	// Logo
+	logoText := " Glow "
+	logo := glowLogoView(logoText)
 
 	// Note
 	noteText := m.docNote

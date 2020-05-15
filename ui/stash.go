@@ -17,7 +17,7 @@ import (
 
 const (
 	itemHeight    = 3
-	topPadding    = 3
+	topPadding    = 5
 	bottomPadding = 4
 )
 
@@ -180,8 +180,12 @@ func stashView(m stashModel) string {
 		}
 
 		s += fmt.Sprintf(
-			"Here’s your markdown stash:\n\n%s\n\n%s%s\n\n%s",
-			stashPopulatedView(m), blankLines, paginator.View(m.paginator), helpView(m),
+			"%s\n\nHere’s your markdown stash.\n\n%s\n\n%s%s\n\n%s",
+			glowLogoView(" Glow "),
+			stashPopulatedView(m),
+			blankLines,
+			paginator.View(m.paginator),
+			helpView(m),
 		)
 	}
 	return "\n" + indent.String(s, 2)
