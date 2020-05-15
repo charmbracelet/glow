@@ -200,27 +200,12 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 	case gotStashedItemMsg:
 		// We've received stashed item data. Render with Glamour and send to
 		// the pager.
-		//m.state = stateShowDocument
-
 		m.pager = pager.NewModel(
 			m.terminalWidth,
 			m.terminalHeight-statusBarHeight,
 		)
 
 		m.docNote = msg.Note
-
-		// This could happen asyncronously with a Cmd since there's techincally
-		// IO happening, but since rendering is fast and Go is an imperative
-		// language I guess it's fine to just render synchronously here.
-		/*
-			md, err := glamourRender(m, msg.Body)
-			if err != nil {
-				m.err = err
-				return m, nil
-			}
-		*/
-
-		//m.pager.SetContent(md)
 		return m, renderWithGlamour(m, msg.Body)
 
 	case contentRenderedMsg:
@@ -359,6 +344,10 @@ func renderWithGlamour(m model, md string) boba.Cmd {
 
 // This is where the magic happens
 func glamourRender(m model, markdown string) (string, error) {
+
+	if os.Getenv("GLOW_DISABLE_GLAMOUR") != "" {
+		return markdown, nil
+	}
 
 	// initialize glamour
 	var gs glamour.TermRendererOption
