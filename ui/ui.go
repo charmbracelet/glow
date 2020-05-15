@@ -201,10 +201,12 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		// We've received stashed item data. Render with Glamour and send to
 		// the pager.
 		//m.state = stateShowDocument
+
 		m.pager = pager.NewModel(
 			m.terminalWidth,
 			m.terminalHeight-statusBarHeight,
 		)
+
 		m.docNote = msg.Note
 
 		// This could happen asyncronously with a Cmd since there's techincally
@@ -246,13 +248,8 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 	case stateShowDocument:
 		// Process keys (and eventually mouse) with pager.Update
-		newPagerModel, cmd := pager.Update(msg, boba.Model(m.pager))
-		newPagerModel_, ok := newPagerModel.(pager.Model)
-		if !ok {
-			m.err = errors.New("could not assert boba.Model to pager.Model in main update")
-			return m, nil
-		}
-		m.pager = newPagerModel_
+		var cmd boba.Cmd
+		m.pager, cmd = pager.Update(msg, m.pager)
 		return m, cmd
 	}
 
