@@ -7,11 +7,18 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/boba"
+	"github.com/charmbracelet/boba/paginator"
 	"github.com/charmbracelet/boba/spinner"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/muesli/reflow/indent"
 	te "github.com/muesli/termenv"
+)
+
+const (
+	itemHeight    = 3
+	topPadding    = 3
+	bottomPadding = 2
 )
 
 // MSG
@@ -32,13 +39,33 @@ const (
 )
 
 type stashModel struct {
-	cc        *charm.Client
-	err       error
-	state     stashState
-	documents []*charm.Markdown
-	page      int
-	spinner   spinner.Model
-	index     int
+	cc             *charm.Client
+	err            error
+	state          stashState
+	documents      []*charm.Markdown
+	spinner        spinner.Model
+	index          int
+	terminalWidth  int
+	terminalHeight int
+
+	// This handles the local pagination, which is different than the page
+	// we're fetching from on the server side
+	paginator paginator.Model
+
+	// Page we're fetching items from on the server, which is different from
+	// the local pagination. Generally, the server will return more items than
+	// we can display at a time so we can paginate locally without having to
+	// fetch every time.
+	page int
+}
+
+func (m *stashModel) SetSize(width, height int) {
+	m.terminalWidth = width
+	m.terminalHeight = height
+
+	// Update the paginator
+	perPage := (m.terminalHeight - topPadding - bottomPadding) / itemHeight
+	m.paginator.PerPage = perPage
 }
 
 // INIT
@@ -47,21 +74,19 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 	s := spinner.NewModel()
 	s.Type = spinner.Dot
 	s.ForegroundColor = common.SpinnerColor
-	s.CustomMsgFunc = newSpinnerTickMsg
+	s.CustomMsgFunc = func() boba.Msg { return stashSpinnerTickMsg{} }
 
 	m := stashModel{
-		cc:      cc,
-		spinner: s,
-		page:    1,
+		cc:        cc,
+		spinner:   s,
+		page:      1,
+		paginator: paginator.NewModel(),
 	}
 
 	return m, boba.Batch(
 		loadStash(m),
 		spinner.Tick(s),
 	)
-}
-func newSpinnerTickMsg() boba.Msg {
-	return stashSpinnerTickMsg{}
 }
 
 // UPDATE
@@ -70,6 +95,11 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	switch msg := msg.(type) {
 
 	case boba.KeyMsg:
+		// Don't respond to keystrokes if we're still loading
+		if m.state == stashStateInit {
+			return m, nil
+		}
+
 		switch msg.String() {
 
 		case "k":
@@ -99,8 +129,9 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 	case gotStashMsg:
 		sort.Sort(charm.MarkdownsByCreatedAt(msg)) // sort by date
-		m.documents = msg
+		m.documents = append(m.documents, msg...)
 		m.state = stashStateLoaded
+		m.paginator.SetTotalPages(len(m.documents))
 		return m, nil
 
 	case stashSpinnerTickMsg:
@@ -128,7 +159,16 @@ func stashView(m stashModel) string {
 			s += stashEmtpyView(m)
 			break
 		}
-		s += stashPopulatedView(m)
+
+		// Blank lines we'll need to fill with newlines fo the viewport is
+		// properly filled
+		numBlankLines := (m.terminalHeight - topPadding - bottomPadding) % itemHeight
+		blankLines := ""
+		if numBlankLines > 0 {
+			blankLines = strings.Repeat("\n", numBlankLines)
+		}
+
+		s += stashPopulatedView(m) + blankLines + helpView(m)
 	}
 	return "\n" + indent.String(s, 2)
 }
@@ -138,16 +178,30 @@ func stashEmtpyView(m stashModel) string {
 }
 
 func stashPopulatedView(m stashModel) string {
+	start, end := m.paginator.GetSliceBounds(len(m.documents))
+	docs := m.documents[start:end]
+
 	s := "Here's your markdown stash:\n\n"
-	for i, v := range m.documents {
+	for i, v := range docs {
 		state := common.StateNormal
 		if i == m.index {
 			state = common.StateSelected
 		}
 		s += stashListItemView(*v).render(state) + "\n\n"
 	}
-	s = strings.TrimSpace(s)
-	return s
+	return strings.TrimSpace(s)
+}
+
+func helpView(m stashModel) string {
+	h := []string{"enter: open"}
+	if len(m.documents) > 0 {
+		h = append(h, "j/k, ↑/↓: choose")
+	}
+	if m.paginator.TotalPages > 1 {
+		h = append(h, "h/l, ←/→: page")
+	}
+	h = append(h, []string{"x: delete", "esc: exit"}...)
+	return common.HelpView(h...)
 }
 
 type stashListItemView charm.Markdown

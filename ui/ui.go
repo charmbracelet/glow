@@ -98,9 +98,7 @@ func initialize() (boba.Model, boba.Cmd) {
 		}, boba.Batch(
 			newCharmClient,
 			spinner.Tick(s),
-			boba.GetTerminalSize(func(w, h int, err error) boba.TerminalSizeMsg {
-				return terminalSizeMsg{width: w, height: h, err: err}
-			}),
+			getTerminalSize(),
 		)
 }
 
@@ -130,6 +128,10 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 		case "ctrl+c":
 			return m, boba.Quit
+
+		// Re-render
+		case "ctrl+l":
+			return m, getTerminalSize()
 		}
 
 	case fatalErrMsg:
@@ -148,6 +150,7 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		w, h := msg.Size()
 		m.terminalWidth = w
 		m.terminalHeight = h
+		m.stash.SetSize(w, h)
 		return m, nil
 
 	case sshAuthErrMsg:
@@ -183,6 +186,7 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		m.cc = msg
 		m.state = stateShowStash
 		m.stash, cmd = stashInit(m.cc)
+		m.stash.SetSize(m.terminalWidth, m.terminalHeight)
 		return m, cmd
 
 	case gotStashedItemMsg:
@@ -293,6 +297,11 @@ func statusBarView(m model) string {
 }
 
 // COMMANDS
+func getTerminalSize() boba.Cmd {
+	return boba.GetTerminalSize(func(w, h int, err error) boba.TerminalSizeMsg {
+		return terminalSizeMsg{width: w, height: h, err: err}
+	})
+}
 
 func newCharmClient() boba.Msg {
 	cfg, err := charm.ConfigFromEnv()
