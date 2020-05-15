@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
+	"github.com/charmbracelet/glamour"
 	"github.com/muesli/reflow/indent"
 	te "github.com/muesli/termenv"
 	"golang.org/x/crypto/ssh/terminal"
@@ -38,6 +39,7 @@ type fatalErrMsg error
 type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
+type contentRenderedMsg string
 
 type terminalSizeMsg struct {
 	width  int
@@ -78,7 +80,7 @@ type model struct {
 func (m *model) unloadDocument() {
 	m.pager = pager.Model{}
 	m.state = stateShowStash
-	m.stash.state = stashStateLoaded
+	m.stash.state = stashStateStashLoaded
 }
 
 // INIT
@@ -196,18 +198,34 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		return m, cmd
 
 	case gotStashedItemMsg:
-		// TODO: there's a (unlikely) potential race condition that could
-		// happen here where we start the pager before we have received the
-		// terminal size.  We could solve this in a few ways, including by
-		// getting the terminal size imperatively and synchronously
-		m.state = stateShowDocument
+		// We've received stashed item data. Render with Glamour and send to
+		// the pager.
+		//m.state = stateShowDocument
 		m.pager = pager.NewModel(
 			m.terminalWidth,
 			m.terminalHeight-statusBarHeight,
 		)
 		m.docNote = msg.Note
-		m.pager.Content(msg.Body)
+
+		// This could happen asyncronously with a Cmd since there's techincally
+		// IO happening, but since rendering is fast and Go is an imperative
+		// language I guess it's fine to just render synchronously here.
+		/*
+			md, err := glamourRender(m, msg.Body)
+			if err != nil {
+				m.err = err
+				return m, nil
+			}
+		*/
+
+		//m.pager.SetContent(md)
+		return m, renderWithGlamour(m, msg.Body)
+
+	case contentRenderedMsg:
+		m.state = stateShowDocument
+		m.pager.SetContent(string(msg))
 		return m, nil
+
 	}
 
 	switch m.state {
@@ -227,6 +245,7 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		return m, cmd
 
 	case stateShowDocument:
+		// Process keys (and eventually mouse) with pager.Update
 		newPagerModel, cmd := pager.Update(msg, boba.Model(m.pager))
 		newPagerModel_, ok := newPagerModel.(pager.Model)
 		if !ok {
@@ -329,7 +348,57 @@ func newCharmClient() boba.Msg {
 	return newCharmClientMsg(cc)
 }
 
+func renderWithGlamour(m model, md string) boba.Cmd {
+	return func() boba.Msg {
+		s, err := glamourRender(m, md)
+		if err != nil {
+			return errMsg(err)
+		}
+		return contentRenderedMsg(s)
+	}
+}
+
 // ETC
+
+// This is where the magic happens
+func glamourRender(m model, markdown string) (string, error) {
+
+	// initialize glamour
+	var gs glamour.TermRendererOption
+	if m.style == "auto" {
+		gs = glamour.WithAutoStyle()
+	} else {
+		gs = glamour.WithStylePath(m.style)
+	}
+
+	r, err := glamour.NewTermRenderer(
+		gs,
+		glamour.WithWordWrap(m.terminalWidth),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	out, err := r.Render(markdown)
+	if err != nil {
+		return "", err
+	}
+
+	// trim lines
+	lines := strings.Split(string(out), "\n")
+
+	var content string
+	for i, s := range lines {
+		content += strings.TrimSpace(s)
+
+		// don't add an artificial newline after the last split
+		if i+1 < len(lines) {
+			content += "\n"
+		}
+	}
+
+	return content, nil
+}
 
 func min(a, b int) int {
 	if a < b {

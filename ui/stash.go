@@ -34,8 +34,8 @@ type stashState int
 
 const (
 	stashStateInit stashState = iota
-	stashStateLoaded
-	stashStateLoadingItem
+	stashStateStashLoaded
+	stashStateLoadingDocument
 )
 
 type stashModel struct {
@@ -147,7 +147,9 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			return m, nil
 
 		case "enter":
-			m.state = stashStateLoadingItem
+			// Load the document from the server. We'll handle the message
+			// that comes back in the main update function.
+			m.state = stashStateLoadingDocument
 			indexToLoad := m.paginator.Page*m.paginator.PerPage + m.index
 			return m, boba.Batch(
 				loadStashedItem(m.cc, m.documents[indexToLoad].ID),
@@ -162,17 +164,17 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	case gotStashMsg:
 		sort.Sort(charm.MarkdownsByCreatedAt(msg)) // sort by date
 		m.documents = append(m.documents, msg...)
-		m.state = stashStateLoaded
+		m.state = stashStateStashLoaded
 		m.paginator.SetTotalPages(len(m.documents))
 
 	case stashSpinnerTickMsg:
-		if m.state == stashStateInit || m.state == stashStateLoadingItem {
+		if m.state == stashStateInit || m.state == stashStateLoadingDocument {
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 			return m, cmd
 		}
 	}
 
-	if m.state == stashStateLoaded {
+	if m.state == stashStateStashLoaded {
 		m.paginator, cmd = paginator.Update(msg, m.paginator)
 		cmds = append(cmds, cmd)
 	}
@@ -183,13 +185,17 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 // VIEW
 
 func stashView(m stashModel) string {
+	if m.err != nil {
+		return "\n" + m.err.Error()
+	}
+
 	var s string
 	switch m.state {
 	case stashStateInit:
 		s += spinner.View(m.spinner) + " Loading stash..."
-	case stashStateLoadingItem:
+	case stashStateLoadingDocument:
 		s += spinner.View(m.spinner) + " Loading document..."
-	case stashStateLoaded:
+	case stashStateStashLoaded:
 		if len(m.documents) == 0 {
 			s += stashEmtpyView(m)
 			break
