@@ -201,6 +201,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	case stashSpinnerTickMsg:
 		if m.state == stashStateInit || m.state == stashStateLoadingDocument {
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
+			cmds = append(cmds, cmd)
 		}
 	}
 
