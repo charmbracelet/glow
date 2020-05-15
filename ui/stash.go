@@ -148,8 +148,9 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 		case "enter":
 			m.state = stashStateLoadingItem
+			indexToLoad := m.paginator.Page*m.paginator.PerPage + m.index
 			return m, boba.Batch(
-				loadStashedItem(m.cc, m.documents[m.index].ID),
+				loadStashedItem(m.cc, m.documents[indexToLoad].ID),
 				spinner.Tick(m.spinner),
 			)
 
