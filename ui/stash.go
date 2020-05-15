@@ -263,13 +263,18 @@ func stashView(m stashModel) string {
 			header = "Here’s your markdown stash:"
 		}
 
+		var pageView string
+		if m.paginator.TotalPages > 1 {
+			pageView = paginator.View(m.paginator)
+		}
+
 		s += fmt.Sprintf(
 			"%s\n\n%s\n\n%s\n\n%s%s\n\n%s",
 			glowLogoView(" Glow "),
 			header,
 			stashPopulatedView(m),
 			blankLines,
-			paginator.View(m.paginator),
+			pageView,
 			helpView(m),
 		)
 	}
