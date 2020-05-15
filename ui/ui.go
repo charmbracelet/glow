@@ -28,8 +28,8 @@ var (
 )
 
 // NewProgram returns a new Boba program
-func NewProgram() *boba.Program {
-	return boba.NewProgram(initialize, update, view)
+func NewProgram(style string) *boba.Program {
+	return boba.NewProgram(initialize(style), update, view)
 }
 
 // MESSAGES
@@ -61,6 +61,7 @@ const (
 )
 
 type model struct {
+	style          string // style to use
 	cc             *charm.Client
 	user           *charm.User
 	spinner        spinner.Model
@@ -82,24 +83,27 @@ func (m *model) unloadDocument() {
 
 // INIT
 
-func initialize() (boba.Model, boba.Cmd) {
-	s := spinner.NewModel()
-	s.Type = spinner.Dot
-	s.ForegroundColor = common.SpinnerColor
+func initialize(style string) func() (boba.Model, boba.Cmd) {
+	return func() (boba.Model, boba.Cmd) {
+		s := spinner.NewModel()
+		s.Type = spinner.Dot
+		s.ForegroundColor = common.SpinnerColor
 
-	w, h, err := terminal.GetSize(int(os.Stdout.Fd()))
+		w, h, err := terminal.GetSize(int(os.Stdout.Fd()))
 
-	return model{
-			spinner:        s,
-			state:          stateInitCharmClient,
-			err:            err,
-			terminalWidth:  w,
-			terminalHeight: h,
-		}, boba.Batch(
-			newCharmClient,
-			spinner.Tick(s),
-			getTerminalSize(),
-		)
+		return model{
+				style:          style,
+				spinner:        s,
+				state:          stateInitCharmClient,
+				err:            err,
+				terminalWidth:  w,
+				terminalHeight: h,
+			}, boba.Batch(
+				newCharmClient,
+				spinner.Tick(s),
+				getTerminalSize(),
+			)
+	}
 }
 
 // UPDATE

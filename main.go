@@ -151,21 +151,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	validateOptions(cmd)
 
 	if len(args) == 0 {
-		//return executeArg(cmd, "", os.Stdout)
-
-		debug := os.Getenv("GLOW_DEBUG")
-		if debug != "" {
-			boba.UseSysLog("glow")
-		}
-
-		boba.AltScreen()
-		if err := ui.NewProgram().Start(); err != nil {
-			return err
-		}
-		boba.ExitAltScreen()
-
-		fmt.Printf("\n  Thanks for using Glow!\n\n")
-		return nil
+		return executeArg(cmd, "", os.Stdout)
 	}
 
 	for _, arg := range args {
@@ -177,6 +163,24 @@ func execute(cmd *cobra.Command, args []string) error {
 }
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
+
+	// TODO: Put this somewhere where it makes more sense
+	if arg == "" {
+		debug := os.Getenv("GLOW_DEBUG")
+		if debug != "" {
+			boba.UseSysLog("glow")
+		}
+
+		boba.AltScreen()
+		if err := ui.NewProgram(style).Start(); err != nil {
+			return err
+		}
+		boba.ExitAltScreen()
+
+		fmt.Printf("\n  Thanks for using Glow!\n\n")
+		return nil
+	}
+
 	// create an io.Reader from the markdown source in cli-args
 	src, err := sourceFromArg(arg)
 	if err != nil {
