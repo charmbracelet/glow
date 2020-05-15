@@ -27,6 +27,7 @@ type stashErrMsg error
 type stashSpinnerTickMsg struct{}
 type gotStashMsg []*charm.Markdown
 type gotStashedItemMsg *charm.Markdown
+type deletedStashedItemMsg int
 
 // MODEL
 
@@ -35,6 +36,7 @@ type stashState int
 const (
 	stashStateInit stashState = iota
 	stashStateStashLoaded
+	stashStatePromptDelete
 	stashStateLoadingDocument
 )
 
@@ -47,6 +49,7 @@ type stashModel struct {
 	index          int
 	terminalWidth  int
 	terminalHeight int
+	confirmDelete  int
 
 	// This handles the local pagination, which is different than the page
 	// we're fetching from on the server side
@@ -129,7 +132,6 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				m.paginator.PrevPage()
 				m.index = m.paginator.ItemsOnPage(len(m.documents)) - 1
 			}
-			return m, nil
 
 		case "j":
 			fallthrough
@@ -144,18 +146,47 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				m.index = 0
 				m.paginator.NextPage()
 			}
-			return m, nil
 
 		case "enter":
 			// Load the document from the server. We'll handle the message
 			// that comes back in the main update function.
 			m.state = stashStateLoadingDocument
 			indexToLoad := m.paginator.Page*m.paginator.PerPage + m.index
-			return m, boba.Batch(
+			cmds = append(cmds,
 				loadStashedItem(m.cc, m.documents[indexToLoad].ID),
 				spinner.Tick(m.spinner),
 			)
 
+		case "x":
+			// Confirm deletion
+			m.state = stashStatePromptDelete
+
+		case "y":
+			if m.state != stashStatePromptDelete {
+				break
+			}
+			// Deletion confirmed. Delete the stashed item.
+
+			// Index of the documents slice we'll be deleting
+			i := m.paginator.Page*m.paginator.PerPage + m.index
+
+			// ID of the item we'll be deleting
+			id := m.documents[i].ID
+
+			// Delete optimistically and remove the stashed item
+			// before we've received a success response.
+			m.documents = append(m.documents[:i], m.documents[i+1:]...)
+
+			// Update pagination
+			m.paginator.SetTotalPages(len(m.documents))
+			m.paginator.Page = min(m.paginator.Page, m.paginator.TotalPages-1)
+
+			// Set state and delete
+			m.state = stashStateStashLoaded
+			return m, deleteStashedItem(m.cc, id)
+
+		case "n":
+			m.confirmDelete = -1
 		}
 
 	case stashErrMsg:
@@ -170,7 +201,6 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	case stashSpinnerTickMsg:
 		if m.state == stashStateInit || m.state == stashStateLoadingDocument {
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
-			return m, cmd
 		}
 	}
 
@@ -183,6 +213,13 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		if m.index > itemsOnPage-1 {
 			m.index = itemsOnPage - 1
 		}
+	}
+
+	// If an item is being confirmed for delete, any key (other than the key
+	// used for confirmation above) cancels the deletion
+	k, ok := msg.(boba.KeyMsg)
+	if ok && k.String() != "x" && m.state == stashStatePromptDelete {
+		m.state = stashStateStashLoaded
 	}
 
 	return m, boba.Batch(cmds...)
@@ -202,6 +239,8 @@ func stashView(m stashModel) string {
 	case stashStateLoadingDocument:
 		s += spinner.View(m.spinner) + " Loading document..."
 	case stashStateStashLoaded:
+		fallthrough
+	case stashStatePromptDelete:
 		if len(m.documents) == 0 {
 			s += stashEmtpyView(m)
 			break
@@ -215,9 +254,18 @@ func stashView(m stashModel) string {
 			blankLines = strings.Repeat("\n", numBlankLines)
 		}
 
+		var header string
+		if m.state == stashStatePromptDelete {
+			header = te.String("Delete this item? ").Foreground(common.Red.Color()).String() +
+				te.String("(y/N)").Foreground(common.FaintRed.Color()).String()
+		} else {
+			header = "Here’s your markdown stash:"
+		}
+
 		s += fmt.Sprintf(
-			"%s\n\nHere’s your markdown stash.\n\n%s\n\n%s%s\n\n%s",
+			"%s\n\n%s\n\n%s\n\n%s%s\n\n%s",
 			glowLogoView(" Glow "),
+			header,
 			stashPopulatedView(m),
 			blankLines,
 			paginator.View(m.paginator),
@@ -239,7 +287,9 @@ func stashPopulatedView(m stashModel) string {
 
 	for i, v := range docs {
 		state := common.StateNormal
-		if i == m.index {
+		if i == m.index && m.state == stashStatePromptDelete {
+			state = common.StateDeleting
+		} else if i == m.index {
 			state = common.StateSelected
 		}
 		s += stashListItemView(*v).render(state) + "\n\n"
@@ -259,14 +309,19 @@ func stashPopulatedView(m stashModel) string {
 }
 
 func helpView(m stashModel) string {
-	h := []string{"enter: open"}
-	if len(m.documents) > 0 {
-		h = append(h, "j/k, ↑/↓: choose")
+	h := []string{}
+	if m.state == stashStatePromptDelete {
+		h = append(h, "y: delete", "n: cancel")
+	} else {
+		h = append(h, "enter: open")
+		if len(m.documents) > 0 {
+			h = append(h, "j/k, ↑/↓: choose")
+		}
+		if m.paginator.TotalPages > 1 {
+			h = append(h, "h/l, ←/→: page")
+		}
+		h = append(h, []string{"x: delete", "esc: exit"}...)
 	}
-	if m.paginator.TotalPages > 1 {
-		h = append(h, "h/l, ←/→: page")
-	}
-	h = append(h, []string{"x: delete", "esc: exit"}...)
 	return common.HelpView(h...)
 }
 
@@ -332,5 +387,15 @@ func loadStashedItem(cc *charm.Client, id int) boba.Cmd {
 			return stashErrMsg(err)
 		}
 		return gotStashedItemMsg(m)
+	}
+}
+
+func deleteStashedItem(cc *charm.Client, id int) boba.Cmd {
+	return func() boba.Msg {
+		err := cc.DeleteMarkdown(id)
+		if err != nil {
+			return stashErrMsg(err)
+		}
+		return deletedStashedItemMsg(id)
 	}
 }
