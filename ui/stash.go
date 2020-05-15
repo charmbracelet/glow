@@ -120,13 +120,30 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		case "k":
 			fallthrough
 		case "up":
-			m.index = max(0, m.index-1)
+			m.index--
+			if m.index < 0 && m.paginator.Page == 0 {
+				// Stop
+				m.index = 0
+			} else if m.index < 0 {
+				// Go to previous page
+				m.paginator.PrevPage()
+				m.index = m.paginator.ItemsOnPage(len(m.documents)) - 1
+			}
 			return m, nil
 
 		case "j":
 			fallthrough
 		case "down":
-			m.index = min(m.paginator.ItemsOnPage(len(m.documents))-1, m.index+1)
+			itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
+			m.index++
+			if m.index >= itemsOnPage && m.paginator.OnLastPage() {
+				// Stop
+				m.index = itemsOnPage - 1
+			} else if m.index >= itemsOnPage {
+				// Go to next page
+				m.index = 0
+				m.paginator.NextPage()
+			}
 			return m, nil
 
 		case "enter":
