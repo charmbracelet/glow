@@ -93,6 +93,15 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 
 		w, h, err := terminal.GetSize(int(os.Stdout.Fd()))
 
+		if style == "auto" {
+			dbg := te.HasDarkBackground()
+			if dbg == true {
+				style = "dark"
+			} else {
+				style = "light"
+			}
+		}
+
 		return model{
 				style:          style,
 				spinner:        s,
