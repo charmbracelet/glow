@@ -288,7 +288,7 @@ func stashView(m stashModel) string {
 			pagination = paginator.View(m.paginator)
 
 			if !m.fullyLoaded {
-				pagination += common.Subtle("···")
+				pagination += common.Subtle(" ···")
 			}
 		}
 

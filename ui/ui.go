@@ -74,13 +74,17 @@ type model struct {
 	pager          pager.Model
 	terminalWidth  int
 	terminalHeight int
-	docNote        string
+
+	// Current document being rendered, sans-glamour rendering. We cache
+	// this here so we can re-render it on resize.
+	currentDocument *charm.Markdown
 }
 
 func (m *model) unloadDocument() {
 	m.pager = pager.Model{}
 	m.state = stateShowStash
 	m.stash.state = stashStateStashLoaded
+	m.currentDocument = nil
 }
 
 // INIT
@@ -168,9 +172,20 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		m.terminalWidth = w
 		m.terminalHeight = h
 		m.stash.SetSize(w, h)
+
+		if m.state == stateShowDocument {
+			m.pager.Width = w
+			m.pager.Height = h
+		}
+
+		var cmd boba.Cmd
+		if m.state == stateShowDocument {
+			cmd = renderWithGlamour(m, m.currentDocument.Body)
+		}
+
 		// TODO: load more stash pages if we've resized, are on the last page,
 		// and haven't loaded more pages yet.
-		return m, nil
+		return m, cmd
 
 	case sshAuthErrMsg:
 		// If we haven't run the keygen yet, do that
@@ -216,7 +231,7 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 			m.terminalHeight-statusBarHeight,
 		)
 
-		m.docNote = msg.Note
+		m.currentDocument = msg
 		return m, renderWithGlamour(m, msg.Body)
 
 	case contentRenderedMsg:
@@ -302,7 +317,7 @@ func statusBarView(m model) string {
 		String()
 
 	// Note
-	noteText := m.docNote
+	noteText := m.currentDocument.Note
 	if len(noteText) == 0 {
 		noteText = "(No title)"
 	}
@@ -378,7 +393,7 @@ func glamourRender(m model, markdown string) (string, error) {
 
 	r, err := glamour.NewTermRenderer(
 		gs,
-		glamour.WithWordWrap(m.terminalWidth),
+		glamour.WithWordWrap(min(120, m.terminalWidth)),
 	)
 	if err != nil {
 		return "", err
