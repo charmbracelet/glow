@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	itemHeight    = 3
-	topPadding    = 5
-	bottomPadding = 4
+	stashViewItemHeight    = 3
+	stashViewTopPadding    = 5
+	stashViewBottomPadding = 4
+	stashHorizontalPadding = 2
 )
 
 // MSG
@@ -68,7 +69,7 @@ func (m *stashModel) SetSize(width, height int) {
 	m.terminalHeight = height
 
 	// Update the paginator
-	perPage := (m.terminalHeight - topPadding - bottomPadding) / itemHeight
+	perPage := (m.terminalHeight - stashViewTopPadding - stashViewBottomPadding) / stashViewItemHeight
 	m.paginator.PerPage = perPage
 	m.paginator.SetTotalPages(len(m.documents))
 
@@ -268,7 +269,7 @@ func stashView(m stashModel) string {
 
 		// Blank lines we'll need to fill with newlines fo the viewport is
 		// properly filled
-		numBlankLines := (m.terminalHeight - topPadding - bottomPadding) % itemHeight
+		numBlankLines := (m.terminalHeight - stashViewTopPadding - stashViewBottomPadding) % stashViewItemHeight
 		blankLines := ""
 		if numBlankLines > 0 {
 			blankLines = strings.Repeat("\n", numBlankLines)
@@ -330,7 +331,7 @@ func stashPopulatedView(m stashModel) string {
 	// footer stuff down elsewhere.
 	itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
 	if itemsOnPage < m.paginator.PerPage {
-		n := (m.paginator.PerPage - itemsOnPage) * itemHeight
+		n := (m.paginator.PerPage - itemsOnPage) * stashViewItemHeight
 		s += strings.Repeat("\n", n)
 	}
 
