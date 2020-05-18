@@ -39,6 +39,7 @@ type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
 type contentRenderedMsg string
+type terminalResizedMsg struct{}
 
 type terminalSizeMsg struct {
 	width  int
@@ -107,6 +108,7 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 				newCharmClient,
 				spinner.Tick(s),
 				getTerminalSize(),
+				listenForTerminalResize(),
 			)
 	}
 }
@@ -150,6 +152,12 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 	case errMsg:
 		m.err = msg
 		return m, nil
+
+	case terminalResizedMsg:
+		return m, boba.Batch(
+			getTerminalSize(),
+			listenForTerminalResize(),
+		)
 
 	case terminalSizeMsg:
 		if msg.Error() != nil {
@@ -312,6 +320,13 @@ func statusBarView(m model) string {
 }
 
 // COMMANDS
+
+func listenForTerminalResize() boba.Cmd {
+	return boba.OnResize(func() boba.Msg {
+		return terminalResizedMsg{}
+	})
+}
+
 func getTerminalSize() boba.Cmd {
 	return boba.GetTerminalSize(func(w, h int, err error) boba.TerminalSizeMsg {
 		return terminalSizeMsg{width: w, height: h, err: err}
