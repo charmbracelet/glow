@@ -10,6 +10,11 @@ jobs:
     env:
       GO111MODULE: "on"
     steps:
+    
+    - name: Configure git for private modules
+      env:
+        TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      run: git config --global url."https://meowgorithm:${TOKEN}@github.com".insteadOf "https://github.com"
 
     - name: Install Go
       uses: actions/setup-go@v1
