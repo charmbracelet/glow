@@ -19,7 +19,7 @@ const (
 	stashViewItemHeight    = 3
 	stashViewTopPadding    = 5
 	stashViewBottomPadding = 4
-	stashHorizontalPadding = 2
+	stashHorizontalPadding = 6
 )
 
 // MSG
@@ -267,7 +267,7 @@ func stashView(m stashModel) string {
 			break
 		}
 
-		// Blank lines we'll need to fill with newlines fo the viewport is
+		// Blank lines we'll need to fill with newlines if the viewport is
 		// properly filled
 		numBlankLines := (m.terminalHeight - stashViewTopPadding - stashViewBottomPadding) % stashViewItemHeight
 		blankLines := ""
@@ -322,7 +322,7 @@ func stashPopulatedView(m stashModel) string {
 		} else if i == m.index {
 			state = common.StateSelected
 		}
-		s += stashListItemView(*v).render(state) + "\n\n"
+		s += stashListItemView(*v).render(m.terminalWidth, state) + "\n\n"
 	}
 	s = strings.TrimSpace(s) // trim final newlines
 
@@ -357,8 +357,10 @@ func helpView(m stashModel) string {
 
 type stashListItemView charm.Markdown
 
-func (m stashListItemView) render(state common.State) string {
+func (m stashListItemView) render(width int, state common.State) string {
+
 	line := common.VerticalLine(state) + " "
+
 	keyColor := common.NoColor
 	switch state {
 	case common.StateSelected:
@@ -366,15 +368,22 @@ func (m stashListItemView) render(state common.State) string {
 	case common.StateDeleting:
 		keyColor = common.Red
 	}
+
 	titleKey := strconv.Itoa(m.ID)
 	if m.Note != "" {
 		titleKey += ":"
 	}
+
+	titleVal := truncate(m.Note, width-(stashHorizontalPadding*2)-len(titleKey))
+	titleVal = titleView(titleVal, state)
+
 	titleKey = te.String("#" + titleKey).Foreground(keyColor.Color()).String()
 	dateKey := te.String("Stashed:").Foreground(keyColor.Color()).String()
+	dateVal := m.date(state)
+
 	var s string
-	s += fmt.Sprintf("%s%s %s\n", line, titleKey, m.title(state))
-	s += fmt.Sprintf("%s%s %s", line, dateKey, m.date(state))
+	s += fmt.Sprintf("%s%s %s\n", line, titleKey, titleVal)
+	s += fmt.Sprintf("%s%s %s", line, dateKey, dateVal)
 	return s
 }
 
@@ -387,15 +396,15 @@ func (m stashListItemView) date(state common.State) string {
 	return te.String(s).Foreground(c.Color()).String()
 }
 
-func (m stashListItemView) title(state common.State) string {
-	if m.Note == "" {
+func titleView(title string, state common.State) string {
+	if title == "" {
 		return ""
 	}
 	c := common.Indigo
 	if state == common.StateDeleting {
 		c = common.Red
 	}
-	return te.String(m.Note).Foreground(c.Color()).String()
+	return te.String(title).Foreground(c.Color()).String()
 }
 
 // CMD
@@ -428,4 +437,17 @@ func deleteStashedItem(cc *charm.Client, id int) boba.Cmd {
 		}
 		return deletedStashedItemMsg(id)
 	}
+}
+
+// ETC
+
+func truncate(str string, num int) string {
+	s := str
+	if len(str) > num {
+		if num > 1 {
+			num -= 1
+		}
+		s = str[0:num] + "…"
+	}
+	return s
 }
