@@ -286,16 +286,6 @@ func statusBarView(m model) string {
 	logoText := " Glow "
 	logo := glowLogoView(logoText)
 
-	// Note
-	noteText := m.docNote
-	if len(noteText) == 0 {
-		noteText = "(No title)"
-	}
-	noteText = " " + noteText
-	note := te.String(noteText).
-		Foreground(statusBarFg.Color()).
-		Background(statusBarBg.Color()).String()
-
 	// Scroll percent
 	percentText := fmt.Sprintf(" %3.f%% ", m.pager.ScrollPercent()*100)
 	percent := te.String(percentText).
@@ -303,9 +293,20 @@ func statusBarView(m model) string {
 		Background(statusBarBg.Color()).
 		String()
 
+	// Note
+	noteText := m.docNote
+	if len(noteText) == 0 {
+		noteText = "(No title)"
+	}
+	noteText = truncate(" "+noteText+" ", max(0, m.terminalWidth-len(logoText)-len(percentText)))
+	note := te.String(noteText).
+		Foreground(statusBarFg.Color()).
+		Background(statusBarBg.Color()).String()
+
 	// Empty space
 	emptyCell := te.String(" ").Background(statusBarBg.Color()).String()
-	emptySpace := strings.Repeat(emptyCell, m.terminalWidth-len(logoText)-len(noteText)-len(percentText))
+	padding := max(0, m.terminalWidth-len(logoText)-len(noteText)-len(percentText))
+	emptySpace := strings.Repeat(emptyCell, padding)
 
 	return logo + note + emptySpace + percent
 }
