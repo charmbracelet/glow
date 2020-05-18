@@ -15,7 +15,6 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/muesli/reflow/indent"
 	te "github.com/muesli/termenv"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -91,8 +90,6 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 		s.Type = spinner.Dot
 		s.ForegroundColor = common.SpinnerColor
 
-		w, h, err := terminal.GetSize(int(os.Stdout.Fd()))
-
 		if style == "auto" {
 			dbg := te.HasDarkBackground()
 			if dbg == true {
@@ -103,12 +100,9 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 		}
 
 		return model{
-				style:          style,
-				spinner:        s,
-				state:          stateInitCharmClient,
-				err:            err,
-				terminalWidth:  w,
-				terminalHeight: h,
+				style:   style,
+				spinner: s,
+				state:   stateInitCharmClient,
 			}, boba.Batch(
 				newCharmClient,
 				spinner.Tick(s),
