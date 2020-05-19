@@ -2,15 +2,18 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/boba"
 	"github.com/charmbracelet/boba/paginator"
 	"github.com/charmbracelet/boba/spinner"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
+	"github.com/dustin/go-humanize"
 	"github.com/muesli/reflow/indent"
 	te "github.com/muesli/termenv"
 )
@@ -392,7 +395,7 @@ func (m stashListItemView) date(state common.State) string {
 	if state == common.StateDeleting {
 		c = common.FaintRed
 	}
-	s := m.CreatedAt.Format("02 Jan 2006 15:04:05 MST")
+	s := relativeTime(*m.CreatedAt)
 	return te.String(s).Foreground(c.Color()).String()
 }
 
@@ -450,4 +453,32 @@ func truncate(str string, num int) string {
 		s = str[0:num] + "…"
 	}
 	return s
+}
+
+var magnitudes = []humanize.RelTimeMagnitude{
+	{D: time.Second, Format: "now", DivBy: time.Second},
+	{D: 2 * time.Second, Format: "1 second %s", DivBy: 1},
+	{D: time.Minute, Format: "%d seconds %s", DivBy: time.Second},
+	{D: 2 * time.Minute, Format: "1 minute %s", DivBy: 1},
+	{D: time.Hour, Format: "%d minutes %s", DivBy: time.Minute},
+	{D: 2 * time.Hour, Format: "1 hour %s", DivBy: 1},
+	{D: humanize.Day, Format: "%d hours %s", DivBy: time.Hour},
+	{D: 2 * humanize.Day, Format: "1 day %s", DivBy: 1},
+	{D: humanize.Week, Format: "%d days %s", DivBy: humanize.Day},
+	{D: 2 * humanize.Week, Format: "1 week %s", DivBy: 1},
+	{D: humanize.Month, Format: "%d weeks %s", DivBy: humanize.Week},
+	{D: 2 * humanize.Month, Format: "1 month %s", DivBy: 1},
+	{D: humanize.Year, Format: "%d months %s", DivBy: humanize.Month},
+	{D: 18 * humanize.Month, Format: "1 year %s", DivBy: 1},
+	{D: 2 * humanize.Year, Format: "2 years %s", DivBy: 1},
+	{D: humanize.LongTime, Format: "%d years %s", DivBy: humanize.Year},
+	{D: math.MaxInt64, Format: "a long while %s", DivBy: 1},
+}
+
+func relativeTime(then time.Time) string {
+	now := time.Now()
+	if now.Sub(then) < humanize.Week {
+		return humanize.CustomRelTime(then, now, "ago", "from now", magnitudes)
+	}
+	return then.Format("02 Jan 2006 15:04 MST")
 }
