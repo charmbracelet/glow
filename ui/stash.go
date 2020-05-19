@@ -205,7 +205,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			break
 		}
 
-		sort.Sort(charm.MarkdownsByCreatedAt(msg)) // sort by date
+		sort.Sort(charm.MarkdownsByCreatedAtDesc(msg)) // sort by date
 		m.documents = append(m.documents, msg...)
 		m.state = stashStateStashLoaded
 		m.paginator.SetTotalPages(len(m.documents))
