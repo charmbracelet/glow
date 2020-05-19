@@ -3,6 +3,7 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -310,12 +311,7 @@ func statusBarView(m model) string {
 	logo := glowLogoView(logoText)
 
 	// Scroll percent
-	scrollPercent := m.pager.ScrollPercent()
-	if scrollPercent > 1.0 {
-		// Don't let read more than 100%, which could happen if we resize and
-		// the bottom of the page ends up in the middle of the window.
-		scrollPercent = 1.0
-	}
+	scrollPercent := math.Max(0.0, math.Min(1.0, m.pager.ScrollPercent()))
 	percentText := fmt.Sprintf(" %3.f%% ", scrollPercent*100)
 	percent := te.String(percentText).
 		Foreground(statusBarFg.Color()).
