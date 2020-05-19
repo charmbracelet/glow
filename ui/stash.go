@@ -67,7 +67,7 @@ type stashModel struct {
 	page int
 }
 
-func (m *stashModel) SetSize(width, height int) {
+func (m *stashModel) setSize(width, height int) {
 	m.terminalWidth = width
 	m.terminalHeight = height
 
@@ -306,6 +306,14 @@ func stashView(m stashModel) string {
 		)
 	}
 	return "\n" + indent.String(s, 2)
+}
+
+func glowLogoView(text string) string {
+	return te.String(text).
+		Bold().
+		Foreground(glowLogoTextColor).
+		Background(common.Fuschia.Color()).
+		String()
 }
 
 func stashEmtpyView(m stashModel) string {

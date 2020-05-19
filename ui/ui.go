@@ -2,18 +2,12 @@ package ui
 
 import (
 	"errors"
-	"fmt"
-	"math"
-	"os"
-	"strings"
 
 	"github.com/charmbracelet/boba"
-	"github.com/charmbracelet/boba/pager"
 	"github.com/charmbracelet/boba/spinner"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
-	"github.com/charmbracelet/glamour"
 	"github.com/muesli/reflow/indent"
 	te "github.com/muesli/termenv"
 )
@@ -39,7 +33,6 @@ type fatalErrMsg error
 type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
-type contentRenderedMsg string
 type terminalResizedMsg struct{}
 
 type terminalSizeMsg struct {
@@ -64,7 +57,6 @@ const (
 )
 
 type model struct {
-	style          string // style to use
 	cc             *charm.Client
 	user           *charm.User
 	spinner        spinner.Model
@@ -72,20 +64,15 @@ type model struct {
 	state          state
 	err            error
 	stash          stashModel
-	pager          pager.Model
+	pager          pagerModel
 	terminalWidth  int
 	terminalHeight int
-
-	// Current document being rendered, sans-glamour rendering. We cache
-	// this here so we can re-render it on resize.
-	currentDocument *charm.Markdown
 }
 
 func (m *model) unloadDocument() {
-	m.pager = pager.Model{}
 	m.state = stateShowStash
 	m.stash.state = stashStateStashLoaded
-	m.currentDocument = nil
+	m.pager.unload()
 }
 
 // INIT
@@ -106,9 +93,11 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 		}
 
 		return model{
-				style:   style,
 				spinner: s,
-				state:   stateInitCharmClient,
+				pager: pagerModel{
+					glamourStyle: style,
+				},
+				state: stateInitCharmClient,
 			}, boba.Batch(
 				newCharmClient,
 				spinner.Tick(s),
@@ -126,7 +115,10 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		return model{err: errors.New("could not perform assertion on model in update")}, boba.Quit
 	}
 
-	var cmd boba.Cmd
+	var (
+		cmd  boba.Cmd
+		cmds []boba.Cmd
+	)
 
 	switch msg := msg.(type) {
 
@@ -159,7 +151,7 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		return m, nil
 
 	case terminalResizedMsg:
-		return m, boba.Batch(
+		cmds = append(cmds,
 			getTerminalSize(),
 			listenForTerminalResize(),
 		)
@@ -167,84 +159,59 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 	case terminalSizeMsg:
 		if msg.Error() != nil {
 			m.err = msg.Error()
-			return m, nil
 		}
 		w, h := msg.Size()
 		m.terminalWidth = w
 		m.terminalHeight = h
-		m.stash.SetSize(w, h)
-
-		if m.state == stateShowDocument {
-			m.pager.Width = w
-			m.pager.Height = h
-		}
-
-		var cmd boba.Cmd
-		if m.state == stateShowDocument {
-			cmd = renderWithGlamour(m, m.currentDocument.Body)
-		}
+		m.stash.setSize(w, h)
+		m.pager.setSize(w, h)
 
 		// TODO: load more stash pages if we've resized, are on the last page,
 		// and haven't loaded more pages yet.
-		return m, cmd
 
 	case sshAuthErrMsg:
 		// If we haven't run the keygen yet, do that
 		if m.state != stateKeygenFinished {
 			m.state = stateKeygenRunning
 			m.keygen = keygen.NewModel()
-			return m, keygen.GenerateKeys
+			cmds = append(cmds, keygen.GenerateKeys)
+		} else {
+			// The keygen didn't work and we can't auth
+			m.err = errors.New("SSH authentication failed")
+			return m, boba.Quit
 		}
-
-		// The keygen didn't work and we can't auth
-		m.err = errors.New("SSH authentication failed")
-		return m, boba.Quit
 
 	case spinner.TickMsg:
 		switch m.state {
 		case stateInitCharmClient:
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 		}
-		return m, cmd
-
-	case stashSpinnerTickMsg:
-		if m.state == stateShowStash {
-			m.stash, cmd = stashUpdate(msg, m.stash)
-		}
-		return m, cmd
+		cmds = append(cmds, cmd)
 
 	case keygen.DoneMsg:
 		m.state = stateKeygenFinished
-		return m, newCharmClient
+		cmds = append(cmds, newCharmClient)
 
 	case newCharmClientMsg:
 		m.cc = msg
 		m.state = stateShowStash
 		m.stash, cmd = stashInit(m.cc)
-		m.stash.SetSize(m.terminalWidth, m.terminalHeight)
-		return m, cmd
+		m.stash.setSize(m.terminalWidth, m.terminalHeight)
+		cmds = append(cmds, cmd)
 
 	case gotStashedItemMsg:
-		// We've received stashed item data. Render with Glamour and send to
-		// the pager.
-		m.pager = pager.NewModel(
-			m.terminalWidth,
-			m.terminalHeight-statusBarHeight,
-		)
-
-		m.currentDocument = msg
-		return m, renderWithGlamour(m, msg.Body)
+		m.pager.currentDocument = msg
+		cmds = append(cmds, renderWithGlamour(m.pager, msg.Body))
 
 	case contentRenderedMsg:
 		m.state = stateShowDocument
-		m.pager.SetContent(string(msg))
-		return m, nil
 
 	}
 
 	switch m.state {
 
 	case stateKeygenRunning:
+		// Process keygen
 		mdl, cmd := keygen.Update(msg, boba.Model(m.keygen))
 		keygenModel, ok := mdl.(keygen.Model)
 		if !ok {
@@ -252,20 +219,20 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 			return m, boba.Quit
 		}
 		m.keygen = keygenModel
-		return m, cmd
+		cmds = append(cmds, cmd)
 
 	case stateShowStash:
+		// Process stash
 		m.stash, cmd = stashUpdate(msg, m.stash)
-		return m, cmd
+		cmds = append(cmds, cmd)
 
 	case stateShowDocument:
-		// Process keys (and eventually mouse) with pager.Update
-		var cmd boba.Cmd
-		m.pager, cmd = pager.Update(msg, m.pager)
-		return m, cmd
+		// Process pager
+		m.pager, cmd = pagerUpdate(msg, m.pager)
+		cmds = append(cmds, cmd)
 	}
 
-	return m, nil
+	return m, boba.Batch(cmds...)
 }
 
 // VIEW
@@ -291,49 +258,10 @@ func view(mdl boba.Model) string {
 	case stateShowStash:
 		return stashView(m.stash)
 	case stateShowDocument:
-		return fmt.Sprintf("\n%s\n%s", pager.View(m.pager), statusBarView(m))
+		return pagerView(m.pager)
 	}
 
 	return "\n" + indent.String(s, 2)
-}
-
-func glowLogoView(text string) string {
-	return te.String(text).
-		Bold().
-		Foreground(glowLogoTextColor).
-		Background(common.Fuschia.Color()).
-		String()
-}
-
-func statusBarView(m model) string {
-	// Logo
-	logoText := " Glow "
-	logo := glowLogoView(logoText)
-
-	// Scroll percent
-	scrollPercent := math.Max(0.0, math.Min(1.0, m.pager.ScrollPercent()))
-	percentText := fmt.Sprintf(" %3.f%% ", scrollPercent*100)
-	percent := te.String(percentText).
-		Foreground(statusBarFg.Color()).
-		Background(statusBarBg.Color()).
-		String()
-
-	// Note
-	noteText := m.currentDocument.Note
-	if len(noteText) == 0 {
-		noteText = "(No title)"
-	}
-	noteText = truncate(" "+noteText+" ", max(0, m.terminalWidth-len(logoText)-len(percentText)))
-	note := te.String(noteText).
-		Foreground(statusBarFg.Color()).
-		Background(statusBarBg.Color()).String()
-
-	// Empty space
-	emptyCell := te.String(" ").Background(statusBarBg.Color()).String()
-	padding := max(0, m.terminalWidth-len(logoText)-len(noteText)-len(percentText))
-	emptySpace := strings.Repeat(emptyCell, padding)
-
-	return logo + note + emptySpace + percent
 }
 
 // COMMANDS
@@ -366,61 +294,7 @@ func newCharmClient() boba.Msg {
 	return newCharmClientMsg(cc)
 }
 
-func renderWithGlamour(m model, md string) boba.Cmd {
-	return func() boba.Msg {
-		s, err := glamourRender(m, md)
-		if err != nil {
-			return errMsg(err)
-		}
-		return contentRenderedMsg(s)
-	}
-}
-
 // ETC
-
-// This is where the magic happens
-func glamourRender(m model, markdown string) (string, error) {
-
-	if os.Getenv("GLOW_DISABLE_GLAMOUR") != "" {
-		return markdown, nil
-	}
-
-	// initialize glamour
-	var gs glamour.TermRendererOption
-	if m.style == "auto" {
-		gs = glamour.WithAutoStyle()
-	} else {
-		gs = glamour.WithStylePath(m.style)
-	}
-
-	r, err := glamour.NewTermRenderer(
-		gs,
-		glamour.WithWordWrap(min(120, m.terminalWidth)),
-	)
-	if err != nil {
-		return "", err
-	}
-
-	out, err := r.Render(markdown)
-	if err != nil {
-		return "", err
-	}
-
-	// trim lines
-	lines := strings.Split(string(out), "\n")
-
-	var content string
-	for i, s := range lines {
-		content += strings.TrimSpace(s)
-
-		// don't add an artificial newline after the last split
-		if i+1 < len(lines) {
-			content += "\n"
-		}
-	}
-
-	return content, nil
-}
 
 func min(a, b int) int {
 	if a < b {
