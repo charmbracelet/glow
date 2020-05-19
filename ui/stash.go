@@ -69,13 +69,13 @@ func (m *stashModel) SetSize(width, height int) {
 	m.terminalHeight = height
 
 	// Update the paginator
-	perPage := (m.terminalHeight - stashViewTopPadding - stashViewBottomPadding) / stashViewItemHeight
+	perPage := max(1, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
 	m.paginator.PerPage = perPage
 	m.paginator.SetTotalPages(len(m.documents))
 
 	// Make sure the page stays in bounds
 	if m.paginator.Page >= m.paginator.TotalPages-1 {
-		m.paginator.Page = m.paginator.TotalPages - 1
+		m.paginator.Page = max(0, m.paginator.TotalPages-1)
 	}
 }
 
@@ -269,7 +269,7 @@ func stashView(m stashModel) string {
 
 		// Blank lines we'll need to fill with newlines if the viewport is
 		// properly filled
-		numBlankLines := (m.terminalHeight - stashViewTopPadding - stashViewBottomPadding) % stashViewItemHeight
+		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
 		blankLines := ""
 		if numBlankLines > 0 {
 			blankLines = strings.Repeat("\n", numBlankLines)
