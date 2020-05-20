@@ -27,9 +27,13 @@ const (
 
 var (
 	noteHeading = te.String(noteHeadingText).
-		Foreground(common.Cream.Color()).
-		Background(common.Green.Color()).
-		String()
+			Foreground(common.Cream.Color()).
+			Background(common.Green.Color()).
+			String()
+
+	statusBarBg          = common.NewColorPair("#242424", "#E6E6E6")
+	statusBarNoteFg      = common.NewColorPair("#7D7D7D", "#656565")
+	statusBarScrollPosFg = common.NewColorPair("#5A5A5A", "#949494")
 )
 
 // MSG
@@ -210,7 +214,7 @@ func pagerStatusBarView(m pagerModel) string {
 	scrollPercent := math.Max(0.0, math.Min(1.0, m.viewport.ScrollPercent()))
 	percentText := fmt.Sprintf(" %3.f%% ", scrollPercent*100)
 	percent := te.String(percentText).
-		Foreground(statusBarFg.Color()).
+		Foreground(statusBarScrollPosFg.Color()).
 		Background(statusBarBg.Color()).
 		String()
 
@@ -221,7 +225,7 @@ func pagerStatusBarView(m pagerModel) string {
 	}
 	noteText = truncate(" "+noteText+" ", max(0, m.width-len(logoText)-len(percentText)))
 	note := te.String(noteText).
-		Foreground(statusBarFg.Color()).
+		Foreground(statusBarNoteFg.Color()).
 		Background(statusBarBg.Color()).String()
 
 	// Empty space

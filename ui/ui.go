@@ -14,8 +14,6 @@ import (
 
 var (
 	glowLogoTextColor = common.Color("#ECFD65")
-	statusBarBg       = common.NewColorPair("#242424", "#E6E6E6")
-	statusBarFg       = common.NewColorPair("#5A5A5A", "#949494")
 )
 
 // NewProgram returns a new Boba program
