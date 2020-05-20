@@ -120,10 +120,14 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 				m.state = pagerStateBrowse
 				return m, nil
 			case "enter":
-				m.currentDocument.Note = m.textInput.Value() // update optimistically
+				var cmd boba.Cmd
+				if m.textInput.Value() != m.currentDocument.Note { // don't update if the note didn't change
+					m.currentDocument.Note = m.textInput.Value() // update optimistically
+					cmd = saveDocumentNote(m.cc, m.currentDocument.ID, m.currentDocument.Note)
+				}
 				m.state = pagerStateBrowse
 				m.textInput.Reset()
-				return m, saveDocumentNote(m.cc, m.currentDocument.ID, m.currentDocument.Note)
+				return m, cmd
 			}
 		default:
 			switch msg.String() {
