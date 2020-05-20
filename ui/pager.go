@@ -1,48 +1,92 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
 	"strings"
 
 	"github.com/charmbracelet/boba"
+	"github.com/charmbracelet/boba/textinput"
 	"github.com/charmbracelet/boba/viewport"
 	"github.com/charmbracelet/charm"
+	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
 	te "github.com/muesli/termenv"
 )
 
+const (
+	statusBarHeight = 1
+	gray            = "#333333"
+	yellowGreen     = "#ECFD65"
+	fuschia         = "#EE6FF8"
+	noteHeadingText = " Set Memo "
+	notePromptText  = " > "
+)
+
+var (
+	noteHeading = te.String(noteHeadingText).
+		Foreground(common.Cream.Color()).
+		Background(common.Green.Color()).
+		String()
+)
+
 // MSG
 
+type pagerErrMsg error
 type contentRenderedMsg string
+type noteSavedMsg *charm.Markdown
 
 // MODEL
 
 type pagerState int
 
 const (
-	pagerStateNormal pagerState = iota
+	pagerStateBrowse pagerState = iota
 	pagerStateSetNote
 )
 
 type pagerModel struct {
 	err          error
+	cc           *charm.Client
 	viewport     viewport.Model
+	state        pagerState
 	glamourStyle string
 	width        int
 	height       int
+	textInput    textinput.Model
 
 	// Current document being rendered, sans-glamour rendering. We cache
 	// this here so we can re-render it on resize.
 	currentDocument *charm.Markdown
 }
 
+func newPagerModel(glamourStyle string) pagerModel {
+	ti := textinput.NewModel()
+	ti.Prompt = te.String(notePromptText).
+		Foreground(te.ColorProfile().Color(gray)).
+		Background(te.ColorProfile().Color(yellowGreen)).
+		String()
+	ti.TextColor = gray
+	ti.BackgroundColor = yellowGreen
+	ti.CursorColor = fuschia
+	ti.CharLimit = 128 // totally arbitrary
+	ti.Focus()
+
+	return pagerModel{
+		state:        pagerStateBrowse,
+		glamourStyle: glamourStyle,
+		textInput:    ti,
+	}
+}
+
 func (m *pagerModel) setSize(w, h int) {
 	m.width = w
 	m.height = h
 	m.viewport.Width = w
-	m.viewport.Height = h
+	m.viewport.Height = h - statusBarHeight
+	m.textInput.Width = w - len(noteHeadingText) - len(notePromptText) - 1
 }
 
 func (m *pagerModel) setContent(s string) {
@@ -50,14 +94,54 @@ func (m *pagerModel) setContent(s string) {
 }
 
 func (m *pagerModel) unload() {
+	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
 	m.viewport.Y = 0
+	m.textInput.Reset()
 }
 
 // UPDATE
 
 func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
+	var (
+		cmd  boba.Cmd
+		cmds []boba.Cmd
+	)
+
 	switch msg := msg.(type) {
+
+	case boba.KeyMsg:
+		switch m.state {
+		case pagerStateSetNote:
+			switch msg.String() {
+			case "q":
+				fallthrough
+			case "esc":
+				m.state = pagerStateBrowse
+				return m, nil
+			case "enter":
+				m.currentDocument.Note = m.textInput.Value // set optimistically
+				m.state = pagerStateBrowse
+				m.textInput.Reset()
+				return m, saveDocumentNote(m.cc, m.currentDocument.ID, m.currentDocument.Note)
+			}
+		default:
+			switch msg.String() {
+			case "q":
+				fallthrough
+			case "esc":
+				if m.state != pagerStateBrowse {
+					m.state = pagerStateBrowse
+					return m, nil
+				}
+			case "n":
+				m.state = pagerStateSetNote
+				return m, textinput.Blink(m.textInput)
+			}
+		}
+
+	case pagerErrMsg:
+		m.err = msg
 
 	// Glow has rendered the content
 	case contentRenderedMsg:
@@ -79,19 +163,32 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 		return m, cmd
 	}
 
-	var cmd boba.Cmd
-	m.viewport, cmd = viewport.Update(msg, m.viewport)
+	switch m.state {
+	case pagerStateSetNote:
+		m.textInput, cmd = textinput.Update(msg, m.textInput)
+		cmds = append(cmds, cmd)
+	default:
+		m.viewport, cmd = viewport.Update(msg, m.viewport)
+		cmds = append(cmds, cmd)
+	}
 
-	return m, cmd
+	return m, boba.Batch(cmds...)
 }
 
 // VIEW
 
 func pagerView(m pagerModel) string {
+	var footer string
+	if m.state == pagerStateSetNote {
+		footer = pagerSetNoteView(m)
+	} else {
+		footer = pagerStatusBarView(m)
+	}
+
 	return fmt.Sprintf(
 		"\n%s\n%s",
 		viewport.View(m.viewport),
-		pagerStatusBarView(m),
+		footer,
 	)
 }
 
@@ -126,6 +223,10 @@ func pagerStatusBarView(m pagerModel) string {
 	return logo + note + emptySpace + percent
 }
 
+func pagerSetNoteView(m pagerModel) string {
+	return noteHeading + textinput.View(m.textInput)
+}
+
 // CMD
 
 func renderWithGlamour(m pagerModel, md string) boba.Cmd {
@@ -135,6 +236,20 @@ func renderWithGlamour(m pagerModel, md string) boba.Cmd {
 			return errMsg(err)
 		}
 		return contentRenderedMsg(s)
+	}
+}
+
+func saveDocumentNote(cc *charm.Client, id int, note string) boba.Cmd {
+	if cc == nil {
+		return func() boba.Msg {
+			return pagerErrMsg(errors.New("can't set note; no charm client"))
+		}
+	}
+	return func() boba.Msg {
+		if err := cc.SetMarkdownNote(id, note); err != nil {
+			return pagerErrMsg(err)
+		}
+		return noteSavedMsg(&charm.Markdown{ID: id, Note: note})
 	}
 }
 

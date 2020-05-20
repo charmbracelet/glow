@@ -12,10 +12,6 @@ import (
 	te "github.com/muesli/termenv"
 )
 
-const (
-	statusBarHeight = 1
-)
-
 var (
 	glowLogoTextColor = common.Color("#ECFD65")
 	statusBarBg       = common.NewColorPair("#242424", "#E6E6E6")
@@ -71,7 +67,7 @@ type model struct {
 
 func (m *model) unloadDocument() {
 	m.state = stateShowStash
-	m.stash.state = stashStateStashLoaded
+	m.stash.state = stashStateReady
 	m.pager.unload()
 }
 
@@ -94,10 +90,8 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 
 		return model{
 				spinner: s,
-				pager: pagerModel{
-					glamourStyle: style,
-				},
-				state: stateInitCharmClient,
+				pager:   newPagerModel(style),
+				state:   stateInitCharmClient,
 			}, boba.Batch(
 				newCharmClient,
 				spinner.Tick(s),
@@ -124,20 +118,26 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 	case boba.KeyMsg:
 		switch msg.String() {
-
 		case "q":
 			fallthrough
 		case "esc":
 			if m.state == stateShowDocument {
-				m.unloadDocument()
-				return m, nil
+				var cmd boba.Cmd
+				if m.pager.state == pagerStateBrowse {
+					// Exit pager
+					m.unloadDocument()
+				} else {
+					// Pass message through to pager
+					m.pager, cmd = pagerUpdate(msg, m.pager)
+				}
+				return m, cmd
 			}
 			return m, boba.Quit
 
 		case "ctrl+c":
 			return m, boba.Quit
 
-		// Re-render
+		// Repaint
 		case "ctrl+l":
 			return m, getTerminalSize()
 		}
@@ -192,14 +192,24 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		m.state = stateKeygenFinished
 		cmds = append(cmds, newCharmClient)
 
+	case noteSavedMsg:
+		// A note was saved to a document. This will have be done in the
+		// pager, so we'll need to find the corresponding note in the stash.
+		// So, pass the message to the stash for processing.
+		m.stash, cmd = stashUpdate(msg, m.stash)
+		cmds = append(cmds, cmd)
+
 	case newCharmClientMsg:
 		m.cc = msg
 		m.state = stateShowStash
-		m.stash, cmd = stashInit(m.cc)
+		m.stash, cmd = stashInit(msg)
 		m.stash.setSize(m.terminalWidth, m.terminalHeight)
+		m.pager.cc = msg
 		cmds = append(cmds, cmd)
 
 	case gotStashedItemMsg:
+		// Loaded markdown document from the server. We'll render it before
+		// loading it into the pager.
 		m.pager.currentDocument = msg
 		cmds = append(cmds, renderWithGlamour(m.pager, msg.Body))
 

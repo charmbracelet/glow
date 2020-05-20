@@ -39,7 +39,7 @@ type stashState int
 
 const (
 	stashStateInit stashState = iota
-	stashStateStashLoaded
+	stashStateReady
 	stashStatePromptDelete
 	stashStateLoadingDocument
 )
@@ -170,7 +170,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			if m.state != stashStatePromptDelete {
 				break
 			}
-			// Deletion confirmed. Delete the stashed item.
+			// Deletion confirmed. Delete the stashed item...
 
 			// Index of the documents slice we'll be deleting
 			i := m.paginator.Page*m.paginator.PerPage + m.index
@@ -187,9 +187,8 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			m.paginator.Page = min(m.paginator.Page, m.paginator.TotalPages-1)
 
 			// Set state and delete
-			m.state = stashStateStashLoaded
+			m.state = stashStateReady
 			return m, deleteStashedItem(m.cc, id)
-
 		}
 
 	case stashErrMsg:
@@ -207,7 +206,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 		sort.Sort(charm.MarkdownsByCreatedAtDesc(msg)) // sort by date
 		m.documents = append(m.documents, msg...)
-		m.state = stashStateStashLoaded
+		m.state = stashStateReady
 		m.paginator.SetTotalPages(len(m.documents))
 
 	case stashSpinnerTickMsg:
@@ -215,9 +214,18 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 			cmds = append(cmds, cmd)
 		}
+
+	case noteSavedMsg:
+		// A note was set on a document. This happened in the pager, so we'll
+		// find the corresponding document here and update accordingly.
+		for i := range m.documents {
+			if m.documents[i].ID == msg.ID {
+				m.documents[i].Note = msg.Note
+			}
+		}
 	}
 
-	if m.state == stashStateStashLoaded {
+	if m.state == stashStateReady {
 
 		// Update paginator
 		m.paginator, cmd = paginator.Update(msg, m.paginator)
@@ -243,7 +251,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	// used for confirmation above) cancels the deletion
 	k, ok := msg.(boba.KeyMsg)
 	if ok && k.String() != "x" && m.state == stashStatePromptDelete {
-		m.state = stashStateStashLoaded
+		m.state = stashStateReady
 	}
 
 	return m, boba.Batch(cmds...)
@@ -262,7 +270,7 @@ func stashView(m stashModel) string {
 		s += spinner.View(m.spinner) + " Loading stash..."
 	case stashStateLoadingDocument:
 		s += spinner.View(m.spinner) + " Loading document..."
-	case stashStateStashLoaded:
+	case stashStateReady:
 		fallthrough
 	case stashStatePromptDelete:
 		if len(m.documents) == 0 {
