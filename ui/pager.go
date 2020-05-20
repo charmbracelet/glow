@@ -17,12 +17,13 @@ import (
 )
 
 const (
-	statusBarHeight = 1
-	gray            = "#333333"
-	yellowGreen     = "#ECFD65"
-	fuschia         = "#EE6FF8"
-	noteHeadingText = " Set Memo "
-	notePromptText  = " > "
+	statusBarHeight           = 1
+	viewportHorizontalPadding = 2
+	gray                      = "#333333"
+	yellowGreen               = "#ECFD65"
+	fuschia                   = "#EE6FF8"
+	noteHeadingText           = " Set Memo "
+	notePromptText            = " > "
 )
 
 var (
@@ -281,9 +282,10 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 		gs = glamour.WithStylePath(m.glamourStyle)
 	}
 
+	width := max(0, min(120, m.viewport.Width-viewportHorizontalPadding))
 	r, err := glamour.NewTermRenderer(
 		gs,
-		glamour.WithWordWrap(min(120, m.viewport.Width)),
+		glamour.WithWordWrap(width),
 	)
 	if err != nil {
 		return "", err
