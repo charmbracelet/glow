@@ -120,7 +120,7 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 				m.state = pagerStateBrowse
 				return m, nil
 			case "enter":
-				m.currentDocument.Note = m.textInput.Value // set optimistically
+				m.currentDocument.Note = m.textInput.Value() // update optimistically
 				m.state = pagerStateBrowse
 				m.textInput.Reset()
 				return m, saveDocumentNote(m.cc, m.currentDocument.ID, m.currentDocument.Note)
@@ -136,6 +136,11 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 				}
 			case "n":
 				m.state = pagerStateSetNote
+				if m.textInput.Value() == "" {
+					// Pre-populate with existing value
+					m.textInput.SetValue(m.currentDocument.Note)
+					m.textInput.CursorEnd()
+				}
 				return m, textinput.Blink(m.textInput)
 			}
 		}
