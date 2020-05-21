@@ -41,8 +41,6 @@ type deletedStashedItemMsg int
 
 // MODEL
 
-type stashState int
-
 type markdownType int
 
 const (
@@ -65,11 +63,24 @@ func (m markdownsByCreatedAtDesc) Len() int           { return len(m) }
 func (m markdownsByCreatedAtDesc) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
 func (m markdownsByCreatedAtDesc) Less(i, j int) bool { return m[i].CreatedAt.After(*m[j].CreatedAt) }
 
+type stashState int
+
 const (
 	stashStateInit stashState = iota
 	stashStateReady
 	stashStatePromptDelete
 	stashStateLoadingDocument
+)
+
+type stashLoadedState byte
+
+func (s stashLoadedState) done() bool {
+	return s&loadedStash != 0 && s&loadedNews != 0
+}
+
+const (
+	loadedStash stashLoadedState = 1 << iota
+	loadedNews
 )
 
 type stashModel struct {
@@ -80,8 +91,9 @@ type stashModel struct {
 	spinner        spinner.Model
 	terminalWidth  int
 	terminalHeight int
-	loading        bool // are we currently loading something?
-	fullyLoaded    bool // Have we loaded everything from the server?
+	loaded         stashLoadedState // what's loaded? we find out with bitmasking
+	loading        bool             // are we currently loading something?
+	fullyLoaded    bool             // Have we loaded everything from the server?
 
 	// This is just the index of the current page in view. To get the index
 	// of the selected item as it relates to the full set of documents we've
@@ -200,8 +212,8 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				spinner.Tick(m.spinner),
 			)
 
+		// Confirm deletion
 		case "x":
-			// Confirm deletion
 			if m.documents[m.markdownIndex()].markdownType == userMarkdown {
 				m.state = stashStatePromptDelete
 			}
@@ -234,12 +246,12 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	case stashErrMsg:
 		m.err = msg
 
+	// Stash results have come in from the server
 	case gotStashMsg:
-		// Stash results have come in from the server
 		m.loading = false
 
+		// If the server comes back with nothing then we've got everything
 		if len(msg) == 0 {
-			// If the server comes back with nothing then we've got everything
 			m.fullyLoaded = true
 			break
 		}
@@ -247,18 +259,25 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		docs := wrapMarkdowns(userMarkdown, msg)
 		sort.Sort(markdownsByCreatedAtDesc(docs)) // sort by date
 		m.documents = append(m.documents, docs...)
-		m.state = stashStateReady
 		m.paginator.SetTotalPages(len(m.documents))
 
-	case gotNewsMsg:
-		if len(msg) == 0 {
-			break
+		m.loaded |= loadedStash
+		if m.loaded.done() {
+			m.state = stashStateReady
 		}
 
-		docs := wrapMarkdowns(newsMarkdown, msg)
-		sort.Sort(markdownsByCreatedAtDesc(docs))
-		m.documents = append(m.documents, docs...)
-		m.paginator.SetTotalPages(len(m.documents))
+	case gotNewsMsg:
+		if len(msg) > 0 {
+			docs := wrapMarkdowns(newsMarkdown, msg)
+			sort.Sort(markdownsByCreatedAtDesc(docs))
+			m.documents = append(m.documents, docs...)
+			m.paginator.SetTotalPages(len(m.documents))
+		}
+
+		m.loaded |= loadedNews
+		if m.loaded.done() {
+			m.state = stashStateReady
+		}
 
 	case stashSpinnerTickMsg:
 		if m.state == stashStateInit || m.state == stashStateLoadingDocument {
@@ -266,9 +285,9 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 
+	// A note was set on a document. This happened in the pager, so we'll
+	// find the corresponding document here and update accordingly.
 	case noteSavedMsg:
-		// A note was set on a document. This happened in the pager, so we'll
-		// find the corresponding document here and update accordingly.
 		for i := range m.documents {
 			if m.documents[i].ID == msg.ID {
 				m.documents[i].Note = msg.Note
@@ -517,11 +536,11 @@ func loadStash(m stashModel) boba.Cmd {
 
 func loadNews(m stashModel) boba.Cmd {
 	return func() boba.Msg {
-		stash, err := m.cc.GetNews(1) // just fetch the first page
+		news, err := m.cc.GetNews(1) // just fetch the first page
 		if err != nil {
 			return stashErrMsg(err)
 		}
-		return gotNewsMsg(stash)
+		return gotNewsMsg(news)
 	}
 }
 
