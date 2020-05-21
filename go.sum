@@ -16,8 +16,8 @@ github.com/calmh/randomart v1.1.0 h1:evl+iwc10LXtHdMZhzLxmsCQVmWnkXs44SbC6Uk0Il8
 github.com/calmh/randomart v1.1.0/go.mod h1:DQUbPVyP+7PAs21w/AnfMKG5NioxS3TbZ2F9MSK/jFM=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/charmbracelet/boba v0.5.0/go.mod h1:xqhji08CbPctzbvCi/GzmNvIFOhnWJnkl9N8T65gnK0=
-github.com/charmbracelet/boba v0.6.1 h1:UwhxBYkYjnRTS8oJBoLxXzh+CpE12yt7utMpP0cjlYc=
-github.com/charmbracelet/boba v0.6.1/go.mod h1:xqhji08CbPctzbvCi/GzmNvIFOhnWJnkl9N8T65gnK0=
+github.com/charmbracelet/boba v0.6.2 h1:8jBajZdD4aXBBtznJyiBa2dfsZ3HSsB9i1cCoXouat0=
+github.com/charmbracelet/boba v0.6.2/go.mod h1:xqhji08CbPctzbvCi/GzmNvIFOhnWJnkl9N8T65gnK0=
 github.com/charmbracelet/charm v0.4.1 h1:LJjQUDjeJkMTWmovyYiUzglbbbMBQGoDomqBn22qbpI=
 github.com/charmbracelet/charm v0.4.1/go.mod h1:bZQON+c4uV9mgbZBvKzH7wA1zGII9Zfg26cL70NYdH0=
 github.com/charmbracelet/glamour v0.2.0 h1:mTgaiNiumpqTZp3qVM6DH9UB0NlbY17wejoMf1kM8Pg=

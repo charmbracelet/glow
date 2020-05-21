@@ -166,9 +166,15 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 
 	// TODO: Put this somewhere where it makes more sense
 	if arg == "" {
-		debug := os.Getenv("GLOW_DEBUG")
-		if debug != "" {
-			boba.UseSysLog("glow")
+
+		// Log to a file. For debugging.
+		logToFilePath := os.Getenv("GLOW_LOG_TO_FILE")
+		if logToFilePath != "" {
+			f, err := boba.LogToFile(logToFilePath, "glow")
+			if err != nil {
+				return err
+			}
+			defer f.Close()
 		}
 
 		boba.AltScreen()
