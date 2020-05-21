@@ -25,17 +25,45 @@ const (
 	stashHorizontalPadding = 6
 )
 
+var (
+	faintGreen = common.NewColorPair("#2B4A3F", "#ABE5D1")
+	green      = common.NewColorPair("#04B575", "#04B575")
+)
+
 // MSG
 
 type stashErrMsg error
 type stashSpinnerTickMsg struct{}
 type gotStashMsg []*charm.Markdown
-type gotStashedItemMsg *charm.Markdown
+type gotNewsMsg []*charm.Markdown
+type gotStashedItemMsg *markdown
 type deletedStashedItemMsg int
 
 // MODEL
 
 type stashState int
+
+type markdownType int
+
+const (
+	userMarkdown markdownType = iota
+	newsMarkdown
+)
+
+// markdown wraps charm.Markdown so we can differentiate between stashed items
+// and news
+type markdown struct {
+	markdownType markdownType
+	*charm.Markdown
+}
+
+// Sort documents by date in descending order
+type markdownsByCreatedAtDesc []*markdown
+
+// Sort implementation for MarkdownByCreatedAt
+func (m markdownsByCreatedAtDesc) Len() int           { return len(m) }
+func (m markdownsByCreatedAtDesc) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+func (m markdownsByCreatedAtDesc) Less(i, j int) bool { return m[i].CreatedAt.After(*m[j].CreatedAt) }
 
 const (
 	stashStateInit stashState = iota
@@ -48,22 +76,26 @@ type stashModel struct {
 	cc             *charm.Client
 	err            error
 	state          stashState
-	documents      []*charm.Markdown
+	documents      []*markdown
 	spinner        spinner.Model
-	index          int
 	terminalWidth  int
 	terminalHeight int
 	loading        bool // are we currently loading something?
 	fullyLoaded    bool // Have we loaded everything from the server?
 
+	// This is just the index of the current page in view. To get the index
+	// of the selected item as it relates to the full set of documents we've
+	// fetched use the mardownIndex() method of this struct.
+	index int
+
 	// This handles the local pagination, which is different than the page
 	// we're fetching from on the server side
 	paginator paginator.Model
 
-	// Page we're fetching items from on the server, which is different from
-	// the local pagination. Generally, the server will return more items than
-	// we can display at a time so we can paginate locally without having to
-	// fetch every time.
+	// Page we're fetching stash items from on the server, which is different
+	// from the local pagination. Generally, the server will return more items
+	// than we can display at a time so we can paginate locally without having
+	// to fetch every time.
 	page int
 }
 
@@ -80,6 +112,11 @@ func (m *stashModel) setSize(width, height int) {
 	if m.paginator.Page >= m.paginator.TotalPages-1 {
 		m.paginator.Page = max(0, m.paginator.TotalPages-1)
 	}
+}
+
+// markdownIndex returns the index of the currently selected markdown item.
+func (m stashModel) markdownIndex() int {
+	return m.paginator.Page*m.paginator.PerPage + m.index
 }
 
 // INIT
@@ -103,6 +140,7 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 
 	return m, boba.Batch(
 		loadStash(m),
+		loadNews(m),
 		spinner.Tick(s),
 	)
 }
@@ -156,15 +194,17 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			// Load the document from the server. We'll handle the message
 			// that comes back in the main update function.
 			m.state = stashStateLoadingDocument
-			indexToLoad := m.paginator.Page*m.paginator.PerPage + m.index
+			doc := m.documents[m.markdownIndex()]
 			cmds = append(cmds,
-				loadStashedItem(m.cc, m.documents[indexToLoad].ID),
+				loadStashedItem(m.cc, doc.ID, doc.markdownType),
 				spinner.Tick(m.spinner),
 			)
 
 		case "x":
 			// Confirm deletion
-			m.state = stashStatePromptDelete
+			if m.documents[m.markdownIndex()].markdownType == userMarkdown {
+				m.state = stashStatePromptDelete
+			}
 
 		case "y":
 			if m.state != stashStatePromptDelete {
@@ -204,9 +244,20 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			break
 		}
 
-		sort.Sort(charm.MarkdownsByCreatedAtDesc(msg)) // sort by date
-		m.documents = append(m.documents, msg...)
+		docs := wrapMarkdowns(userMarkdown, msg)
+		sort.Sort(markdownsByCreatedAtDesc(docs)) // sort by date
+		m.documents = append(m.documents, docs...)
 		m.state = stashStateReady
+		m.paginator.SetTotalPages(len(m.documents))
+
+	case gotNewsMsg:
+		if len(msg) == 0 {
+			break
+		}
+
+		docs := wrapMarkdowns(newsMarkdown, msg)
+		sort.Sort(markdownsByCreatedAtDesc(docs))
+		m.documents = append(m.documents, docs...)
 		m.paginator.SetTotalPages(len(m.documents))
 
 	case stashSpinnerTickMsg:
@@ -278,8 +329,8 @@ func stashView(m stashModel) string {
 			break
 		}
 
-		// Blank lines we'll need to fill with newlines if the viewport is
-		// properly filled
+		// We need to fill any empty height with newlines so the footer reaches
+		// the bottom.
 		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
 		blankLines := ""
 		if numBlankLines > 0 {
@@ -310,7 +361,7 @@ func stashView(m stashModel) string {
 			stashPopulatedView(m),
 			blankLines,
 			pagination,
-			helpView(m),
+			stashHelpView(m),
 		)
 	}
 	return "\n" + indent.String(s, 2)
@@ -357,8 +408,12 @@ func stashPopulatedView(m stashModel) string {
 	return s
 }
 
-func helpView(m stashModel) string {
-	h := []string{}
+func stashHelpView(m stashModel) string {
+	var (
+		h      []string
+		isNews bool = m.documents[m.markdownIndex()].markdownType == newsMarkdown
+	)
+
 	if m.state == stashStatePromptDelete {
 		h = append(h, "y: delete", "n: cancel")
 	} else {
@@ -369,16 +424,26 @@ func helpView(m stashModel) string {
 		if m.paginator.TotalPages > 1 {
 			h = append(h, "h/l, ←/→: page")
 		}
-		h = append(h, []string{"x: delete", "esc: exit"}...)
+		if !isNews {
+			h = append(h, []string{"x: delete"}...)
+		}
+		h = append(h, []string{"esc: exit"}...)
 	}
 	return common.HelpView(h...)
 }
 
-type stashListItemView charm.Markdown
+// stashListItemView renders items in the stash view
+type stashListItemView markdown
 
 func (m stashListItemView) render(width int, state common.State) string {
 
-	line := common.VerticalLine(state) + " "
+	var line string
+	if m.markdownType == newsMarkdown && state != common.StateSelected {
+		line = te.String("│").Foreground(faintGreen.Color()).String()
+	} else {
+		line = common.VerticalLine(state)
+	}
+	line += " "
 
 	keyColor := common.NoColor
 	switch state {
@@ -386,18 +451,30 @@ func (m stashListItemView) render(width int, state common.State) string {
 		keyColor = common.Fuschia
 	case common.StateDeleting:
 		keyColor = common.Red
+	default:
+		if m.markdownType == newsMarkdown {
+			keyColor = common.Green
+		}
 	}
 
-	titleKey := strconv.Itoa(m.ID)
+	titleKey := "#" + strconv.Itoa(m.ID)
+	if m.markdownType == newsMarkdown {
+		titleKey = "System Announcement"
+	}
 	if m.Note != "" {
 		titleKey += ":"
 	}
 
-	titleVal := truncate(m.Note, width-(stashHorizontalPadding*2)-len(titleKey))
-	titleVal = titleView(titleVal, state)
+	dateKey := "Stashed:"
+	if m.markdownType == newsMarkdown {
+		dateKey = "Posted:"
+	}
 
-	titleKey = te.String("#" + titleKey).Foreground(keyColor.Color()).String()
-	dateKey := te.String("Stashed:").Foreground(keyColor.Color()).String()
+	titleVal := truncate(m.Note, width-(stashHorizontalPadding*2)-len(titleKey))
+	titleVal = m.title(titleVal, state)
+
+	titleKey = te.String(titleKey).Foreground(keyColor.Color()).String()
+	dateKey = te.String(dateKey).Foreground(keyColor.Color()).String()
 	dateVal := m.date(state)
 
 	var s string
@@ -415,7 +492,7 @@ func (m stashListItemView) date(state common.State) string {
 	return te.String(s).Foreground(c.Color()).String()
 }
 
-func titleView(title string, state common.State) string {
+func (m stashListItemView) title(title string, state common.State) string {
 	if title == "" {
 		return ""
 	}
@@ -438,13 +515,26 @@ func loadStash(m stashModel) boba.Cmd {
 	}
 }
 
-func loadStashedItem(cc *charm.Client, id int) boba.Cmd {
+func loadNews(m stashModel) boba.Cmd {
 	return func() boba.Msg {
-		m, err := cc.GetStashMarkdown(id)
+		stash, err := m.cc.GetNews(1) // just fetch the first page
 		if err != nil {
 			return stashErrMsg(err)
 		}
-		return gotStashedItemMsg(m)
+		return gotNewsMsg(stash)
+	}
+}
+
+func loadStashedItem(cc *charm.Client, id int, t markdownType) boba.Cmd {
+	return func() boba.Msg {
+		md, err := cc.GetStashMarkdown(id)
+		if err != nil {
+			return stashErrMsg(err)
+		}
+		return gotStashedItemMsg(&markdown{
+			markdownType: t,
+			Markdown:     md,
+		})
 	}
 }
 
@@ -459,6 +549,16 @@ func deleteStashedItem(cc *charm.Client, id int) boba.Cmd {
 }
 
 // ETC
+
+func wrapMarkdowns(t markdownType, md []*charm.Markdown) (m []*markdown) {
+	for _, v := range md {
+		m = append(m, &markdown{
+			markdownType: t,
+			Markdown:     v,
+		})
+	}
+	return m
+}
 
 func truncate(str string, num int) string {
 	s := str

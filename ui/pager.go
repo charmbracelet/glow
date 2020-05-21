@@ -64,7 +64,7 @@ type pagerModel struct {
 
 	// Current document being rendered, sans-glamour rendering. We cache
 	// this here so we can re-render it on resize.
-	currentDocument *charm.Markdown
+	currentDocument *markdown
 }
 
 func newPagerModel(glamourStyle string) pagerModel {
@@ -144,6 +144,11 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 					return m, nil
 				}
 			case "n":
+				// Users can't set the note on news markdown
+				if m.currentDocument.markdownType == newsMarkdown {
+					break
+				}
+
 				m.state = pagerStateSetNote
 				if m.textInput.Value() == "" {
 					// Pre-populate with existing value
