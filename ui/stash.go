@@ -92,7 +92,7 @@ const (
 type stashModel struct {
 	cc             *charm.Client
 	state          stashState
-	documents      []*markdown
+	markdowns      []*markdown
 	spinner        spinner.Model
 	noteInput      textinput.Model
 	terminalWidth  int
@@ -124,7 +124,7 @@ func (m *stashModel) setSize(width, height int) {
 	// Update the paginator
 	perPage := max(1, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
 	m.paginator.PerPage = perPage
-	m.paginator.SetTotalPages(len(m.documents))
+	m.paginator.SetTotalPages(len(m.markdowns))
 
 	m.noteInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - len(setNotePromptText)
 
@@ -141,14 +141,14 @@ func (m stashModel) markdownIndex() int {
 
 // return the current selected markdown in the stash
 func (m stashModel) selectedMarkdown() *markdown {
-	return m.documents[m.markdownIndex()]
+	return m.markdowns[m.markdownIndex()]
 }
 
-// addMarkdowns adds markdown documents to the model
+// addDocuments adds markdown documents to the model
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
-	m.documents = append(m.documents, mds...)
-	sort.Sort(markdownsByCreatedAtDesc(m.documents))
-	m.paginator.SetTotalPages(len(m.documents))
+	m.markdowns = append(m.markdowns, mds...)
+	sort.Sort(markdownsByCreatedAtDesc(m.markdowns))
+	m.paginator.SetTotalPages(len(m.markdowns))
 }
 
 // INIT
@@ -166,7 +166,7 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 	ni := textinput.NewModel()
 	ni.Prompt = te.String(setNotePromptText).Foreground(common.YellowGreen.Color()).String()
 	ni.CursorColor = common.Fuschia.String()
-	ni.CharLimit = noteCharacterLimit // totally arbitrary
+	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
 	m := stashModel{
@@ -232,9 +232,9 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	// A note was set on a document. This may have happened in the pager, so
 	// we'll find the corresponding document here and update accordingly.
 	case noteSavedMsg:
-		for i := range m.documents {
-			if m.documents[i].ID == msg.ID {
-				m.documents[i].Note = msg.Note
+		for i := range m.markdowns {
+			if m.markdowns[i].ID == msg.ID {
+				m.markdowns[i].Note = msg.Note
 			}
 		}
 	}
@@ -254,13 +254,13 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				} else if m.index < 0 {
 					// Go to previous page
 					m.paginator.PrevPage()
-					m.index = m.paginator.ItemsOnPage(len(m.documents)) - 1
+					m.index = m.paginator.ItemsOnPage(len(m.markdowns)) - 1
 				}
 
 			case "j":
 				fallthrough
 			case "down":
-				itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
+				itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
 				m.index++
 				if m.index >= itemsOnPage && m.paginator.OnLastPage() {
 					// Stop
@@ -314,7 +314,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		cmds = append(cmds, cmd)
 
 		// Keep the index in bounds when paginating
-		itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
+		itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
 		if m.index > itemsOnPage-1 {
 			m.index = itemsOnPage - 1
 		}
@@ -338,14 +338,14 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				}
 
 				i := m.markdownIndex()
-				id := m.documents[i].ID
+				id := m.markdowns[i].ID
 
 				// Delete optimistically and remove the stashed item
 				// before we've received a success response.
-				m.documents = append(m.documents[:i], m.documents[i+1:]...)
+				m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
 
 				// Update pagination
-				m.paginator.SetTotalPages(len(m.documents))
+				m.paginator.SetTotalPages(len(m.markdowns))
 				m.paginator.Page = min(m.paginator.Page, m.paginator.TotalPages-1)
 
 				// Set state and delete
@@ -369,10 +369,10 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				m.noteInput.Reset()
 			case "enter":
 				// Set new note
-				doc := m.documents[m.markdownIndex()]
+				md := m.selectedMarkdown()
 				newNote := m.noteInput.Value()
-				cmd = saveDocumentNote(m.cc, doc.ID, newNote)
-				doc.Note = newNote
+				cmd = saveDocumentNote(m.cc, md.ID, newNote)
+				md.Note = newNote
 				m.noteInput.Reset()
 				m.state = stashStateReady
 				return m, cmd
@@ -405,7 +405,7 @@ func stashView(m stashModel) string {
 	case stashStateSettingNote:
 		fallthrough
 	case stashStatePromptDelete:
-		if len(m.documents) == 0 {
+		if len(m.markdowns) == 0 {
 			s += stashEmtpyView(m)
 			break
 		}
@@ -464,8 +464,8 @@ func stashEmtpyView(m stashModel) string {
 func stashPopulatedView(m stashModel) string {
 	var s string
 
-	start, end := m.paginator.GetSliceBounds(len(m.documents))
-	docs := m.documents[start:end]
+	start, end := m.paginator.GetSliceBounds(len(m.markdowns))
+	docs := m.markdowns[start:end]
 
 	for i, v := range docs {
 		state := markdownStateNormal
@@ -486,7 +486,7 @@ func stashPopulatedView(m stashModel) string {
 	// If there aren't enough items to fill up this page (always the last page)
 	// then we need to add some newlines to fill up the space to push the
 	// footer stuff down elsewhere.
-	itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
+	itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
 	if itemsOnPage < m.paginator.PerPage {
 		n := (m.paginator.PerPage - itemsOnPage) * stashViewItemHeight
 		s += strings.Repeat("\n", n)
@@ -498,7 +498,7 @@ func stashPopulatedView(m stashModel) string {
 func stashHelpView(m stashModel) string {
 	var (
 		h      []string
-		isNews bool = m.documents[m.markdownIndex()].markdownType == newsMarkdown
+		isNews bool = m.selectedMarkdown().markdownType == newsMarkdown
 	)
 
 	if m.state == stashStateSettingNote {
@@ -507,7 +507,7 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "y: delete", "n: cancel")
 	} else {
 		h = append(h, "enter: open")
-		if len(m.documents) > 0 {
+		if len(m.markdowns) > 0 {
 			h = append(h, "j/k, ↑/↓: choose")
 		}
 		if m.paginator.TotalPages > 1 {
