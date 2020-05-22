@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	noteCharacterLimit = 128 // totally arbitrary
+	noteCharacterLimit = 256 // totally arbitrary
 )
 
 var (
