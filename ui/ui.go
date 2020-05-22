@@ -2,6 +2,7 @@ package ui
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/charmbracelet/boba"
 	"github.com/charmbracelet/boba/spinner"
@@ -27,7 +28,6 @@ func NewProgram(style string) *boba.Program {
 
 // MESSAGES
 
-type fatalErrMsg error
 type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
@@ -120,7 +120,9 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 	m, ok := mdl.(model)
 	if !ok {
-		return model{err: errors.New("could not perform assertion on model in update")}, boba.Quit
+		return model{
+			err: errors.New("could not perform assertion on model in update"),
+		}, boba.Quit
 	}
 
 	var (
@@ -132,6 +134,8 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 	case boba.KeyMsg:
 		switch msg.String() {
+		case "f":
+			m.err = errors.New("Fatal.")
 		case "q":
 			fallthrough
 		case "esc":
@@ -166,10 +170,6 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		case "ctrl+l":
 			return m, getTerminalSize()
 		}
-
-	case fatalErrMsg:
-		m.err = msg
-		return m, boba.Quit
 
 	case errMsg:
 		m.err = msg
@@ -279,7 +279,7 @@ func view(mdl boba.Model) string {
 	}
 
 	if m.err != nil {
-		return m.err.Error() + "\n"
+		return fmt.Sprintf("\nError: %v\n\nPress q to exit.", m.err)
 	}
 
 	var s string
@@ -316,14 +316,14 @@ func getTerminalSize() boba.Cmd {
 func newCharmClient() boba.Msg {
 	cfg, err := charm.ConfigFromEnv()
 	if err != nil {
-		return fatalErrMsg(err)
+		return errMsg(err)
 	}
 
 	cc, err := charm.NewClient(cfg)
 	if err == charm.ErrMissingSSHAuth {
 		return sshAuthErrMsg{}
 	} else if err != nil {
-		return fatalErrMsg(err)
+		return errMsg(err)
 	}
 
 	return newCharmClientMsg(cc)
