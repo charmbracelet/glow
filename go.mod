@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/charmbracelet/boba v0.6.3
-	github.com/charmbracelet/charm v0.4.1
+	github.com/charmbracelet/charm v0.4.2-0.20200522154917-0a1ba5ae4e28
 	github.com/charmbracelet/glamour v0.2.0
 	github.com/charmbracelet/tea v0.3.0
 	github.com/charmbracelet/teaparty v0.0.0-20200504225426-da64445a0e0d
