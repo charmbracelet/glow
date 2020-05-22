@@ -139,6 +139,11 @@ func (m stashModel) markdownIndex() int {
 	return m.paginator.Page*m.paginator.PerPage + m.index
 }
 
+// return the current selected markdown in the stash
+func (m stashModel) selectedMarkdown() *markdown {
+	return m.documents[m.markdownIndex()]
+}
+
 // addMarkdowns adds markdown documents to the model
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	m.documents = append(m.documents, mds...)
@@ -271,26 +276,32 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				// Load the document from the server. We'll handle the message
 				// that comes back in the main update function.
 				m.state = stashStateLoadingDocument
-				doc := m.documents[m.markdownIndex()]
+				md := m.selectedMarkdown()
 
 				cmds = append(cmds,
-					loadMarkdown(m.cc, doc.ID, doc.markdownType),
+					loadMarkdown(m.cc, md.ID, md.markdownType),
 					spinner.Tick(m.spinner),
 				)
 
 			// Set note
 			case "n":
-				if m.state != stashStateSettingNote && m.state != stashStatePromptDelete {
+				md := m.selectedMarkdown()
+				isUserMarkdown := md.markdownType == userMarkdown
+				isSettingNote := m.state == stashStateSettingNote
+				isPromptingDelete := m.state == stashStatePromptDelete
+
+				if isUserMarkdown && !isSettingNote && !isPromptingDelete {
 					m.state = stashStateSettingNote
-					m.noteInput.SetValue(m.documents[m.markdownIndex()].Note)
+					m.noteInput.SetValue(md.Note)
 					m.noteInput.CursorEnd()
 					return m, textinput.Blink(m.noteInput)
 				}
 
 			// Prompt for deletion
 			case "x":
-				isUserMarkdown := m.documents[m.markdownIndex()].markdownType == userMarkdown
+				isUserMarkdown := m.selectedMarkdown().markdownType == userMarkdown
 				isValidState := m.state != stashStateSettingNote
+
 				if isUserMarkdown && isValidState {
 					m.state = stashStatePromptDelete
 				}
@@ -638,7 +649,7 @@ func loadMarkdown(cc *charm.Client, id int, t markdownType) boba.Cmd {
 			return errMsg(err)
 		}
 		return fetchedMarkdownMsg(&markdown{
-			markdownType: userMarkdown,
+			markdownType: t,
 			Markdown:     md,
 		})
 	}
