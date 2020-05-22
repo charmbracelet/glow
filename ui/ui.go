@@ -12,6 +12,10 @@ import (
 	te "github.com/muesli/termenv"
 )
 
+const (
+	noteCharacterLimit = 128 // totally arbitrary
+)
+
 var (
 	glowLogoTextColor = common.Color("#ECFD65")
 )
@@ -49,6 +53,18 @@ const (
 	stateShowStash
 	stateShowDocument
 )
+
+// Stringn translates the staus to a human-readable string. This is just for
+// debugging.
+func (s state) String() string {
+	return [...]string{
+		"initializing",
+		"running keygen",
+		"keygen finished",
+		"showing stash",
+		"showing document",
+	}[s]
+}
 
 type model struct {
 	cc             *charm.Client
@@ -119,8 +135,15 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		case "q":
 			fallthrough
 		case "esc":
-			if m.state == stateShowDocument {
-				var cmd boba.Cmd
+			var cmd boba.Cmd
+
+			switch m.state {
+			case stateShowStash:
+				if m.stash.state == stashStateSettingNote {
+					m.stash, cmd = stashUpdate(msg, m.stash)
+					return m, cmd
+				}
+			case stateShowDocument:
 				if m.pager.state == pagerStateBrowse {
 					// Exit pager
 					m.unloadDocument()
@@ -130,6 +153,7 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 				}
 				return m, cmd
 			}
+
 			return m, boba.Quit
 
 		case "ctrl+c":

@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/boba"
 	"github.com/charmbracelet/boba/paginator"
 	"github.com/charmbracelet/boba/spinner"
+	"github.com/charmbracelet/boba/textinput"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
@@ -19,15 +20,18 @@ import (
 )
 
 const (
-	stashViewItemHeight    = 3
-	stashViewTopPadding    = 5
-	stashViewBottomPadding = 4
-	stashHorizontalPadding = 6
+	stashViewItemHeight        = 3
+	stashViewTopPadding        = 5
+	stashViewBottomPadding     = 4
+	stashViewHorizontalPadding = 6
+	setNotePromptText          = "Memo: "
 )
 
 var (
-	faintGreen = common.NewColorPair("#2B4A3F", "#ABE5D1")
-	green      = common.NewColorPair("#04B575", "#04B575")
+	faintGreen  = common.NewColorPair("#2B4A3F", "#ABE5D1")
+	green       = common.NewColorPair("#04B575", "#04B575")
+	dullYellow  = common.NewColorPair("#9BA92F", "#6CCCA9") // renders light green on light backgrounds
+	dullFuchsia = common.NewColorPair("#AD58B4", "#F9ACFF")
 )
 
 // MSG
@@ -41,6 +45,8 @@ type deletedStashedItemMsg int
 
 // MODEL
 
+// markdownType allows us to differentiate between the types of markdown
+// documents we're dealing with, namely stuff the user stashed versus news.
 type markdownType int
 
 const (
@@ -49,7 +55,7 @@ const (
 )
 
 // markdown wraps charm.Markdown so we can differentiate between stashed items
-// and news
+// and news.
 type markdown struct {
 	markdownType markdownType
 	*charm.Markdown
@@ -70,6 +76,7 @@ const (
 	stashStateReady
 	stashStatePromptDelete
 	stashStateLoadingDocument
+	stashStateSettingNote
 )
 
 type stashLoadedState byte
@@ -89,6 +96,7 @@ type stashModel struct {
 	state          stashState
 	documents      []*markdown
 	spinner        spinner.Model
+	noteInput      textinput.Model
 	terminalWidth  int
 	terminalHeight int
 	loaded         stashLoadedState // what's loaded? we find out with bitmasking
@@ -120,6 +128,8 @@ func (m *stashModel) setSize(width, height int) {
 	m.paginator.PerPage = perPage
 	m.paginator.SetTotalPages(len(m.documents))
 
+	m.noteInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - len(setNotePromptText)
+
 	// Make sure the page stays in bounds
 	if m.paginator.Page >= m.paginator.TotalPages-1 {
 		m.paginator.Page = max(0, m.paginator.TotalPages-1)
@@ -143,9 +153,16 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 	p.Type = paginator.Dots
 	p.InactiveDot = common.Subtle("•")
 
+	ni := textinput.NewModel()
+	ni.Prompt = te.String(setNotePromptText).Foreground(common.YellowGreen.Color()).String()
+	ni.CursorColor = common.Fuschia.String()
+	ni.CharLimit = noteCharacterLimit // totally arbitrary
+	ni.Focus()
+
 	m := stashModel{
 		cc:        cc,
 		spinner:   s,
+		noteInput: ni,
 		page:      1,
 		paginator: p,
 	}
@@ -166,11 +183,11 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-
 	case boba.KeyMsg:
-		// Don't respond to keystrokes if we're still loading
-		if m.state == stashStateInit {
-			return m, nil
+		// Don't respond to these keystrokes if we're still loading or setting
+		// a note
+		if m.state == stashStateInit || m.state == stashStateSettingNote {
+			break
 		}
 
 		switch msg.String() {
@@ -212,12 +229,24 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				spinner.Tick(m.spinner),
 			)
 
+		// Set note
+		case "n":
+			if m.state != stashStateSettingNote && m.state != stashStatePromptDelete {
+				m.state = stashStateSettingNote
+				m.noteInput.SetValue(m.documents[m.markdownIndex()].Note)
+				m.noteInput.CursorEnd()
+				return m, textinput.Blink(m.noteInput)
+			}
+
 		// Confirm deletion
 		case "x":
-			if m.documents[m.markdownIndex()].markdownType == userMarkdown {
+			isUserMarkdown := m.documents[m.markdownIndex()].markdownType == userMarkdown
+			isValidState := m.state != stashStateSettingNote
+			if isUserMarkdown && isValidState {
 				m.state = stashStatePromptDelete
 			}
 
+		// Deletion confirmed
 		case "y":
 			if m.state != stashStatePromptDelete {
 				break
@@ -285,8 +314,8 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 
-	// A note was set on a document. This happened in the pager, so we'll
-	// find the corresponding document here and update accordingly.
+	// A note was set on a document. This may have happened in the pager, so
+	// we'll find the corresponding document here and update accordingly.
 	case noteSavedMsg:
 		for i := range m.documents {
 			if m.documents[i].ID == msg.ID {
@@ -295,7 +324,8 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		}
 	}
 
-	if m.state == stashStateReady {
+	switch m.state {
+	case stashStateReady:
 
 		// Update paginator
 		m.paginator, cmd = paginator.Update(msg, m.paginator)
@@ -314,6 +344,32 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			m.loading = true
 			cmds = append(cmds, loadStash(m))
 		}
+
+	case stashStateSettingNote:
+
+		if msg, ok := msg.(boba.KeyMsg); ok {
+			switch msg.String() {
+			case "q":
+				fallthrough
+			case "esc":
+				// Cancel note
+				m.state = stashStateReady
+				m.noteInput.Reset()
+			case "enter":
+				// Set new note
+				doc := m.documents[m.markdownIndex()]
+				newNote := m.noteInput.Value()
+				cmd = saveDocumentNote(m.cc, doc.ID, newNote)
+				doc.Note = newNote
+				m.noteInput.Reset()
+				m.state = stashStateReady
+				return m, cmd
+			}
+		}
+
+		// Update the text input component used to set notes
+		m.noteInput, cmd = textinput.Update(msg, m.noteInput)
+		cmds = append(cmds, cmd)
 
 	}
 
@@ -342,6 +398,8 @@ func stashView(m stashModel) string {
 		s += spinner.View(m.spinner) + " Loading document..."
 	case stashStateReady:
 		fallthrough
+	case stashStateSettingNote:
+		fallthrough
 	case stashStatePromptDelete:
 		if len(m.documents) == 0 {
 			s += stashEmtpyView(m)
@@ -356,12 +414,13 @@ func stashView(m stashModel) string {
 			blankLines = strings.Repeat("\n", numBlankLines)
 		}
 
-		var header string
-		if m.state == stashStatePromptDelete {
+		header := "Here’s your markdown stash:"
+		switch m.state {
+		case stashStatePromptDelete:
 			header = te.String("Delete this item? ").Foreground(common.Red.Color()).String() +
 				te.String("(y/N)").Foreground(common.FaintRed.Color()).String()
-		} else {
-			header = "Here’s your markdown stash:"
+		case stashStateSettingNote:
+			header = te.String("Set the memo for this item?").Foreground(common.YellowGreen.Color()).String()
 		}
 
 		var pagination string
@@ -405,13 +464,18 @@ func stashPopulatedView(m stashModel) string {
 	docs := m.documents[start:end]
 
 	for i, v := range docs {
-		state := common.StateNormal
-		if i == m.index && m.state == stashStatePromptDelete {
-			state = common.StateDeleting
-		} else if i == m.index {
-			state = common.StateSelected
+		state := markdownStateNormal
+		if i == m.index {
+			switch m.state {
+			case stashStatePromptDelete:
+				state = markdownStateDeleting
+			case stashStateSettingNote:
+				state = markdownStateSettingNote
+			default:
+				state = markdownStateSelected
+			}
 		}
-		s += stashListItemView(*v).render(m.terminalWidth, state) + "\n\n"
+		s += stashListItemView(*v).render(m, state) + "\n\n"
 	}
 	s = strings.TrimSpace(s) // trim final newlines
 
@@ -433,7 +497,9 @@ func stashHelpView(m stashModel) string {
 		isNews bool = m.documents[m.markdownIndex()].markdownType == newsMarkdown
 	)
 
-	if m.state == stashStatePromptDelete {
+	if m.state == stashStateSettingNote {
+		h = append(h, "enter: confirm", "esc: cancel")
+	} else if m.state == stashStatePromptDelete {
 		h = append(h, "y: delete", "n: cancel")
 	} else {
 		h = append(h, "enter: open")
@@ -451,25 +517,36 @@ func stashHelpView(m stashModel) string {
 	return common.HelpView(h...)
 }
 
-// stashListItemView renders items in the stash view
+// markdownState is used in a deterministic fashion to aid rendering stash item
+// views.
+type markdownState int
+
+const (
+	markdownStateNormal markdownState = iota
+	markdownStateSelected
+	markdownStateDeleting
+	markdownStateSettingNote
+)
+
+// stashListItemView contains methods for rendering an item as it appears in
+// the stash view
 type stashListItemView markdown
 
-func (m stashListItemView) render(width int, state common.State) string {
+func (m stashListItemView) render(mdl stashModel, state markdownState) string {
 
-	var line string
-	if m.markdownType == newsMarkdown && state != common.StateSelected {
-		line = te.String("│").Foreground(faintGreen.Color()).String()
-	} else {
-		line = common.VerticalLine(state)
-	}
-	line += " "
-
+	// General key color
 	keyColor := common.NoColor
+	line := common.VerticalLine(common.StateNormal)
 	switch state {
-	case common.StateSelected:
+	case markdownStateSettingNote:
+		keyColor = common.YellowGreen
+		line = common.VerticalLine(common.StateActive)
+	case markdownStateSelected:
 		keyColor = common.Fuschia
-	case common.StateDeleting:
+		line = common.VerticalLine(common.StateSelected)
+	case markdownStateDeleting:
 		keyColor = common.Red
+		line = common.VerticalLine(common.StateDeleting)
 	default:
 		if m.markdownType == newsMarkdown {
 			keyColor = common.Green
@@ -477,11 +554,15 @@ func (m stashListItemView) render(width int, state common.State) string {
 	}
 
 	titleKey := "#" + strconv.Itoa(m.ID)
-	if m.markdownType == newsMarkdown {
-		titleKey = "System Announcement"
-	}
-	if m.Note != "" {
-		titleKey += ":"
+	if state == markdownStateSettingNote {
+		titleKey = textinput.View(mdl.noteInput)
+	} else {
+		if m.markdownType == newsMarkdown {
+			titleKey = "System Announcement"
+		}
+		if m.Note != "" {
+			titleKey += ":"
+		}
 	}
 
 	dateKey := "Stashed:"
@@ -489,34 +570,39 @@ func (m stashListItemView) render(width int, state common.State) string {
 		dateKey = "Posted:"
 	}
 
-	titleVal := truncate(m.Note, width-(stashHorizontalPadding*2)-len(titleKey))
-	titleVal = m.title(titleVal, state)
+	var titleVal string
+	if state != markdownStateSettingNote {
+		titleVal = truncate(m.Note, mdl.terminalWidth-(stashViewHorizontalPadding*2)-len(titleKey))
+		titleVal = m.title(titleVal, state)
+	}
 
 	titleKey = te.String(titleKey).Foreground(keyColor.Color()).String()
 	dateKey = te.String(dateKey).Foreground(keyColor.Color()).String()
 	dateVal := m.date(state)
 
 	var s string
-	s += fmt.Sprintf("%s%s %s\n", line, titleKey, titleVal)
-	s += fmt.Sprintf("%s%s %s", line, dateKey, dateVal)
+	s += fmt.Sprintf("%s %s %s\n", line, titleKey, titleVal)
+	s += fmt.Sprintf("%s %s %s", line, dateKey, dateVal)
 	return s
 }
 
-func (m stashListItemView) date(state common.State) string {
+func (m stashListItemView) date(state markdownState) string {
 	c := common.Indigo
-	if state == common.StateDeleting {
+	if state == markdownStateDeleting {
 		c = common.FaintRed
+	} else if state == markdownStateSettingNote {
+		c = dullYellow
 	}
 	s := relativeTime(*m.CreatedAt)
 	return te.String(s).Foreground(c.Color()).String()
 }
 
-func (m stashListItemView) title(title string, state common.State) string {
+func (m stashListItemView) title(title string, state markdownState) string {
 	if title == "" {
 		return ""
 	}
 	c := common.Indigo
-	if state == common.StateDeleting {
+	if state == markdownStateDeleting {
 		c = common.Red
 	}
 	return te.String(title).Foreground(c.Color()).String()
@@ -569,6 +655,8 @@ func deleteStashedItem(cc *charm.Client, id int) boba.Cmd {
 
 // ETC
 
+// wrapMarkdowns wraps a *charm.Markdown with a *markdown in order to add some
+// extra metadata.
 func wrapMarkdowns(t markdownType, md []*charm.Markdown) (m []*markdown) {
 	for _, v := range md {
 		m = append(m, &markdown{

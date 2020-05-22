@@ -76,7 +76,7 @@ func newPagerModel(glamourStyle string) pagerModel {
 	ti.TextColor = gray
 	ti.BackgroundColor = yellowGreen
 	ti.CursorColor = fuschia
-	ti.CharLimit = 128 // totally arbitrary
+	ti.CharLimit = noteCharacterLimit
 	ti.Focus()
 
 	return pagerModel{
