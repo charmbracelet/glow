@@ -141,6 +141,13 @@ func (m stashModel) markdownIndex() int {
 	return m.paginator.Page*m.paginator.PerPage + m.index
 }
 
+// addMarkdowns adds markdown documents to the model
+func (m *stashModel) addMarkdowns(mds ...*markdown) {
+	m.documents = append(m.documents, mds...)
+	sort.Sort(markdownsByCreatedAtDesc(m.documents))
+	m.paginator.SetTotalPages(len(m.documents))
+}
+
 // INIT
 
 func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
@@ -197,9 +204,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		}
 
 		docs := wrapMarkdowns(userMarkdown, msg)
-		sort.Sort(markdownsByCreatedAtDesc(docs)) // sort by date
-		m.documents = append(m.documents, docs...)
-		m.paginator.SetTotalPages(len(m.documents))
+		m.addMarkdowns(docs...)
 
 		m.loaded |= loadedStash
 		if m.loaded.done() {
@@ -209,9 +214,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	case gotNewsMsg:
 		if len(msg) > 0 {
 			docs := wrapMarkdowns(newsMarkdown, msg)
-			sort.Sort(markdownsByCreatedAtDesc(docs))
-			m.documents = append(m.documents, docs...)
-			m.paginator.SetTotalPages(len(m.documents))
+			m.addMarkdowns(docs...)
 		}
 
 		m.loaded |= loadedNews
