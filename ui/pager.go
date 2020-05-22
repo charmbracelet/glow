@@ -39,7 +39,6 @@ var (
 
 // MSG
 
-type pagerErrMsg error
 type contentRenderedMsg string
 type noteSavedMsg *charm.Markdown
 
@@ -53,7 +52,6 @@ const (
 )
 
 type pagerModel struct {
-	err          error
 	cc           *charm.Client
 	viewport     viewport.Model
 	state        pagerState
@@ -159,9 +157,6 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 			}
 		}
 
-	case pagerErrMsg:
-		m.err = msg
-
 	// Glow has rendered the content
 	case contentRenderedMsg:
 		m.setContent(string(msg))
@@ -171,7 +166,7 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 	// after a resize
 	case terminalSizeMsg:
 		if msg.Error() != nil {
-			m.err = msg.Error()
+			// This will be caught at the top level
 			return m, nil
 		}
 
@@ -261,12 +256,12 @@ func renderWithGlamour(m pagerModel, md string) boba.Cmd {
 func saveDocumentNote(cc *charm.Client, id int, note string) boba.Cmd {
 	if cc == nil {
 		return func() boba.Msg {
-			return pagerErrMsg(errors.New("can't set note; no charm client"))
+			return errMsg(errors.New("can't set note; no charm client"))
 		}
 	}
 	return func() boba.Msg {
 		if err := cc.SetMarkdownNote(id, note); err != nil {
-			return pagerErrMsg(err)
+			return errMsg(err)
 		}
 		return noteSavedMsg(&charm.Markdown{ID: id, Note: note})
 	}

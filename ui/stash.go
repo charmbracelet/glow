@@ -36,7 +36,6 @@ var (
 
 // MSG
 
-type stashErrMsg error
 type stashSpinnerTickMsg struct{}
 type gotStashMsg []*charm.Markdown
 type gotNewsMsg []*charm.Markdown
@@ -92,7 +91,6 @@ const (
 
 type stashModel struct {
 	cc             *charm.Client
-	err            error
 	state          stashState
 	documents      []*markdown
 	spinner        spinner.Model
@@ -190,8 +188,6 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-	case stashErrMsg:
-		m.err = msg
 
 	// Stash results have come in from the server
 	case gotStashMsg:
@@ -387,10 +383,6 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 // VIEW
 
 func stashView(m stashModel) string {
-	if m.err != nil {
-		return "\n" + m.err.Error()
-	}
-
 	var s string
 	switch m.state {
 	case stashStateInit:
@@ -615,7 +607,7 @@ func loadStash(m stashModel) boba.Cmd {
 	return func() boba.Msg {
 		stash, err := m.cc.GetStash(m.page)
 		if err != nil {
-			return stashErrMsg(err)
+			return errMsg(err)
 		}
 		return gotStashMsg(stash)
 	}
@@ -625,7 +617,7 @@ func loadNews(m stashModel) boba.Cmd {
 	return func() boba.Msg {
 		news, err := m.cc.GetNews(1) // just fetch the first page
 		if err != nil {
-			return stashErrMsg(err)
+			return errMsg(err)
 		}
 		return gotNewsMsg(news)
 	}
@@ -643,7 +635,7 @@ func loadMarkdown(cc *charm.Client, id int, t markdownType) boba.Cmd {
 			md, err = cc.GetNewsMarkdown(id)
 		}
 		if err != nil {
-			return stashErrMsg(err)
+			return errMsg(err)
 		}
 		return fetchedMarkdownMsg(&markdown{
 			markdownType: userMarkdown,
@@ -656,7 +648,7 @@ func deleteStashedItem(cc *charm.Client, id int) boba.Cmd {
 	return func() boba.Msg {
 		err := cc.DeleteMarkdown(id)
 		if err != nil {
-			return stashErrMsg(err)
+			return errMsg(err)
 		}
 		return deletedStashedItemMsg(id)
 	}
