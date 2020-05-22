@@ -18,3 +18,5 @@ require (
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
 	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
 )
+
+replace github.com/charmbracelet/charm => ../charm

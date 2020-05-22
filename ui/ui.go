@@ -134,8 +134,6 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 	case boba.KeyMsg:
 		switch msg.String() {
-		case "f":
-			m.err = errors.New("Fatal.")
 		case "q":
 			fallthrough
 		case "esc":
