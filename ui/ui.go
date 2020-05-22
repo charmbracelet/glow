@@ -232,9 +232,7 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		m.pager.cc = msg
 		cmds = append(cmds, cmd)
 
-	case gotStashedItemMsg:
-		// Loaded markdown document from the server. We'll render it before
-		// loading it into the pager.
+	case fetchedMarkdownMsg:
 		m.pager.currentDocument = msg
 		cmds = append(cmds, renderWithGlamour(m.pager, msg.Body))
 

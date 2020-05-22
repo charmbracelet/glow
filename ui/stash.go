@@ -40,7 +40,7 @@ type stashErrMsg error
 type stashSpinnerTickMsg struct{}
 type gotStashMsg []*charm.Markdown
 type gotNewsMsg []*charm.Markdown
-type gotStashedItemMsg *markdown
+type fetchedMarkdownMsg *markdown
 type deletedStashedItemMsg int
 
 // MODEL
@@ -273,8 +273,9 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 				// that comes back in the main update function.
 				m.state = stashStateLoadingDocument
 				doc := m.documents[m.markdownIndex()]
+
 				cmds = append(cmds,
-					loadStashedItem(m.cc, doc.ID, doc.markdownType),
+					loadMarkdown(m.cc, doc.ID, doc.markdownType),
 					spinner.Tick(m.spinner),
 				)
 
@@ -627,14 +628,22 @@ func loadNews(m stashModel) boba.Cmd {
 	}
 }
 
-func loadStashedItem(cc *charm.Client, id int, t markdownType) boba.Cmd {
+func loadMarkdown(cc *charm.Client, id int, t markdownType) boba.Cmd {
 	return func() boba.Msg {
-		md, err := cc.GetStashMarkdown(id)
+		var (
+			md  *charm.Markdown
+			err error
+		)
+		if t == userMarkdown {
+			md, err = cc.GetStashMarkdown(id)
+		} else {
+			md, err = cc.GetNewsMarkdown(id)
+		}
 		if err != nil {
 			return stashErrMsg(err)
 		}
-		return gotStashedItemMsg(&markdown{
-			markdownType: t,
+		return fetchedMarkdownMsg(&markdown{
+			markdownType: userMarkdown,
 			Markdown:     md,
 		})
 	}
