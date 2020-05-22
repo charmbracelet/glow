@@ -139,16 +139,19 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 			switch m.state {
 			case stateShowStash:
-				if m.stash.state == stashStateSettingNote {
+
+				switch m.stash.state {
+				case stashStateSettingNote:
+					fallthrough
+				case stashStatePromptDelete:
 					m.stash, cmd = stashUpdate(msg, m.stash)
 					return m, cmd
 				}
+
 			case stateShowDocument:
 				if m.pager.state == pagerStateBrowse {
-					// Exit pager
-					m.unloadDocument()
+					m.unloadDocument() // exits pager
 				} else {
-					// Pass message through to pager
 					m.pager, cmd = pagerUpdate(msg, m.pager)
 				}
 				return m, cmd

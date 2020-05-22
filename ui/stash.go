@@ -183,95 +183,6 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-	case boba.KeyMsg:
-		// Don't respond to these keystrokes if we're still loading or setting
-		// a note
-		if m.state == stashStateInit || m.state == stashStateSettingNote {
-			break
-		}
-
-		switch msg.String() {
-
-		case "k":
-			fallthrough
-		case "up":
-			m.index--
-			if m.index < 0 && m.paginator.Page == 0 {
-				// Stop
-				m.index = 0
-			} else if m.index < 0 {
-				// Go to previous page
-				m.paginator.PrevPage()
-				m.index = m.paginator.ItemsOnPage(len(m.documents)) - 1
-			}
-
-		case "j":
-			fallthrough
-		case "down":
-			itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
-			m.index++
-			if m.index >= itemsOnPage && m.paginator.OnLastPage() {
-				// Stop
-				m.index = itemsOnPage - 1
-			} else if m.index >= itemsOnPage {
-				// Go to next page
-				m.index = 0
-				m.paginator.NextPage()
-			}
-
-		case "enter":
-			// Load the document from the server. We'll handle the message
-			// that comes back in the main update function.
-			m.state = stashStateLoadingDocument
-			doc := m.documents[m.markdownIndex()]
-			cmds = append(cmds,
-				loadStashedItem(m.cc, doc.ID, doc.markdownType),
-				spinner.Tick(m.spinner),
-			)
-
-		// Set note
-		case "n":
-			if m.state != stashStateSettingNote && m.state != stashStatePromptDelete {
-				m.state = stashStateSettingNote
-				m.noteInput.SetValue(m.documents[m.markdownIndex()].Note)
-				m.noteInput.CursorEnd()
-				return m, textinput.Blink(m.noteInput)
-			}
-
-		// Confirm deletion
-		case "x":
-			isUserMarkdown := m.documents[m.markdownIndex()].markdownType == userMarkdown
-			isValidState := m.state != stashStateSettingNote
-			if isUserMarkdown && isValidState {
-				m.state = stashStatePromptDelete
-			}
-
-		// Deletion confirmed
-		case "y":
-			if m.state != stashStatePromptDelete {
-				break
-			}
-			// Deletion confirmed. Delete the stashed item...
-
-			// Index of the documents slice we'll be deleting
-			i := m.paginator.Page*m.paginator.PerPage + m.index
-
-			// ID of the item we'll be deleting
-			id := m.documents[i].ID
-
-			// Delete optimistically and remove the stashed item
-			// before we've received a success response.
-			m.documents = append(m.documents[:i], m.documents[i+1:]...)
-
-			// Update pagination
-			m.paginator.SetTotalPages(len(m.documents))
-			m.paginator.Page = min(m.paginator.Page, m.paginator.TotalPages-1)
-
-			// Set state and delete
-			m.state = stashStateReady
-			return m, deleteStashedItem(m.cc, id)
-		}
-
 	case stashErrMsg:
 		m.err = msg
 
@@ -326,6 +237,66 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 	switch m.state {
 	case stashStateReady:
+		if msg, ok := msg.(boba.KeyMsg); ok {
+			switch msg.String() {
+
+			case "k":
+				fallthrough
+			case "up":
+				m.index--
+				if m.index < 0 && m.paginator.Page == 0 {
+					// Stop
+					m.index = 0
+				} else if m.index < 0 {
+					// Go to previous page
+					m.paginator.PrevPage()
+					m.index = m.paginator.ItemsOnPage(len(m.documents)) - 1
+				}
+
+			case "j":
+				fallthrough
+			case "down":
+				itemsOnPage := m.paginator.ItemsOnPage(len(m.documents))
+				m.index++
+				if m.index >= itemsOnPage && m.paginator.OnLastPage() {
+					// Stop
+					m.index = itemsOnPage - 1
+				} else if m.index >= itemsOnPage {
+					// Go to next page
+					m.index = 0
+					m.paginator.NextPage()
+				}
+
+			// Open document
+			case "enter":
+				// Load the document from the server. We'll handle the message
+				// that comes back in the main update function.
+				m.state = stashStateLoadingDocument
+				doc := m.documents[m.markdownIndex()]
+				cmds = append(cmds,
+					loadStashedItem(m.cc, doc.ID, doc.markdownType),
+					spinner.Tick(m.spinner),
+				)
+
+			// Set note
+			case "n":
+				if m.state != stashStateSettingNote && m.state != stashStatePromptDelete {
+					m.state = stashStateSettingNote
+					m.noteInput.SetValue(m.documents[m.markdownIndex()].Note)
+					m.noteInput.CursorEnd()
+					return m, textinput.Blink(m.noteInput)
+				}
+
+			// Prompt for deletion
+			case "x":
+				isUserMarkdown := m.documents[m.markdownIndex()].markdownType == userMarkdown
+				isValidState := m.state != stashStateSettingNote
+				if isUserMarkdown && isValidState {
+					m.state = stashStatePromptDelete
+				}
+
+			}
+		}
 
 		// Update paginator
 		m.paginator, cmd = paginator.Update(msg, m.paginator)
@@ -343,6 +314,36 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 			m.page++
 			m.loading = true
 			cmds = append(cmds, loadStash(m))
+		}
+
+	case stashStatePromptDelete:
+		if msg, ok := msg.(boba.KeyMsg); ok {
+			switch msg.String() {
+
+			// Confirm deletion
+			case "y":
+				if m.state != stashStatePromptDelete {
+					break
+				}
+
+				i := m.markdownIndex()
+				id := m.documents[i].ID
+
+				// Delete optimistically and remove the stashed item
+				// before we've received a success response.
+				m.documents = append(m.documents[:i], m.documents[i+1:]...)
+
+				// Update pagination
+				m.paginator.SetTotalPages(len(m.documents))
+				m.paginator.Page = min(m.paginator.Page, m.paginator.TotalPages-1)
+
+				// Set state and delete
+				m.state = stashStateReady
+				return m, deleteStashedItem(m.cc, id)
+
+			default:
+				m.state = stashStateReady
+			}
 		}
 
 	case stashStateSettingNote:
@@ -375,10 +376,6 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 	// If an item is being confirmed for delete, any key (other than the key
 	// used for confirmation above) cancels the deletion
-	k, ok := msg.(boba.KeyMsg)
-	if ok && k.String() != "x" && m.state == stashStatePromptDelete {
-		m.state = stashStateReady
-	}
 
 	return m, boba.Batch(cmds...)
 }
