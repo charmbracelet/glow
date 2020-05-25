@@ -30,11 +30,12 @@ var (
 	width       uint
 
 	rootCmd = &cobra.Command{
-		Use:           "glow SOURCE",
-		Short:         "Render markdown on the CLI, with pizzazz!",
-		SilenceErrors: false,
-		SilenceUsage:  false,
-		RunE:          execute,
+		Use:              "glow SOURCE",
+		Short:            "Render markdown on the CLI, with pizzazz!",
+		SilenceErrors:    false,
+		SilenceUsage:     false,
+		TraverseChildren: true,
+		RunE:             execute,
 	}
 )
 
