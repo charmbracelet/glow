@@ -164,7 +164,7 @@ func execute(cmd *cobra.Command, args []string) error {
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 
-	// TODO: Put this somewhere where it makes more sense
+	// Only run TUI if there are no arguments (excluding flags)
 	if arg == "" {
 
 		// Log to a file. For debugging.
@@ -274,14 +274,16 @@ func init() {
 	}
 	rootCmd.Version = Version
 
+	// "Glow Classic" cli arguments
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 
+	// For network-related operations, namely stashing and the TUI
 	rootCmd.PersistentFlags().StringVarP(&identityFile, "identity", "i", "", "path to identity file (that is, an ssh private key)")
 	rootCmd.PersistentFlags().BoolVarP(&forceKey, "force-key", "f", false, "for the use of the SSH key on disk (that is, ignore ssh-agent)")
 
+	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
-
 	rootCmd.AddCommand(stashCmd, stashListCmd, stashGetCmd, stashDeleteCmd)
 }
