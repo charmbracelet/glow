@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/boba"
-	"github.com/charmbracelet/boba/paginator"
-	"github.com/charmbracelet/boba/spinner"
-	"github.com/charmbracelet/boba/textinput"
+	"github.com/charmbracelet/bubbles/paginator"
+	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
@@ -145,11 +145,11 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 
 // INIT
 
-func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
+func stashInit(cc *charm.Client) (stashModel, tea.Cmd) {
 	s := spinner.NewModel()
 	s.Type = spinner.Dot
 	s.ForegroundColor = common.SpinnerColor
-	s.CustomMsgFunc = func() boba.Msg { return stashSpinnerTickMsg{} }
+	s.CustomMsgFunc = func() tea.Msg { return stashSpinnerTickMsg{} }
 
 	p := paginator.NewModel()
 	p.Type = paginator.Dots
@@ -169,7 +169,7 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 		paginator: p,
 	}
 
-	return m, boba.Batch(
+	return m, tea.Batch(
 		loadStash(m),
 		loadNews(m),
 		spinner.Tick(s),
@@ -178,10 +178,10 @@ func stashInit(cc *charm.Client) (stashModel, boba.Cmd) {
 
 // UPDATE
 
-func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
+func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	var (
-		cmd  boba.Cmd
-		cmds []boba.Cmd
+		cmd  tea.Cmd
+		cmds []tea.Cmd
 	)
 
 	switch msg := msg.(type) {
@@ -233,7 +233,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 	switch m.state {
 	case stashStateReady:
-		if msg, ok := msg.(boba.KeyMsg); ok {
+		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
 
 			case "k":
@@ -320,7 +320,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 		}
 
 	case stashStatePromptDelete:
-		if msg, ok := msg.(boba.KeyMsg); ok {
+		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
 
 			// Confirm deletion
@@ -351,7 +351,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 
 	case stashStateSettingNote:
 
-		if msg, ok := msg.(boba.KeyMsg); ok {
+		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
 			case "q":
 				fallthrough
@@ -380,7 +380,7 @@ func stashUpdate(msg boba.Msg, m stashModel) (stashModel, boba.Cmd) {
 	// If an item is being confirmed for delete, any key (other than the key
 	// used for confirmation above) cancels the deletion
 
-	return m, boba.Batch(cmds...)
+	return m, tea.Batch(cmds...)
 }
 
 // VIEW
@@ -508,8 +508,8 @@ func stashHelpView(m stashModel) string {
 
 // CMD
 
-func loadStash(m stashModel) boba.Cmd {
-	return func() boba.Msg {
+func loadStash(m stashModel) tea.Cmd {
+	return func() tea.Msg {
 		stash, err := m.cc.GetStash(m.page)
 		if err != nil {
 			return errMsg(err)
@@ -518,8 +518,8 @@ func loadStash(m stashModel) boba.Cmd {
 	}
 }
 
-func loadNews(m stashModel) boba.Cmd {
-	return func() boba.Msg {
+func loadNews(m stashModel) tea.Cmd {
+	return func() tea.Msg {
 		news, err := m.cc.GetNews(1) // just fetch the first page
 		if err != nil {
 			return errMsg(err)
@@ -528,8 +528,8 @@ func loadNews(m stashModel) boba.Cmd {
 	}
 }
 
-func loadMarkdown(cc *charm.Client, id int, t markdownType) boba.Cmd {
-	return func() boba.Msg {
+func loadMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
+	return func() tea.Msg {
 		var (
 			md  *charm.Markdown
 			err error
@@ -549,8 +549,8 @@ func loadMarkdown(cc *charm.Client, id int, t markdownType) boba.Cmd {
 	}
 }
 
-func deleteStashedItem(cc *charm.Client, id int) boba.Cmd {
-	return func() boba.Msg {
+func deleteStashedItem(cc *charm.Client, id int) tea.Cmd {
+	return func() tea.Msg {
 		err := cc.DeleteMarkdown(id)
 		if err != nil {
 			return errMsg(err)

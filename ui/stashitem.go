@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/boba/textinput"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/charm/ui/common"
 	te "github.com/muesli/termenv"
 )

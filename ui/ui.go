@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/charmbracelet/boba"
-	"github.com/charmbracelet/boba/spinner"
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
@@ -21,9 +21,9 @@ var (
 	glowLogoTextColor = common.Color("#ECFD65")
 )
 
-// NewProgram returns a new Boba program
-func NewProgram(style string) *boba.Program {
-	return boba.NewProgram(initialize(style), update, view)
+// NewProgram returns a new Tea program
+func NewProgram(style string) *tea.Program {
+	return tea.NewProgram(initialize(style), update, view)
 }
 
 // MESSAGES
@@ -87,8 +87,8 @@ func (m *model) unloadDocument() {
 
 // INIT
 
-func initialize(style string) func() (boba.Model, boba.Cmd) {
-	return func() (boba.Model, boba.Cmd) {
+func initialize(style string) func() (tea.Model, tea.Cmd) {
+	return func() (tea.Model, tea.Cmd) {
 		s := spinner.NewModel()
 		s.Type = spinner.Dot
 		s.ForegroundColor = common.SpinnerColor
@@ -106,7 +106,7 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 				spinner: s,
 				pager:   newPagerModel(style),
 				state:   stateInitCharmClient,
-			}, boba.Batch(
+			}, tea.Batch(
 				newCharmClient,
 				spinner.Tick(s),
 				getTerminalSize(),
@@ -117,27 +117,27 @@ func initialize(style string) func() (boba.Model, boba.Cmd) {
 
 // UPDATE
 
-func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
+func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	m, ok := mdl.(model)
 	if !ok {
 		return model{
 			err: errors.New("could not perform assertion on model in update"),
-		}, boba.Quit
+		}, tea.Quit
 	}
 
 	var (
-		cmd  boba.Cmd
-		cmds []boba.Cmd
+		cmd  tea.Cmd
+		cmds []tea.Cmd
 	)
 
 	switch msg := msg.(type) {
 
-	case boba.KeyMsg:
+	case tea.KeyMsg:
 		switch msg.String() {
 		case "q":
 			fallthrough
 		case "esc":
-			var cmd boba.Cmd
+			var cmd tea.Cmd
 
 			switch m.state {
 			case stateShowStash:
@@ -159,10 +159,10 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 				return m, cmd
 			}
 
-			return m, boba.Quit
+			return m, tea.Quit
 
 		case "ctrl+c":
-			return m, boba.Quit
+			return m, tea.Quit
 
 		// Repaint
 		case "ctrl+l":
@@ -201,7 +201,7 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		} else {
 			// The keygen didn't work and we can't auth
 			m.err = errors.New("SSH authentication failed")
-			return m, boba.Quit
+			return m, tea.Quit
 		}
 
 	case spinner.TickMsg:
@@ -243,11 +243,11 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 
 	case stateKeygenRunning:
 		// Process keygen
-		mdl, cmd := keygen.Update(msg, boba.Model(m.keygen))
+		mdl, cmd := keygen.Update(msg, tea.Model(m.keygen))
 		keygenModel, ok := mdl.(keygen.Model)
 		if !ok {
 			m.err = errors.New("could not perform assertion on keygen model in main update")
-			return m, boba.Quit
+			return m, tea.Quit
 		}
 		m.keygen = keygenModel
 		cmds = append(cmds, cmd)
@@ -263,12 +263,12 @@ func update(msg boba.Msg, mdl boba.Model) (boba.Model, boba.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	return m, boba.Batch(cmds...)
+	return m, tea.Batch(cmds...)
 }
 
 // VIEW
 
-func view(mdl boba.Model) string {
+func view(mdl tea.Model) string {
 	m, ok := mdl.(model)
 	if !ok {
 		return "could not perform assertion on model in view"
@@ -297,19 +297,19 @@ func view(mdl boba.Model) string {
 
 // COMMANDS
 
-func listenForTerminalResize() boba.Cmd {
-	return boba.OnResize(func() boba.Msg {
+func listenForTerminalResize() tea.Cmd {
+	return tea.OnResize(func() tea.Msg {
 		return terminalResizedMsg{}
 	})
 }
 
-func getTerminalSize() boba.Cmd {
-	return boba.GetTerminalSize(func(w, h int, err error) boba.TerminalSizeMsg {
+func getTerminalSize() tea.Cmd {
+	return tea.GetTerminalSize(func(w, h int, err error) tea.TerminalSizeMsg {
 		return terminalSizeMsg{width: w, height: h, err: err}
 	})
 }
 
-func newCharmClient() boba.Msg {
+func newCharmClient() tea.Msg {
 	cfg, err := charm.ConfigFromEnv()
 	if err != nil {
 		return errMsg(err)

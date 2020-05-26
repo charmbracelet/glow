@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/boba"
-	"github.com/charmbracelet/boba/textinput"
-	"github.com/charmbracelet/boba/viewport"
+	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
@@ -105,15 +105,15 @@ func (m *pagerModel) unload() {
 
 // UPDATE
 
-func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
+func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 	var (
-		cmd  boba.Cmd
-		cmds []boba.Cmd
+		cmd  tea.Cmd
+		cmds []tea.Cmd
 	)
 
 	switch msg := msg.(type) {
 
-	case boba.KeyMsg:
+	case tea.KeyMsg:
 		switch m.state {
 		case pagerStateSetNote:
 			switch msg.String() {
@@ -123,7 +123,7 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 				m.state = pagerStateBrowse
 				return m, nil
 			case "enter":
-				var cmd boba.Cmd
+				var cmd tea.Cmd
 				if m.textInput.Value() != m.currentDocument.Note { // don't update if the note didn't change
 					m.currentDocument.Note = m.textInput.Value() // update optimistically
 					cmd = saveDocumentNote(m.cc, m.currentDocument.ID, m.currentDocument.Note)
@@ -170,7 +170,7 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 			return m, nil
 		}
 
-		var cmd boba.Cmd
+		var cmd tea.Cmd
 		if m.currentDocument != nil {
 			cmd = renderWithGlamour(m, m.currentDocument.Body)
 		}
@@ -186,7 +186,7 @@ func pagerUpdate(msg boba.Msg, m pagerModel) (pagerModel, boba.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	return m, boba.Batch(cmds...)
+	return m, tea.Batch(cmds...)
 }
 
 // VIEW
@@ -243,8 +243,8 @@ func pagerSetNoteView(m pagerModel) string {
 
 // CMD
 
-func renderWithGlamour(m pagerModel, md string) boba.Cmd {
-	return func() boba.Msg {
+func renderWithGlamour(m pagerModel, md string) tea.Cmd {
+	return func() tea.Msg {
 		s, err := glamourRender(m, md)
 		if err != nil {
 			return errMsg(err)
@@ -253,13 +253,13 @@ func renderWithGlamour(m pagerModel, md string) boba.Cmd {
 	}
 }
 
-func saveDocumentNote(cc *charm.Client, id int, note string) boba.Cmd {
+func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 	if cc == nil {
-		return func() boba.Msg {
+		return func() tea.Msg {
 			return errMsg(errors.New("can't set note; no charm client"))
 		}
 	}
-	return func() boba.Msg {
+	return func() tea.Msg {
 		if err := cc.SetMarkdownNote(id, note); err != nil {
 			return errMsg(err)
 		}
