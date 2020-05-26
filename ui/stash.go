@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,13 +24,6 @@ const (
 	stashViewBottomPadding     = 4
 	stashViewHorizontalPadding = 6
 	setNotePromptText          = "Memo: "
-)
-
-var (
-	faintGreen  = common.NewColorPair("#2B4A3F", "#ABE5D1")
-	green       = common.NewColorPair("#04B575", "#04B575")
-	dullYellow  = common.NewColorPair("#9BA92F", "#6CCCA9") // renders light green on light backgrounds
-	dullFuchsia = common.NewColorPair("#AD58B4", "#F9ACFF")
 )
 
 // MSG
@@ -437,7 +429,7 @@ func stashView(m stashModel) string {
 		}
 
 		s += fmt.Sprintf(
-			"%s\n\n%s\n\n%s\n\n%s%s\n\n%s",
+			"  %s\n\n  %s\n\n%s\n\n%s  %s\n\n  %s",
 			glowLogoView(" Glow "),
 			header,
 			stashPopulatedView(m),
@@ -446,7 +438,7 @@ func stashView(m stashModel) string {
 			stashHelpView(m),
 		)
 	}
-	return "\n" + indent.String(s, 2)
+	return "\n" + indent.String(s, 1)
 }
 
 func glowLogoView(text string) string {
@@ -467,21 +459,10 @@ func stashPopulatedView(m stashModel) string {
 	start, end := m.paginator.GetSliceBounds(len(m.markdowns))
 	docs := m.markdowns[start:end]
 
-	for i, v := range docs {
-		state := markdownStateNormal
-		if i == m.index {
-			switch m.state {
-			case stashStatePromptDelete:
-				state = markdownStateDeleting
-			case stashStateSettingNote:
-				state = markdownStateSettingNote
-			default:
-				state = markdownStateSelected
-			}
-		}
-		s += stashListItemView(*v).render(m, state) + "\n\n"
+	for i, md := range docs {
+		s += stashItemView(m, i, md) + "\n\n"
 	}
-	s = strings.TrimSpace(s) // trim final newlines
+	s = strings.TrimRight(s, "\n")
 
 	// If there aren't enough items to fill up this page (always the last page)
 	// then we need to add some newlines to fill up the space to push the
@@ -519,97 +500,6 @@ func stashHelpView(m stashModel) string {
 		h = append(h, []string{"esc: exit"}...)
 	}
 	return common.HelpView(h...)
-}
-
-// markdownState is used in a deterministic fashion to aid rendering stash item
-// views.
-type markdownState int
-
-const (
-	markdownStateNormal markdownState = iota
-	markdownStateSelected
-	markdownStateDeleting
-	markdownStateSettingNote
-)
-
-// stashListItemView contains methods for rendering an item as it appears in
-// the stash view
-type stashListItemView markdown
-
-func (m stashListItemView) render(mdl stashModel, state markdownState) string {
-
-	// General key color
-	keyColor := common.NoColor
-	line := common.VerticalLine(common.StateNormal)
-	switch state {
-	case markdownStateSettingNote:
-		keyColor = common.YellowGreen
-		line = common.VerticalLine(common.StateActive)
-	case markdownStateSelected:
-		keyColor = common.Fuschia
-		line = common.VerticalLine(common.StateSelected)
-	case markdownStateDeleting:
-		keyColor = common.Red
-		line = common.VerticalLine(common.StateDeleting)
-	default:
-		if m.markdownType == newsMarkdown {
-			keyColor = common.Green
-		}
-	}
-
-	titleKey := "#" + strconv.Itoa(m.ID)
-	if state == markdownStateSettingNote {
-		titleKey = textinput.View(mdl.noteInput)
-	} else {
-		if m.markdownType == newsMarkdown {
-			titleKey = "System Announcement"
-		}
-		if m.Note != "" {
-			titleKey += ":"
-		}
-	}
-
-	dateKey := "Stashed:"
-	if m.markdownType == newsMarkdown {
-		dateKey = "Posted:"
-	}
-
-	var titleVal string
-	if state != markdownStateSettingNote {
-		titleVal = truncate(m.Note, mdl.terminalWidth-(stashViewHorizontalPadding*2)-len(titleKey))
-		titleVal = m.title(titleVal, state)
-	}
-
-	titleKey = te.String(titleKey).Foreground(keyColor.Color()).String()
-	dateKey = te.String(dateKey).Foreground(keyColor.Color()).String()
-	dateVal := m.date(state)
-
-	var s string
-	s += fmt.Sprintf("%s %s %s\n", line, titleKey, titleVal)
-	s += fmt.Sprintf("%s %s %s", line, dateKey, dateVal)
-	return s
-}
-
-func (m stashListItemView) date(state markdownState) string {
-	c := common.Indigo
-	if state == markdownStateDeleting {
-		c = common.FaintRed
-	} else if state == markdownStateSettingNote {
-		c = dullYellow
-	}
-	s := relativeTime(*m.CreatedAt)
-	return te.String(s).Foreground(c.Color()).String()
-}
-
-func (m stashListItemView) title(title string, state markdownState) string {
-	if title == "" {
-		return ""
-	}
-	c := common.Indigo
-	if state == markdownStateDeleting {
-		c = common.Red
-	}
-	return te.String(title).Foreground(c.Color()).String()
 }
 
 // CMD
