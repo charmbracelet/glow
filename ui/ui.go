@@ -269,6 +269,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 // VIEW
 
 func view(mdl tea.Model) string {
+
 	m, ok := mdl.(model)
 	if !ok {
 		return "could not perform assertion on model in view"
@@ -279,6 +280,7 @@ func view(mdl tea.Model) string {
 	}
 
 	var s string
+
 	switch m.state {
 	case stateInitCharmClient:
 		s += spinner.View(m.spinner) + " Initializing..."

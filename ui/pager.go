@@ -35,6 +35,16 @@ var (
 	statusBarBg          = common.NewColorPair("#242424", "#E6E6E6")
 	statusBarNoteFg      = common.NewColorPair("#7D7D7D", "#656565")
 	statusBarScrollPosFg = common.NewColorPair("#5A5A5A", "#949494")
+
+	statusBarScrollPosStyle = te.Style{}.
+				Foreground(statusBarScrollPosFg.Color()).
+				Background(statusBarBg.Color()).
+				Styled
+
+	statusBarNoteStyle = te.Style{}.
+				Foreground(statusBarNoteFg.Color()).
+				Background(statusBarBg.Color()).
+				Styled
 )
 
 // MSG
@@ -192,21 +202,21 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 // VIEW
 
 func pagerView(m pagerModel) string {
-	var footer string
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "\n%s\n", viewport.View(m.viewport))
+
+	// Footer
 	if m.state == pagerStateSetNote {
-		footer = pagerSetNoteView(m)
+		pagerSetNoteView(&b, m)
 	} else {
-		footer = pagerStatusBarView(m)
+		pagerStatusBarView(&b, m)
 	}
 
-	return fmt.Sprintf(
-		"\n%s\n%s",
-		viewport.View(m.viewport),
-		footer,
-	)
+	return b.String()
 }
 
-func pagerStatusBarView(m pagerModel) string {
+func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	// Logo
 	logoText := " Glow "
 	logo := glowLogoView(logoText)
@@ -214,10 +224,6 @@ func pagerStatusBarView(m pagerModel) string {
 	// Scroll percent
 	scrollPercent := math.Max(0.0, math.Min(1.0, m.viewport.ScrollPercent()))
 	percentText := fmt.Sprintf(" %3.f%% ", scrollPercent*100)
-	percent := te.String(percentText).
-		Foreground(statusBarScrollPosFg.Color()).
-		Background(statusBarBg.Color()).
-		String()
 
 	// Note
 	noteText := m.currentDocument.Note
@@ -225,20 +231,23 @@ func pagerStatusBarView(m pagerModel) string {
 		noteText = "(No title)"
 	}
 	noteText = truncate(" "+noteText+" ", max(0, m.width-len(logoText)-len(percentText)))
-	note := te.String(noteText).
-		Foreground(statusBarNoteFg.Color()).
-		Background(statusBarBg.Color()).String()
 
 	// Empty space
 	emptyCell := te.String(" ").Background(statusBarBg.Color()).String()
 	padding := max(0, m.width-len(logoText)-len(noteText)-len(percentText))
 	emptySpace := strings.Repeat(emptyCell, padding)
 
-	return logo + note + emptySpace + percent
+	fmt.Fprintf(b, "%s%s%s%s",
+		logo,
+		statusBarNoteStyle(noteText),
+		emptySpace,
+		statusBarScrollPosStyle(percentText),
+	)
 }
 
-func pagerSetNoteView(m pagerModel) string {
-	return noteHeading + textinput.View(m.textInput)
+func pagerSetNoteView(b *strings.Builder, m pagerModel) {
+	fmt.Fprint(b, noteHeading)
+	fmt.Fprint(b, textinput.View(m.textInput))
 }
 
 // CMD

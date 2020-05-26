@@ -24,7 +24,7 @@ var (
 	subtleIndigo = common.NewColorPair("#514DC1", "#7D79F6")
 )
 
-func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) *strings.Builder {
+func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 	truncateTo := m.terminalWidth - stashViewHorizontalPadding*2
 	gutter := " "
@@ -79,6 +79,4 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) *s
 
 	fmt.Fprintf(b, "%s %s\n", gutter, title)
 	fmt.Fprintf(b, "%s %s", gutter, date)
-
-	return b
 }
