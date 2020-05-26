@@ -7,7 +7,6 @@ import (
 
 func TestGlowSources(t *testing.T) {
 	tt := []string{
-		"",
 		".",
 		"README.md",
 		"github.com/charmbracelet/glow",
