@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/boba/textinput"
 	"github.com/charmbracelet/charm/ui/common"
@@ -19,13 +20,13 @@ var (
 	green        = common.NewColorPair("#04B575", "#04B575")
 	dullFuchsia  = common.NewColorPair("#AD58B4", "#F793FF")
 	dullYellow   = common.NewColorPair("#9BA92F", "#6BCB94") // renders light green on light backgrounds
-	warmGray     = common.NewColorPair("#918892", "#847A85")
+	warmGray     = common.NewColorPair("#979797", "#847A85")
 	subtleIndigo = common.NewColorPair("#514DC1", "#7D79F6")
 )
 
-func stashItemView(m stashModel, index int, md *markdown) string {
-	truncateTo := m.terminalWidth - stashViewHorizontalPadding*2
+func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) *strings.Builder {
 
+	truncateTo := m.terminalWidth - stashViewHorizontalPadding*2
 	gutter := " "
 	title := md.Note
 	date := relativeTime(*md.CreatedAt)
@@ -76,7 +77,8 @@ func stashItemView(m stashModel, index int, md *markdown) string {
 		}
 	}
 
-	s := fmt.Sprintf("%s %s\n", gutter, title)
-	s += fmt.Sprintf("%s %s", gutter, date)
-	return s
+	fmt.Fprintf(b, "%s %s\n", gutter, title)
+	fmt.Fprintf(b, "%s %s", gutter, date)
+
+	return b
 }

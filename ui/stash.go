@@ -389,9 +389,9 @@ func stashView(m stashModel) string {
 	var s string
 	switch m.state {
 	case stashStateInit:
-		s += spinner.View(m.spinner) + " Loading stash..."
+		s += " " + spinner.View(m.spinner) + " Loading stash..."
 	case stashStateLoadingDocument:
-		s += spinner.View(m.spinner) + " Loading document..."
+		s += " " + spinner.View(m.spinner) + " Loading document..."
 	case stashStateReady:
 		fallthrough
 	case stashStateSettingNote:
@@ -454,15 +454,17 @@ func stashEmtpyView(m stashModel) string {
 }
 
 func stashPopulatedView(m stashModel) string {
-	var s string
+	var b strings.Builder
 
 	start, end := m.paginator.GetSliceBounds(len(m.markdowns))
 	docs := m.markdowns[start:end]
 
 	for i, md := range docs {
-		s += stashItemView(m, i, md) + "\n\n"
+		stashItemView(&b, m, i, md)
+		if i != len(docs)-1 {
+			fmt.Fprintf(&b, "\n\n")
+		}
 	}
-	s = strings.TrimRight(s, "\n")
 
 	// If there aren't enough items to fill up this page (always the last page)
 	// then we need to add some newlines to fill up the space to push the
@@ -470,10 +472,12 @@ func stashPopulatedView(m stashModel) string {
 	itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
 	if itemsOnPage < m.paginator.PerPage {
 		n := (m.paginator.PerPage - itemsOnPage) * stashViewItemHeight
-		s += strings.Repeat("\n", n)
+		for i := 0; i < n; i++ {
+			fmt.Fprint(&b, "\n")
+		}
 	}
 
-	return s
+	return b.String()
 }
 
 func stashHelpView(m stashModel) string {
