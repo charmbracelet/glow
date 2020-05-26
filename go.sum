@@ -15,8 +15,6 @@ github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+Ce
 github.com/calmh/randomart v1.1.0 h1:evl+iwc10LXtHdMZhzLxmsCQVmWnkXs44SbC6Uk0Il8=
 github.com/calmh/randomart v1.1.0/go.mod h1:DQUbPVyP+7PAs21w/AnfMKG5NioxS3TbZ2F9MSK/jFM=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
-github.com/charmbracelet/boba v0.6.3 h1:3YisdYQ35tieYXbfpf8acdVN6d1DJHGKZc5kDJNkjg0=
-github.com/charmbracelet/boba v0.6.3/go.mod h1:9TUvThAOqjXWYZGOrZ4qyluTrmodxb8SqNR81BJluOU=
 github.com/charmbracelet/bubbles v0.0.0-20200526000837-87c7cd778f80 h1:cfaoL1+tHPABTLEAg831PIFG96teW69Wamz9M025r5M=
 github.com/charmbracelet/bubbles v0.0.0-20200526000837-87c7cd778f80/go.mod h1:/AeLRFlL2Uf4X7U5LjnswTII6u4maPzMm1+vZfeUJKc=
 github.com/charmbracelet/bubbletea v0.6.4-0.20200525234836-3b8b011b5a26/go.mod h1:BTzHOUvUlKecQz7ZB8NgPRWi2Z8NRCV04qwyFOfO1Kk=

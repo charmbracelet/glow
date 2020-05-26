@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 
-	"github.com/charmbracelet/boba"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/ui"
 )
@@ -171,18 +171,18 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 		// Log to a file. For debugging.
 		logToFilePath := os.Getenv("GLOW_LOG_TO_FILE")
 		if logToFilePath != "" {
-			f, err := boba.LogToFile(logToFilePath, "glow")
+			f, err := tea.LogToFile(logToFilePath, "glow")
 			if err != nil {
 				return err
 			}
 			defer f.Close()
 		}
 
-		boba.AltScreen()
+		tea.AltScreen()
 		if err := ui.NewProgram(style).Start(); err != nil {
 			return err
 		}
-		boba.ExitAltScreen()
+		tea.ExitAltScreen()
 
 		fmt.Printf("\n  Thanks for using Glow!\n\n")
 		return nil
