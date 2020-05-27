@@ -3,13 +3,13 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
-	"github.com/muesli/reflow/indent"
 	te "github.com/muesli/termenv"
 )
 
@@ -294,7 +294,7 @@ func view(mdl tea.Model) string {
 		return pagerView(m.pager)
 	}
 
-	return "\n" + indent.String(s, 2)
+	return "\n" + indent(s, 2)
 }
 
 // COMMANDS
@@ -325,6 +325,19 @@ func newCharmClient() tea.Msg {
 	}
 
 	return newCharmClientMsg(cc)
+}
+
+func indent(s string, n int) string {
+	if n <= 0 || s == "" {
+		return s
+	}
+	l := strings.Split(s, "\n")
+	b := strings.Builder{}
+	i := strings.Repeat(" ", n)
+	for _, v := range l {
+		fmt.Fprintf(&b, "%s%s\n", i, v)
+	}
+	return b.String()
 }
 
 // ETC

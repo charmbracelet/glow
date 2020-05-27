@@ -14,7 +14,6 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
-	"github.com/muesli/reflow/indent"
 	te "github.com/muesli/termenv"
 )
 
@@ -438,7 +437,7 @@ func stashView(m stashModel) string {
 			stashHelpView(m),
 		)
 	}
-	return "\n" + indent.String(s, 1)
+	return "\n" + indent(s, 1)
 }
 
 func glowLogoView(text string) string {
