@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/charmbracelet/bubbles v0.0.0-20200526000837-87c7cd778f80
-	github.com/charmbracelet/bubbletea v0.7.0
+	github.com/charmbracelet/bubbletea v0.7.1-0.20200528144715-b10f6d679158
 	github.com/charmbracelet/charm v0.5.1
 	github.com/charmbracelet/glamour v0.2.0
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
