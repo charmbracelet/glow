@@ -19,7 +19,7 @@ import (
 
 const (
 	stashViewItemHeight        = 3
-	stashViewTopPadding        = 7
+	stashViewTopPadding        = 5
 	stashViewBottomPadding     = 4
 	stashViewHorizontalPadding = 6
 	setNotePromptText          = "Memo: "
@@ -399,16 +399,9 @@ func stashView(m stashModel) string {
 		fallthrough
 	case stashStatePromptDelete:
 
-		var stashView string
-		var stashViewHeight int
-		if len(m.markdowns) > 0 {
-			stashView = stashPopulatedView(m)
-			stashViewHeight = strings.Count(stashView, "\n") + 1
-		}
-
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
-		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)-stashViewHeight)
+		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
 		blankLines := ""
 		if numBlankLines > 0 {
 			blankLines = strings.Repeat("\n", numBlankLines)
@@ -442,7 +435,7 @@ func stashView(m stashModel) string {
 			"  %s\n\n  %s\n\n%s\n\n%s  %s\n\n  %s",
 			glowLogoView(" Glow "),
 			header,
-			stashView,
+			stashPopulatedView(m),
 			blankLines,
 			pagination,
 			stashHelpView(m),
@@ -466,22 +459,27 @@ func stashEmtpyView(m stashModel) string {
 func stashPopulatedView(m stashModel) string {
 	var b strings.Builder
 
-	start, end := m.paginator.GetSliceBounds(len(m.markdowns))
-	docs := m.markdowns[start:end]
+	if len(m.markdowns) > 0 {
+		start, end := m.paginator.GetSliceBounds(len(m.markdowns))
+		docs := m.markdowns[start:end]
 
-	for i, md := range docs {
-		stashItemView(&b, m, i, md)
-		if i != len(docs)-1 {
-			fmt.Fprintf(&b, "\n\n")
+		for i, md := range docs {
+			stashItemView(&b, m, i, md)
+			if i != len(docs)-1 {
+				fmt.Fprintf(&b, "\n\n")
+			}
 		}
 	}
 
 	// If there aren't enough items to fill up this page (always the last page)
-	// then we need to add some newlines to fill up the space to push the
-	// footer stuff down elsewhere.
+	// then we need to add some newlines to fill up the space where stash items
+	// would have been.
 	itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
 	if itemsOnPage < m.paginator.PerPage {
 		n := (m.paginator.PerPage - itemsOnPage) * stashViewItemHeight
+		if len(m.markdowns) == 0 {
+			n -= stashViewItemHeight - 1
+		}
 		for i := 0; i < n; i++ {
 			fmt.Fprint(&b, "\n")
 		}
