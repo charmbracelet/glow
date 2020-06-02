@@ -408,7 +408,6 @@ func stashView(m stashModel) string {
 
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
-		//numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
 		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)-stashViewHeight)
 		blankLines := ""
 		if numBlankLines > 0 {
