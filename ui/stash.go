@@ -19,7 +19,7 @@ import (
 
 const (
 	stashViewItemHeight        = 3
-	stashViewTopPadding        = 5
+	stashViewTopPadding        = 7
 	stashViewBottomPadding     = 4
 	stashViewHorizontalPadding = 6
 	setNotePromptText          = "Memo: "
@@ -132,6 +132,9 @@ func (m stashModel) markdownIndex() int {
 
 // return the current selected markdown in the stash
 func (m stashModel) selectedMarkdown() *markdown {
+	if len(m.markdowns) == 0 {
+		return nil
+	}
 	return m.markdowns[m.markdownIndex()]
 }
 
@@ -395,20 +398,30 @@ func stashView(m stashModel) string {
 	case stashStateSettingNote:
 		fallthrough
 	case stashStatePromptDelete:
-		if len(m.markdowns) == 0 {
-			s += stashEmtpyView(m)
-			break
+
+		var stashView string
+		var stashViewHeight int
+		if len(m.markdowns) > 0 {
+			stashView = stashPopulatedView(m)
+			stashViewHeight = strings.Count(stashView, "\n") + 1
 		}
 
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
-		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
+		//numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
+		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)-stashViewHeight)
 		blankLines := ""
 		if numBlankLines > 0 {
 			blankLines = strings.Repeat("\n", numBlankLines)
 		}
 
-		header := "Here’s your markdown stash:"
+		var header string
+		if len(m.markdowns) > 0 {
+			header = "Here’s your markdown stash:"
+		} else {
+			header = "Nothing stashed yet. To stash you can " + common.Code("glow stash path/to/file.md") + "."
+		}
+
 		switch m.state {
 		case stashStatePromptDelete:
 			header = te.String("Delete this item? ").Foreground(common.Red.Color()).String() +
@@ -430,7 +443,7 @@ func stashView(m stashModel) string {
 			"  %s\n\n  %s\n\n%s\n\n%s  %s\n\n  %s",
 			glowLogoView(" Glow "),
 			header,
-			stashPopulatedView(m),
+			stashView,
 			blankLines,
 			pagination,
 			stashHelpView(m),
@@ -481,7 +494,8 @@ func stashPopulatedView(m stashModel) string {
 func stashHelpView(m stashModel) string {
 	var (
 		h      []string
-		isNews bool = m.selectedMarkdown().markdownType == newsMarkdown
+		md     = m.selectedMarkdown()
+		isNews = md != nil && md.markdownType == newsMarkdown
 	)
 
 	if m.state == stashStateSettingNote {

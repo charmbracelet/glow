@@ -17,6 +17,8 @@ github.com/calmh/randomart v1.1.0/go.mod h1:DQUbPVyP+7PAs21w/AnfMKG5NioxS3TbZ2F9
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/charmbracelet/bubbles v0.0.0-20200526000837-87c7cd778f80 h1:cfaoL1+tHPABTLEAg831PIFG96teW69Wamz9M025r5M=
 github.com/charmbracelet/bubbles v0.0.0-20200526000837-87c7cd778f80/go.mod h1:/AeLRFlL2Uf4X7U5LjnswTII6u4maPzMm1+vZfeUJKc=
+github.com/charmbracelet/bubbles v0.0.0-20200602224800-12b2758d50f2 h1:JDEhuhIiBwpnd/3f0o/4pjYobUTnTU+sxvDMCDC/D78=
+github.com/charmbracelet/bubbles v0.0.0-20200602224800-12b2758d50f2/go.mod h1:/AeLRFlL2Uf4X7U5LjnswTII6u4maPzMm1+vZfeUJKc=
 github.com/charmbracelet/bubbletea v0.6.4-0.20200525234836-3b8b011b5a26/go.mod h1:BTzHOUvUlKecQz7ZB8NgPRWi2Z8NRCV04qwyFOfO1Kk=
 github.com/charmbracelet/bubbletea v0.7.0 h1:nf0FEQCCc1e0qRGgpnz08QFsy25eDitzVwxV+Z/p4UI=
 github.com/charmbracelet/bubbletea v0.7.0/go.mod h1:BTzHOUvUlKecQz7ZB8NgPRWi2Z8NRCV04qwyFOfO1Kk=
@@ -180,6 +182,8 @@ golang.org/x/sys v0.0.0-20200413165638-669c56c373c4/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200519105757-fe76b779f299/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200523222454-059865788121 h1:rITEj+UZHYC927n8GT97eC3zrpzXdb/voyeOuVKS46o=
 golang.org/x/sys v0.0.0-20200523222454-059865788121/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34 h1:u6CI7A++8r4SItZHYe2cWeAEndN4p1p+3Oum/Ft2EzM=
+golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/time v0.0.0-20190308202827-9d24e82272b4/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
 golang.org/x/tools v0.0.0-20180221164845-07fd8470d635/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
