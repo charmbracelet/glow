@@ -189,14 +189,13 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	case gotStashMsg:
 		m.loading = false
 
-		// If the server comes back with nothing then we've got everything
 		if len(msg) == 0 {
+			// If the server comes back with nothing then we've got everything
 			m.fullyLoaded = true
-			break
+		} else {
+			docs := wrapMarkdowns(userMarkdown, msg)
+			m.addMarkdowns(docs...)
 		}
-
-		docs := wrapMarkdowns(userMarkdown, msg)
-		m.addMarkdowns(docs...)
 
 		m.loaded |= loadedStash
 		if m.loaded.done() {
