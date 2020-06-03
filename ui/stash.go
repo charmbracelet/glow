@@ -281,7 +281,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				)
 
 			// Set note
-			case "n":
+			case "m":
 				md := m.selectedMarkdown()
 				isUserMarkdown := md.markdownType == userMarkdown
 				isSettingNote := m.state == stashStateSettingNote
@@ -512,7 +512,7 @@ func stashHelpView(m stashModel) string {
 			h = append(h, "h/l, ←/→: page")
 		}
 		if !isNews && len(m.markdowns) > 0 {
-			h = append(h, []string{"x: delete"}...)
+			h = append(h, []string{"x: delete", "m: set memo"}...)
 		}
 		h = append(h, []string{"esc: exit"}...)
 	}

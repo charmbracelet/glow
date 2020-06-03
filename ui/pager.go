@@ -169,7 +169,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 					m.state = pagerStateBrowse
 					return m, nil
 				}
-			case "n":
+			case "m":
 				// Users can't set the note on news markdown
 				if m.currentDocument.markdownType == newsMarkdown {
 					break
