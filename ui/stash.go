@@ -266,6 +266,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// Open document
 			case "enter":
+				if len(m.markdowns) == 0 {
+					break
+				}
+
 				// Load the document from the server. We'll handle the message
 				// that comes back in the main update function.
 				m.state = stashStateLoadingDocument
@@ -500,14 +504,14 @@ func stashHelpView(m stashModel) string {
 	} else if m.state == stashStatePromptDelete {
 		h = append(h, "y: delete", "n: cancel")
 	} else {
-		h = append(h, "enter: open")
 		if len(m.markdowns) > 0 {
+			h = append(h, "enter: open")
 			h = append(h, "j/k, ↑/↓: choose")
 		}
 		if m.paginator.TotalPages > 1 {
 			h = append(h, "h/l, ←/→: page")
 		}
-		if !isNews {
+		if !isNews && len(m.markdowns) > 0 {
 			h = append(h, []string{"x: delete"}...)
 		}
 		h = append(h, []string{"esc: exit"}...)
