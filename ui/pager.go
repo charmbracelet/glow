@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
+	runewidth "github.com/mattn/go-runewidth"
 	te "github.com/muesli/termenv"
 )
 
@@ -27,6 +28,8 @@ const (
 )
 
 var (
+	pagerHelpHeight = strings.Count(pagerHelpView(0), "\n")
+
 	noteHeading = te.String(noteHeadingText).
 			Foreground(common.Cream.Color()).
 			Background(common.Green.Color()).
@@ -45,6 +48,16 @@ var (
 				Foreground(statusBarNoteFg.Color()).
 				Background(statusBarBg.Color()).
 				Styled
+
+	statusBarHelpStyle = te.Style{}.
+				Foreground(statusBarNoteFg.Color()).
+				Background(common.NewColorPair("#323232", "#DCDCDC").Color()).
+				Styled
+
+	helpViewStyle = te.Style{}.
+			Foreground(statusBarNoteFg.Color()).
+			Background(common.NewColorPair("#1B1B1B", "#f2f2f2").Color()).
+			Styled
 )
 
 // MSG
@@ -69,6 +82,7 @@ type pagerModel struct {
 	width        int
 	height       int
 	textInput    textinput.Model
+	showHelp     bool
 
 	// Current document being rendered, sans-glamour rendering. We cache
 	// this here so we can re-render it on resize.
@@ -100,6 +114,10 @@ func (m *pagerModel) setSize(w, h int) {
 	m.viewport.Width = w
 	m.viewport.Height = h - statusBarHeight
 	m.textInput.Width = w - len(noteHeadingText) - len(notePromptText) - 1
+
+	if m.showHelp {
+		m.viewport.Height -= pagerHelpHeight + 1
+	}
 }
 
 func (m *pagerModel) setContent(s string) {
@@ -164,6 +182,9 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 					m.textInput.CursorEnd()
 				}
 				return m, textinput.Blink(m.textInput)
+			case "?":
+				m.showHelp = !m.showHelp
+				m.setSize(m.width, m.height)
 			}
 		}
 
@@ -213,6 +234,10 @@ func pagerView(m pagerModel) string {
 		pagerStatusBarView(&b, m)
 	}
 
+	if m.showHelp {
+		fmt.Fprintf(&b, pagerHelpView(m.width))
+	}
+
 	return b.String()
 }
 
@@ -225,29 +250,63 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	scrollPercent := math.Max(0.0, math.Min(1.0, m.viewport.ScrollPercent()))
 	percentText := fmt.Sprintf(" %3.f%% ", scrollPercent*100)
 
+	// "Help" note
+	helpNoteText := " ? Help "
+	helpNote := statusBarHelpStyle(helpNoteText)
+
 	// Note
 	noteText := m.currentDocument.Note
 	if len(noteText) == 0 {
 		noteText = "(No title)"
 	}
-	noteText = truncate(" "+noteText+" ", max(0, m.width-len(logoText)-len(percentText)))
+	noteText = truncate(" "+noteText+" ", max(
+		0,
+		m.width-len(logoText)-len(percentText)-len(helpNoteText),
+	))
 
 	// Empty space
 	emptyCell := te.String(" ").Background(statusBarBg.Color()).String()
-	padding := max(0, m.width-len(logoText)-len(noteText)-len(percentText))
+	padding := max(0, m.width-len(logoText)-len(noteText)-len(percentText)-len(helpNoteText))
 	emptySpace := strings.Repeat(emptyCell, padding)
 
-	fmt.Fprintf(b, "%s%s%s%s",
+	fmt.Fprintf(b, "%s%s%s%s%s",
 		logo,
 		statusBarNoteStyle(noteText),
 		emptySpace,
 		statusBarScrollPosStyle(percentText),
+		helpNote,
 	)
 }
 
 func pagerSetNoteView(b *strings.Builder, m pagerModel) {
 	fmt.Fprint(b, noteHeading)
 	fmt.Fprint(b, textinput.View(m.textInput))
+}
+
+func pagerHelpView(width int) (s string) {
+	s += "\n"
+	s += "k/↑      up                  m       set memo\n"
+	s += "j/↓      down                esc/q   back to stash\n"
+	s += "b/pgup   page up\n"
+	s += "d/pgdn   page down\n"
+	s += "u        ½ page up\n"
+	s += "d        ½ page down"
+
+	s = indent(s, 2)
+
+	// Fill up empty cells with spaces for background coloring
+	if width > 0 {
+		lines := strings.Split(s, "\n")
+		for i := 0; i < len(lines); i++ {
+			l := runewidth.StringWidth(lines[i])
+			n := width - l
+			lines[i] += strings.Repeat(" ", n)
+		}
+
+		s = strings.Join(lines, "\n")
+	}
+
+	return helpViewStyle(s)
 }
 
 // CMD

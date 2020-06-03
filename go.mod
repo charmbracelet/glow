@@ -10,6 +10,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/muesli/reflow v0.1.0
 	github.com/muesli/termenv v0.6.0
+	github.com/mattn/go-runewidth v0.0.9
 	github.com/spf13/cobra v0.0.7
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect

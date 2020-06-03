@@ -83,6 +83,7 @@ func (m *model) unloadDocument() {
 	m.state = stateShowStash
 	m.stash.state = stashStateReady
 	m.pager.unload()
+	m.pager.showHelp = false
 }
 
 // INIT
