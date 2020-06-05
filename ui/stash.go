@@ -132,7 +132,7 @@ func (m stashModel) markdownIndex() int {
 
 // return the current selected markdown in the stash
 func (m stashModel) selectedMarkdown() *markdown {
-	if len(m.markdowns) == 0 {
+	if len(m.markdowns) == 0 || len(m.markdowns) <= m.markdownIndex() {
 		return nil
 	}
 	return m.markdowns[m.markdownIndex()]
