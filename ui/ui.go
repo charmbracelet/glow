@@ -126,6 +126,13 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		}, tea.Quit
 	}
 
+	// If there's been an error, any key exits
+	if m.err != nil {
+		if _, ok := msg.(tea.KeyMsg); ok {
+			return m, tea.Quit
+		}
+	}
+
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -277,7 +284,7 @@ func view(mdl tea.Model) string {
 	}
 
 	if m.err != nil {
-		return fmt.Sprintf("\nError: %v\n\nPress q to exit.", m.err)
+		return "\n" + indent(errorView(m.err), 2)
 	}
 
 	var s string
@@ -296,6 +303,17 @@ func view(mdl tea.Model) string {
 	}
 
 	return "\n" + indent(s, 2)
+}
+
+func errorView(err error) string {
+	return fmt.Sprintf("%s\n\n%v\n\n%s",
+		te.String(" ERROR ").
+			Foreground(common.Cream.Color()).
+			Background(common.Red.Color()).
+			String(),
+		err,
+		common.Subtle("Press any key to exit"),
+	)
 }
 
 // COMMANDS
