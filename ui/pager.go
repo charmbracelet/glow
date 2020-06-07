@@ -288,7 +288,7 @@ func pagerHelpView(width int) (s string) {
 	s += "k/↑      up                  m       set memo\n"
 	s += "j/↓      down                esc/q   back to stash\n"
 	s += "b/pgup   page up\n"
-	s += "d/pgdn   page down\n"
+	s += "f/pgdn   page down\n"
 	s += "u        ½ page up\n"
 	s += "d        ½ page down"
 
