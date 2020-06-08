@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
+	runewidth "github.com/mattn/go-runewidth"
 	te "github.com/muesli/termenv"
 )
 
@@ -587,14 +588,7 @@ func wrapMarkdowns(t markdownType, md []*charm.Markdown) (m []*markdown) {
 }
 
 func truncate(str string, num int) string {
-	s := str
-	if len(str) > num {
-		if num > 1 {
-			num -= 1
-		}
-		s = str[0:num] + "…"
-	}
-	return s
+	return runewidth.Truncate(str, num, "…")
 }
 
 var magnitudes = []humanize.RelTimeMagnitude{

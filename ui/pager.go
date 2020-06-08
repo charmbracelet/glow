@@ -266,14 +266,13 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	if len(noteText) == 0 {
 		noteText = "(No title)"
 	}
-	noteText = truncate(" "+noteText+" ", max(
-		0,
+	noteText = truncate(" "+noteText+" ", max(0,
 		m.width-len(logoText)-len(percentText)-len(helpNoteText),
 	))
 
 	// Empty space
 	emptyCell := te.String(" ").Background(statusBarBg.Color()).String()
-	padding := max(0, m.width-len(logoText)-len(noteText)-len(percentText)-len(helpNoteText))
+	padding := max(0, m.width-len(logoText)-runewidth.StringWidth(noteText)-len(percentText)-len(helpNoteText))
 	emptySpace := strings.Repeat(emptyCell, padding)
 
 	fmt.Fprintf(b, "%s%s%s%s%s",
