@@ -16,3 +16,5 @@ require (
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
 )
+
+replace github.com/charmbracelet/bubbles => ../bubbles

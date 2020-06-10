@@ -359,8 +359,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
-			case "q":
-				fallthrough
 			case "esc":
 				// Cancel note
 				m.state = stashStateReady
