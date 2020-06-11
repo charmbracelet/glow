@@ -153,8 +153,6 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 		switch m.state {
 		case pagerStateSetNote:
 			switch msg.String() {
-			case "q":
-				fallthrough
 			case "esc":
 				m.state = pagerStateBrowse
 				return m, nil
