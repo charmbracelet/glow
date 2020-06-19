@@ -239,7 +239,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 func pagerView(m pagerModel) string {
 	var b strings.Builder
 
-	fmt.Fprintf(&b, "\n%s\n", viewport.View(m.viewport))
+	fmt.Fprint(&b, viewport.View(m.viewport)+"\n")
 
 	// Footer
 	if m.state == pagerStateSetNote {
