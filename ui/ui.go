@@ -149,6 +149,9 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			case stateShowDocument:
 				if m.pager.state == pagerStateBrowse {
 					m.unloadDocument() // exits pager
+					if m.pager.viewport.HighPerformanceRendering {
+						cmd = tea.ClearScrollArea
+					}
 				} else {
 					m.pager, cmd = pagerUpdate(msg, m.pager)
 				}

@@ -28,6 +28,9 @@ const (
 )
 
 var (
+	// Whether or not to use fast scroll-based rendering for the viewport
+	highPerformanceRendering = true
+
 	pagerHelpHeight = strings.Count(pagerHelpView(0), "\n")
 
 	noteHeading = te.String(noteHeadingText).
@@ -101,10 +104,15 @@ func newPagerModel(glamourStyle string) pagerModel {
 	ti.CharLimit = noteCharacterLimit
 	ti.Focus()
 
+	vp := viewport.Model{}
+	vp.YPosition = 0
+	vp.HighPerformanceRendering = highPerformanceRendering
+
 	return pagerModel{
 		state:        pagerStateBrowse,
 		glamourStyle: glamourStyle,
 		textInput:    ti,
+		viewport:     vp,
 	}
 }
 
@@ -112,6 +120,8 @@ func (m *pagerModel) setSize(w, h int) {
 	m.width = w
 	m.height = h
 	m.viewport.Width = w
+	m.viewport.Height = h - statusBarHeight
+	m.viewport.YPosition = 0
 	m.viewport.Height = h - statusBarHeight
 	m.textInput.Width = w - len(noteHeadingText) - len(notePromptText) - 1
 
@@ -135,7 +145,6 @@ func (m *pagerModel) unload() {
 	}
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
-	m.viewport.Y = 0
 	m.textInput.Reset()
 }
 
@@ -190,13 +199,14 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 				return m, textinput.Blink(m.textInput)
 			case "?":
 				m.toggleHeight()
+				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 		}
 
 	// Glow has rendered the content
 	case contentRenderedMsg:
 		m.setContent(string(msg))
-		return m, nil
+		cmds = append(cmds, viewport.Sync(m.viewport))
 
 	// We've reveived terminal dimensions, either for the first time or
 	// after a resize
