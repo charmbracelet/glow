@@ -199,14 +199,18 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 				return m, textinput.Blink(m.textInput)
 			case "?":
 				m.toggleHeight()
-				cmds = append(cmds, viewport.Sync(m.viewport))
+				if m.viewport.HighPerformanceRendering {
+					cmds = append(cmds, viewport.Sync(m.viewport))
+				}
 			}
 		}
 
 	// Glow has rendered the content
 	case contentRenderedMsg:
 		m.setContent(string(msg))
-		cmds = append(cmds, viewport.Sync(m.viewport))
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
 
 	// We've reveived terminal dimensions, either for the first time or
 	// after a resize
