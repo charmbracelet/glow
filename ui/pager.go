@@ -121,8 +121,6 @@ func (m *pagerModel) setSize(w, h int) {
 	m.height = h
 	m.viewport.Width = w
 	m.viewport.Height = h - statusBarHeight
-	m.viewport.YPosition = 0
-	m.viewport.Height = h - statusBarHeight
 	m.textInput.Width = w - len(noteHeadingText) - len(notePromptText) - 1
 
 	if m.showHelp {
