@@ -200,12 +200,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 
 	// We've reveived terminal dimensions, either for the first time or
 	// after a resize
-	case terminalSizeMsg:
-		if msg.Error() != nil {
-			// This will be caught at the top level
-			return m, nil
-		}
-
+	case tea.WindowSizeMsg:
 		var cmd tea.Cmd
 		if m.currentDocument != nil {
 			cmd = renderWithGlamour(m, m.currentDocument.Body)

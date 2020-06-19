@@ -31,16 +31,6 @@ func NewProgram(style string) *tea.Program {
 type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
-type terminalResizedMsg struct{}
-
-type terminalSizeMsg struct {
-	width  int
-	height int
-	err    error
-}
-
-func (t terminalSizeMsg) Size() (int, int) { return t.width, t.height }
-func (t terminalSizeMsg) Error() error     { return t.err }
 
 // MODEL
 
@@ -110,8 +100,6 @@ func initialize(style string) func() (tea.Model, tea.Cmd) {
 			}, tea.Batch(
 				newCharmClient,
 				spinner.Tick(s),
-				getTerminalSize(),
-				listenForTerminalResize(),
 			)
 	}
 }
@@ -174,28 +162,19 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 		// Repaint
 		case "ctrl+l":
-			return m, getTerminalSize()
+			// TODO
+			return m, nil
 		}
 
 	case errMsg:
 		m.err = msg
 		return m, nil
 
-	case terminalResizedMsg:
-		cmds = append(cmds,
-			getTerminalSize(),
-			listenForTerminalResize(),
-		)
-
-	case terminalSizeMsg:
-		if msg.Error() != nil {
-			m.err = msg.Error()
-		}
-		w, h := msg.Size()
-		m.terminalWidth = w
-		m.terminalHeight = h
-		m.stash.setSize(w, h)
-		m.pager.setSize(w, h)
+	case tea.WindowSizeMsg:
+		m.terminalWidth = msg.Width
+		m.terminalHeight = msg.Height
+		m.stash.setSize(msg.Width, msg.Height)
+		m.pager.setSize(msg.Width, msg.Height)
 
 		// TODO: load more stash pages if we've resized, are on the last page,
 		// and haven't loaded more pages yet.
@@ -317,18 +296,6 @@ func errorView(err error) string {
 }
 
 // COMMANDS
-
-func listenForTerminalResize() tea.Cmd {
-	return tea.OnResize(func() tea.Msg {
-		return terminalResizedMsg{}
-	})
-}
-
-func getTerminalSize() tea.Cmd {
-	return tea.GetTerminalSize(func(w, h int, err error) tea.TerminalSizeMsg {
-		return terminalSizeMsg{width: w, height: h, err: err}
-	})
-}
 
 func newCharmClient() tea.Msg {
 	cfg, err := charm.ConfigFromEnv()
