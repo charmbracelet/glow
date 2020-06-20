@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -28,9 +27,6 @@ const (
 )
 
 var (
-	// Whether or not to use fast scroll-based rendering for the viewport
-	highPerformanceRendering = true
-
 	pagerHelpHeight = strings.Count(pagerHelpView(0), "\n")
 
 	noteHeading = te.String(noteHeadingText).
@@ -93,6 +89,13 @@ type pagerModel struct {
 }
 
 func newPagerModel(glamourStyle string) pagerModel {
+
+	// Init viewport
+	vp := viewport.Model{}
+	vp.YPosition = 0
+	vp.HighPerformanceRendering = config.HighPerformancePager
+
+	// Init text input UI for notes/memos
 	ti := textinput.NewModel()
 	ti.Prompt = te.String(notePromptText).
 		Foreground(te.ColorProfile().Color(gray)).
@@ -103,10 +106,6 @@ func newPagerModel(glamourStyle string) pagerModel {
 	ti.CursorColor = fuschia
 	ti.CharLimit = noteCharacterLimit
 	ti.Focus()
-
-	vp := viewport.Model{}
-	vp.YPosition = 0
-	vp.HighPerformanceRendering = highPerformanceRendering
 
 	return pagerModel{
 		state:        pagerStateBrowse,
@@ -350,7 +349,7 @@ func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 // This is where the magic happens
 func glamourRender(m pagerModel, markdown string) (string, error) {
 
-	if os.Getenv("GLOW_DISABLE_GLAMOUR") != "" {
+	if !config.GlamourEnabled {
 		return markdown, nil
 	}
 

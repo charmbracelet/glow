@@ -8,9 +8,10 @@ require (
 	github.com/charmbracelet/charm v0.5.1
 	github.com/charmbracelet/glamour v0.2.0
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
+	github.com/mattn/go-runewidth v0.0.9
+	github.com/meowgorithm/babyenv v1.2.1
 	github.com/muesli/reflow v0.1.0
 	github.com/muesli/termenv v0.6.0
-	github.com/mattn/go-runewidth v0.0.9
 	github.com/spf13/cobra v0.0.7
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect

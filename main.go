@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/meowgorithm/babyenv"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 
@@ -168,22 +169,29 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	// Only run TUI if there are no arguments (excluding flags)
 	if arg == "" {
 
-		// Log to a file. For debugging.
-		logToFilePath := os.Getenv("GLOW_LOG_TO_FILE")
-		if logToFilePath != "" {
-			f, err := tea.LogToFile(logToFilePath, "glow")
+		// Read environment to get debugging stuff
+		var cfg ui.UIConfig
+		if err := babyenv.Parse(&cfg); err != nil {
+			return fmt.Errorf("error parsing config: %v", err)
+		}
+
+		// Log to file, if set
+		if cfg.Logfile != "" {
+			f, err := tea.LogToFile(cfg.Logfile, "glow")
 			if err != nil {
 				return err
 			}
 			defer f.Close()
 		}
 
+		// Run Bubble Tea program
 		tea.AltScreen()
-		if err := ui.NewProgram(style).Start(); err != nil {
+		if err := ui.NewProgram(style, cfg).Start(); err != nil {
 			return err
 		}
 		tea.ExitAltScreen()
 
+		// Exit message
 		fmt.Printf("\n  Thanks for using Glow!\n\n")
 		return nil
 	}

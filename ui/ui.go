@@ -3,6 +3,7 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -17,12 +18,27 @@ const (
 	noteCharacterLimit = 256 // totally arbitrary
 )
 
+// UIConfig contains flags for debugging the TUI.
+type UIConfig struct {
+	Logfile              string `env:"GLOW_UI_LOGFILE"`
+	HighPerformancePager bool   `env:"GLOW_UI_HIGH_PERFORMANCE_PAGER" default:"true"`
+	GlamourEnabled       bool   `env:"GLOW_UI_ENABLE_GLAMOUR" default:"true"`
+}
+
 var (
+	config            UIConfig
 	glowLogoTextColor = common.Color("#ECFD65")
 )
 
 // NewProgram returns a new Tea program
-func NewProgram(style string) *tea.Program {
+func NewProgram(style string, cfg UIConfig) *tea.Program {
+	config = cfg
+	if config.Logfile != "" {
+		log.Println("-- Starting Glow ----------------")
+		log.Printf("High performance pager: %v", cfg.HighPerformancePager)
+		log.Printf("Render with Glamour: %v", cfg.GlamourEnabled)
+		log.Println("Bubble Tea now initializing...")
+	}
 	return tea.NewProgram(initialize(style), update, view)
 }
 
