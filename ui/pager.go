@@ -143,6 +143,7 @@ func (m *pagerModel) unload() {
 	}
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
+	m.viewport.YOffset = 0
 	m.textInput.Reset()
 }
 
