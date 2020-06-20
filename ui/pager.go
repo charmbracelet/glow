@@ -124,7 +124,7 @@ func (m *pagerModel) setSize(w, h int) {
 	m.textInput.Width = w - len(noteHeadingText) - len(notePromptText) - 1
 
 	if m.showHelp {
-		m.viewport.Height -= pagerHelpHeight + 1
+		m.viewport.Height -= (statusBarHeight + pagerHelpHeight)
 	}
 }
 
