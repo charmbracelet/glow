@@ -28,7 +28,6 @@ const (
 
 // MSG
 
-type stashSpinnerTickMsg struct{}
 type gotStashMsg []*charm.Markdown
 type gotNewsMsg []*charm.Markdown
 type fetchedMarkdownMsg *markdown
@@ -152,7 +151,6 @@ func stashInit(cc *charm.Client) (stashModel, tea.Cmd) {
 	s := spinner.NewModel()
 	s.Type = spinner.Dot
 	s.ForegroundColor = common.SpinnerColor
-	s.CustomMsgFunc = func() tea.Msg { return stashSpinnerTickMsg{} }
 
 	p := paginator.NewModel()
 	p.Type = paginator.Dots
@@ -217,7 +215,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			m.state = stashStateReady
 		}
 
-	case stashSpinnerTickMsg:
+	case spinner.TickMsg:
 		if m.state == stashStateInit || m.state == stashStateLoadingDocument {
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 			cmds = append(cmds, cmd)
