@@ -185,11 +185,12 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 		}
 
 		// Run Bubble Tea program
-		tea.AltScreen()
-		if err := ui.NewProgram(style, cfg).Start(); err != nil {
+		p := ui.NewProgram(style, cfg)
+		p.EnterAltScreen()
+		if err := p.Start(); err != nil {
 			return err
 		}
-		tea.ExitAltScreen()
+		p.ExitAltScreen()
 
 		// Exit message
 		fmt.Printf("\n  Thanks for using Glow!\n\n")
