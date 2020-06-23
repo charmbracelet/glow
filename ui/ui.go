@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	noteCharacterLimit = 256 // totally arbitrary
+	noteCharacterLimit = 256 // should match server
 )
 
 // UIConfig contains flags for debugging the TUI.
@@ -60,7 +60,7 @@ const (
 	stateShowDocument
 )
 
-// Stringn translates the staus to a human-readable string. This is just for
+// String translates the staus to a human-readable string. This is just for
 // debugging.
 func (s state) String() string {
 	return [...]string{
@@ -151,6 +151,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		case "esc":
 			var cmd tea.Cmd
 
+			// Send these keys through to stash
 			switch m.state {
 			case stateShowStash:
 
@@ -162,13 +163,16 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 					return m, cmd
 				}
 
+			// Special cases for the pager
 			case stateShowDocument:
 				if m.pager.state == pagerStateBrowse {
-					m.unloadDocument() // exits pager
+					// If the user is just browing a document, exit the pager.
+					m.unloadDocument()
 					if m.pager.viewport.HighPerformanceRendering {
 						cmd = tea.ClearScrollArea
 					}
 				} else {
+					// Otherwise send keys through to pager for processing
 					m.pager, cmd = pagerUpdate(msg, m.pager)
 				}
 				return m, cmd
@@ -176,6 +180,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 			return m, tea.Quit
 
+		// Ctrl+C always quits no matter where in the application you are.
 		case "ctrl+c":
 			return m, tea.Quit
 
