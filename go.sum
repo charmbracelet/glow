@@ -18,6 +18,8 @@ github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghf
 github.com/charmbracelet/bubbles v0.0.0-20200526000837-87c7cd778f80/go.mod h1:/AeLRFlL2Uf4X7U5LjnswTII6u4maPzMm1+vZfeUJKc=
 github.com/charmbracelet/bubbles v0.3.1-0.20200622184921-35c3cd626d97 h1:HlgKT7mT/p/BMWXpCCvZ1SGB2wXaYfVaM9AaJrCs1Qw=
 github.com/charmbracelet/bubbles v0.3.1-0.20200622184921-35c3cd626d97/go.mod h1:3v6yfT4kd1oOivS8uOXyWvDo1DaXO3R88mlijgPDo7w=
+github.com/charmbracelet/bubbles v0.3.1-0.20200623160017-c9196e5407ad h1:oVOOqMWwb1ST9nu9vWGLlFC/dJWQlkUnsJbElOo1BPM=
+github.com/charmbracelet/bubbles v0.3.1-0.20200623160017-c9196e5407ad/go.mod h1:3v6yfT4kd1oOivS8uOXyWvDo1DaXO3R88mlijgPDo7w=
 github.com/charmbracelet/bubbletea v0.6.4-0.20200525234836-3b8b011b5a26/go.mod h1:BTzHOUvUlKecQz7ZB8NgPRWi2Z8NRCV04qwyFOfO1Kk=
 github.com/charmbracelet/bubbletea v0.7.0/go.mod h1:BTzHOUvUlKecQz7ZB8NgPRWi2Z8NRCV04qwyFOfO1Kk=
 github.com/charmbracelet/bubbletea v0.8.3-0.20200622174044-8bab4bce9a84/go.mod h1:jRlRe1bNetdeBUvRF8G1coY18WB0Gy5EJyT8JJ532pg=
