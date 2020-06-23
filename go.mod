@@ -4,9 +4,9 @@ go 1.13
 
 require (
 	github.com/charmbracelet/bubbles v0.3.1-0.20200623171050-f341e3c896d6
-	github.com/charmbracelet/bubbletea v0.9.1-0.20200623143446-d6cf9e69b6f2
-	github.com/charmbracelet/charm v0.5.1
-	github.com/charmbracelet/glamour v0.2.0
+	github.com/charmbracelet/bubbletea v0.9.1-0.20200623160123-de147c5061d9
+	github.com/charmbracelet/charm v0.5.2-0.20200623181447-9007a7f4b1d2
+	github.com/charmbracelet/glamour v0.1.1-0.20200521150359-e859bb067c06
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/meowgorithm/babyenv v1.2.1
