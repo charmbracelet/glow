@@ -310,7 +310,7 @@ func pagerHelpView(width int) (s string) {
 		lines := strings.Split(s, "\n")
 		for i := 0; i < len(lines); i++ {
 			l := runewidth.StringWidth(lines[i])
-			n := width - l
+			n := max(width-l, 0)
 			lines[i] += strings.Repeat(" ", n)
 		}
 
