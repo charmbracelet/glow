@@ -11,9 +11,9 @@ require (
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/meowgorithm/babyenv v1.2.1
 	github.com/muesli/reflow v0.1.0
-	github.com/muesli/termenv v0.6.0
+	github.com/muesli/termenv v0.5.3-0.20200625163851-04b5c30e4c04
 	github.com/spf13/cobra v0.0.7
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
-	golang.org/x/sys v0.0.0-20200622214017-ed371f2e16b4
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 )

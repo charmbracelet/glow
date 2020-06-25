@@ -18,7 +18,6 @@ github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghf
 github.com/charmbracelet/bubbles v0.3.1-0.20200623171050-f341e3c896d6 h1:7RC108JxvxaQL3rAV32OnVvmyqvCSpdJONflwEbCk7k=
 github.com/charmbracelet/bubbles v0.3.1-0.20200623171050-f341e3c896d6/go.mod h1:3v6yfT4kd1oOivS8uOXyWvDo1DaXO3R88mlijgPDo7w=
 github.com/charmbracelet/bubbletea v0.8.3-0.20200622174044-8bab4bce9a84/go.mod h1:jRlRe1bNetdeBUvRF8G1coY18WB0Gy5EJyT8JJ532pg=
-github.com/charmbracelet/bubbletea v0.9.1-0.20200623160123-de147c5061d9 h1:01IwIGFHfGjZFP4L3VffFCdQ0VBJ9s9aUZXBu85dUnE=
 github.com/charmbracelet/bubbletea v0.9.1-0.20200623160123-de147c5061d9/go.mod h1:HCCbXDXh2SLdnKzU816tszXziiJt6qW32IG2E4t560M=
 github.com/charmbracelet/bubbletea v0.9.1-0.20200623212600-e90039d16e5d h1:De/A8Lg9livaJ6gvZ2o8jRuSEj0WJkx2VE09K/1pWC8=
 github.com/charmbracelet/bubbletea v0.9.1-0.20200623212600-e90039d16e5d/go.mod h1:HCCbXDXh2SLdnKzU816tszXziiJt6qW32IG2E4t560M=
@@ -98,8 +97,8 @@ github.com/muesli/reflow v0.1.0/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc
 github.com/muesli/termenv v0.5.2/go.mod h1:O1/I6sw+6KcrgAmcs6uiUVr7Lui+DNVbHTzt9Lm/PlI=
 github.com/muesli/termenv v0.5.3-0.20200617122104-66d435cfe924/go.mod h1:O1/I6sw+6KcrgAmcs6uiUVr7Lui+DNVbHTzt9Lm/PlI=
 github.com/muesli/termenv v0.5.3-0.20200617154346-da5de72b61c0/go.mod h1:O1/I6sw+6KcrgAmcs6uiUVr7Lui+DNVbHTzt9Lm/PlI=
-github.com/muesli/termenv v0.6.0 h1:zxvzTBmo4ZcxhNGGWeMz+Tttm51eF5bmPjfy4MCRYlk=
-github.com/muesli/termenv v0.6.0/go.mod h1:SohX91w6swWA4AYU+QmPx+aSgXhWO0juiyID9UZmbpA=
+github.com/muesli/termenv v0.5.3-0.20200625163851-04b5c30e4c04 h1:Wr876oXlAk6avTWi0daXAriOr+r5fqIuyDmtNc/KwY0=
+github.com/muesli/termenv v0.5.3-0.20200625163851-04b5c30e4c04/go.mod h1:O1/I6sw+6KcrgAmcs6uiUVr7Lui+DNVbHTzt9Lm/PlI=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/olekukonko/tablewriter v0.0.4 h1:vHD/YYe1Wolo78koG299f7V/VAS08c6IpCLn+Ejf/w8=
@@ -182,8 +181,9 @@ golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200413165638-669c56c373c4/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200620081246-981b61492c35/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20200622214017-ed371f2e16b4 h1:5/PjkGUjvEU5Gl6BxmvKRPpqo2uNMv4rcHBMwzk/st8=
 golang.org/x/sys v0.0.0-20200622214017-ed371f2e16b4/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae h1:Ih9Yo4hSPImZOpfGuA4bR/ORKTAbhZo2AbWNRCnevdo=
+golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/time v0.0.0-20190308202827-9d24e82272b4/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
 golang.org/x/tools v0.0.0-20180221164845-07fd8470d635/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
