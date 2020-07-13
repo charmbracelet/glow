@@ -19,8 +19,8 @@ github.com/charmbracelet/bubbles v0.3.1-0.20200623171050-f341e3c896d6 h1:7RC108J
 github.com/charmbracelet/bubbles v0.3.1-0.20200623171050-f341e3c896d6/go.mod h1:3v6yfT4kd1oOivS8uOXyWvDo1DaXO3R88mlijgPDo7w=
 github.com/charmbracelet/bubbletea v0.8.3-0.20200622174044-8bab4bce9a84/go.mod h1:jRlRe1bNetdeBUvRF8G1coY18WB0Gy5EJyT8JJ532pg=
 github.com/charmbracelet/bubbletea v0.9.1-0.20200623160123-de147c5061d9/go.mod h1:HCCbXDXh2SLdnKzU816tszXziiJt6qW32IG2E4t560M=
-github.com/charmbracelet/bubbletea v0.9.1-0.20200706155402-14a06b089612 h1:TMbIM91CwSSHboma9Y6Puyu6lx+rX5wdy7KvDwhCM4w=
-github.com/charmbracelet/bubbletea v0.9.1-0.20200706155402-14a06b089612/go.mod h1:wjGGC5pyYvpuls0so+w4Zv+aZQW7RoPvsi9UBcDlSl8=
+github.com/charmbracelet/bubbletea v0.9.1-0.20200713153904-2f53eeb54b90 h1:nt4h8pwRZgoIRSgGaPGAgkoiZui1MYeDhRFPwSiEI4g=
+github.com/charmbracelet/bubbletea v0.9.1-0.20200713153904-2f53eeb54b90/go.mod h1:wjGGC5pyYvpuls0so+w4Zv+aZQW7RoPvsi9UBcDlSl8=
 github.com/charmbracelet/charm v0.5.2-0.20200623181447-9007a7f4b1d2 h1:2hTjqbJgadO+SJZltrCdQ1LunnQ1COabfaTuCx7v15Y=
 github.com/charmbracelet/charm v0.5.2-0.20200623181447-9007a7f4b1d2/go.mod h1:aJpJ0hrvN95n8u96tCevUsK+XNxr2BJp1eR5LhV0BHg=
 github.com/charmbracelet/glamour v0.1.1-0.20200521150359-e859bb067c06 h1:FR5F7kH6i4Jm0+5ypNWWFKVcH07hIO3aGNuDXnOdWqY=
@@ -155,6 +155,8 @@ golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 h1:psW17arqaxU48Z5kZ0CQnkZWQJsqcURM6tKiBApRjXI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899 h1:DZhuSZLsGlFL4CmhA8BcRA0mnthyA/nZ00AqCUo7vHg=
+golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
 golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/net v0.0.0-20180826012351-8a410e7b638d/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
