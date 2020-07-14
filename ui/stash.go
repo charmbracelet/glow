@@ -50,7 +50,7 @@ type localFileSearchFinished struct{}
 type markdownType int
 
 const (
-	userMarkdown markdownType = iota
+	stashedMarkdown markdownType = iota
 	newsMarkdown
 	localFile
 )
@@ -240,7 +240,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			// If the server comes back with nothing then we've got everything
 			m.fullyLoaded = true
 		} else {
-			docs := wrapMarkdowns(userMarkdown, msg)
+			docs := wrapMarkdowns(stashedMarkdown, msg)
 			m.addMarkdowns(docs...)
 		}
 
@@ -333,7 +333,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			// Set note
 			case "m":
 				md := m.selectedMarkdown()
-				isUserMarkdown := md.markdownType == userMarkdown
+				isUserMarkdown := md.markdownType == stashedMarkdown
 				isSettingNote := m.state == stashStateSettingNote
 				isPromptingDelete := m.state == stashStatePromptDelete
 
@@ -346,7 +346,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// Prompt for deletion
 			case "x":
-				isUserMarkdown := m.selectedMarkdown().markdownType == userMarkdown
+				isUserMarkdown := m.selectedMarkdown().markdownType == stashedMarkdown
 				isValidState := m.state != stashStateSettingNote
 
 				if isUserMarkdown && isValidState {
@@ -544,7 +544,7 @@ func stashHelpView(m stashModel) string {
 	var (
 		h         []string
 		md        = m.selectedMarkdown()
-		isStashed = md != nil && md.markdownType == userMarkdown
+		isStashed = md != nil && md.markdownType == stashedMarkdown
 	)
 
 	if m.state == stashStateSettingNote {
@@ -621,7 +621,7 @@ func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 			err error
 		)
 
-		if t == userMarkdown {
+		if t == stashedMarkdown {
 			md, err = cc.GetStashMarkdown(id)
 		} else {
 			md, err = cc.GetNewsMarkdown(id)
