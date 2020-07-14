@@ -10,7 +10,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/meowgorithm/babyenv v1.2.1
-	github.com/muesli/reflow v0.1.0
+	github.com/muesli/gitcha v0.0.0-20200714001838-c071c3c6c6e1 // indirect
 	github.com/muesli/termenv v0.5.3-0.20200625163851-04b5c30e4c04
 	github.com/spf13/cobra v0.0.7
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
