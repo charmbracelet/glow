@@ -56,13 +56,26 @@ type markdown struct {
 	*charm.Markdown
 }
 
-// Sort documents by date in descending order
-type markdownsByCreatedAtDesc []*markdown
+// Sort documents with local files first, then by date
+type markdownsByLocalFirst []*markdown
 
-// Sort implementation for MarkdownByCreatedAt
-func (m markdownsByCreatedAtDesc) Len() int           { return len(m) }
-func (m markdownsByCreatedAtDesc) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
-func (m markdownsByCreatedAtDesc) Less(i, j int) bool { return m[i].CreatedAt.After(*m[j].CreatedAt) }
+func (m markdownsByLocalFirst) Len() int      { return len(m) }
+func (m markdownsByLocalFirst) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m markdownsByLocalFirst) Less(i, j int) bool {
+	iType := m[i].markdownType
+	jType := m[j].markdownType
+
+	// Local files come first
+	if iType == localFile && jType != localFile {
+		return true
+	}
+	if iType != localFile && jType == localFile {
+		return false
+	}
+
+	// Both or neither are local files, so sort by date descending
+	return m[i].CreatedAt.After(*m[j].CreatedAt)
+}
 
 type stashState int
 
@@ -146,7 +159,7 @@ func (m stashModel) selectedMarkdown() *markdown {
 // addDocuments adds markdown documents to the model
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	m.markdowns = append(m.markdowns, mds...)
-	sort.Sort(markdownsByCreatedAtDesc(m.markdowns))
+	sort.Sort(markdownsByLocalFirst(m.markdowns))
 	m.paginator.SetTotalPages(len(m.markdowns))
 }
 
