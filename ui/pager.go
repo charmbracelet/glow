@@ -183,8 +183,8 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 					return m, nil
 				}
 			case "m":
-				// Users can't set the note on news markdown
-				if m.currentDocument.markdownType == newsMarkdown {
+				// Users can only set the note on user-stashed markdown
+				if m.currentDocument.markdownType != userMarkdown {
 					break
 				}
 

@@ -524,9 +524,9 @@ func stashPopulatedView(m stashModel) string {
 
 func stashHelpView(m stashModel) string {
 	var (
-		h      []string
-		md     = m.selectedMarkdown()
-		isNews = md != nil && md.markdownType == newsMarkdown
+		h         []string
+		md        = m.selectedMarkdown()
+		isStashed = md != nil && md.markdownType == userMarkdown
 	)
 
 	if m.state == stashStateSettingNote {
@@ -541,7 +541,7 @@ func stashHelpView(m stashModel) string {
 		if m.paginator.TotalPages > 1 {
 			h = append(h, "h/l, ←/→: page")
 		}
-		if !isNews && len(m.markdowns) > 0 {
+		if isStashed && len(m.markdowns) > 0 {
 			h = append(h, []string{"x: delete", "m: set memo"}...)
 		}
 		h = append(h, []string{"esc: exit"}...)
