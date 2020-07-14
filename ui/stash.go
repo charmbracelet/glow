@@ -75,7 +75,7 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 		return false
 	}
 
-	// Both or neither are local files, so sort by date descending
+	// Both or neither are local files so sort by date descending
 	return m[i].CreatedAt.After(*m[j].CreatedAt)
 }
 
@@ -211,11 +211,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	// We've received a list of local markdowns
 	case fileWalkFinishedMsg:
 		if len(msg) > 0 {
-			for _, v := range msg {
-				if v != nil {
-					m.markdowns = append(m.markdowns, v)
-				}
-			}
+			m.addMarkdowns(msg...)
 		}
 
 	// Stash results have come in from the server
