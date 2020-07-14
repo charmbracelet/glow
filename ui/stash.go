@@ -103,6 +103,7 @@ func (s stashLoadedState) done() bool {
 const (
 	loadedStash stashLoadedState = 1 << iota
 	loadedNews
+	loadedLocalFiles
 )
 
 type stashModel struct {
@@ -232,6 +233,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 		cmds = append(cmds, findNextLocalFile(m))
 
+	// We're finished searching for local files
+	case localFileSearchFinished:
+		m.loaded |= loadedLocalFiles
+
 	// Stash results have come in from the server
 	case gotStashMsg:
 		m.loading = false
@@ -249,6 +254,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			m.state = stashStateReady
 		}
 
+	// News has come in from the server
 	case gotNewsMsg:
 		if len(msg) > 0 {
 			docs := wrapMarkdowns(newsMarkdown, msg)
