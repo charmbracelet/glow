@@ -118,6 +118,9 @@ type stashModel struct {
 	loading        bool             // are we currently loading something?
 	fullyLoaded    bool             // Have we loaded everything from the server?
 	cwd            string           // working directory where glow is running
+	hasStash       bool             // do we have stashed files to show?
+	hasLocalFiles  bool             // do we have local files to show?
+	hasNews        bool             // do we have news to show?
 
 	// This is just the index of the current page in view. To get the index
 	// of the selected item as it relates to the full set of documents we've
@@ -229,6 +232,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	case foundLocalFileMsg:
 		pathStr, err := localFileToMarkdown(m.cwd, string(msg))
 		if err == nil {
+			m.hasLocalFiles = true
 			m.addMarkdowns(pathStr)
 		}
 		cmds = append(cmds, findNextLocalFile(m))
@@ -247,6 +251,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		} else {
 			docs := wrapMarkdowns(stashedMarkdown, msg)
 			m.addMarkdowns(docs...)
+			m.hasStash = true
 		}
 
 		m.loaded |= loadedStash
@@ -259,6 +264,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		if len(msg) > 0 {
 			docs := wrapMarkdowns(newsMarkdown, msg)
 			m.addMarkdowns(docs...)
+			m.hasNews = true
 		}
 
 		m.loaded |= loadedNews
@@ -466,9 +472,17 @@ func stashView(m stashModel) string {
 		}
 
 		var header string
-		if len(m.markdowns) > 0 {
+		if m.hasStash && m.hasLocalFiles {
+			header = "Here are your local and stashed markdown files:"
+		} else if m.hasStash {
 			header = "Here’s your markdown stash:"
+		} else if m.hasLocalFiles {
+			header = "Here are your local markdown files:"
+		} else if m.hasNews {
+			// TODO: proper help
+			header = "Here are some Glow updates:"
 		} else {
+			// TODO: proper help
 			header = "Nothing stashed yet. To stash you can " + common.Code("glow stash path/to/file.md") + "."
 		}
 
