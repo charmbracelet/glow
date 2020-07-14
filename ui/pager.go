@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	pagerHelpHeight = strings.Count(pagerHelpView(0), "\n")
+	pagerHelpHeight = strings.Count(pagerHelpView(pagerModel{}, 0), "\n")
 
 	noteHeading = te.String(noteHeadingText).
 			Foreground(common.Cream.Color()).
@@ -247,7 +247,7 @@ func pagerView(m pagerModel) string {
 	}
 
 	if m.showHelp {
-		fmt.Fprintf(&b, pagerHelpView(m.width))
+		fmt.Fprintf(&b, pagerHelpView(m, m.width))
 	}
 
 	return b.String()
@@ -294,10 +294,19 @@ func pagerSetNoteView(b *strings.Builder, m pagerModel) {
 	fmt.Fprint(b, textinput.View(m.textInput))
 }
 
-func pagerHelpView(width int) (s string) {
+func pagerHelpView(m pagerModel, width int) (s string) {
+	col1 := [2]string{
+		"m       set memo",
+		"esc/q   back to stash",
+	}
+	if m.currentDocument != nil && m.currentDocument.markdownType != stashedMarkdown {
+		col1[0] = col1[1]
+		col1[1] = ""
+	}
+
 	s += "\n"
-	s += "k/↑      up                  m       set memo\n"
-	s += "j/↓      down                esc/q   back to stash\n"
+	s += "k/↑      up                  " + col1[0] + "\n"
+	s += "j/↓      down                " + col1[1] + "\n"
 	s += "b/pgup   page up\n"
 	s += "f/pgdn   page down\n"
 	s += "u        ½ page up\n"
