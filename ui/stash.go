@@ -36,7 +36,12 @@ type gotStashMsg []*charm.Markdown
 type gotNewsMsg []*charm.Markdown
 type fetchedMarkdownMsg *markdown
 type deletedStashedItemMsg int
-type fileWalkFinishedMsg []*markdown
+type initLocalFileSearchMsg struct {
+	cwd string
+	ch  chan string
+}
+type foundLocalFileMsg string
+type localFileSearchFinished struct{}
 
 // MODEL
 
@@ -111,6 +116,7 @@ type stashModel struct {
 	loaded         stashLoadedState // what's loaded? we find out with bitmasking
 	loading        bool             // are we currently loading something?
 	fullyLoaded    bool             // Have we loaded everything from the server?
+	cwd            string           // working directory where glow is running
 
 	// This is just the index of the current page in view. To get the index
 	// of the selected item as it relates to the full set of documents we've
@@ -126,6 +132,10 @@ type stashModel struct {
 	// than we can display at a time so we can paginate locally without having
 	// to fetch every time.
 	page int
+
+	// github.com/muesli/gitcha channel that receives paths to local markdown
+	// files.
+	localFileFinder chan string
 }
 
 func (m *stashModel) setSize(width, height int) {
@@ -208,11 +218,19 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	// We've received a list of local markdowns
-	case fileWalkFinishedMsg:
-		if len(msg) > 0 {
-			m.addMarkdowns(msg...)
+	// We've started looking for local files
+	case initLocalFileSearchMsg:
+		m.localFileFinder = msg.ch
+		m.cwd = msg.cwd
+		cmds = append(cmds, findNextLocalFile(m))
+
+	// We found a local file
+	case foundLocalFileMsg:
+		pathStr, err := localFileToMarkdown(m.cwd, string(msg))
+		if err == nil {
+			m.addMarkdowns(pathStr)
 		}
+		cmds = append(cmds, findNextLocalFile(m))
 
 	// Stash results have come in from the server
 	case gotStashMsg:
@@ -557,18 +575,23 @@ func loadLocalFiles() tea.Msg {
 		return errMsg(err)
 	}
 
-	// TODO: show files as they come in. For now we're waiting until the entire
-	// file walk completes.
-	var agg []*markdown
-
 	ch := gitcha.FindFileFromList(cwd, []string{"*.md"})
-	for p := range ch {
-		// TODO: handle possible errors here, likely stat errors
-		md, _ := localFileToMarkdown(cwd, p)
-		agg = append(agg, md)
+	return initLocalFileSearchMsg{
+		ch:  ch,
+		cwd: cwd,
 	}
+}
 
-	return fileWalkFinishedMsg(agg)
+func findNextLocalFile(m stashModel) tea.Cmd {
+	return func() tea.Msg {
+		pathStr, ok := <-m.localFileFinder
+		if ok {
+			// Okay now find the next one
+			return foundLocalFileMsg(pathStr)
+		}
+		// We're done
+		return localFileSearchFinished{}
+	}
 }
 
 func loadStash(m stashModel) tea.Cmd {
