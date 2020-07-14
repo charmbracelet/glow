@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"sort"
@@ -35,7 +34,7 @@ type gotStashMsg []*charm.Markdown
 type gotNewsMsg []*charm.Markdown
 type fetchedMarkdownMsg *markdown
 type deletedStashedItemMsg int
-type fileWalkFinishedMsg []string
+type fileWalkFinishedMsg []*markdown
 
 // MODEL
 
@@ -209,15 +208,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	// We've received a list of local markdowns
 	case fileWalkFinishedMsg:
 		if len(msg) > 0 {
-			now := time.Now()
-			for _, mdPath := range msg {
-				m.markdowns = append(m.markdowns, &markdown{
-					markdownType: localFile,
-					Markdown: &charm.Markdown{
-						Note:      mdPath,
-						CreatedAt: &now,
-					},
-				})
+			for _, v := range msg {
+				if v != nil {
+					m.markdowns = append(m.markdowns, v)
+				}
 			}
 		}
 
@@ -558,13 +552,15 @@ func loadLocalFiles() tea.Msg {
 		return errMsg(err)
 	}
 
-	// For now, wait to collect all the results before delivering them back
-	var agg []string
+	// TODO: show files as they come in. For now we're waiting until the entire
+	// file walk completes.
+	var agg []*markdown
 
 	ch := gitcha.FindFileFromList(cwd, []string{"*.md"})
-	for v := range ch {
-		log.Println("found file", v)
-		agg = append(agg, v)
+	for p := range ch {
+		// TODO: handle possible errors here, likely stat errors
+		md, _ := localFileToMarkdown(cwd, p)
+		agg = append(agg, md)
 	}
 
 	return fileWalkFinishedMsg(agg)
@@ -633,6 +629,29 @@ func wrapMarkdowns(t markdownType, md []*charm.Markdown) (m []*markdown) {
 		})
 	}
 	return m
+}
+
+// Convert path to local file to Markdown. Note that we could be doing things
+// like checking if the file is a directory, but we trust that gitcha has
+// already done that.
+func localFileToMarkdown(cwd, path string) (*markdown, error) {
+	md := &markdown{
+		markdownType: localFile,
+		Markdown:     &charm.Markdown{},
+	}
+
+	// Strip absolute path
+	md.Markdown.Note = strings.Replace(path, cwd+"/", "", -1)
+
+	// Get last modified time
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	t := info.ModTime()
+	md.CreatedAt = &t
+
+	return md, nil
 }
 
 func truncate(str string, num int) string {
