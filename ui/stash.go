@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"sort"
@@ -52,6 +54,7 @@ const (
 // and news.
 type markdown struct {
 	markdownType markdownType
+	localPath    string // only relevent to local files
 	*charm.Markdown
 }
 
@@ -302,8 +305,14 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.state = stashStateLoadingDocument
 				md := m.selectedMarkdown()
 
+				if md.markdownType == localFile {
+					cmd = loadLocalMarkdown(md)
+				} else {
+					cmd = loadRemoteMarkdown(m.cc, md.ID, md.markdownType)
+				}
+
 				cmds = append(cmds,
-					loadMarkdown(m.cc, md.ID, md.markdownType),
+					cmd,
 					spinner.Tick(m.spinner),
 				)
 
@@ -586,24 +595,45 @@ func loadNews(m stashModel) tea.Cmd {
 	}
 }
 
-func loadMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
+func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 	return func() tea.Msg {
 		var (
 			md  *charm.Markdown
 			err error
 		)
+
 		if t == userMarkdown {
 			md, err = cc.GetStashMarkdown(id)
 		} else {
 			md, err = cc.GetNewsMarkdown(id)
 		}
+
 		if err != nil {
 			return errMsg(err)
 		}
+
 		return fetchedMarkdownMsg(&markdown{
 			markdownType: t,
 			Markdown:     md,
 		})
+	}
+}
+
+func loadLocalMarkdown(md *markdown) tea.Cmd {
+	return func() tea.Msg {
+		if md.markdownType != localFile {
+			return errMsg(errors.New("could not load local file: not a local file"))
+		}
+		if md.localPath == "" {
+			return errMsg(errors.New("could not load file: missing path"))
+		}
+
+		data, err := ioutil.ReadFile(md.localPath)
+		if err != nil {
+			return errMsg(err)
+		}
+		md.Body = string(data)
+		return fetchedMarkdownMsg(md)
 	}
 }
 
@@ -637,6 +667,7 @@ func wrapMarkdowns(t markdownType, md []*charm.Markdown) (m []*markdown) {
 func localFileToMarkdown(cwd, path string) (*markdown, error) {
 	md := &markdown{
 		markdownType: localFile,
+		localPath:    path,
 		Markdown:     &charm.Markdown{},
 	}
 
