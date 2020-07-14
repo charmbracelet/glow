@@ -179,7 +179,7 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 
 func stashInit(cc *charm.Client) (stashModel, tea.Cmd) {
 	s := spinner.NewModel()
-	s.Type = spinner.Dot
+	s.Frames = spinner.Dot
 	s.ForegroundColor = common.SpinnerColor
 
 	p := paginator.NewModel()

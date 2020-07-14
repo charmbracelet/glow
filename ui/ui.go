@@ -97,7 +97,7 @@ func (m *model) unloadDocument() {
 func initialize(style string) func() (tea.Model, tea.Cmd) {
 	return func() (tea.Model, tea.Cmd) {
 		s := spinner.NewModel()
-		s.Type = spinner.Dot
+		s.Frames = spinner.Dot
 		s.ForegroundColor = common.SpinnerColor
 
 		if style == "auto" {
