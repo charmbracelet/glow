@@ -2,7 +2,9 @@ package ui
 
 import (
 	"fmt"
+	"log"
 	"math"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -15,6 +17,7 @@ import (
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
 	runewidth "github.com/mattn/go-runewidth"
+	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
 )
 
@@ -32,6 +35,7 @@ type gotStashMsg []*charm.Markdown
 type gotNewsMsg []*charm.Markdown
 type fetchedMarkdownMsg *markdown
 type deletedStashedItemMsg int
+type fileWalkFinishedMsg []string
 
 // MODEL
 
@@ -42,6 +46,7 @@ type markdownType int
 const (
 	userMarkdown markdownType = iota
 	newsMarkdown
+	localFile
 )
 
 // markdown wraps charm.Markdown so we can differentiate between stashed items
@@ -171,6 +176,7 @@ func stashInit(cc *charm.Client) (stashModel, tea.Cmd) {
 	}
 
 	return m, tea.Batch(
+		loadLocalFiles,
 		loadStash(m),
 		loadNews(m),
 		spinner.Tick(s),
@@ -186,6 +192,21 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
+
+	// We've received a list of local markdowns
+	case fileWalkFinishedMsg:
+		if len(msg) > 0 {
+			now := time.Now()
+			for _, mdPath := range msg {
+				m.markdowns = append(m.markdowns, &markdown{
+					markdownType: localFile,
+					Markdown: &charm.Markdown{
+						Note:      mdPath,
+						CreatedAt: &now,
+					},
+				})
+			}
+		}
 
 	// Stash results have come in from the server
 	case gotStashMsg:
@@ -517,6 +538,24 @@ func stashHelpView(m stashModel) string {
 }
 
 // CMD
+
+func loadLocalFiles() tea.Msg {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return errMsg(err)
+	}
+
+	// For now, wait to collect all the results before delivering them back
+	var agg []string
+
+	ch := gitcha.FindFileFromList(cwd, []string{"*.md"})
+	for v := range ch {
+		log.Println("found file", v)
+		agg = append(agg, v)
+	}
+
+	return fileWalkFinishedMsg(agg)
+}
 
 func loadStash(m stashModel) tea.Cmd {
 	return func() tea.Msg {
