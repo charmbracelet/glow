@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
 	runewidth "github.com/mattn/go-runewidth"
+	"github.com/muesli/reflow/ansi"
 	te "github.com/muesli/termenv"
 )
 
@@ -255,16 +256,14 @@ func pagerView(m pagerModel) string {
 
 func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	// Logo
-	logoText := " Glow "
-	logo := glowLogoView(logoText)
+	logo := glowLogoView(" Glow ")
 
 	// Scroll percent
 	scrollPercent := math.Max(0.0, math.Min(1.0, m.viewport.ScrollPercent()))
 	percentText := fmt.Sprintf(" %3.f%% ", scrollPercent*100)
 
 	// "Help" note
-	helpNoteText := " ? Help "
-	helpNote := statusBarHelpStyle(helpNoteText)
+	helpNote := statusBarHelpStyle(" ? Help ")
 
 	// Note
 	noteText := m.currentDocument.Note
@@ -272,12 +271,21 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 		noteText = "(No title)"
 	}
 	noteText = truncate(" "+noteText+" ", max(0,
-		m.width-len(logoText)-len(percentText)-len(helpNoteText),
+		m.width-
+			ansi.PrintableRuneWidth(logo)-
+			ansi.PrintableRuneWidth(percentText)-
+			ansi.PrintableRuneWidth(helpNote),
 	))
 
 	// Empty space
 	emptyCell := te.String(" ").Background(statusBarBg.Color()).String()
-	padding := max(0, m.width-len(logoText)-runewidth.StringWidth(noteText)-len(percentText)-len(helpNoteText))
+	padding := max(0,
+		m.width-
+			ansi.PrintableRuneWidth(logo)-
+			ansi.PrintableRuneWidth(noteText)-
+			ansi.PrintableRuneWidth(percentText)-
+			ansi.PrintableRuneWidth(helpNote),
+	)
 	emptySpace := strings.Repeat(emptyCell, padding)
 
 	fmt.Fprintf(b, "%s%s%s%s%s",
