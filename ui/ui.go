@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
@@ -59,20 +60,6 @@ type gotNewsMsg []*charm.Markdown
 
 // MODEL
 
-type loadedState byte
-
-const (
-	loadedStash loadedState = 1 << iota
-	loadedNews
-	loadedLocalFiles
-)
-
-func (s loadedState) done() bool {
-	return s&loadedStash != 0 &&
-		s&loadedNews != 0 &&
-		s&loadedLocalFiles != 0
-}
-
 type state int
 
 const (
@@ -111,8 +98,7 @@ type model struct {
 	pager          pagerModel
 	terminalWidth  int
 	terminalHeight int
-	cwd            string      // directory from which we're running Glow
-	loaded         loadedState // what's loaded? we find out with bitmasking
+	cwd            string // directory from which we're running Glow
 
 	// Channel that receives paths to local markdown files
 	// (via the github.com/muesli/gitcha package)
@@ -139,15 +125,18 @@ func initialize(style string) func() (tea.Model, tea.Cmd) {
 			}
 		}
 
-		return model{
-				stash:       newStashModel(),
-				pager:       newPagerModel(style),
-				state:       stateShowStash,
-				keygenState: keygenUnstarted,
-			}, tea.Batch(
-				findLocalFiles,
-				newCharmClient,
-			)
+		m := model{
+			stash:       newStashModel(),
+			pager:       newPagerModel(style),
+			state:       stateShowStash,
+			keygenState: keygenUnstarted,
+		}
+
+		return m, tea.Batch(
+			findLocalFiles,
+			newCharmClient,
+			spinner.Tick(m.stash.spinner),
+		)
 	}
 }
 
@@ -250,10 +239,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		}
 		cmds = append(cmds, findNextLocalFile(m))
 
-	// We're finished searching for local files
-	case localFileSearchFinished:
-		m.loaded |= loadedLocalFiles
-
 	case sshAuthErrMsg:
 		// If we haven't run the keygen yet, do that
 		if m.keygenState != keygenFinished {
@@ -277,12 +262,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		m.stash.cc = msg
 		m.pager.cc = msg
 		cmds = append(cmds, loadStash(m.stash), loadNews(m.stash))
-
-	case gotStashMsg:
-		m.loaded |= loadedStash
-
-	case gotNewsMsg:
-		m.loaded |= loadedNews
 
 	case noteSavedMsg:
 		// A note was saved to a document. This will have be done in the

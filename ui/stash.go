@@ -74,6 +74,20 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 	return m[i].CreatedAt.After(*m[j].CreatedAt)
 }
 
+type loadedState byte
+
+const (
+	loadedStash loadedState = 1 << iota
+	loadedNews
+	loadedLocalFiles
+)
+
+func (s loadedState) done() bool {
+	return s&loadedStash != 0 &&
+		s&loadedNews != 0 &&
+		s&loadedLocalFiles != 0
+}
+
 type stashState int
 
 const (
@@ -84,18 +98,19 @@ const (
 )
 
 type stashModel struct {
-	cc             *charm.Client
-	state          stashState
-	markdowns      []*markdown
-	spinner        spinner.Model
-	noteInput      textinput.Model
-	terminalWidth  int
-	terminalHeight int
-	loading        bool // are we currently loading something?
-	fullyLoaded    bool // Have we loaded everything from the server?
-	hasStash       bool // do we have stashed files to show?
-	hasLocalFiles  bool // do we have local files to show?
-	hasNews        bool // do we have news to show?
+	cc                 *charm.Client
+	state              stashState
+	markdowns          []*markdown
+	spinner            spinner.Model
+	noteInput          textinput.Model
+	terminalWidth      int
+	terminalHeight     int
+	stashFullyLoaded   bool        // have we loaded everything from the server?
+	hasStash           bool        // do we have stashed files to show?
+	hasLocalFiles      bool        // do we have local files to show?
+	hasNews            bool        // do we have news to show?
+	loadingFromNetwork bool        // are we currently loading something from the network?
+	loaded             loadedState // what's loaded? we find out with bitmasking
 
 	// This is just the index of the current page in view. To get the index
 	// of the selected item as it relates to the full set of documents we've
@@ -171,11 +186,11 @@ func newStashModel() stashModel {
 	ni.Focus()
 
 	m := stashModel{
-		spinner:   s,
-		noteInput: ni,
-		page:      1,
-		paginator: p,
-		loading:   true,
+		spinner:            s,
+		noteInput:          ni,
+		page:               1,
+		paginator:          p,
+		loadingFromNetwork: true,
 	}
 
 	return m
@@ -191,13 +206,22 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
+	// We're finished searching for local files
+	case localFileSearchFinished:
+		m.loaded |= loadedLocalFiles
+
 	// Stash results have come in from the server
 	case gotStashMsg:
-		m.loading = false
+		// This doesn't mean the whole stash listing is loaded, but some we've
+		// finished checking for the stash, at least, so mark the stash as
+		// loaded here.
+		m.loaded |= loadedStash
+
+		m.loadingFromNetwork = false
 
 		if len(msg) == 0 {
 			// If the server comes back with nothing then we've got everything
-			m.fullyLoaded = true
+			m.stashFullyLoaded = true
 		} else {
 			docs := wrapMarkdowns(stashedMarkdown, msg)
 			m.addMarkdowns(docs...)
@@ -206,6 +230,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	// News has come in from the server
 	case gotNewsMsg:
+		m.loaded |= loadedNews
 		if len(msg) > 0 {
 			docs := wrapMarkdowns(newsMarkdown, msg)
 			m.addMarkdowns(docs...)
@@ -213,7 +238,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if m.state == stashStateLoadingDocument {
+		if !m.loaded.done() || m.loadingFromNetwork || m.state == stashStateLoadingDocument {
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 			cmds = append(cmds, cmd)
 		}
@@ -320,9 +345,9 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 		// If we're on the last page and we haven't loaded everything, get
 		// more stuff.
-		if m.paginator.OnLastPage() && !m.loading && !m.fullyLoaded {
+		if m.paginator.OnLastPage() && !m.loadingFromNetwork && !m.stashFullyLoaded {
 			m.page++
-			m.loading = true
+			m.loadingFromNetwork = true
 			cmds = append(cmds, loadStash(m))
 		}
 
@@ -397,6 +422,11 @@ func stashView(m stashModel) string {
 		s += " " + spinner.View(m.spinner) + " Loading document..."
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
 
+		loadingIndicator := ""
+		if !m.loaded.done() || m.loadingFromNetwork {
+			loadingIndicator = spinner.View(m.spinner)
+		}
+
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
 		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
@@ -431,14 +461,15 @@ func stashView(m stashModel) string {
 		if m.paginator.TotalPages > 1 {
 			pagination = paginator.View(m.paginator)
 
-			if !m.fullyLoaded {
+			if !m.stashFullyLoaded {
 				pagination += common.Subtle(" ···")
 			}
 		}
 
 		s += fmt.Sprintf(
-			"  %s\n\n  %s\n\n%s\n\n%s  %s\n\n  %s",
+			"  %s %s\n\n  %s\n\n%s\n\n%s  %s\n\n  %s",
 			glowLogoView(" Glow "),
+			loadingIndicator,
 			header,
 			stashPopulatedView(m),
 			blankLines,
