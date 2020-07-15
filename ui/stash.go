@@ -302,10 +302,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					cmd = loadRemoteMarkdown(m.cc, md.ID, md.markdownType)
 				}
 
-				cmds = append(cmds,
-					cmd,
-					spinner.Tick(m.spinner),
-				)
+				cmds = append(cmds, cmd, spinner.Tick(m.spinner))
 
 			// Set note
 			case "m":

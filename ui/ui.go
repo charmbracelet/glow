@@ -185,17 +185,24 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 			// Special cases for the pager
 			case stateShowDocument:
+				var cmds []tea.Cmd
 				if m.pager.state == pagerStateBrowse {
 					// If the user is just browing a document, exit the pager.
 					m.unloadDocument()
 					if m.pager.viewport.HighPerformanceRendering {
-						cmd = tea.ClearScrollArea
+						cmds = append(cmds, tea.ClearScrollArea)
+					}
+					if !m.stash.loaded.done() || m.stash.loadingFromNetwork {
+						cmds = append(cmds, spinner.Tick(m.stash.spinner))
 					}
 				} else {
-					// Otherwise send keys through to pager for processing
-					m.pager, cmd = pagerUpdate(msg, m.pager)
+					// Otherwise send these key messages through to pager for
+					// processing
+					newPagerModel, cmd := pagerUpdate(msg, m.pager)
+					m.pager = newPagerModel
+					cmds = append(cmds, cmd)
 				}
-				return m, cmd
+				return m, tea.Batch(cmds...)
 			}
 
 			return m, tea.Quit
@@ -274,19 +281,27 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		m.pager.cc = msg
 		cmds = append(cmds, loadStash(m.stash), loadNews(m.stash))
 
-	case noteSavedMsg:
-		// A note was saved to a document. This will have be done in the
-		// pager, so we'll need to find the corresponding note in the stash.
-		// So, pass the message to the stash for processing.
-		m.stash, cmd = stashUpdate(msg, m.stash)
-		cmds = append(cmds, cmd)
-
 	case fetchedMarkdownMsg:
 		m.pager.currentDocument = msg
 		cmds = append(cmds, renderWithGlamour(m.pager, msg.Body))
 
 	case contentRenderedMsg:
 		m.state = stateShowDocument
+
+	case noteSavedMsg:
+		// A note was saved to a document. This will have be done in the
+		// pager, so we'll need to find the corresponding note in the stash.
+		// So, pass the message to the stash for processing.
+		stashModel, cmd := stashUpdate(msg, m.stash)
+		m.stash = stashModel
+		return m, cmd
+
+	case localFileSearchFinished, gotStashMsg, gotNewsMsg:
+		// Also pass these messages to the stash so we can keep it updated
+		// about network activity.
+		stashModel, cmd := stashUpdate(msg, m.stash)
+		m.stash = stashModel
+		return m, cmd
 
 	}
 
