@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/charm/ui/common"
+	rw "github.com/mattn/go-runewidth"
 	te "github.com/muesli/termenv"
 )
 
@@ -13,6 +14,7 @@ const (
 	newsPrefix   = "News: "
 	verticalLine = "│"
 	noMemoTitle  = "No Memo"
+	stashIcon    = "• "
 )
 
 var (
@@ -30,17 +32,23 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	gutter := " "
 	title := md.Note
 	date := relativeTime(*md.CreatedAt)
+	icon := ""
 
-	if md.markdownType == newsMarkdown {
+	switch md.markdownType {
+	case newsMarkdown:
 		if title == "" {
 			title = "News"
 		} else {
-			title = newsPrefix + truncate(title, truncateTo-len(newsPrefix))
+			title = newsPrefix + truncate(title, truncateTo-rw.StringWidth(newsPrefix))
 		}
-	} else {
+	case stashedMarkdown:
+		icon = stashIcon
+		icon = stashIcon
 		if title == "" {
 			title = noMemoTitle
 		}
+		title = truncate(title, truncateTo-rw.StringWidth(icon))
+	default:
 		title = truncate(title, truncateTo)
 	}
 
@@ -49,16 +57,19 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		case stashStatePromptDelete:
 			// Deleting
 			gutter = te.String(verticalLine).Foreground(common.FaintRed.Color()).String()
+			icon = te.String(icon).Foreground(common.FaintRed.Color()).String()
 			title = te.String(title).Foreground(common.Red.Color()).String()
 			date = te.String(date).Foreground(common.FaintRed.Color()).String()
 		case stashStateSettingNote:
 			// Setting note
 			gutter = te.String(verticalLine).Foreground(dullYellow.Color()).String()
+			icon = ""
 			title = textinput.View(m.noteInput)
 			date = te.String(date).Foreground(dullYellow.Color()).String()
 		default:
 			// Selected
 			gutter = te.String(verticalLine).Foreground(dullFuchsia.Color()).String()
+			icon = te.String(icon).Foreground(dullFuchsia.Color()).String()
 			title = te.String(title).Foreground(common.Fuschia.Color()).String()
 			date = te.String(date).Foreground(dullFuchsia.Color()).String()
 		}
@@ -69,6 +80,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			title = te.String(title).Foreground(common.Indigo.Color()).String()
 			date = te.String(date).Foreground(subtleIndigo.Color()).String()
 		} else {
+			icon = te.String(icon).Foreground(green.Color()).String()
 			if title == noMemoTitle {
 				title = te.String(title).Foreground(warmGray.Color()).String()
 			}
@@ -77,6 +89,6 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		}
 	}
 
-	fmt.Fprintf(b, "%s %s\n", gutter, title)
+	fmt.Fprintf(b, "%s %s%s\n", gutter, icon, title)
 	fmt.Fprintf(b, "%s %s", gutter, date)
 }
