@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -11,6 +12,7 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
+	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
 )
 
@@ -47,6 +49,12 @@ func NewProgram(style string, cfg UIConfig) *tea.Program {
 type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
+type initLocalFileSearchMsg struct {
+	cwd string
+	ch  chan string
+}
+type foundLocalFileMsg string
+type localFileSearchFinished struct{}
 
 // MODEL
 
@@ -83,6 +91,11 @@ type model struct {
 	pager          pagerModel
 	terminalWidth  int
 	terminalHeight int
+	cwd            string // directory from which we're running Glow
+
+	// Channel that receives paths to local markdown files
+	// (via the github.com/muesli/gitcha package)
+	localFileFinder chan string
 }
 
 func (m *model) unloadDocument() {
@@ -111,9 +124,11 @@ func initialize(style string) func() (tea.Model, tea.Cmd) {
 
 		return model{
 				spinner: s,
+				stash:   newStashModel(),
 				pager:   newPagerModel(style),
 				state:   stateInitCharmClient,
 			}, tea.Batch(
+				findLocalFiles,
 				newCharmClient,
 				spinner.Tick(s),
 			)
@@ -194,6 +209,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		m.err = msg
 		return m, nil
 
+	// Window size is received when starting up and on every resize
 	case tea.WindowSizeMsg:
 		m.terminalWidth = msg.Width
 		m.terminalHeight = msg.Height
@@ -202,6 +218,21 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 		// TODO: load more stash pages if we've resized, are on the last page,
 		// and haven't loaded more pages yet.
+
+	// We've started looking for local files
+	case initLocalFileSearchMsg:
+		m.localFileFinder = msg.ch
+		m.cwd = msg.cwd
+		cmds = append(cmds, findNextLocalFile(m))
+
+	// We found a local file
+	case foundLocalFileMsg:
+		pathStr, err := localFileToMarkdown(m.cwd, string(msg))
+		if err == nil {
+			m.stash.hasLocalFiles = true
+			m.stash.addMarkdowns(pathStr)
+		}
+		cmds = append(cmds, findNextLocalFile(m))
 
 	case sshAuthErrMsg:
 		// If we haven't run the keygen yet, do that
@@ -223,6 +254,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case keygen.DoneMsg:
+		// The keygen's done, so let's try initializing the charm client again
 		m.state = stateKeygenFinished
 		cmds = append(cmds, newCharmClient)
 
@@ -236,10 +268,9 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	case newCharmClientMsg:
 		m.cc = msg
 		m.state = stateShowStash
-		m.stash, cmd = stashInit(msg)
-		m.stash.setSize(m.terminalWidth, m.terminalHeight)
+		m.stash.cc = msg
 		m.pager.cc = msg
-		cmds = append(cmds, cmd)
+		cmds = append(cmds, loadStash(m.stash), loadNews(m.stash))
 
 	case fetchedMarkdownMsg:
 		m.pager.currentDocument = msg
@@ -321,6 +352,31 @@ func errorView(err error) string {
 
 // COMMANDS
 
+func findLocalFiles() tea.Msg {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return errMsg(err)
+	}
+
+	ch := gitcha.FindFileFromList(cwd, []string{"*.md"})
+	return initLocalFileSearchMsg{
+		ch:  ch,
+		cwd: cwd,
+	}
+}
+
+func findNextLocalFile(m model) tea.Cmd {
+	return func() tea.Msg {
+		pathStr, ok := <-m.localFileFinder
+		if ok {
+			// Okay now find the next one
+			return foundLocalFileMsg(pathStr)
+		}
+		// We're done
+		return localFileSearchFinished{}
+	}
+}
+
 func newCharmClient() tea.Msg {
 	cfg, err := charm.ConfigFromEnv()
 	if err != nil {
@@ -337,6 +393,28 @@ func newCharmClient() tea.Msg {
 	return newCharmClientMsg(cc)
 }
 
+func loadStash(m stashModel) tea.Cmd {
+	return func() tea.Msg {
+		stash, err := m.cc.GetStash(m.page)
+		if err != nil {
+			return errMsg(err)
+		}
+		return gotStashMsg(stash)
+	}
+}
+
+func loadNews(m stashModel) tea.Cmd {
+	return func() tea.Msg {
+		news, err := m.cc.GetNews(1) // just fetch the first page
+		if err != nil {
+			return errMsg(err)
+		}
+		return gotNewsMsg(news)
+	}
+}
+
+// ETC
+
 func indent(s string, n int) string {
 	if n <= 0 || s == "" {
 		return s
@@ -349,8 +427,6 @@ func indent(s string, n int) string {
 	}
 	return b.String()
 }
-
-// ETC
 
 func min(a, b int) int {
 	if a < b {

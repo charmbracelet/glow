@@ -18,7 +18,6 @@ import (
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
 	runewidth "github.com/mattn/go-runewidth"
-	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
 )
 
@@ -36,12 +35,6 @@ type gotStashMsg []*charm.Markdown
 type gotNewsMsg []*charm.Markdown
 type fetchedMarkdownMsg *markdown
 type deletedStashedItemMsg int
-type initLocalFileSearchMsg struct {
-	cwd string
-	ch  chan string
-}
-type foundLocalFileMsg string
-type localFileSearchFinished struct{}
 
 // MODEL
 
@@ -117,7 +110,6 @@ type stashModel struct {
 	loaded         stashLoadedState // what's loaded? we find out with bitmasking
 	loading        bool             // are we currently loading something?
 	fullyLoaded    bool             // Have we loaded everything from the server?
-	cwd            string           // working directory where glow is running
 	hasStash       bool             // do we have stashed files to show?
 	hasLocalFiles  bool             // do we have local files to show?
 	hasNews        bool             // do we have news to show?
@@ -136,10 +128,6 @@ type stashModel struct {
 	// than we can display at a time so we can paginate locally without having
 	// to fetch every time.
 	page int
-
-	// github.com/muesli/gitcha channel that receives paths to local markdown
-	// files.
-	localFileFinder chan string
 }
 
 func (m *stashModel) setSize(width, height int) {
@@ -181,7 +169,7 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 
 // INIT
 
-func stashInit(cc *charm.Client) (stashModel, tea.Cmd) {
+func newStashModel() stashModel {
 	s := spinner.NewModel()
 	s.Frames = spinner.Dot
 	s.ForegroundColor = common.SpinnerColor
@@ -197,19 +185,13 @@ func stashInit(cc *charm.Client) (stashModel, tea.Cmd) {
 	ni.Focus()
 
 	m := stashModel{
-		cc:        cc,
 		spinner:   s,
 		noteInput: ni,
 		page:      1,
 		paginator: p,
 	}
 
-	return m, tea.Batch(
-		loadLocalFiles,
-		loadStash(m),
-		loadNews(m),
-		spinner.Tick(s),
-	)
+	return m
 }
 
 // UPDATE
@@ -221,21 +203,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-
-	// We've started looking for local files
-	case initLocalFileSearchMsg:
-		m.localFileFinder = msg.ch
-		m.cwd = msg.cwd
-		cmds = append(cmds, findNextLocalFile(m))
-
-	// We found a local file
-	case foundLocalFileMsg:
-		pathStr, err := localFileToMarkdown(m.cwd, string(msg))
-		if err == nil {
-			m.hasLocalFiles = true
-			m.addMarkdowns(pathStr)
-		}
-		cmds = append(cmds, findNextLocalFile(m))
 
 	// We're finished searching for local files
 	case localFileSearchFinished:
@@ -587,51 +554,6 @@ func stashHelpView(m stashModel) string {
 }
 
 // CMD
-
-func loadLocalFiles() tea.Msg {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return errMsg(err)
-	}
-
-	ch := gitcha.FindFileFromList(cwd, []string{"*.md"})
-	return initLocalFileSearchMsg{
-		ch:  ch,
-		cwd: cwd,
-	}
-}
-
-func findNextLocalFile(m stashModel) tea.Cmd {
-	return func() tea.Msg {
-		pathStr, ok := <-m.localFileFinder
-		if ok {
-			// Okay now find the next one
-			return foundLocalFileMsg(pathStr)
-		}
-		// We're done
-		return localFileSearchFinished{}
-	}
-}
-
-func loadStash(m stashModel) tea.Cmd {
-	return func() tea.Msg {
-		stash, err := m.cc.GetStash(m.page)
-		if err != nil {
-			return errMsg(err)
-		}
-		return gotStashMsg(stash)
-	}
-}
-
-func loadNews(m stashModel) tea.Cmd {
-	return func() tea.Msg {
-		news, err := m.cc.GetNews(1) // just fetch the first page
-		if err != nil {
-			return errMsg(err)
-		}
-		return gotNewsMsg(news)
-	}
-}
 
 func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 	return func() tea.Msg {
