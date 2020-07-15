@@ -42,7 +42,7 @@ type markdownType int
 const (
 	stashedMarkdown markdownType = iota
 	newsMarkdown
-	localFile
+	localMarkdown
 )
 
 // markdown wraps charm.Markdown so we can differentiate between stashed items
@@ -63,10 +63,10 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 	jType := m[j].markdownType
 
 	// Local files come first
-	if iType == localFile && jType != localFile {
+	if iType == localMarkdown && jType != localMarkdown {
 		return true
 	}
-	if iType != localFile && jType == localFile {
+	if iType != localMarkdown && jType == localMarkdown {
 		return false
 	}
 
@@ -106,9 +106,6 @@ type stashModel struct {
 	terminalWidth      int
 	terminalHeight     int
 	stashFullyLoaded   bool        // have we loaded everything from the server?
-	hasStash           bool        // do we have stashed files to show?
-	hasLocalFiles      bool        // do we have local files to show?
-	hasNews            bool        // do we have news to show?
 	loadingFromNetwork bool        // are we currently loading something from the network?
 	loaded             loadedState // what's loaded? we find out with bitmasking
 
@@ -168,6 +165,18 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	}
 }
 
+func (m stashModel) countMarkdowns(t markdownType) (found int) {
+	if len(m.markdowns) == 0 {
+		return
+	}
+	for i := 0; i < len(m.markdowns); i++ {
+		if m.markdowns[i].markdownType == t {
+			found++
+		}
+	}
+	return
+}
+
 // INIT
 
 func newStashModel() stashModel {
@@ -222,7 +231,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		} else {
 			docs := wrapMarkdowns(stashedMarkdown, msg)
 			m.addMarkdowns(docs...)
-			m.hasStash = true
 		}
 
 	// News has come in from the server
@@ -231,7 +239,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		if len(msg) > 0 {
 			docs := wrapMarkdowns(newsMarkdown, msg)
 			m.addMarkdowns(docs...)
-			m.hasNews = true
 		}
 
 	case spinner.TickMsg:
@@ -294,7 +301,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.state = stashStateLoadingDocument
 				md := m.selectedMarkdown()
 
-				if md.markdownType == localFile {
+				if md.markdownType == localMarkdown {
 					cmds = append(cmds, loadLocalMarkdown(md))
 				} else {
 					cmds = append(cmds, loadRemoteMarkdown(m.cc, md.ID, md.markdownType))
@@ -432,18 +439,29 @@ func stashView(m stashModel) string {
 			blankLines = strings.Repeat("\n", numBlankLines)
 		}
 
+		localItems := m.countMarkdowns(localMarkdown)
+		stashedItems := m.countMarkdowns(stashedMarkdown)
+
 		var header string
-		if m.hasStash && m.hasLocalFiles {
-			header = "Here are your local and stashed markdown files:"
-		} else if m.hasStash {
-			header = "Here’s your markdown stash:"
-		} else if m.hasLocalFiles {
-			header = "Here are your local markdown files:"
-		} else if m.hasNews {
-			// TODO: proper help
-			header = "Here are some Glow updates:"
-		} else {
-			// TODO: proper help
+		if localItems > 0 {
+			var plural string
+			if localItems > 1 {
+				plural = "s"
+			}
+			header += fmt.Sprintf("%d File%s", localItems, plural)
+		}
+		if stashedItems > 0 {
+			var divider string
+			if localItems > 0 {
+				divider = " • "
+			}
+			header += fmt.Sprintf("%s%d Stashed", divider, stashedItems)
+		}
+		header = common.Subtle(header)
+
+		// TODO: show proper help if no stashed items or local items are found
+		// (even if there's news)
+		if localItems == 0 && stashedItems == 0 {
 			header = "Nothing stashed yet. To stash you can " + common.Code("glow stash path/to/file.md") + "."
 		}
 
@@ -580,7 +598,7 @@ func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 
 func loadLocalMarkdown(md *markdown) tea.Cmd {
 	return func() tea.Msg {
-		if md.markdownType != localFile {
+		if md.markdownType != localMarkdown {
 			return errMsg(errors.New("could not load local file: not a local file"))
 		}
 		if md.localPath == "" {

@@ -237,7 +237,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	case foundLocalFileMsg:
 		pathStr, err := localFileToMarkdown(m.cwd, string(msg))
 		if err == nil {
-			m.stash.hasLocalFiles = true
 			m.stash.addMarkdowns(pathStr)
 		}
 		cmds = append(cmds, findNextLocalFile(m))
@@ -429,7 +428,7 @@ func generateSSHKeys() tea.Msg {
 // already done that.
 func localFileToMarkdown(cwd, path string) (*markdown, error) {
 	md := &markdown{
-		markdownType: localFile,
+		markdownType: localMarkdown,
 		localPath:    path,
 		Markdown:     &charm.Markdown{},
 	}
