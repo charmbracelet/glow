@@ -18,12 +18,17 @@ const (
 )
 
 var (
-	faintGreen   = common.NewColorPair("#2B4A3F", "#ABE5D1")
-	green        = common.NewColorPair("#04B575", "#04B575")
-	dullFuchsia  = common.NewColorPair("#AD58B4", "#F793FF")
-	dullYellow   = common.NewColorPair("#9BA92F", "#6BCB94") // renders light green on light backgrounds
-	warmGray     = common.NewColorPair("#979797", "#847A85")
-	subtleIndigo = common.NewColorPair("#514DC1", "#7D79F6")
+	greenFg        = te.Style{}.Foreground(common.NewColorPair("#04B575", "#04B575").Color()).Styled
+	faintGreenFg   = te.Style{}.Foreground(common.NewColorPair("#2B4A3F", "#ABE5D1").Color()).Styled
+	fuchsiaFg      = te.Style{}.Foreground(common.Fuschia.Color()).Styled
+	dullFuchsiaFg  = te.Style{}.Foreground(common.NewColorPair("#AD58B4", "#F793FF").Color()).Styled
+	yellowFg       = te.Style{}.Foreground(common.YellowGreen.Color()).Styled                        // renders light green on light backgrounds
+	dullYellowFg   = te.Style{}.Foreground(common.NewColorPair("#9BA92F", "#6BCB94").Color()).Styled // renders light green on light backgrounds
+	indigoFg       = te.Style{}.Foreground(common.Indigo.Color()).Styled
+	subtleIndigoFg = te.Style{}.Foreground(common.NewColorPair("#514DC1", "#7D79F6").Color()).Styled
+	redFg          = te.Style{}.Foreground(common.Red.Color()).Styled
+	faintRedFg     = te.Style{}.Foreground(common.FaintRed.Color()).Styled
+	warmGrayFg     = te.Style{}.Foreground(common.NewColorPair("#979797", "#847A85").Color()).Styled
 )
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
@@ -56,36 +61,36 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		switch m.state {
 		case stashStatePromptDelete:
 			// Deleting
-			gutter = te.String(verticalLine).Foreground(common.FaintRed.Color()).String()
-			icon = te.String(icon).Foreground(common.FaintRed.Color()).String()
-			title = te.String(title).Foreground(common.Red.Color()).String()
-			date = te.String(date).Foreground(common.FaintRed.Color()).String()
+			gutter = faintRedFg(verticalLine)
+			icon = faintRedFg(icon)
+			title = redFg(title)
+			date = faintRedFg(date)
 		case stashStateSettingNote:
 			// Setting note
-			gutter = te.String(verticalLine).Foreground(dullYellow.Color()).String()
+			gutter = dullYellowFg(verticalLine)
 			icon = ""
 			title = textinput.View(m.noteInput)
-			date = te.String(date).Foreground(dullYellow.Color()).String()
+			date = dullYellowFg(date)
 		default:
 			// Selected
-			gutter = te.String(verticalLine).Foreground(dullFuchsia.Color()).String()
-			icon = te.String(icon).Foreground(dullFuchsia.Color()).String()
-			title = te.String(title).Foreground(common.Fuschia.Color()).String()
-			date = te.String(date).Foreground(dullFuchsia.Color()).String()
+			gutter = dullFuchsiaFg(verticalLine)
+			icon = dullFuchsiaFg(icon)
+			title = fuchsiaFg(title)
+			date = dullFuchsiaFg(date)
 		}
 	} else {
 		// Normal
 		if md.markdownType == newsMarkdown {
 			gutter = " "
 			title = te.String(title).Foreground(common.Indigo.Color()).String()
-			date = te.String(date).Foreground(subtleIndigo.Color()).String()
+			date = subtleIndigoFg(date)
 		} else {
-			icon = te.String(icon).Foreground(green.Color()).String()
+			icon = greenFg(icon)
 			if title == noMemoTitle {
-				title = te.String(title).Foreground(warmGray.Color()).String()
+				title = warmGrayFg(title)
 			}
 			gutter = " "
-			date = te.String(date).Foreground(warmGray.Color()).String()
+			date = warmGrayFg(date)
 		}
 	}
 

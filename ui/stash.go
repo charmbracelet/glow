@@ -488,10 +488,9 @@ func stashView(m stashModel) string {
 
 		switch m.state {
 		case stashStatePromptDelete:
-			header = te.String("Delete this item? ").Foreground(common.Red.Color()).String() +
-				te.String("(y/N)").Foreground(common.FaintRed.Color()).String()
+			header = redFg("Delete this item? ") + faintRedFg("(y/N)")
 		case stashStateSettingNote:
-			header = te.String("Set the memo for this item?").Foreground(common.YellowGreen.Color()).String()
+			header = yellowFg("Set the memo for this item?")
 		}
 
 		var pagination string
