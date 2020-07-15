@@ -199,10 +199,7 @@ func newStashModel() stashModel {
 // UPDATE
 
 func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
-	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
-	)
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
 
@@ -239,7 +236,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	case spinner.TickMsg:
 		if !m.loaded.done() || m.loadingFromNetwork || m.state == stashStateLoadingDocument {
-			m.spinner, cmd = spinner.Update(msg, m.spinner)
+			newSpinnerModel, cmd := spinner.Update(msg, m.spinner)
+			m.spinner = newSpinnerModel
 			cmds = append(cmds, cmd)
 		}
 
@@ -297,12 +295,12 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				md := m.selectedMarkdown()
 
 				if md.markdownType == localFile {
-					cmd = loadLocalMarkdown(md)
+					cmds = append(cmds, loadLocalMarkdown(md))
 				} else {
-					cmd = loadRemoteMarkdown(m.cc, md.ID, md.markdownType)
+					cmds = append(cmds, loadRemoteMarkdown(m.cc, md.ID, md.markdownType))
 				}
 
-				cmds = append(cmds, cmd, spinner.Tick(m.spinner))
+				cmds = append(cmds, spinner.Tick(m.spinner))
 
 			// Set note
 			case "m":
@@ -331,7 +329,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 		// Update paginator
-		m.paginator, cmd = paginator.Update(msg, m.paginator)
+		newPaginatorModel, cmd := paginator.Update(msg, m.paginator)
+		m.paginator = newPaginatorModel
 		cmds = append(cmds, cmd)
 
 		// Keep the index in bounds when paginating
@@ -390,7 +389,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				// Set new note
 				md := m.selectedMarkdown()
 				newNote := m.noteInput.Value()
-				cmd = saveDocumentNote(m.cc, md.ID, newNote)
+				cmd := saveDocumentNote(m.cc, md.ID, newNote)
 				md.Note = newNote
 				m.noteInput.Reset()
 				m.state = stashStateReady
@@ -399,7 +398,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 		// Update the text input component used to set notes
-		m.noteInput, cmd = textinput.Update(msg, m.noteInput)
+		newNoteInputModel, cmd := textinput.Update(msg, m.noteInput)
+		m.noteInput = newNoteInputModel
 		cmds = append(cmds, cmd)
 
 	}

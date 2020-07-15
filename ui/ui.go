@@ -157,13 +157,9 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
-	)
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q":
@@ -185,24 +181,24 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 			// Special cases for the pager
 			case stateShowDocument:
-				var cmds []tea.Cmd
+				var batch []tea.Cmd
 				if m.pager.state == pagerStateBrowse {
 					// If the user is just browing a document, exit the pager.
 					m.unloadDocument()
 					if m.pager.viewport.HighPerformanceRendering {
-						cmds = append(cmds, tea.ClearScrollArea)
+						batch = append(batch, tea.ClearScrollArea)
 					}
 					if !m.stash.loaded.done() || m.stash.loadingFromNetwork {
-						cmds = append(cmds, spinner.Tick(m.stash.spinner))
+						batch = append(batch, spinner.Tick(m.stash.spinner))
 					}
 				} else {
 					// Otherwise send these key messages through to pager for
 					// processing
 					newPagerModel, cmd := pagerUpdate(msg, m.pager)
 					m.pager = newPagerModel
-					cmds = append(cmds, cmd)
+					cmds = append(batch, cmd)
 				}
-				return m, tea.Batch(cmds...)
+				return m, tea.Batch(batch...)
 			}
 
 			return m, tea.Quit
@@ -309,11 +305,13 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	switch m.state {
 
 	case stateShowStash:
-		m.stash, cmd = stashUpdate(msg, m.stash)
+		newStashModel, cmd := stashUpdate(msg, m.stash)
+		m.stash = newStashModel
 		cmds = append(cmds, cmd)
 
 	case stateShowDocument:
-		m.pager, cmd = pagerUpdate(msg, m.pager)
+		newPagerModel, cmd := pagerUpdate(msg, m.pager)
+		m.pager = newPagerModel
 		cmds = append(cmds, cmd)
 	}
 
@@ -365,10 +363,7 @@ func findLocalFiles() tea.Msg {
 	}
 
 	ch := gitcha.FindFileFromList(cwd, []string{"*.md"})
-	return initLocalFileSearchMsg{
-		ch:  ch,
-		cwd: cwd,
-	}
+	return initLocalFileSearchMsg{ch: ch, cwd: cwd}
 }
 
 func findNextLocalFile(m model) tea.Cmd {
