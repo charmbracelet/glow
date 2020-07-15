@@ -146,16 +146,18 @@ func (m stashModel) selectedMarkdown() *markdown {
 
 // addDocuments adds markdown documents to the model
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
-	m.markdowns = append(m.markdowns, mds...)
-	sort.Sort(markdownsByLocalFirst(m.markdowns))
-	m.paginator.SetTotalPages(len(m.markdowns))
+	if len(mds) > 0 {
+		m.markdowns = append(m.markdowns, mds...)
+		sort.Sort(markdownsByLocalFirst(m.markdowns))
+		m.paginator.SetTotalPages(len(m.markdowns))
+	}
 }
 
 // INIT
 
 func newStashModel() stashModel {
 	s := spinner.NewModel()
-	s.Frames = spinner.Dot
+	s.Frames = spinner.Line
 	s.ForegroundColor = common.SpinnerColor
 
 	p := paginator.NewModel()
@@ -313,7 +315,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		// Keep the index in bounds when paginating
 		itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
 		if m.index > itemsOnPage-1 {
-			m.index = itemsOnPage - 1
+			m.index = max(0, itemsOnPage-1)
 		}
 
 		// If we're on the last page and we haven't loaded everything, get
