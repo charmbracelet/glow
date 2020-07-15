@@ -11,7 +11,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
-	"github.com/charmbracelet/charm/ui/keygen"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
 )
@@ -49,6 +48,8 @@ func NewProgram(style string, cfg UIConfig) *tea.Program {
 type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
+type keygenFailedMsg struct{}
+type keygenSuccessMsg struct{}
 type initLocalFileSearchMsg struct {
 	cwd string
 	ch  chan string
@@ -90,7 +91,6 @@ func (s state) String() string {
 type model struct {
 	cc             *charm.Client
 	user           *charm.User
-	keygen         keygen.Model
 	keygenState    keygenState
 	state          state
 	err            error
@@ -243,15 +243,26 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		// If we haven't run the keygen yet, do that
 		if m.keygenState != keygenFinished {
 			m.keygenState = keygenRunning
-			m.keygen = keygen.NewModel()
-			cmds = append(cmds, keygen.GenerateKeys)
+			cmds = append(cmds, generateSSHKeys)
 		} else {
-			// The keygen didn't work and we can't auth
-			m.err = errors.New("SSH authentication failed")
-			return m, tea.Quit
+			// The keygen ran but things still didn't work and we can't auth
+			m.err = errors.New("SSH authentication failed; we tried ssh-agent, loading keys from disk, and generating SSH keys")
+
+			// Even though it failed, news/stash loading is finished
+			m.stash.loaded |= loadedStash | loadedNews
+			m.stash.loadingFromNetwork = false
 		}
 
-	case keygen.DoneMsg:
+	case keygenFailedMsg:
+		// Keygen failed. That sucks.
+		m.err = errors.New("could not authenticate; could not generate SSH keys")
+		m.keygenState = keygenFinished
+
+		// Even though it failed, news/stash loading is finished
+		m.stash.loaded |= loadedStash | loadedNews
+		m.stash.loadingFromNetwork = false
+
+	case keygenSuccessMsg:
 		// The keygen's done, so let's try initializing the charm client again
 		m.keygenState = keygenFinished
 		cmds = append(cmds, newCharmClient)
@@ -277,18 +288,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	case contentRenderedMsg:
 		m.state = stateShowDocument
 
-	}
-
-	// Process keygen
-	if m.keygenState == keygenRunning {
-		mdl, cmd := keygen.Update(msg, tea.Model(m.keygen))
-		keygenModel, ok := mdl.(keygen.Model)
-		if !ok {
-			m.err = errors.New("could not perform assertion on keygen model in main update")
-			return m, tea.Quit
-		}
-		m.keygen = keygenModel
-		cmds = append(cmds, cmd)
 	}
 
 	// Process children
@@ -403,6 +402,14 @@ func loadNews(m stashModel) tea.Cmd {
 		}
 		return gotNewsMsg(news)
 	}
+}
+
+func generateSSHKeys() tea.Msg {
+	_, err := charm.NewSSHKeyPair()
+	if err != nil {
+		return keygenFailedMsg{}
+	}
+	return keygenSuccessMsg{}
 }
 
 // ETC
