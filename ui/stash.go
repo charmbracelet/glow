@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -31,8 +30,6 @@ const (
 
 // MSG
 
-type gotStashMsg []*charm.Markdown
-type gotNewsMsg []*charm.Markdown
 type fetchedMarkdownMsg *markdown
 type deletedStashedItemMsg int
 
@@ -80,23 +77,10 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 type stashState int
 
 const (
-	stashStateInit stashState = iota
-	stashStateReady
+	stashStateReady stashState = iota
 	stashStatePromptDelete
 	stashStateLoadingDocument
 	stashStateSettingNote
-)
-
-type stashLoadedState byte
-
-func (s stashLoadedState) done() bool {
-	return s&loadedStash != 0 && s&loadedNews != 0
-}
-
-const (
-	loadedStash stashLoadedState = 1 << iota
-	loadedNews
-	loadedLocalFiles
 )
 
 type stashModel struct {
@@ -107,12 +91,11 @@ type stashModel struct {
 	noteInput      textinput.Model
 	terminalWidth  int
 	terminalHeight int
-	loaded         stashLoadedState // what's loaded? we find out with bitmasking
-	loading        bool             // are we currently loading something?
-	fullyLoaded    bool             // Have we loaded everything from the server?
-	hasStash       bool             // do we have stashed files to show?
-	hasLocalFiles  bool             // do we have local files to show?
-	hasNews        bool             // do we have news to show?
+	loading        bool // are we currently loading something?
+	fullyLoaded    bool // Have we loaded everything from the server?
+	hasStash       bool // do we have stashed files to show?
+	hasLocalFiles  bool // do we have local files to show?
+	hasNews        bool // do we have news to show?
 
 	// This is just the index of the current page in view. To get the index
 	// of the selected item as it relates to the full set of documents we've
@@ -154,10 +137,11 @@ func (m stashModel) markdownIndex() int {
 
 // return the current selected markdown in the stash
 func (m stashModel) selectedMarkdown() *markdown {
-	if len(m.markdowns) == 0 || len(m.markdowns) <= m.markdownIndex() {
+	i := m.markdownIndex()
+	if i < 0 || len(m.markdowns) == 0 || len(m.markdowns) <= i {
 		return nil
 	}
-	return m.markdowns[m.markdownIndex()]
+	return m.markdowns[i]
 }
 
 // addDocuments adds markdown documents to the model
@@ -189,6 +173,7 @@ func newStashModel() stashModel {
 		noteInput: ni,
 		page:      1,
 		paginator: p,
+		loading:   true,
 	}
 
 	return m
@@ -204,10 +189,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	// We're finished searching for local files
-	case localFileSearchFinished:
-		m.loaded |= loadedLocalFiles
-
 	// Stash results have come in from the server
 	case gotStashMsg:
 		m.loading = false
@@ -221,11 +202,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			m.hasStash = true
 		}
 
-		m.loaded |= loadedStash
-		if m.loaded.done() {
-			m.state = stashStateReady
-		}
-
 	// News has come in from the server
 	case gotNewsMsg:
 		if len(msg) > 0 {
@@ -234,18 +210,13 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			m.hasNews = true
 		}
 
-		m.loaded |= loadedNews
-		if m.loaded.done() {
-			m.state = stashStateReady
-		}
-
 	case spinner.TickMsg:
-		if m.state == stashStateInit || m.state == stashStateLoadingDocument {
+		if m.state == stashStateLoadingDocument {
 			m.spinner, cmd = spinner.Update(msg, m.spinner)
 			cmds = append(cmds, cmd)
 		}
 
-	// A note was set on a document. This may have happened in the pager, so
+	// A note was set on a document. This may have happened in the pager so
 	// we'll find the corresponding document here and update accordingly.
 	case noteSavedMsg:
 		for i := range m.markdowns {
@@ -420,15 +391,9 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 func stashView(m stashModel) string {
 	var s string
 	switch m.state {
-	case stashStateInit:
-		s += " " + spinner.View(m.spinner) + " Loading stash..."
 	case stashStateLoadingDocument:
 		s += " " + spinner.View(m.spinner) + " Loading document..."
-	case stashStateReady:
-		fallthrough
-	case stashStateSettingNote:
-		fallthrough
-	case stashStatePromptDelete:
+	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
 
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
@@ -529,9 +494,13 @@ func stashPopulatedView(m stashModel) string {
 func stashHelpView(m stashModel) string {
 	var (
 		h         []string
-		md        = m.selectedMarkdown()
-		isStashed = md != nil && md.markdownType == stashedMarkdown
+		isStashed bool
 	)
+
+	if len(m.markdowns) > 0 {
+		md := m.selectedMarkdown()
+		isStashed = md != nil && md.markdownType == stashedMarkdown
+	}
 
 	if m.state == stashStateSettingNote {
 		h = append(h, "enter: confirm", "esc: cancel")
@@ -619,30 +588,6 @@ func wrapMarkdowns(t markdownType, md []*charm.Markdown) (m []*markdown) {
 		})
 	}
 	return m
-}
-
-// Convert path to local file to Markdown. Note that we could be doing things
-// like checking if the file is a directory, but we trust that gitcha has
-// already done that.
-func localFileToMarkdown(cwd, path string) (*markdown, error) {
-	md := &markdown{
-		markdownType: localFile,
-		localPath:    path,
-		Markdown:     &charm.Markdown{},
-	}
-
-	// Strip absolute path
-	md.Markdown.Note = strings.Replace(path, cwd+"/", "", -1)
-
-	// Get last modified time
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	t := info.ModTime()
-	md.CreatedAt = &t
-
-	return md, nil
 }
 
 func truncate(str string, num int) string {

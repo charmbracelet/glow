@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
@@ -55,17 +54,38 @@ type initLocalFileSearchMsg struct {
 }
 type foundLocalFileMsg string
 type localFileSearchFinished struct{}
+type gotStashMsg []*charm.Markdown
+type gotNewsMsg []*charm.Markdown
 
 // MODEL
+
+type loadedState byte
+
+const (
+	loadedStash loadedState = 1 << iota
+	loadedNews
+	loadedLocalFiles
+)
+
+func (s loadedState) done() bool {
+	return s&loadedStash != 0 &&
+		s&loadedNews != 0 &&
+		s&loadedLocalFiles != 0
+}
 
 type state int
 
 const (
-	stateInitCharmClient state = iota
-	stateKeygenRunning
-	stateKeygenFinished
-	stateShowStash
+	stateShowStash state = iota
 	stateShowDocument
+)
+
+type keygenState int
+
+const (
+	keygenUnstarted keygenState = iota
+	keygenRunning
+	keygenFinished
 )
 
 // String translates the staus to a human-readable string. This is just for
@@ -83,15 +103,16 @@ func (s state) String() string {
 type model struct {
 	cc             *charm.Client
 	user           *charm.User
-	spinner        spinner.Model
 	keygen         keygen.Model
+	keygenState    keygenState
 	state          state
 	err            error
 	stash          stashModel
 	pager          pagerModel
 	terminalWidth  int
 	terminalHeight int
-	cwd            string // directory from which we're running Glow
+	cwd            string      // directory from which we're running Glow
+	loaded         loadedState // what's loaded? we find out with bitmasking
 
 	// Channel that receives paths to local markdown files
 	// (via the github.com/muesli/gitcha package)
@@ -109,10 +130,6 @@ func (m *model) unloadDocument() {
 
 func initialize(style string) func() (tea.Model, tea.Cmd) {
 	return func() (tea.Model, tea.Cmd) {
-		s := spinner.NewModel()
-		s.Frames = spinner.Dot
-		s.ForegroundColor = common.SpinnerColor
-
 		if style == "auto" {
 			dbg := te.HasDarkBackground()
 			if dbg == true {
@@ -123,14 +140,13 @@ func initialize(style string) func() (tea.Model, tea.Cmd) {
 		}
 
 		return model{
-				spinner: s,
-				stash:   newStashModel(),
-				pager:   newPagerModel(style),
-				state:   stateInitCharmClient,
+				stash:       newStashModel(),
+				pager:       newPagerModel(style),
+				state:       stateShowStash,
+				keygenState: keygenUnstarted,
 			}, tea.Batch(
 				findLocalFiles,
 				newCharmClient,
-				spinner.Tick(s),
 			)
 	}
 }
@@ -234,10 +250,14 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		}
 		cmds = append(cmds, findNextLocalFile(m))
 
+	// We're finished searching for local files
+	case localFileSearchFinished:
+		m.loaded |= loadedLocalFiles
+
 	case sshAuthErrMsg:
 		// If we haven't run the keygen yet, do that
-		if m.state != stateKeygenFinished {
-			m.state = stateKeygenRunning
+		if m.keygenState != keygenFinished {
+			m.keygenState = keygenRunning
 			m.keygen = keygen.NewModel()
 			cmds = append(cmds, keygen.GenerateKeys)
 		} else {
@@ -246,24 +266,10 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-	case spinner.TickMsg:
-		switch m.state {
-		case stateInitCharmClient:
-			m.spinner, cmd = spinner.Update(msg, m.spinner)
-		}
-		cmds = append(cmds, cmd)
-
 	case keygen.DoneMsg:
 		// The keygen's done, so let's try initializing the charm client again
-		m.state = stateKeygenFinished
+		m.keygenState = keygenFinished
 		cmds = append(cmds, newCharmClient)
-
-	case noteSavedMsg:
-		// A note was saved to a document. This will have be done in the
-		// pager, so we'll need to find the corresponding note in the stash.
-		// So, pass the message to the stash for processing.
-		m.stash, cmd = stashUpdate(msg, m.stash)
-		cmds = append(cmds, cmd)
 
 	case newCharmClientMsg:
 		m.cc = msg
@@ -271,6 +277,19 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		m.stash.cc = msg
 		m.pager.cc = msg
 		cmds = append(cmds, loadStash(m.stash), loadNews(m.stash))
+
+	case gotStashMsg:
+		m.loaded |= loadedStash
+
+	case gotNewsMsg:
+		m.loaded |= loadedNews
+
+	case noteSavedMsg:
+		// A note was saved to a document. This will have be done in the
+		// pager, so we'll need to find the corresponding note in the stash.
+		// So, pass the message to the stash for processing.
+		m.stash, cmd = stashUpdate(msg, m.stash)
+		cmds = append(cmds, cmd)
 
 	case fetchedMarkdownMsg:
 		m.pager.currentDocument = msg
@@ -281,10 +300,8 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	}
 
-	switch m.state {
-
-	case stateKeygenRunning:
-		// Process keygen
+	// Process keygen
+	if m.keygenState == keygenRunning {
 		mdl, cmd := keygen.Update(msg, tea.Model(m.keygen))
 		keygenModel, ok := mdl.(keygen.Model)
 		if !ok {
@@ -293,14 +310,16 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		}
 		m.keygen = keygenModel
 		cmds = append(cmds, cmd)
+	}
+
+	// Process children
+	switch m.state {
 
 	case stateShowStash:
-		// Process stash
 		m.stash, cmd = stashUpdate(msg, m.stash)
 		cmds = append(cmds, cmd)
 
 	case stateShowDocument:
-		// Process pager
 		m.pager, cmd = pagerUpdate(msg, m.pager)
 		cmds = append(cmds, cmd)
 	}
@@ -324,12 +343,6 @@ func view(mdl tea.Model) string {
 	var s string
 
 	switch m.state {
-	case stateInitCharmClient:
-		s += spinner.View(m.spinner) + " Initializing..."
-	case stateKeygenRunning:
-		s += keygen.View(m.keygen)
-	case stateKeygenFinished:
-		s += spinner.View(m.spinner) + " Re-initializing..."
 	case stateShowStash:
 		return stashView(m.stash)
 	case stateShowDocument:
@@ -414,6 +427,30 @@ func loadNews(m stashModel) tea.Cmd {
 }
 
 // ETC
+
+// Convert local file path to Markdown. Note that we could be doing things
+// like checking if the file is a directory, but we trust that gitcha has
+// already done that.
+func localFileToMarkdown(cwd, path string) (*markdown, error) {
+	md := &markdown{
+		markdownType: localFile,
+		localPath:    path,
+		Markdown:     &charm.Markdown{},
+	}
+
+	// Strip absolute path
+	md.Markdown.Note = strings.Replace(path, cwd+"/", "", -1)
+
+	// Get last modified time
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+	t := info.ModTime()
+	md.CreatedAt = &t
+
+	return md, nil
+}
 
 func indent(s string, n int) string {
 	if n <= 0 || s == "" {
