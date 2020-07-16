@@ -341,7 +341,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.state = stashStatePromptDelete
 				}
 
-			case "r":
+			case "!":
 				if m.err != nil && m.state == stashStateReady {
 					m.state = stashStateShowingError
 					return m, nil
@@ -615,7 +615,7 @@ func stashHelpView(m stashModel) string {
 			h = append(h, []string{"x: delete", "m: set memo"}...)
 		}
 		if m.err != nil {
-			h = append(h, []string{"r: errors"}...)
+			h = append(h, []string{"!: errors"}...)
 		}
 		h = append(h, []string{"esc: exit"}...)
 	}
