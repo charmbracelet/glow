@@ -443,7 +443,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 func stashView(m stashModel) string {
 	if m.showError {
-		return errorView(m.err)
+		return errorView(m.err, false)
 	}
 
 	var s string
