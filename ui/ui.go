@@ -172,9 +172,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			case stateShowStash:
 
 				switch m.stash.state {
-				case stashStateSettingNote:
-					fallthrough
-				case stashStatePromptDelete:
+				case stashStateSettingNote, stashStatePromptDelete, stashStateShowingError:
 					m.stash, cmd = stashUpdate(msg, m.stash)
 					return m, cmd
 				}
