@@ -17,10 +17,12 @@ import (
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
 	runewidth "github.com/mattn/go-runewidth"
+	"github.com/muesli/reflow/wordwrap"
 	te "github.com/muesli/termenv"
 )
 
 const (
+	stashIndent                = 1
 	stashViewItemHeight        = 3
 	stashViewTopPadding        = 5
 	stashViewBottomPadding     = 4
@@ -425,6 +427,9 @@ func stashView(m stashModel) string {
 	case stashStateLoadingDocument:
 		s += " " + spinner.View(m.spinner) + " Loading document..."
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
+		var (
+			header string
+		)
 
 		loadingIndicator := ""
 		if !m.loaded.done() || m.loadingFromNetwork {
@@ -439,37 +444,17 @@ func stashView(m stashModel) string {
 			blankLines = strings.Repeat("\n", numBlankLines)
 		}
 
-		localItems := m.countMarkdowns(localMarkdown)
-		stashedItems := m.countMarkdowns(stashedMarkdown)
-
-		var header string
-		if localItems > 0 {
-			var plural string
-			if localItems > 1 {
-				plural = "s"
-			}
-			header += fmt.Sprintf("%d File%s", localItems, plural)
-		}
-		if stashedItems > 0 {
-			var divider string
-			if localItems > 0 {
-				divider = " • "
-			}
-			header += fmt.Sprintf("%s%d Stashed", divider, stashedItems)
-		}
-		header = common.Subtle(header)
-
-		// TODO: show proper help if no stashed items or local items are found
-		// (even if there's news)
-		if localItems == 0 && stashedItems == 0 {
-			header = "Nothing stashed yet. To stash you can " + common.Code("glow stash path/to/file.md") + "."
-		}
-
 		switch m.state {
 		case stashStatePromptDelete:
 			header = redFg("Delete this item? ") + faintRedFg("(y/N)")
 		case stashStateSettingNote:
 			header = yellowFg("Set the memo for this item?")
+		}
+
+		// Only draw the normal header if we're not using the header area for
+		// something else (like a prompt)
+		if header == "" {
+			header = stashHeaderView(m)
 		}
 
 		var pagination string
@@ -492,7 +477,7 @@ func stashView(m stashModel) string {
 			stashHelpView(m),
 		)
 	}
-	return "\n" + indent(s, 1)
+	return "\n" + indent(s, stashIndent)
 }
 
 func glowLogoView(text string) string {
@@ -503,8 +488,49 @@ func glowLogoView(text string) string {
 		String()
 }
 
-func stashEmtpyView(m stashModel) string {
-	return "Nothing stashed yet."
+func stashHeaderView(m stashModel) string {
+	loading := !m.loaded.done()
+	noMarkdowns := len(m.markdowns) == 0
+
+	// Still loading. We haven't found files, stashed items, or news yet.
+	if loading && noMarkdowns {
+		return common.Subtle("Looking for stuff...")
+	}
+
+	// Loading's finished. We didn't find anything, the stash is empty and
+	// there's no news.
+	if !loading && noMarkdowns {
+		s := "Nothing found. Try running " + common.Code("glow") +
+			" in a directory with markdown files, or stashing a file with " +
+			common.Code("glow stash") + ". For more, see " + common.Code("glow help") + "."
+		return wordwrap.String(s, stashIndent)
+	}
+
+	localItems := m.countMarkdowns(localMarkdown)
+	stashedItems := m.countMarkdowns(stashedMarkdown)
+
+	// Loading's finished and all we have is news.
+	if localItems == 0 && stashedItems == 0 {
+		return common.Subtle("No local or stashed markdown files found.")
+	}
+
+	// There are local and/or stashed files, so display counts.
+	var s string
+	if localItems > 0 {
+		var plural string
+		if localItems > 1 {
+			plural = "s"
+		}
+		s += fmt.Sprintf("%d File%s", localItems, plural)
+	}
+	if stashedItems > 0 {
+		var divider string
+		if localItems > 0 {
+			divider = " • "
+		}
+		s += fmt.Sprintf("%s%d Stashed", divider, stashedItems)
+	}
+	return common.Subtle(s)
 }
 
 func stashPopulatedView(m stashModel) string {
