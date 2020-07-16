@@ -93,7 +93,7 @@ type model struct {
 	user           *charm.User
 	keygenState    keygenState
 	state          state
-	err            error
+	fatalErr       error
 	stash          stashModel
 	pager          pagerModel
 	terminalWidth  int
@@ -146,12 +146,12 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	m, ok := mdl.(model)
 	if !ok {
 		return model{
-			err: errors.New("could not perform assertion on model in update"),
+			fatalErr: errors.New("could not perform assertion on model in update"),
 		}, tea.Quit
 	}
 
 	// If there's been an error, any key exits
-	if m.err != nil {
+	if m.fatalErr != nil {
 		if _, ok := msg.(tea.KeyMsg); ok {
 			return m, tea.Quit
 		}
@@ -213,10 +213,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-	case errMsg:
-		m.err = msg
-		return m, nil
-
 	// Window size is received when starting up and on every resize
 	case tea.WindowSizeMsg:
 		m.terminalWidth = msg.Width
@@ -248,7 +244,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, generateSSHKeys)
 		} else {
 			// The keygen ran but things still didn't work and we can't auth
-			m.err = errors.New("SSH authentication failed; we tried ssh-agent, loading keys from disk, and generating SSH keys")
+			m.stash.err = errors.New("SSH authentication failed; we tried ssh-agent, loading keys from disk, and generating SSH keys")
 
 			// Even though it failed, news/stash loading is finished
 			m.stash.loaded |= loadedStash | loadedNews
@@ -257,7 +253,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	case keygenFailedMsg:
 		// Keygen failed. That sucks.
-		m.err = errors.New("could not authenticate; could not generate SSH keys")
+		m.stash.err = errors.New("could not authenticate; could not generate SSH keys")
 		m.keygenState = keygenFinished
 
 		// Even though it failed, news/stash loading is finished
@@ -326,8 +322,8 @@ func view(mdl tea.Model) string {
 		return "could not perform assertion on model in view"
 	}
 
-	if m.err != nil {
-		return "\n" + indent(errorView(m.err), 2)
+	if m.fatalErr != nil {
+		return fatalErrorView(m.fatalErr)
 	}
 
 	var s string
@@ -342,8 +338,8 @@ func view(mdl tea.Model) string {
 	return "\n" + indent(s, 2)
 }
 
-func errorView(err error) string {
-	return fmt.Sprintf("%s\n\n%v\n\n%s",
+func fatalErrorView(err error) string {
+	s := fmt.Sprintf("%s\n\n%v\n\n%s",
 		te.String(" ERROR ").
 			Foreground(common.Cream.Color()).
 			Background(common.Red.Color()).
@@ -351,6 +347,7 @@ func errorView(err error) string {
 		err,
 		common.Subtle("Press any key to exit"),
 	)
+	return "\n" + indent(s, 2)
 }
 
 // COMMANDS

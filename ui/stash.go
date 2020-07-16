@@ -102,6 +102,7 @@ const (
 type stashModel struct {
 	cc                 *charm.Client
 	state              stashState
+	err                error
 	markdowns          []*markdown
 	spinner            spinner.Model
 	noteInput          textinput.Model
@@ -213,6 +214,9 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+
+	case errMsg:
+		m.err = msg
 
 	// We're finished searching for local files
 	case localFileSearchFinished:
@@ -455,6 +459,10 @@ func stashView(m stashModel) string {
 		// something else (like a prompt)
 		if header == "" {
 			header = stashHeaderView(m)
+		}
+
+		if m.err != nil {
+			header = m.err.Error()
 		}
 
 		var pagination string
