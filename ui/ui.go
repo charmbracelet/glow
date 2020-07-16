@@ -323,7 +323,7 @@ func view(mdl tea.Model) string {
 	}
 
 	if m.fatalErr != nil {
-		return fatalErrorView(m.fatalErr)
+		return errorView(m.fatalErr)
 	}
 
 	var s string
@@ -338,7 +338,7 @@ func view(mdl tea.Model) string {
 	return "\n" + indent(s, 2)
 }
 
-func fatalErrorView(err error) string {
+func errorView(err error) string {
 	s := fmt.Sprintf("%s\n\n%v\n\n%s",
 		te.String(" ERROR ").
 			Foreground(common.Cream.Color()).
@@ -347,7 +347,7 @@ func fatalErrorView(err error) string {
 		err,
 		common.Subtle("Press any key to exit"),
 	)
-	return "\n" + indent(s, 2)
+	return "\n" + indent(s, 3)
 }
 
 // COMMANDS

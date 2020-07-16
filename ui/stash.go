@@ -103,6 +103,7 @@ type stashModel struct {
 	cc                 *charm.Client
 	state              stashState
 	err                error
+	showError          bool
 	markdowns          []*markdown
 	spinner            spinner.Model
 	noteInput          textinput.Model
@@ -266,6 +267,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	switch m.state {
 	case stashStateReady:
+
+		// Handle keys
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
 
@@ -338,7 +341,20 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.state = stashStatePromptDelete
 				}
 
+			// Show errors
+			case "r":
+				if m.err != nil && !m.showError {
+					m.showError = true
+					return m, nil
+				}
+
 			}
+
+			// If the error view is visible any key hides it.
+			if m.showError {
+				m.showError = false
+			}
+
 		}
 
 		// Update paginator
@@ -426,6 +442,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 // VIEW
 
 func stashView(m stashModel) string {
+	if m.showError {
+		return errorView(m.err)
+	}
+
 	var s string
 	switch m.state {
 	case stashStateLoadingDocument:
@@ -459,10 +479,6 @@ func stashView(m stashModel) string {
 		// something else (like a prompt)
 		if header == "" {
 			header = stashHeaderView(m)
-		}
-
-		if m.err != nil {
-			header = m.err.Error()
 		}
 
 		var pagination string
@@ -598,6 +614,9 @@ func stashHelpView(m stashModel) string {
 		}
 		if isStashed && len(m.markdowns) > 0 {
 			h = append(h, []string{"x: delete", "m: set memo"}...)
+		}
+		if m.err != nil {
+			h = append(h, []string{"r: errors"}...)
 		}
 		h = append(h, []string{"esc: exit"}...)
 	}
