@@ -607,6 +607,8 @@ func stashHelpView(m stashModel) string {
 	} else {
 		if len(m.markdowns) > 0 {
 			h = append(h, "enter: open")
+		}
+		if len(m.markdowns) > 1 {
 			h = append(h, "j/k, ↑/↓: choose")
 		}
 		if m.paginator.TotalPages > 1 {
