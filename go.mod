@@ -3,7 +3,7 @@ module github.com/charmbracelet/glow
 go 1.13
 
 require (
-	github.com/charmbracelet/bubbles v0.4.1-0.20200717223838-185a19e56f4e
+	github.com/charmbracelet/bubbles v0.4.1-0.20200717232208-b130d9643487
 	github.com/charmbracelet/bubbletea v0.10.0
 	github.com/charmbracelet/charm v0.5.2
 	github.com/charmbracelet/glamour v0.1.1-0.20200521150359-e859bb067c06

@@ -135,6 +135,9 @@ func (m *pagerModel) setContent(s string) {
 func (m *pagerModel) toggleHelp() {
 	m.showHelp = !m.showHelp
 	m.setSize(m.width, m.height)
+	if m.viewport.PastBottom() {
+		m.viewport.GotoBottom()
+	}
 }
 
 func (m *pagerModel) unload() {
