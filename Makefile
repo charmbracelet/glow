@@ -11,9 +11,9 @@ glow:
 	go build
 
 run: clean glow
+	export GLOW_UI_LOGFILE=debug.log
 	./glow
 
 log:
-	GLOW_UI_LOGFILE=debug.log
 	> debug.log
 	tail -f debug.log
