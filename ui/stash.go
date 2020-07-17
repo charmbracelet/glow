@@ -219,6 +219,16 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	case errMsg:
 		m.err = msg
 
+	case stashLoadErrMsg:
+		m.err = msg.err
+		m.loaded |= loadedStash // still done, albeit unsuccessfully
+		m.stashFullyLoaded = true
+		m.loadingFromNetwork = false
+
+	case newsLoadErrMsg:
+		m.err = msg.err
+		m.loaded |= loadedNews // still done, albeit unsuccessfully
+
 	// We're finished searching for local files
 	case localFileSearchFinished:
 		m.loaded |= loadedLocalFiles

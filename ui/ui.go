@@ -37,7 +37,7 @@ func NewProgram(style string, cfg UIConfig) *tea.Program {
 	if config.Logfile != "" {
 		log.Println("-- Starting Glow ----------------")
 		log.Printf("High performance pager: %v", cfg.HighPerformancePager)
-		log.Printf("Render with Glamour: %v", cfg.GlamourEnabled)
+		log.Printf("Glamour rendering: %v", cfg.GlamourEnabled)
 		log.Println("Bubble Tea now initializing...")
 	}
 	return tea.NewProgram(initialize(style), update, view)
@@ -57,7 +57,9 @@ type initLocalFileSearchMsg struct {
 type foundLocalFileMsg string
 type localFileSearchFinished struct{}
 type gotStashMsg []*charm.Markdown
+type stashLoadErrMsg struct{ err error }
 type gotNewsMsg []*charm.Markdown
+type newsLoadErrMsg struct{ err error }
 
 // MODEL
 
@@ -398,7 +400,7 @@ func loadStash(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		stash, err := m.cc.GetStash(m.page)
 		if err != nil {
-			return errMsg(err)
+			return stashLoadErrMsg{err: err}
 		}
 		return gotStashMsg(stash)
 	}
@@ -408,7 +410,7 @@ func loadNews(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		news, err := m.cc.GetNews(1) // just fetch the first page
 		if err != nil {
-			return errMsg(err)
+			return newsLoadErrMsg{err: err}
 		}
 		return gotNewsMsg(news)
 	}
