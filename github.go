@@ -28,18 +28,17 @@ func findGitHubREADME(s string) (*source, error) {
 		return nil, err
 	}
 	u.Host = "raw.githubusercontent.com"
-
+	u.Path += "/master/"
 	for _, r := range readmeNames {
-		v := u
-		v.Path += "/master/" + r
+		v := u.String() + r
 
-		resp, err := http.Get(v.String())
+		resp, err := http.Get(v)
 		if err != nil {
 			return nil, err
 		}
 
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, v.String()}, nil
+			return &source{resp.Body, v}, nil
 		}
 	}
 
