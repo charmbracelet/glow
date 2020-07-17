@@ -132,14 +132,14 @@ func (m *pagerModel) setContent(s string) {
 	m.viewport.SetContent(s)
 }
 
-func (m *pagerModel) toggleHeight() {
+func (m *pagerModel) toggleHelp() {
 	m.showHelp = !m.showHelp
 	m.setSize(m.width, m.height)
 }
 
 func (m *pagerModel) unload() {
 	if m.showHelp {
-		m.toggleHeight()
+		m.toggleHelp()
 	}
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
@@ -197,7 +197,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 				}
 				return m, textinput.Blink(m.textInput)
 			case "?":
-				m.toggleHeight()
+				m.toggleHelp()
 				if m.viewport.HighPerformanceRendering {
 					cmds = append(cmds, viewport.Sync(m.viewport))
 				}
