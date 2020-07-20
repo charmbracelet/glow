@@ -93,8 +93,8 @@ github.com/microcosm-cc/bluemonday v1.0.2/go.mod h1:iVP4YcDBq+n/5fb23BhYFvIMq/le
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
-github.com/muesli/gitcha v0.0.0-20200714001838-c071c3c6c6e1 h1:UhmEuW8xAMA+CdXQgYQ9Iilnhyf+uNYWCJSotCldI7o=
-github.com/muesli/gitcha v0.0.0-20200714001838-c071c3c6c6e1/go.mod h1:o3FpDWpvjmTm4Tzzrgq1ZhtYrplVPSpdgav7+YzaLLs=
+github.com/muesli/gitcha v0.0.0-20200720155539-ccc362df0fe6 h1:0oi9UPRBektS6Fuuu1SnROx++2FHahRWaeGQ+IfTdGU=
+github.com/muesli/gitcha v0.0.0-20200720155539-ccc362df0fe6/go.mod h1:o3FpDWpvjmTm4Tzzrgq1ZhtYrplVPSpdgav7+YzaLLs=
 github.com/muesli/reflow v0.1.0/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
 github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d h1:ok5jhmKQze1yERN73u46EZhUH4vgC1z4qfeFJ8iOwvg=
 github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=

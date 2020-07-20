@@ -52,9 +52,9 @@ type keygenFailedMsg struct{}
 type keygenSuccessMsg struct{}
 type initLocalFileSearchMsg struct {
 	cwd string
-	ch  chan string
+	ch  chan gitcha.SearchResult
 }
-type foundLocalFileMsg string
+type foundLocalFileMsg gitcha.SearchResult
 type localFileSearchFinished struct{}
 type gotStashMsg []*charm.Markdown
 type stashLoadErrMsg struct{ err error }
@@ -104,7 +104,7 @@ type model struct {
 
 	// Channel that receives paths to local markdown files
 	// (via the github.com/muesli/gitcha package)
-	localFileFinder chan string
+	localFileFinder chan gitcha.SearchResult
 }
 
 func (m *model) unloadDocument() {
@@ -231,7 +231,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	// We found a local file
 	case foundLocalFileMsg:
-		pathStr, err := localFileToMarkdown(m.cwd, string(msg))
+		pathStr, err := localFileToMarkdown(m.cwd, gitcha.SearchResult(msg))
 		if err == nil {
 			m.stash.addMarkdowns(pathStr)
 		}
@@ -429,22 +429,18 @@ func generateSSHKeys() tea.Msg {
 // Convert local file path to Markdown. Note that we could be doing things
 // like checking if the file is a directory, but we trust that gitcha has
 // already done that.
-func localFileToMarkdown(cwd, path string) (*markdown, error) {
+func localFileToMarkdown(cwd string, res gitcha.SearchResult) (*markdown, error) {
 	md := &markdown{
 		markdownType: localMarkdown,
-		localPath:    path,
+		localPath:    res.Path,
 		Markdown:     &charm.Markdown{},
 	}
 
 	// Strip absolute path
-	md.Markdown.Note = strings.Replace(path, cwd+"/", "", -1)
+	md.Markdown.Note = strings.Replace(res.Path, cwd+"/", "", -1)
 
 	// Get last modified time
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	t := info.ModTime()
+	t := res.Info.ModTime()
 	md.CreatedAt = &t
 
 	return md, nil
