@@ -70,6 +70,15 @@ const (
 	stateShowDocument
 )
 
+// String translates the staus to a human-readable string. This is just for
+// debugging.
+func (s state) String() string {
+	return [...]string{
+		"showing stash",
+		"showing document",
+	}[s]
+}
+
 type keygenState int
 
 const (
@@ -77,18 +86,6 @@ const (
 	keygenRunning
 	keygenFinished
 )
-
-// String translates the staus to a human-readable string. This is just for
-// debugging.
-func (s state) String() string {
-	return [...]string{
-		"initializing",
-		"running keygen",
-		"keygen finished",
-		"showing stash",
-		"showing document",
-	}[s]
-}
 
 type model struct {
 	cc             *charm.Client
@@ -267,7 +264,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	case newCharmClientMsg:
 		m.cc = msg
-		m.state = stateShowStash
 		m.stash.cc = msg
 		m.pager.cc = msg
 		cmds = append(cmds, loadStash(m.stash), loadNews(m.stash))
