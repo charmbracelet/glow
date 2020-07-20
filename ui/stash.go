@@ -17,6 +17,7 @@ import (
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
 	runewidth "github.com/mattn/go-runewidth"
+	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/wordwrap"
 	te "github.com/muesli/termenv"
 )
@@ -491,6 +492,13 @@ func stashView(m stashModel) string {
 		var pagination string
 		if m.paginator.TotalPages > 1 {
 			pagination = paginator.View(m.paginator)
+
+			// If the dot pagination is wider than the width of the window
+			// switch to the arabic paginator.
+			if ansi.PrintableRuneWidth(pagination) > m.terminalWidth-stashViewHorizontalPadding {
+				m.paginator.Type = paginator.Arabic
+				pagination = common.Subtle(paginator.View(m.paginator))
+			}
 
 			if !m.stashFullyLoaded {
 				pagination += common.Subtle(" ···")
