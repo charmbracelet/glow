@@ -283,9 +283,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
 
-			case "k":
-				fallthrough
-			case "up":
+			case "k", "up":
 				m.index--
 				if m.index < 0 && m.paginator.Page == 0 {
 					// Stop
@@ -296,9 +294,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.index = m.paginator.ItemsOnPage(len(m.markdowns)) - 1
 				}
 
-			case "j":
-				fallthrough
-			case "down":
+			case "j", "down":
 				itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
 				m.index++
 				if m.index >= itemsOnPage && m.paginator.OnLastPage() {
@@ -361,7 +357,9 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			}
 		}
 
-		// Update paginator
+		// Update paginator. Pagination key handling is done here, but it could
+		// also be moved up to this level, in which case we'd use model methods
+		// like model.PageUp().
 		newPaginatorModel, cmd := paginator.Update(msg, m.paginator)
 		m.paginator = newPaginatorModel
 		cmds = append(cmds, cmd)
