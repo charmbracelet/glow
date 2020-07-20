@@ -6,9 +6,12 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/charm"
+	"github.com/mattn/go-runewidth"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -51,13 +54,31 @@ var (
 			cc := initCharmClient()
 			mds, err := cc.GetStash(1)
 			if err != nil {
-				return fmt.Errorf("error getting stash")
+				return fmt.Errorf("error getting stash: " + err.Error())
 			}
-			fmt.Println("ID\tNote")
-			fmt.Println("--\t----")
+
+			const gap = " "
+			const gapWidth = len(gap)
+			numDigits := len(fmt.Sprintf("%d", len(mds)))
+			termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
+			if err != nil {
+				return err
+			}
+			noteColWidth := termWidth - numDigits - gapWidth
+
+			// Header
+			fmt.Println("ID" + gap + "Note")
+			fmt.Println(strings.Repeat("─", numDigits) + gap + strings.Repeat("─", noteColWidth))
+
+			// Body
 			for _, md := range mds {
-				fmt.Printf("%d\t%s\n", md.ID, md.Note)
+				fmt.Printf("%"+fmt.Sprintf("%d", numDigits)+".d%s%s\n",
+					md.ID,
+					gap,
+					runewidth.Truncate(md.Note, noteColWidth, "…"),
+				)
 			}
+
 			return nil
 		},
 	}
