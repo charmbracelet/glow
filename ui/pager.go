@@ -179,9 +179,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 			}
 		default:
 			switch msg.String() {
-			case "q":
-				fallthrough
-			case "esc":
+			case "q", "esc":
 				if m.state != pagerStateBrowse {
 					m.state = pagerStateBrowse
 					return m, nil
@@ -194,7 +192,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 
 				m.state = pagerStateSetNote
 				if m.textInput.Value() == "" {
-					// Pre-populate with existing value
+					// Pre-populate note with existing value
 					m.textInput.SetValue(m.currentDocument.Note)
 					m.textInput.CursorEnd()
 				}

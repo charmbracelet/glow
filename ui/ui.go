@@ -104,11 +104,22 @@ type model struct {
 	localFileFinder chan gitcha.SearchResult
 }
 
-func (m *model) unloadDocument() {
+// unloadDocument unloads a document from the pager. Note that while this
+// method alters the model we also need to send along any commands returned.
+func (m *model) unloadDocument() []tea.Cmd {
 	m.state = stateShowStash
 	m.stash.state = stashStateReady
 	m.pager.unload()
 	m.pager.showHelp = false
+
+	var batch []tea.Cmd
+	if m.pager.viewport.HighPerformanceRendering {
+		batch = append(batch, tea.ClearScrollArea)
+	}
+	if !m.stash.loaded.done() || m.stash.loadingFromNetwork {
+		batch = append(batch, spinner.Tick(m.stash.spinner))
+	}
+	return batch
 }
 
 // INIT
@@ -161,9 +172,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q":
-			fallthrough
-		case "esc":
+		case "q", "esc":
 			var cmd tea.Cmd
 
 			// Send these keys through to stash
@@ -181,13 +190,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 				var batch []tea.Cmd
 				if m.pager.state == pagerStateBrowse {
 					// If the user is just browing a document, exit the pager.
-					m.unloadDocument()
-					if m.pager.viewport.HighPerformanceRendering {
-						batch = append(batch, tea.ClearScrollArea)
-					}
-					if !m.stash.loaded.done() || m.stash.loadingFromNetwork {
-						batch = append(batch, spinner.Tick(m.stash.spinner))
-					}
+					batch = m.unloadDocument()
 				} else {
 					// Otherwise send these key messages through to pager for
 					// processing
@@ -199,6 +202,11 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			}
 
 			return m, tea.Quit
+
+		case "left", "h", "delete":
+			if m.state == stateShowDocument && m.pager.state == pagerStateBrowse {
+				cmds = append(cmds, m.unloadDocument()...)
+			}
 
 		// Ctrl+C always quits no matter where in the application you are.
 		case "ctrl+c":
