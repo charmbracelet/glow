@@ -16,11 +16,12 @@ github.com/calmh/randomart v1.1.0 h1:evl+iwc10LXtHdMZhzLxmsCQVmWnkXs44SbC6Uk0Il8
 github.com/calmh/randomart v1.1.0/go.mod h1:DQUbPVyP+7PAs21w/AnfMKG5NioxS3TbZ2F9MSK/jFM=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/charmbracelet/bubbles v0.4.0/go.mod h1:yhk6OKN3haEO3i/vYQVrvbPamvOPo2dVavWfbpsuUjg=
-github.com/charmbracelet/bubbles v0.4.1-0.20200717232208-b130d9643487 h1:12MHTHjB26n5aVYw9NpJo2KTRFSn/UlpvlXNQW7aBuA=
-github.com/charmbracelet/bubbles v0.4.1-0.20200717232208-b130d9643487/go.mod h1:yhk6OKN3haEO3i/vYQVrvbPamvOPo2dVavWfbpsuUjg=
+github.com/charmbracelet/bubbles v0.4.1-0.20200720155635-88469a499e1a h1:Saz5ZuA/YfFjTM8Tk2KfAUPDutSIsU+GbSykL4LWUS0=
+github.com/charmbracelet/bubbles v0.4.1-0.20200720155635-88469a499e1a/go.mod h1:yhk6OKN3haEO3i/vYQVrvbPamvOPo2dVavWfbpsuUjg=
 github.com/charmbracelet/bubbletea v0.9.1-0.20200713153904-2f53eeb54b90/go.mod h1:wjGGC5pyYvpuls0so+w4Zv+aZQW7RoPvsi9UBcDlSl8=
-github.com/charmbracelet/bubbletea v0.10.0 h1:rzbxI+eWoVuQ3Z7wOlefmxGtcxYr46Lu0fqIKYCZg7s=
 github.com/charmbracelet/bubbletea v0.10.0/go.mod h1:wjGGC5pyYvpuls0so+w4Zv+aZQW7RoPvsi9UBcDlSl8=
+github.com/charmbracelet/bubbletea v0.10.1-0.20200720155027-2ee871862a49 h1:cc2ntD1GuEeaXZ/rweyMZnHYbi3VYPkeGhvVpNJUYQo=
+github.com/charmbracelet/bubbletea v0.10.1-0.20200720155027-2ee871862a49/go.mod h1:wjGGC5pyYvpuls0so+w4Zv+aZQW7RoPvsi9UBcDlSl8=
 github.com/charmbracelet/charm v0.5.2 h1:cgqc1LJuPwVTzZFD3CczgyxUC0oAkHSqnkUxIHUb+yc=
 github.com/charmbracelet/charm v0.5.2/go.mod h1:tpIHCBAc6qk1zl/uSuYMKDmKtEro7XJxe38P0tFyR54=
 github.com/charmbracelet/glamour v0.1.1-0.20200521150359-e859bb067c06 h1:FR5F7kH6i4Jm0+5ypNWWFKVcH07hIO3aGNuDXnOdWqY=
@@ -99,8 +100,8 @@ github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d h1:ok5jhmKQze1yERN
 github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
 github.com/muesli/termenv v0.5.2/go.mod h1:O1/I6sw+6KcrgAmcs6uiUVr7Lui+DNVbHTzt9Lm/PlI=
 github.com/muesli/termenv v0.5.3-0.20200625163851-04b5c30e4c04/go.mod h1:O1/I6sw+6KcrgAmcs6uiUVr7Lui+DNVbHTzt9Lm/PlI=
-github.com/muesli/termenv v0.5.3-0.20200715143749-3facc679bc62 h1:W1+qXP5nmjE+c6IG2xQGs1tUit2NZXAKqBiYM4zf/vg=
-github.com/muesli/termenv v0.5.3-0.20200715143749-3facc679bc62/go.mod h1:SohX91w6swWA4AYU+QmPx+aSgXhWO0juiyID9UZmbpA=
+github.com/muesli/termenv v0.6.0 h1:zxvzTBmo4ZcxhNGGWeMz+Tttm51eF5bmPjfy4MCRYlk=
+github.com/muesli/termenv v0.6.0/go.mod h1:SohX91w6swWA4AYU+QmPx+aSgXhWO0juiyID9UZmbpA=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/olekukonko/tablewriter v0.0.4 h1:vHD/YYe1Wolo78koG299f7V/VAS08c6IpCLn+Ejf/w8=
