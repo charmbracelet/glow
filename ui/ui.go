@@ -196,7 +196,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 					// processing
 					newPagerModel, cmd := pagerUpdate(msg, m.pager)
 					m.pager = newPagerModel
-					cmds = append(batch, cmd)
+					batch = append(batch, cmd)
 				}
 				return m, tea.Batch(batch...)
 			}
