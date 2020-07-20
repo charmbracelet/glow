@@ -556,11 +556,7 @@ func stashHeaderView(m stashModel) string {
 	// There are local and/or stashed files, so display counts.
 	var s string
 	if localItems > 0 {
-		var plural string
-		if localItems > 1 {
-			plural = "s"
-		}
-		s += fmt.Sprintf("%d File%s", localItems, plural)
+		s += fmt.Sprintf("%d Local", localItems)
 	}
 	if stashedItems > 0 {
 		var divider string
