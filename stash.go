@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/charm"
+	"github.com/charmbracelet/charm/ui/common"
 	"github.com/mattn/go-runewidth"
+	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -39,7 +41,8 @@ var (
 			if err != nil {
 				return fmt.Errorf("error stashing markdown")
 			}
-			fmt.Println("Stashed!")
+			dot := termenv.String("•").Foreground(common.Green.Color()).String()
+			fmt.Println(dot + " Stashed!")
 			return nil
 		},
 	}
