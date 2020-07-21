@@ -216,6 +216,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		case "left", "h", "delete":
 			if m.state == stateShowDocument && m.pager.state == pagerStateBrowse {
 				cmds = append(cmds, m.unloadDocument()...)
+				return m, tea.Batch(cmds...)
 			}
 
 		// Ctrl+C always quits no matter where in the application you are.
