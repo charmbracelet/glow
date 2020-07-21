@@ -364,6 +364,18 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		m.paginator = newPaginatorModel
 		cmds = append(cmds, cmd)
 
+		// Extra paginator keystrokes
+		if key, ok := msg.(tea.KeyMsg); ok {
+			if key.Type == tea.KeyRune {
+				switch key.Rune {
+				case 'b':
+					m.paginator.PrevPage()
+				case 'f':
+					m.paginator.NextPage()
+				}
+			}
+		}
+
 		// Keep the index in bounds when paginating
 		itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
 		if m.index > itemsOnPage-1 {
