@@ -643,7 +643,7 @@ func stashHelpView(m stashModel) string {
 		if m.err != nil {
 			h = append(h, []string{"!: errors"}...)
 		}
-		h = append(h, []string{"esc: exit"}...)
+		h = append(h, []string{"q: quit"}...)
 	}
 	return common.HelpView(h...)
 }
