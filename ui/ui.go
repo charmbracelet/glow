@@ -187,18 +187,28 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 			// Special cases for the pager
 			case stateShowDocument:
-				var batch []tea.Cmd
-				if m.pager.state == pagerStateBrowse {
-					// If the user is just browing a document, exit the pager.
-					batch = m.unloadDocument()
-				} else {
-					// Otherwise send these key messages through to pager for
-					// processing
+				switch m.pager.state {
+
+				// If browsing, these keys have special cases
+				case pagerStateBrowse:
+					switch msg.String() {
+					case "q":
+						return m, tea.Quit
+					case "esc":
+						var batch []tea.Cmd
+						batch = m.unloadDocument()
+						return m, tea.Batch(batch...)
+					}
+
+				// If setting a note send all keys straight through
+				case pagerStateSetNote:
+					var batch []tea.Cmd
 					newPagerModel, cmd := pagerUpdate(msg, m.pager)
 					m.pager = newPagerModel
 					batch = append(batch, cmd)
+					return m, tea.Batch(batch...)
 				}
-				return m, tea.Batch(batch...)
+
 			}
 
 			return m, tea.Quit
