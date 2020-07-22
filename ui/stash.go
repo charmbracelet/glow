@@ -74,7 +74,17 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 	}
 
 	// Both or neither are local files so sort by date descending
-	return m[i].CreatedAt.After(*m[j].CreatedAt)
+	if !m[i].CreatedAt.Equal(*m[j].CreatedAt) {
+		return m[i].CreatedAt.After(*m[j].CreatedAt)
+	}
+
+	// If the timestamps also match, sort by ID/path
+	if iType != localMarkdown {
+		// non-local items have an ID
+		return m[i].ID > m[j].ID
+	}
+
+	return strings.Compare(m[i].localPath, m[j].localPath) == -1
 }
 
 type loadedState byte
