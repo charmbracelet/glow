@@ -183,7 +183,7 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	// initialize glamour
 	var gs glamour.TermRendererOption
 	if style == "auto" {
-		gs = glamour.WithAutoStyle()
+		gs = glamour.WithEnvironmentConfig()
 	} else {
 		gs = glamour.WithStylePath(style)
 	}
