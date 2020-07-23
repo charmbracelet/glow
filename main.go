@@ -185,7 +185,11 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	if style == "auto" {
 		gs = glamour.WithAutoStyle()
 	} else {
-		gs = glamour.WithStylePath(style)
+		if len(style) > 0 {
+			gs = glamour.WithStylePath(style)
+		} else {
+			gs = glamour.WithEnvironmentConfig()
+		}
 	}
 
 	r, err := glamour.NewTermRenderer(
