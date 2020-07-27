@@ -296,5 +296,5 @@ func init() {
 
 	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
-	rootCmd.AddCommand(stashCmd, stashListCmd, stashGetCmd, stashDeleteCmd)
+	rootCmd.AddCommand(stashCmd)
 }

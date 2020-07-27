@@ -5,15 +5,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
-	"strings"
 
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
-	"github.com/mattn/go-runewidth"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -43,87 +39,6 @@ var (
 			}
 			dot := termenv.String("•").Foreground(common.Green.Color()).String()
 			fmt.Println(dot + " Stashed!")
-			return nil
-		},
-	}
-
-	stashListCmd = &cobra.Command{
-		Use:    "stash-list",
-		Hidden: false,
-		Short:  "list your stashed markdowns",
-		Long:   "",
-		Args:   cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cc := initCharmClient()
-			mds, err := cc.GetStash(1)
-			if err != nil {
-				return fmt.Errorf("error getting stash: " + err.Error())
-			}
-
-			const gap = " "
-			const gapWidth = len(gap)
-			numDigits := len(fmt.Sprintf("%d", len(mds)))
-			termWidth, _, err := terminal.GetSize(int(os.Stdout.Fd()))
-			if err != nil {
-				return err
-			}
-			noteColWidth := termWidth - numDigits - gapWidth
-
-			// Header
-			fmt.Println("ID" + gap + "Note")
-			fmt.Println(strings.Repeat("─", numDigits) + gap + strings.Repeat("─", noteColWidth))
-
-			// Body
-			for _, md := range mds {
-				fmt.Printf("%"+fmt.Sprintf("%d", numDigits)+".d%s%s\n",
-					md.ID,
-					gap,
-					runewidth.Truncate(md.Note, noteColWidth, "…"),
-				)
-			}
-
-			return nil
-		},
-	}
-
-	stashGetCmd = &cobra.Command{
-		Use:    "stash-get",
-		Hidden: false,
-		Short:  "get a stashed markdown by id",
-		Long:   "",
-		Args:   cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			id, err := strconv.Atoi(args[0])
-			if err != nil {
-				return fmt.Errorf("invalid markdown id")
-			}
-			cc := initCharmClient()
-			md, err := cc.GetStashMarkdown(id)
-			if err != nil {
-				return fmt.Errorf("error getting markdown")
-			}
-			fmt.Println(md.Body)
-			return nil
-		},
-	}
-
-	stashDeleteCmd = &cobra.Command{
-		Use:    "stash-delete",
-		Hidden: false,
-		Short:  "get a stashed markdown by id",
-		Long:   "",
-		Args:   cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			id, err := strconv.Atoi(args[0])
-			if err != nil {
-				return fmt.Errorf("invalid markdown id")
-			}
-			cc := initCharmClient()
-			err = cc.DeleteMarkdown(id)
-			if err != nil {
-				return fmt.Errorf("error deleting markdown")
-			}
-			fmt.Println("Deleted!")
 			return nil
 		},
 	}
