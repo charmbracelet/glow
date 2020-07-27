@@ -187,7 +187,6 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 		// Run Bubble Tea program
 		p := ui.NewProgram(style, cfg)
 		p.EnterAltScreen()
-		p.EnableMouseCellMotion()
 		if err := p.Start(); err != nil {
 			return err
 		}
