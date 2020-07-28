@@ -572,7 +572,7 @@ func stashHeaderView(m stashModel) string {
 	stashedItems := m.countMarkdowns(stashedMarkdown)
 
 	// Loading's finished and all we have is news.
-	if localItems == 0 && stashedItems == 0 {
+	if !loading && localItems == 0 && stashedItems == 0 {
 		return common.Subtle("No local or stashed markdown files found.")
 	}
 
