@@ -384,9 +384,9 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		if key, ok := msg.(tea.KeyMsg); ok {
 			if key.Type == tea.KeyRune {
 				switch key.Rune {
-				case 'b':
+				case 'b', 'u':
 					m.paginator.PrevPage()
-				case 'f':
+				case 'f', 'd':
 					m.paginator.NextPage()
 				}
 			}
