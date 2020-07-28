@@ -31,6 +31,11 @@ const (
 	setNotePromptText          = "Memo: "
 )
 
+var (
+	stashHelpItemStyle func(string) string = te.Style{}.Foreground(common.NewColorPair("#5C5C5C", "#9B9B9B").Color()).Styled
+	stashHelpDivider   string              = te.String(" • ").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
+)
+
 // MSG
 
 type fetchedMarkdownMsg *markdown
@@ -656,7 +661,37 @@ func stashHelpView(m stashModel) string {
 		}
 		h = append(h, []string{"q: quit"}...)
 	}
-	return common.HelpView(h...)
+	return stashHelpViewBuilder(m.terminalWidth, h...)
+}
+
+// stashHelpViewBuilder builds the help view text, truncating it if it would
+// otherwise wrap to two lines.
+func stashHelpViewBuilder(windowWidth int, sections ...string) string {
+	const truncationWidth = 1 // width of "…"
+	var (
+		s        string
+		next     string
+		maxWidth = windowWidth - stashViewHorizontalPadding - truncationWidth
+	)
+
+	if len(sections) == 0 {
+		return s
+	}
+	for i := 0; i < len(sections); i++ {
+
+		next = stashHelpItemStyle(sections[i])
+		if i < len(sections)-1 {
+			next += stashHelpDivider
+		}
+
+		if ansi.PrintableRuneWidth(s)+ansi.PrintableRuneWidth(next) >= maxWidth {
+			s += common.Subtle("…")
+			break
+		}
+
+		s += next
+	}
+	return s
 }
 
 // CMD
