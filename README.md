@@ -140,6 +140,6 @@ glow --help
 
 Part of [Charm](https://charm.sh).
 
-<img alt="the Charm logo" src="https://stuff.charm.sh/charm-logotype.png" width="400px">
+<img alt="the Charm logo" src="https://stuff.charm.sh/charm-badge.jpg" width="400">
 
 Charm热爱开源!
