@@ -12,6 +12,15 @@ Render markdown on the CLI, with _pizzazz_!
 
 ![Glow example output](https://github.com/charmbracelet/glow/raw/master/example.png)
 
+## What is it?
+
+Glow is a terminal based markdown reader designed from the ground up to bring
+out the beauty of the CLI.
+
+Use it to quickly discover markdown files in a folder (it will automatically
+search subdirectories for you), read documentation directly on the command line
+and stash markdown files to your own private collection in the Charm Cloud so
+you can read them anywhere.
 
 ## Installation
 
@@ -67,6 +76,19 @@ glow https://host.tld/file.md
 
 When `glow` is started without a markdown source, it will try to find a
 `README.md` or `README` file in the current working directory.
+
+### Stashing
+
+Glow works with the Charm Cloud to allow you to store any markdown file in your
+own private collection. When you run:
+
+`glow stash README.md`
+
+You'll add that markdown file to your stash. Running `glow` without arguments
+will let you browse through all your stashed documents. This is a great way to
+keep track of documentation that you need to reference.
+
+Stashing is private and your stash will not be exposed publicly.
 
 ### Word Wrapping
 
