@@ -34,8 +34,9 @@ nix-env -iA nixpkgs.glow
 pkg install glow
 ```
 
-Or download a binary from the [releases][] page. Windows, MacOS, and Linux
-(including ARM) binaries are available, as well as Debian and RPM packages.
+Or download a binary from the [releases][] page. MacOS, Linux, FreeBSD
+binaries are available, as well as Debian and RPM packages. ARM builds are also
+available for Linux and FreeBSD.
 
 Or just use `go get`:
 
