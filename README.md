@@ -10,12 +10,14 @@ Render markdown on the CLI, with _pizzazz_!
     <a href="http://goreportcard.com/report/github.com/charmbracelet/glow"><img src="http://goreportcard.com/badge/charmbracelet/glow" alt="Go ReportCard"></a>
 </p>
 
-![Glow example output](https://github.com/charmbracelet/glow/raw/master/example.png)
+<p align="center">
+    <img src="https://stuff.charm.sh/glow2-ui-github.gif" width="600" alt="Glow UI Demo">
+</p>
 
 ## What is it?
 
 Glow is a terminal based markdown reader designed from the ground up to bring
-out the beauty of the CLI.
+out the beauty—and power—of the CLI.
 
 Use it to quickly discover markdown files in a folder (it will automatically
 search subdirectories for you), read documentation directly on the command line
@@ -88,7 +90,7 @@ You'll add that markdown file to your stash. Running `glow` without arguments
 will let you browse through all your stashed documents. This is a great way to
 keep track of documentation that you need to reference.
 
-Stashing is private and your stash will not be exposed publicly.
+Stashing is private and your stash and its contents will not be exposed publicly.
 
 ### Word Wrapping
 
