@@ -19,28 +19,30 @@ const (
 	noteCharacterLimit = 256 // should match server
 )
 
-// UIConfig contains flags for debugging the TUI.
-type UIConfig struct {
+// Config contains configuration specified to the TUI
+type Config struct {
+	IdentityFile string
+
+	// For debugging the UI
 	Logfile              string `env:"GLOW_UI_LOGFILE"`
 	HighPerformancePager bool   `env:"GLOW_UI_HIGH_PERFORMANCE_PAGER" default:"true"`
 	GlamourEnabled       bool   `env:"GLOW_UI_ENABLE_GLAMOUR" default:"true"`
 }
 
 var (
-	config            UIConfig
+	config            Config
 	glowLogoTextColor = common.Color("#ECFD65")
 )
 
 // NewProgram returns a new Tea program
-func NewProgram(style string, cfg UIConfig) *tea.Program {
-	config = cfg
-	if config.Logfile != "" {
+func NewProgram(style string, cfg Config) *tea.Program {
+	if cfg.Logfile != "" {
 		log.Println("-- Starting Glow ----------------")
 		log.Printf("High performance pager: %v", cfg.HighPerformancePager)
 		log.Printf("Glamour rendering: %v", cfg.GlamourEnabled)
 		log.Println("Bubble Tea now initializing...")
 	}
-	return tea.NewProgram(initialize(style), update, view)
+	return tea.NewProgram(initialize(cfg, style), update, view)
 }
 
 // MESSAGES
@@ -88,6 +90,7 @@ const (
 )
 
 type model struct {
+	cfg            Config
 	cc             *charm.Client
 	user           *charm.User
 	keygenState    keygenState
@@ -124,7 +127,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 
 // INIT
 
-func initialize(style string) func() (tea.Model, tea.Cmd) {
+func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 	return func() (tea.Model, tea.Cmd) {
 		if style == "auto" {
 			dbg := te.HasDarkBackground()
@@ -136,6 +139,7 @@ func initialize(style string) func() (tea.Model, tea.Cmd) {
 		}
 
 		m := model{
+			cfg:         cfg,
 			stash:       newStashModel(),
 			pager:       newPagerModel(style),
 			state:       stateShowStash,
@@ -144,7 +148,7 @@ func initialize(style string) func() (tea.Model, tea.Cmd) {
 
 		return m, tea.Batch(
 			findLocalFiles,
-			newCharmClient,
+			newCharmClient(&cfg.IdentityFile),
 			spinner.Tick(m.stash.spinner),
 		)
 	}
@@ -279,7 +283,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	case keygenSuccessMsg:
 		// The keygen's done, so let's try initializing the charm client again
 		m.keygenState = keygenFinished
-		cmds = append(cmds, newCharmClient)
+		cmds = append(cmds, newCharmClient(nil))
 
 	case newCharmClientMsg:
 		m.cc = msg
@@ -395,20 +399,26 @@ func findNextLocalFile(m model) tea.Cmd {
 	}
 }
 
-func newCharmClient() tea.Msg {
-	cfg, err := charm.ConfigFromEnv()
-	if err != nil {
-		return errMsg(err)
-	}
+func newCharmClient(identityFile *string) tea.Cmd {
+	return func() tea.Msg {
+		cfg, err := charm.ConfigFromEnv()
+		if err != nil {
+			return errMsg(err)
+		}
 
-	cc, err := charm.NewClient(cfg)
-	if err == charm.ErrMissingSSHAuth {
-		return sshAuthErrMsg{}
-	} else if err != nil {
-		return errMsg(err)
-	}
+		if identityFile != nil {
+			cfg.SSHKeyPath = *identityFile
+		}
 
-	return newCharmClientMsg(cc)
+		cc, err := charm.NewClient(cfg)
+		if err == charm.ErrMissingSSHAuth {
+			return sshAuthErrMsg{}
+		} else if err != nil {
+			return errMsg(err)
+		}
+
+		return newCharmClientMsg(cc)
+	}
 }
 
 func loadStash(m stashModel) tea.Cmd {

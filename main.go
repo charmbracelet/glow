@@ -170,10 +170,13 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	if arg == "" {
 
 		// Read environment to get debugging stuff
-		var cfg ui.UIConfig
+		var cfg ui.Config
 		if err := babyenv.Parse(&cfg); err != nil {
 			return fmt.Errorf("error parsing config: %v", err)
 		}
+
+		// Config from flags
+		cfg.IdentityFile = identityFile
 
 		// Log to file, if set
 		if cfg.Logfile != "" {
@@ -292,7 +295,7 @@ func init() {
 
 	// For network-related operations, namely stashing and the TUI
 	rootCmd.PersistentFlags().StringVarP(&identityFile, "identity", "i", "", "path to identity file (that is, an ssh private key)")
-	rootCmd.PersistentFlags().BoolVarP(&forceKey, "force-key", "f", false, "for the use of the SSH key on disk (that is, ignore ssh-agent)")
+	rootCmd.PersistentFlags().BoolVarP(&forceKey, "force-key", "f", false, "force the use of the SSH key on disk (that is, ignore ssh-agent)")
 
 	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
