@@ -42,6 +42,7 @@ func NewProgram(style string, cfg Config) *tea.Program {
 		log.Printf("Glamour rendering: %v", cfg.GlamourEnabled)
 		log.Println("Bubble Tea now initializing...")
 	}
+	config = cfg
 	return tea.NewProgram(initialize(cfg, style), update, view)
 }
 
