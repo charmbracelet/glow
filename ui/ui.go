@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
+	"github.com/charmbracelet/charm/keygen"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
@@ -443,7 +444,7 @@ func loadNews(m stashModel) tea.Cmd {
 }
 
 func generateSSHKeys() tea.Msg {
-	_, err := charm.NewSSHKeyPair()
+	_, err := keygen.NewSSHKeyPair()
 	if err != nil {
 		return keygenFailedMsg{}
 	}
