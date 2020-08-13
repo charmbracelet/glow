@@ -16,11 +16,14 @@ import (
 	te "github.com/muesli/termenv"
 )
 
-const (
-	noteCharacterLimit = 256 // should match server
+const noteCharacterLimit = 256 // should match server
+
+var (
+	config            Config
+	glowLogoTextColor = common.Color("#ECFD65")
 )
 
-// Config contains configuration specified to the TUI
+// Config contains configuration specified to the TUI.
 type Config struct {
 	IdentityFile string
 
@@ -30,12 +33,7 @@ type Config struct {
 	GlamourEnabled       bool   `env:"GLOW_UI_ENABLE_GLAMOUR" default:"true"`
 }
 
-var (
-	config            Config
-	glowLogoTextColor = common.Color("#ECFD65")
-)
-
-// NewProgram returns a new Tea program
+// NewProgram returns a new Tea program.
 func NewProgram(style string, cfg Config) *tea.Program {
 	if cfg.Logfile != "" {
 		log.Println("-- Starting Glow ----------------")
@@ -423,7 +421,7 @@ func loadStash(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		stash, err := m.cc.GetStash(m.page)
 		if err != nil {
-			return stashLoadErrMsg{err: err}
+			return stashLoadErrMsg{err}
 		}
 		return gotStashMsg(stash)
 	}
@@ -433,7 +431,7 @@ func loadNews(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		news, err := m.cc.GetNews(1) // just fetch the first page
 		if err != nil {
-			return newsLoadErrMsg{err: err}
+			return newsLoadErrMsg{err}
 		}
 		return gotNewsMsg(news)
 	}

@@ -101,9 +101,7 @@ const (
 )
 
 func (s loadedState) done() bool {
-	return s&loadedStash != 0 &&
-		s&loadedNews != 0 &&
-		s&loadedLocalFiles != 0
+	return s&loadedStash != 0 && s&loadedNews != 0 && s&loadedLocalFiles != 0
 }
 
 type stashState int
@@ -176,7 +174,7 @@ func (m stashModel) selectedMarkdown() *markdown {
 	return m.markdowns[i]
 }
 
-// addDocuments adds markdown documents to the model
+// adds markdown documents to the model
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	if len(mds) > 0 {
 		m.markdowns = append(m.markdowns, mds...)
@@ -185,6 +183,7 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	}
 }
 
+// return the number of markdown documents of a given type
 func (m stashModel) countMarkdowns(t markdownType) (found int) {
 	if len(m.markdowns) == 0 {
 		return
@@ -363,6 +362,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.state = stashStatePromptDelete
 				}
 
+			// Show errors
 			case "!":
 				if m.err != nil && m.state == stashStateReady {
 					m.state = stashStateShowingError
@@ -484,9 +484,6 @@ func stashView(m stashModel) string {
 	case stashStateLoadingDocument:
 		s += " " + spinner.View(m.spinner) + " Loading document..."
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
-		var (
-			header string
-		)
 
 		loadingIndicator := ""
 		if !m.loaded.done() || m.loadingFromNetwork {
@@ -501,6 +498,7 @@ func stashView(m stashModel) string {
 			blankLines = strings.Repeat("\n", numBlankLines)
 		}
 
+		var header string
 		switch m.state {
 		case stashStatePromptDelete:
 			header = redFg("Delete this item? ") + faintRedFg("(y/N)")
@@ -652,8 +650,8 @@ func stashHelpView(m stashModel) string {
 	return stashHelpViewBuilder(m.terminalWidth, h...)
 }
 
-// stashHelpViewBuilder builds the help view text, truncating it if it would
-// otherwise wrap to two lines.
+// builds the help view from various sections pieces, truncating it if the view
+// would otherwise wrap to two lines.
 func stashHelpViewBuilder(windowWidth int, sections ...string) string {
 	const truncationWidth = 1 // width of "…"
 	var (

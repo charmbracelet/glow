@@ -85,7 +85,7 @@ type pagerModel struct {
 	showHelp     bool
 
 	// Current document being rendered, sans-glamour rendering. We cache
-	// this here so we can re-render it on resize.
+	// it here so we can re-render it on resize.
 	currentDocument *markdown
 }
 
