@@ -18,7 +18,6 @@ import (
 	"github.com/dustin/go-humanize"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
-	"github.com/muesli/reflow/wordwrap"
 	te "github.com/muesli/termenv"
 )
 
@@ -560,15 +559,6 @@ func stashHeaderView(m stashModel) string {
 	// Still loading. We haven't found files, stashed items, or news yet.
 	if loading && noMarkdowns {
 		return common.Subtle("Looking for stuff...")
-	}
-
-	// Loading's finished. We didn't find anything, the stash is empty and
-	// there's no news.
-	if !loading && noMarkdowns {
-		s := "Nothing found. Try running " + common.Code("glow") +
-			" in a directory with markdown files, or stashing a file with " +
-			common.Code("glow stash") + ". For more, see " + common.Code("glow help") + "."
-		return wordwrap.String(s, stashIndent)
 	}
 
 	localItems := m.countMarkdowns(localMarkdown)
