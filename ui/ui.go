@@ -347,16 +347,12 @@ func view(mdl tea.Model) string {
 		return errorView(m.fatalErr, true)
 	}
 
-	var s string
-
 	switch m.state {
-	case stateShowStash:
-		return stashView(m.stash)
 	case stateShowDocument:
 		return pagerView(m.pager)
+	default:
+		return stashView(m.stash)
 	}
-
-	return "\n" + indent(s, 2)
 }
 
 func errorView(err error, fatal bool) string {
