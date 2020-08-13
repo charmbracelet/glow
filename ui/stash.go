@@ -526,11 +526,9 @@ func stashView(m stashModel) string {
 				pagination = common.Subtle(paginator.View(m.paginator))
 			}
 
-			/*
-				if !m.stashFullyLoaded {
-					pagination += common.Subtle(" ···")
-				}
-			*/
+			// We could also look at m.stashFullyLoaded and add an indicator
+			// showing that we don't actually know how many more pages there
+			// are.
 		}
 
 		s += fmt.Sprintf(
