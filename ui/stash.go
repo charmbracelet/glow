@@ -202,7 +202,7 @@ func (m stashModel) countMarkdowns(t markdownType) (found int) {
 func newStashModel() stashModel {
 	s := spinner.NewModel()
 	s.Frames = spinner.Line
-	s.ForegroundColor = common.SpinnerColor
+	s.ForegroundColor = common.SpinnerColor.String()
 
 	p := paginator.NewModel()
 	p.Type = paginator.Dots
