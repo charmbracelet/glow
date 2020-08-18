@@ -438,7 +438,7 @@ func loadNews(m stashModel) tea.Cmd {
 }
 
 func generateSSHKeys() tea.Msg {
-	_, err := keygen.NewSSHKeyPair()
+	_, err := keygen.NewSSHKeyPair(nil)
 	if err != nil {
 		return keygenFailedMsg{}
 	}
