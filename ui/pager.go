@@ -3,6 +3,7 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"strings"
 
@@ -347,6 +348,9 @@ func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 	return func() tea.Msg {
 		s, err := glamourRender(m, md)
 		if err != nil {
+			if debug {
+				log.Println("error rendering with Glamour:", err)
+			}
 			return errMsg(err)
 		}
 		return contentRenderedMsg(s)
@@ -361,6 +365,9 @@ func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 	}
 	return func() tea.Msg {
 		if err := cc.SetMarkdownNote(id, note); err != nil {
+			if debug {
+				log.Println("error saving note:", err)
+			}
 			return errMsg(err)
 		}
 		return noteSavedMsg(&charm.Markdown{ID: id, Note: note})

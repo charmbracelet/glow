@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math"
 	"sort"
 	"strings"
@@ -696,6 +697,9 @@ func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 		}
 
 		if err != nil {
+			if debug {
+				log.Println("error loading remote markdown:", err)
+			}
 			return errMsg(err)
 		}
 
@@ -717,6 +721,9 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 
 		data, err := ioutil.ReadFile(md.localPath)
 		if err != nil {
+			if debug {
+				log.Println("error reading local markdown:", err)
+			}
 			return errMsg(err)
 		}
 		md.Body = string(data)

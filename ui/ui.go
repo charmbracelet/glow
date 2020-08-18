@@ -21,6 +21,7 @@ const noteCharacterLimit = 256 // should match server
 var (
 	config            Config
 	glowLogoTextColor = common.Color("#ECFD65")
+	debug             = false // true if we're logging to a file, in which case we'll log more stuff
 )
 
 // Config contains configuration specified to the TUI.
@@ -40,6 +41,7 @@ func NewProgram(style string, cfg Config) *tea.Program {
 		log.Printf("High performance pager: %v", cfg.HighPerformancePager)
 		log.Printf("Glamour rendering: %v", cfg.GlamourEnabled)
 		log.Println("Bubble Tea now initializing...")
+		debug = true
 	}
 	config = cfg
 	return tea.NewProgram(initialize(cfg, style), update, view)
@@ -50,7 +52,14 @@ func NewProgram(style string, cfg Config) *tea.Program {
 type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
-type keygenFailedMsg struct{}
+type keygenFailedMsg struct {
+	err error
+}
+
+func (k keygenFailedMsg) Error() string {
+	return k.err.Error()
+}
+
 type keygenSuccessMsg struct{}
 type initLocalFileSearchMsg struct {
 	cwd string
@@ -60,8 +69,17 @@ type foundLocalFileMsg gitcha.SearchResult
 type localFileSearchFinished struct{}
 type gotStashMsg []*charm.Markdown
 type stashLoadErrMsg struct{ err error }
+
+func (s stashLoadErrMsg) Error() string {
+	return s.err.Error()
+}
+
 type gotNewsMsg []*charm.Markdown
 type newsLoadErrMsg struct{ err error }
+
+func (s newsLoadErrMsg) Error() string {
+	return s.err.Error()
+}
 
 // MODEL
 
@@ -376,6 +394,9 @@ func errorView(err error, fatal bool) string {
 func findLocalFiles() tea.Msg {
 	cwd, err := os.Getwd()
 	if err != nil {
+		if debug {
+			log.Println("error finding local files:", err)
+		}
 		return errMsg(err)
 	}
 
@@ -408,8 +429,14 @@ func newCharmClient(identityFile *string) tea.Cmd {
 
 		cc, err := charm.NewClient(cfg)
 		if err == charm.ErrMissingSSHAuth {
+			if debug {
+				log.Println("missing SSH auth:", err)
+			}
 			return sshAuthErrMsg{}
 		} else if err != nil {
+			if debug {
+				log.Println("error creating new charm client:", err)
+			}
 			return errMsg(err)
 		}
 
@@ -421,6 +448,9 @@ func loadStash(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		stash, err := m.cc.GetStash(m.page)
 		if err != nil {
+			if debug {
+				log.Println("error loading stash:", err)
+			}
 			return stashLoadErrMsg{err}
 		}
 		return gotStashMsg(stash)
@@ -431,6 +461,9 @@ func loadNews(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		news, err := m.cc.GetNews(1) // just fetch the first page
 		if err != nil {
+			if debug {
+				log.Println("error loading news:", err)
+			}
 			return newsLoadErrMsg{err}
 		}
 		return gotNewsMsg(news)
@@ -440,7 +473,10 @@ func loadNews(m stashModel) tea.Cmd {
 func generateSSHKeys() tea.Msg {
 	_, err := keygen.NewSSHKeyPair(nil)
 	if err != nil {
-		return keygenFailedMsg{}
+		if debug {
+			log.Println("keygen failed:", err)
+		}
+		return keygenFailedMsg{err}
 	}
 	return keygenSuccessMsg{}
 }
