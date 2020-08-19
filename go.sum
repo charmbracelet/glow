@@ -20,8 +20,8 @@ github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghf
 github.com/charmbracelet/bubbles v0.5.1 h1:41u1Nl1qQra1otd8T9MEQMpis9+f3MRmxVd9YnmS/kQ=
 github.com/charmbracelet/bubbles v0.5.1/go.mod h1:xmZpdK4/Sn3bGgBKK40YPmM9Hf4taFGgKkLqSdAb0FA=
 github.com/charmbracelet/bubbletea v0.9.1-0.20200713153904-2f53eeb54b90/go.mod h1:wjGGC5pyYvpuls0so+w4Zv+aZQW7RoPvsi9UBcDlSl8=
-github.com/charmbracelet/bubbletea v0.10.3 h1:ofUkNNiXDzVONagDDPQLTEoyv4cyPYQrzaxXAj2OCbs=
-github.com/charmbracelet/bubbletea v0.10.3/go.mod h1:Ms0ktCuv95sM5us8vncXfW8KlsXkBBFuZzuP6sIJ2iU=
+github.com/charmbracelet/bubbletea v0.10.3 h1:arYCVde6OHbejtz08VOtAjsw4LlMR9pQhJCkqk3bwr8=
+github.com/charmbracelet/bubbletea v0.10.3/go.mod h1:fB1bVmlaXBYYv4G0jtuGSP/m8V2sMM97pq7QqQnubWI=
 github.com/charmbracelet/charm v0.6.1-0.20200819181515-4a9548655a62 h1:9LcZPImjWJE0v2PxfW4B83b5L59urSe1C8uQDP7Bwv0=
 github.com/charmbracelet/charm v0.6.1-0.20200819181515-4a9548655a62/go.mod h1:JxdWbfhqy6lZcXQhMCC5lc2Cv3AkN7qYXxx2/BCra2E=
 github.com/charmbracelet/glamour v0.1.1-0.20200521150359-e859bb067c06 h1:FR5F7kH6i4Jm0+5ypNWWFKVcH07hIO3aGNuDXnOdWqY=
