@@ -65,7 +65,7 @@ nfpms:
 brews:
   - ids:
     - darwin
-    github:
+    tap:
       owner: charmbracelet
       name: homebrew-tap
     commit_author:
