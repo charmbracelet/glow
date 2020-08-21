@@ -65,7 +65,6 @@ func newStyle(fg, bg string) func(string) string {
 
 type contentRenderedMsg string
 type noteSavedMsg *charm.Markdown
-type statusMessageTimeoutMsg struct{}
 type stashSuccessMsg markdown
 type stashErrMsg struct {
 	err error
@@ -228,19 +227,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 				// Stash a local document
 				if m.state != pagerStateStashing && m.currentDocument.markdownType == localMarkdown {
 					m.state = pagerStateStashing
-
-					// Create new markdown based on loaded markdown
-					md := m.currentDocument
-					md.markdownType = stashedMarkdown
-					t := time.Now()
-					md.CreatedAt = t
-
-					// Set the note as the filename without the extension
-					p := md.localPath
-					md.Note = strings.Replace(path.Base(p), path.Ext(p), "", 1)
-					md.localPath = ""
-
-					return m, stashDocument(m.cc, md)
+					return m, stashDocument(m.cc, m.currentDocument)
 				}
 			case "?":
 				m.toggleHelp()
@@ -278,8 +265,11 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 		m.state = pagerStateStatusMessage
 		m.statusMessageHeader = "Stashed!"
 		m.statusMessageBody = ""
+		if m.statusMessageTimer != nil {
+			m.statusMessageTimer.Stop()
+		}
 		m.statusMessageTimer = time.NewTimer(time.Second * 3)
-		cmds = append(cmds, waitForStatusMessageTimeout(m.statusMessageTimer))
+		cmds = append(cmds, waitForStatusMessageTimeout(pagerContext, m.statusMessageTimer))
 
 	case stashErrMsg:
 		// TODO
@@ -474,6 +464,16 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			return stashErrMsg{err}
 		}
 	}
+
+	// Turn local markdown into a stashed markdown
+	md.markdownType = stashedMarkdown
+	md.CreatedAt = time.Now()
+
+	// Set the note as the filename without the extension
+	p := md.localPath
+	md.Note = strings.Replace(path.Base(p), path.Ext(p), "", 1)
+	md.localPath = ""
+
 	return func() tea.Msg {
 		err := cc.StashMarkdown(md.Note, md.Body)
 		if err != nil {
@@ -483,13 +483,6 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			return errMsg(err)
 		}
 		return stashSuccessMsg(md)
-	}
-}
-
-func waitForStatusMessageTimeout(t *time.Timer) tea.Cmd {
-	return func() tea.Msg {
-		<-t.C
-		return statusMessageTimeoutMsg{}
 	}
 }
 

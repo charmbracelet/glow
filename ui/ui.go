@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -52,13 +53,9 @@ func NewProgram(style string, cfg Config) *tea.Program {
 type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
-type keygenFailedMsg struct {
-	err error
-}
+type keygenFailedMsg struct{ err error }
 
-func (k keygenFailedMsg) Error() string {
-	return k.err.Error()
-}
+func (k keygenFailedMsg) Error() string { return k.err.Error() }
 
 type keygenSuccessMsg struct{}
 type initLocalFileSearchMsg struct {
@@ -70,18 +67,25 @@ type localFileSearchFinished struct{}
 type gotStashMsg []*charm.Markdown
 type stashLoadErrMsg struct{ err error }
 
-func (s stashLoadErrMsg) Error() string {
-	return s.err.Error()
-}
+func (s stashLoadErrMsg) Error() string { return s.err.Error() }
 
 type gotNewsMsg []*charm.Markdown
 type newsLoadErrMsg struct{ err error }
 
-func (s newsLoadErrMsg) Error() string {
-	return s.err.Error()
-}
+func (s newsLoadErrMsg) Error() string { return s.err.Error() }
+
+type statusMessageTimeoutMsg applicationContext
 
 // MODEL
+
+// Which part of the application something appies to. Occasionally used as an
+// arguments to command and messages.
+type applicationContext int
+
+const (
+	stashContext applicationContext = iota
+	pagerContext
+)
 
 type state int
 
@@ -335,8 +339,13 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		// Something was stashed. Update the stash listing. We're caching this
 		// here, rather than in the stash update function, because stashing
 		// may have occurred in the pager.
-		md := markdown(msg)
-		m.stash.addMarkdowns(&md)
+		if m.state == stateShowDocument {
+			newStashModel, cmd := stashUpdate(msg, m.stash)
+			m.stash = newStashModel
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
 	}
 
 	// Process children
@@ -495,6 +504,13 @@ func generateSSHKeys() tea.Msg {
 		return keygenFailedMsg{err}
 	}
 	return keygenSuccessMsg{}
+}
+
+func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.Cmd {
+	return func() tea.Msg {
+		<-t.C
+		return statusMessageTimeoutMsg(appCtx)
+	}
 }
 
 // ETC

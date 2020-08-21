@@ -142,6 +142,10 @@ type stashModel struct {
 	// than we can display at a time so we can paginate locally without having
 	// to fetch every time.
 	page int
+
+	showStatusMessage  bool
+	statusMessage      string
+	statusMessageTimer *time.Timer
 }
 
 func (m *stashModel) setSize(width, height int) {
@@ -195,6 +199,13 @@ func (m stashModel) countMarkdowns(t markdownType) (found int) {
 		}
 	}
 	return
+}
+
+func (m *stashModel) hideStatusMessage() {
+	m.showStatusMessage = false
+	if m.statusMessageTimer != nil {
+		m.statusMessageTimer.Stop()
+	}
 }
 
 // INIT
@@ -289,13 +300,33 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.markdowns[i].Note = msg.Note
 			}
 		}
+
+	// Something was stashed. Add it to the stash listing.
+	case stashSuccessMsg:
+		md := markdown(msg)
+		m.addMarkdowns(&md)
+
+		m.showStatusMessage = true
+		m.statusMessage = "Stashed!"
+		if m.statusMessageTimer != nil {
+			m.statusMessageTimer.Stop()
+		}
+		m.statusMessageTimer = time.NewTimer(time.Second * 3)
+		cmds = append(cmds, waitForStatusMessageTimeout(stashContext, m.statusMessageTimer))
+
+	case statusMessageTimeoutMsg:
+		if applicationContext(msg) == stashContext {
+			m.hideStatusMessage()
+		}
 	}
 
 	switch m.state {
 	case stashStateReady:
 
+		switch msg := msg.(type) {
+
 		// Handle keys
-		if msg, ok := msg.(tea.KeyMsg); ok {
+		case tea.KeyMsg:
 			switch msg.String() {
 
 			case "k", "up":
@@ -323,6 +354,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// Open document
 			case "enter":
+				m.hideStatusMessage()
+
 				if len(m.markdowns) == 0 {
 					break
 				}
@@ -342,6 +375,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// Set note
 			case "m":
+				m.hideStatusMessage()
+
 				md := m.selectedMarkdown()
 				isUserMarkdown := md.markdownType == stashedMarkdown
 				isSettingNote := m.state == stashStateSettingNote
@@ -354,8 +389,17 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					return m, textinput.Blink(m.noteInput)
 				}
 
+			// Stash
+			case "s":
+				md := m.selectedMarkdown()
+				if md != nil && md.markdownType == localMarkdown {
+					cmds = append(cmds, stashDocument(m.cc, *md))
+				}
+
 			// Prompt for deletion
 			case "x":
+				m.hideStatusMessage()
+
 				isUserMarkdown := m.selectedMarkdown().markdownType == stashedMarkdown
 				isValidState := m.state != stashStateSettingNote
 
@@ -500,11 +544,15 @@ func stashView(m stashModel) string {
 		}
 
 		var header string
-		switch m.state {
-		case stashStatePromptDelete:
-			header = redFg("Delete this item? ") + faintRedFg("(y/N)")
-		case stashStateSettingNote:
-			header = yellowFg("Set the memo for this item?")
+		if m.showStatusMessage {
+			header = greenFg(m.statusMessage)
+		} else {
+			switch m.state {
+			case stashStatePromptDelete:
+				header = redFg("Delete this item? ") + faintRedFg("(y/N)")
+			case stashStateSettingNote:
+				header = yellowFg("Set the memo for this item?")
+			}
 		}
 
 		// Only draw the normal header if we're not using the header area for
@@ -619,11 +667,13 @@ func stashHelpView(m stashModel) string {
 	var (
 		h         []string
 		isStashed bool
+		isLocal   bool
 	)
 
 	if len(m.markdowns) > 0 {
 		md := m.selectedMarkdown()
 		isStashed = md != nil && md.markdownType == stashedMarkdown
+		isLocal = md != nil && md.markdownType == localMarkdown
 	}
 
 	if m.state == stashStateSettingNote {
@@ -640,13 +690,15 @@ func stashHelpView(m stashModel) string {
 		if m.paginator.TotalPages > 1 {
 			h = append(h, "h/l, ←/→: page")
 		}
-		if isStashed && len(m.markdowns) > 0 {
+		if isStashed {
 			h = append(h, []string{"x: delete", "m: set memo"}...)
+		} else if isLocal {
+			h = append(h, "s: stash")
 		}
 		if m.err != nil {
-			h = append(h, []string{"!: errors"}...)
+			h = append(h, "!: errors")
 		}
-		h = append(h, []string{"q: quit"}...)
+		h = append(h, "q: quit")
 	}
 	return stashHelpViewBuilder(m.terminalWidth, h...)
 }
