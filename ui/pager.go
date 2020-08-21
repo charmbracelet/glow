@@ -27,7 +27,7 @@ const (
 	yellowGreen      = "#ECFD65"
 	fuschia          = "#EE6FF8"
 	mintGreen        = "#89F0CB"
-	darkGreen        = "#089B66"
+	darkGreen        = "#1C8760"
 	noteHeadingText  = " Set Memo "
 	notePromptText   = " > "
 )
