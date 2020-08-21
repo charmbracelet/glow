@@ -128,6 +128,9 @@ type stashModel struct {
 	loadingFromNetwork bool        // are we currently loading something from the network?
 	loaded             loadedState // what's loaded? we find out with bitmasking
 
+	// Paths to files being stashed. We treat this like a set.
+	filesStashing map[string]struct{}
+
 	// This is just the index of the current page in view. To get the index
 	// of the selected item as it relates to the full set of documents we've
 	// fetched use the mardownIndex() method of this struct.
@@ -231,6 +234,7 @@ func newStashModel() stashModel {
 		page:               1,
 		paginator:          p,
 		loadingFromNetwork: true,
+		filesStashing:      make(map[string]struct{}),
 	}
 
 	return m
@@ -304,6 +308,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	// Something was stashed. Add it to the stash listing.
 	case stashSuccessMsg:
 		md := markdown(msg)
+		delete(m.filesStashing, md.localPath) // remove from the things-we're-stashing list
+		md.localPath = ""
 		m.addMarkdowns(&md)
 
 		m.showStatusMessage = true
@@ -392,9 +398,19 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			// Stash
 			case "s":
 				md := m.selectedMarkdown()
-				if md != nil && md.markdownType == localMarkdown {
-					cmds = append(cmds, stashDocument(m.cc, *md))
+				if md == nil {
+					break
 				}
+
+				// if we're busy stashing this don't do it again
+				_, exists := m.filesStashing[md.localPath]
+
+				if exists || md.markdownType != localMarkdown || md.localPath == "" {
+					break
+				}
+
+				m.filesStashing[md.localPath] = struct{}{}
+				cmds = append(cmds, stashDocument(m.cc, *md))
 
 			// Prompt for deletion
 			case "x":
