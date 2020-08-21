@@ -328,6 +328,15 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	// "Help" note
 	helpNote := statusBarHelpStyle(" ? Help ")
 
+	// Status indicator; spinner or stash dot
+	var statusIndicator string
+	if m.currentDocument.markdownType == stashedMarkdown {
+		statusIndicator = te.String(" •").
+			Foreground(common.Green.Color()).
+			Background(statusBarBg.Color()).
+			String()
+	}
+
 	// Note
 	noteText := m.currentDocument.Note
 	if len(noteText) == 0 {
@@ -336,6 +345,7 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	noteText = truncate(" "+noteText+" ", max(0,
 		m.width-
 			ansi.PrintableRuneWidth(logo)-
+			ansi.PrintableRuneWidth(statusIndicator)-
 			ansi.PrintableRuneWidth(percentText)-
 			ansi.PrintableRuneWidth(helpNote),
 	))
@@ -345,14 +355,16 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	padding := max(0,
 		m.width-
 			ansi.PrintableRuneWidth(logo)-
+			ansi.PrintableRuneWidth(statusIndicator)-
 			ansi.PrintableRuneWidth(noteText)-
 			ansi.PrintableRuneWidth(percentText)-
 			ansi.PrintableRuneWidth(helpNote),
 	)
 	emptySpace := strings.Repeat(emptyCell, padding)
 
-	fmt.Fprintf(b, "%s%s%s%s%s",
+	fmt.Fprintf(b, "%s%s%s%s%s%s",
 		logo,
+		statusIndicator,
 		statusBarNoteStyle(noteText),
 		emptySpace,
 		statusBarScrollPosStyle(percentText),
