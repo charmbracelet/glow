@@ -425,6 +425,9 @@ func findNextLocalFile(m model) tea.Cmd {
 			return foundLocalFileMsg(pathStr)
 		}
 		// We're done
+		if debug {
+			log.Println("Local file search finished")
+		}
 		return localFileSearchFinished{}
 	}
 }
