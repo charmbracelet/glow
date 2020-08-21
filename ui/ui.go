@@ -335,15 +335,12 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case stashSuccessMsg:
-		// Something was stashed. Update the stash listing. We're caching this
-		// here, rather than in the stash update function, because stashing
-		// may have occurred in the pager.
+		// Something was stashed. Update the stash listing but don't run an
+		// actual update on the stash since we don't want to trigger the status
+		// message and generally don't want any other effects.
 		if m.state == stateShowDocument {
-			newStashModel, cmd := stashUpdate(msg, m.stash)
-			m.stash = newStashModel
-			if cmd != nil {
-				cmds = append(cmds, cmd)
-			}
+			md := markdown(msg)
+			m.stash.addMarkdowns(&md)
 		}
 	}
 
