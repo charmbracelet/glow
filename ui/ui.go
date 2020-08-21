@@ -17,7 +17,10 @@ import (
 	te "github.com/muesli/termenv"
 )
 
-const noteCharacterLimit = 256 // should match server
+const (
+	noteCharacterLimit   = 256             // should match server
+	statusMessageTimeout = time.Second * 2 // how long to show status messages like "stashed!"
+)
 
 var (
 	config            Config

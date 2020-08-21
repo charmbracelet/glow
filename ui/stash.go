@@ -311,7 +311,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		if m.statusMessageTimer != nil {
 			m.statusMessageTimer.Stop()
 		}
-		m.statusMessageTimer = time.NewTimer(time.Second * 3)
+		m.statusMessageTimer = time.NewTimer(statusMessageTimeout)
 		cmds = append(cmds, waitForStatusMessageTimeout(stashContext, m.statusMessageTimer))
 
 	case statusMessageTimeoutMsg:
