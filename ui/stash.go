@@ -58,7 +58,7 @@ const (
 type markdown struct {
 	markdownType markdownType
 	localPath    string // only relevent to local files
-	*charm.Markdown
+	charm.Markdown
 }
 
 // Sort documents with local files first, then by date
@@ -705,7 +705,7 @@ func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 
 		return fetchedMarkdownMsg(&markdown{
 			markdownType: t,
-			Markdown:     md,
+			Markdown:     *md,
 		})
 	}
 }
@@ -749,7 +749,7 @@ func wrapMarkdowns(t markdownType, md []*charm.Markdown) (m []*markdown) {
 	for _, v := range md {
 		m = append(m, &markdown{
 			markdownType: t,
-			Markdown:     v,
+			Markdown:     *v,
 		})
 	}
 	return m

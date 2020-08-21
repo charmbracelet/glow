@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"path"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -24,6 +26,8 @@ const (
 	gray             = "#333333"
 	yellowGreen      = "#ECFD65"
 	fuschia          = "#EE6FF8"
+	mintGreen        = "#89F0CB"
+	darkGreen        = "#089B66"
 	noteHeadingText  = " Set Memo "
 	notePromptText   = " > "
 )
@@ -40,31 +44,36 @@ var (
 	statusBarNoteFg      = common.NewColorPair("#7D7D7D", "#656565")
 	statusBarScrollPosFg = common.NewColorPair("#5A5A5A", "#949494")
 
-	statusBarScrollPosStyle = te.Style{}.
-				Foreground(statusBarScrollPosFg.Color()).
-				Background(statusBarBg.Color()).
-				Styled
-
-	statusBarNoteStyle = te.Style{}.
-				Foreground(statusBarNoteFg.Color()).
-				Background(statusBarBg.Color()).
-				Styled
-
-	statusBarHelpStyle = te.Style{}.
-				Foreground(statusBarNoteFg.Color()).
-				Background(common.NewColorPair("#323232", "#DCDCDC").Color()).
-				Styled
-
-	helpViewStyle = te.Style{}.
-			Foreground(statusBarNoteFg.Color()).
-			Background(common.NewColorPair("#1B1B1B", "#f2f2f2").Color()).
-			Styled
+	// Styling functions
+	statusBarScrollPosStyle     = newStyle(statusBarScrollPosFg.String(), statusBarBg.String())
+	statusBarNoteStyle          = newStyle(statusBarNoteFg.String(), statusBarBg.String())
+	statusBarHelpStyle          = newStyle(statusBarNoteFg.String(), common.NewColorPair("#323232", "#DCDCDC").String())
+	statusBarMessageHeaderStyle = newStyle(common.Cream.String(), common.Green.String())
+	statusBarMessageBodyStyle   = newStyle(mintGreen, darkGreen)
+	helpViewStyle               = newStyle(statusBarNoteFg.String(), common.NewColorPair("#1B1B1B", "#f2f2f2").String())
 )
+
+// Create a new termenv styling function
+func newStyle(fg, bg string) func(string) string {
+	return te.Style{}.
+		Foreground(te.ColorProfile().Color(fg)).
+		Background(te.ColorProfile().Color(bg)).
+		Styled
+}
 
 // MSG
 
 type contentRenderedMsg string
 type noteSavedMsg *charm.Markdown
+type statusMessageTimeoutMsg struct{}
+type stashSuccessMsg markdown
+type stashErrMsg struct {
+	err error
+}
+
+func (s stashErrMsg) Error() string {
+	return s.err.Error()
+}
 
 // MODEL
 
@@ -73,6 +82,8 @@ type pagerState int
 const (
 	pagerStateBrowse pagerState = iota
 	pagerStateSetNote
+	pagerStateStashing
+	pagerStateStatusMessage
 )
 
 type pagerModel struct {
@@ -85,9 +96,13 @@ type pagerModel struct {
 	textInput    textinput.Model
 	showHelp     bool
 
+	statusMessageHeader string
+	statusMessageBody   string
+	statusMessageTimer  *time.Timer
+
 	// Current document being rendered, sans-glamour rendering. We cache
 	// it here so we can re-render it on resize.
-	currentDocument *markdown
+	currentDocument markdown
 }
 
 func newPagerModel(glamourStyle string) pagerModel {
@@ -145,6 +160,9 @@ func (m *pagerModel) unload() {
 	if m.showHelp {
 		m.toggleHelp()
 	}
+	if m.statusMessageTimer != nil {
+		m.statusMessageTimer.Stop()
+	}
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
 	m.viewport.YOffset = 0
@@ -192,12 +210,38 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 				}
 
 				m.state = pagerStateSetNote
+
+				// Stop the timer for hiding a status message since changing
+				// the state above will have cleared it.
+				if m.statusMessageTimer != nil {
+					m.statusMessageTimer.Stop()
+				}
+
+				// Pre-populate note with existing value
 				if m.textInput.Value() == "" {
-					// Pre-populate note with existing value
 					m.textInput.SetValue(m.currentDocument.Note)
 					m.textInput.CursorEnd()
 				}
+
 				return m, textinput.Blink(m.textInput)
+			case "s":
+				// Stash a local document
+				if m.state != pagerStateStashing && m.currentDocument.markdownType == localMarkdown {
+					m.state = pagerStateStashing
+
+					// Create new markdown based on loaded markdown
+					md := m.currentDocument
+					md.markdownType = stashedMarkdown
+					t := time.Now()
+					md.CreatedAt = &t
+
+					// Set the note as the filename without the extension
+					p := md.localPath
+					md.Note = strings.Replace(path.Base(p), path.Ext(p), "", 1)
+					md.localPath = ""
+
+					return m, stashDocument(m.cc, md)
+				}
 			case "?":
 				m.toggleHelp()
 				if m.viewport.HighPerformanceRendering {
@@ -216,11 +260,33 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 	// We've reveived terminal dimensions, either for the first time or
 	// after a resize
 	case tea.WindowSizeMsg:
-		var cmd tea.Cmd
-		if m.currentDocument != nil {
-			cmd = renderWithGlamour(m, m.currentDocument.Body)
-		}
-		return m, cmd
+		return m, renderWithGlamour(m, m.currentDocument.Body)
+
+	case stashSuccessMsg:
+		// Stashing was successful. Convert the loaded document to a stashed
+		// one. Note that we're also handling this message in the main update
+		// function where we're adding this stashed item to the stash listing.
+
+		m.state = pagerStateBrowse
+
+		// Replace the current document in the state so its metadata becomes
+		// that of a stashed document, but don't re-render since the body is
+		// identical to what's already rendered.
+		m.currentDocument = markdown(msg)
+
+		// Show a success message to the user.
+		m.state = pagerStateStatusMessage
+		m.statusMessageHeader = "Stashed!"
+		m.statusMessageBody = ""
+		m.statusMessageTimer = time.NewTimer(time.Second * 3)
+		cmds = append(cmds, waitForStatusMessageTimeout(m.statusMessageTimer))
+
+	case stashErrMsg:
+		// TODO
+
+	case statusMessageTimeoutMsg:
+		// Hide the status message bar
+		m.state = pagerStateBrowse
 	}
 
 	switch m.state {
@@ -243,9 +309,12 @@ func pagerView(m pagerModel) string {
 	fmt.Fprint(&b, viewport.View(m.viewport)+"\n")
 
 	// Footer
-	if m.state == pagerStateSetNote {
+	switch m.state {
+	case pagerStateSetNote:
 		pagerSetNoteView(&b, m)
-	} else {
+	case pagerStateStatusMessage:
+		pagerStatusMessageView(&b, m)
+	default:
 		pagerStatusBarView(&b, m)
 	}
 
@@ -304,16 +373,37 @@ func pagerSetNoteView(b *strings.Builder, m pagerModel) {
 	fmt.Fprint(b, textinput.View(m.textInput))
 }
 
+func pagerStatusMessageView(b *strings.Builder, m pagerModel) {
+	const bodyGapWidth = 2 // extra spaces we're adding before/after the body
+
+	header := m.statusMessageHeader
+	if len(header) > 0 {
+		header = " " + header + " "
+	}
+	body := m.statusMessageBody
+	bodyWidth := runewidth.StringWidth(body)
+	availBodySpace := m.width - runewidth.StringWidth(header) - bodyGapWidth
+
+	if availBodySpace < runewidth.StringWidth(body) {
+		body = runewidth.Truncate(body, availBodySpace, "…")
+	} else if availBodySpace > bodyWidth {
+		body = " " + body + " " + strings.Repeat(" ", availBodySpace-bodyWidth)
+	}
+
+	if len(header) > 0 {
+		fmt.Fprintf(b, statusBarMessageHeaderStyle(header))
+	}
+	fmt.Fprintf(b, statusBarMessageBodyStyle(body))
+}
+
 func pagerHelpView(m pagerModel, width int) (s string) {
 	col1 := [...]string{
 		"m       set memo",
 		"esc     back to files",
 		"q       quit",
 	}
-	if m.currentDocument != nil && m.currentDocument.markdownType != stashedMarkdown {
-		col1[0] = col1[1]
-		col1[1] = col1[2]
-		col1[2] = ""
+	if m.currentDocument.markdownType != stashedMarkdown {
+		col1[0] = "s       stash this document"
 	}
 
 	s += "\n"
@@ -371,6 +461,35 @@ func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 			return errMsg(err)
 		}
 		return noteSavedMsg(&charm.Markdown{ID: id, Note: note})
+	}
+}
+
+func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
+	if cc == nil {
+		return func() tea.Msg {
+			err := errors.New("can't stash; no charm client")
+			if debug {
+				log.Println("error stash document:", err)
+			}
+			return stashErrMsg{err}
+		}
+	}
+	return func() tea.Msg {
+		err := cc.StashMarkdown(md.Note, md.Body)
+		if err != nil {
+			if debug {
+				log.Println("error stashing document:", err)
+			}
+			return errMsg(err)
+		}
+		return stashSuccessMsg(md)
+	}
+}
+
+func waitForStatusMessageTimeout(t *time.Timer) tea.Cmd {
+	return func() tea.Msg {
+		<-t.C
+		return statusMessageTimeoutMsg{}
 	}
 }
 

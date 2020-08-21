@@ -236,7 +236,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "left", "h", "delete":
-			if m.state == stateShowDocument && m.pager.state == pagerStateBrowse {
+			if m.state == stateShowDocument && (m.pager.state == pagerStateBrowse || m.pager.state == pagerStateStatusMessage) {
 				cmds = append(cmds, m.unloadDocument()...)
 				return m, tea.Batch(cmds...)
 			}
@@ -310,7 +310,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, loadStash(m.stash), loadNews(m.stash))
 
 	case fetchedMarkdownMsg:
-		m.pager.currentDocument = msg
+		m.pager.currentDocument = *msg
 		cmds = append(cmds, renderWithGlamour(m.pager, msg.Body))
 
 	case contentRenderedMsg:
@@ -331,6 +331,12 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		m.stash = stashModel
 		return m, cmd
 
+	case stashSuccessMsg:
+		// Something was stashed. Update the stash listing. We're caching this
+		// here, rather than in the stash update function, because stashing
+		// may have occurred in the pager.
+		md := markdown(msg)
+		m.stash.addMarkdowns(&md)
 	}
 
 	// Process children
@@ -497,7 +503,7 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) (*markdown, error)
 	md := &markdown{
 		markdownType: localMarkdown,
 		localPath:    res.Path,
-		Markdown:     &charm.Markdown{},
+		Markdown:     charm.Markdown{},
 	}
 
 	// Strip absolute path
