@@ -85,8 +85,8 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 	}
 
 	// Neither are local files so sort by date descending
-	if !m[i].CreatedAt.Equal(*m[j].CreatedAt) {
-		return m[i].CreatedAt.After(*m[j].CreatedAt)
+	if !m[i].CreatedAt.Equal(m[j].CreatedAt) {
+		return m[i].CreatedAt.After(m[j].CreatedAt)
 	}
 
 	// If the timestamps also match, sort by ID.

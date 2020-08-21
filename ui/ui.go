@@ -511,7 +511,7 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) (*markdown, error)
 
 	// Get last modified time
 	t := res.Info.ModTime()
-	md.CreatedAt = &t
+	md.CreatedAt = t
 
 	return md, nil
 }

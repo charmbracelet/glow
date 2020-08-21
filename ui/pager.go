@@ -233,7 +233,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 					md := m.currentDocument
 					md.markdownType = stashedMarkdown
 					t := time.Now()
-					md.CreatedAt = &t
+					md.CreatedAt = t
 
 					// Set the note as the filename without the extension
 					p := md.localPath
