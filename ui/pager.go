@@ -3,6 +3,7 @@ package ui
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math"
 	"path"
@@ -455,32 +456,43 @@ func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 }
 
 func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
-	if cc == nil {
-		return func() tea.Msg {
-			err := errors.New("can't stash; no charm client")
-			if debug {
-				log.Println("error stash document:", err)
-			}
-			return stashErrMsg{err}
-		}
-	}
-
-	// Turn local markdown into a stashed markdown
-	md.markdownType = stashedMarkdown
-	md.CreatedAt = time.Now()
-
-	// Set the note as the filename without the extension
-	p := md.localPath
-	md.Note = strings.Replace(path.Base(p), path.Ext(p), "", 1)
-	md.localPath = ""
-
 	return func() tea.Msg {
+		if cc == nil {
+			return func() tea.Msg {
+				err := errors.New("can't stash; no charm client")
+				if debug {
+					log.Println("error stash document:", err)
+				}
+				return stashErrMsg{err}
+			}
+		}
+
+		// Is the document missing a body? If so, it likely means it needs to
+		// be loaded. If the document body is really empty then we'll still
+		// stash it.
+		if len(md.Body) == 0 {
+			data, err := ioutil.ReadFile(md.localPath)
+			if err != nil {
+				return stashErrMsg{err}
+			}
+			md.Body = string(data)
+		}
+
+		// Turn local markdown into a stashed markdown
+		md.markdownType = stashedMarkdown
+		md.CreatedAt = time.Now()
+
+		// Set the note as the filename without the extension
+		p := md.localPath
+		md.Note = strings.Replace(path.Base(p), path.Ext(p), "", 1)
+		md.localPath = ""
+
 		newMd, err := cc.StashMarkdown(md.Note, md.Body)
 		if err != nil {
 			if debug {
 				log.Println("error stashing document:", err)
 			}
-			return errMsg{err}
+			return stashErrMsg{err}
 		}
 
 		// We really just need to know the ID so we can operate on this newly
