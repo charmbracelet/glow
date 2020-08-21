@@ -845,7 +845,10 @@ var magnitudes = []humanize.RelTimeMagnitude{
 
 func relativeTime(then time.Time) string {
 	now := time.Now()
-	if now.Sub(then) < humanize.Week {
+	ago := now.Sub(then)
+	if ago < time.Minute {
+		return "just now"
+	} else if ago < humanize.Week {
 		return humanize.CustomRelTime(then, now, "ago", "from now", magnitudes)
 	}
 	return then.Format("02 Jan 2006 15:04 MST")
