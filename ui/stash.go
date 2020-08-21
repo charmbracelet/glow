@@ -290,7 +290,12 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if !m.loaded.done() || m.loadingFromNetwork || m.state == stashStateLoadingDocument {
+		condition := !m.loaded.done() ||
+			m.loadingFromNetwork ||
+			m.state == stashStateLoadingDocument ||
+			len(m.filesStashing) > 0
+
+		if condition {
 			newSpinnerModel, cmd := spinner.Update(msg, m.spinner)
 			m.spinner = newSpinnerModel
 			cmds = append(cmds, cmd)
@@ -410,7 +415,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				}
 
 				m.filesStashing[md.localPath] = struct{}{}
-				cmds = append(cmds, stashDocument(m.cc, *md))
+				cmds = append(cmds, stashDocument(m.cc, *md), spinner.Tick(m.spinner))
 
 			// Prompt for deletion
 			case "x":
@@ -547,7 +552,7 @@ func stashView(m stashModel) string {
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
 
 		loadingIndicator := ""
-		if !m.loaded.done() || m.loadingFromNetwork {
+		if !m.loaded.done() || m.loadingFromNetwork || len(m.filesStashing) > 0 {
 			loadingIndicator = spinner.View(m.spinner)
 		}
 
