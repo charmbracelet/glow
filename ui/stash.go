@@ -718,7 +718,15 @@ func stashHelpViewBuilder(windowWidth int, sections ...string) string {
 	}
 	for i := 0; i < len(sections); i++ {
 
-		next = stashHelpItemStyle(sections[i])
+		// If we need this more often we'll formalize something rather than
+		// use an if clause/switch here.
+		switch sections[i] {
+		case "s: stash":
+			next = greenFg(sections[i])
+		default:
+			next = stashHelpItemStyle(sections[i])
+		}
+
 		if i < len(sections)-1 {
 			next += stashHelpDivider
 		}
