@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -95,6 +96,7 @@ type pagerModel struct {
 	height       int
 	textInput    textinput.Model
 	showHelp     bool
+	spinner      spinner.Model
 
 	statusMessageHeader string
 	statusMessageBody   string
@@ -124,11 +126,16 @@ func newPagerModel(glamourStyle string) pagerModel {
 	ti.CharLimit = noteCharacterLimit
 	ti.Focus()
 
+	sp := spinner.NewModel()
+	sp.ForegroundColor = statusBarNoteFg.String()
+	sp.BackgroundColor = statusBarBg.String()
+
 	return pagerModel{
 		state:        pagerStateBrowse,
 		glamourStyle: glamourStyle,
 		textInput:    ti,
 		viewport:     vp,
+		spinner:      sp,
 	}
 }
 
@@ -228,7 +235,11 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 				// Stash a local document
 				if m.state != pagerStateStashing && m.currentDocument.markdownType == localMarkdown {
 					m.state = pagerStateStashing
-					return m, stashDocument(m.cc, m.currentDocument)
+					cmds = append(
+						cmds,
+						stashDocument(m.cc, m.currentDocument),
+						spinner.Tick(m.spinner),
+					)
 				}
 			case "?":
 				m.toggleHelp()
@@ -236,6 +247,13 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 					cmds = append(cmds, viewport.Sync(m.viewport))
 				}
 			}
+		}
+
+	case spinner.TickMsg:
+		if m.state == pagerStateStashing {
+			newSpinnerModel, cmd := spinner.Update(msg, m.spinner)
+			m.spinner = newSpinnerModel
+			cmds = append(cmds, cmd)
 		}
 
 	// Glow has rendered the content
@@ -330,7 +348,9 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 
 	// Status indicator; spinner or stash dot
 	var statusIndicator string
-	if m.currentDocument.markdownType == stashedMarkdown {
+	if m.state == pagerStateStashing {
+		statusIndicator = statusBarNoteStyle(" ") + spinner.View(m.spinner)
+	} else if m.currentDocument.markdownType == stashedMarkdown {
 		statusIndicator = te.String(" •").
 			Foreground(common.Green.Color()).
 			Background(statusBarBg.Color()).
