@@ -706,16 +706,18 @@ func stashHelpView(m stashModel) string {
 // builds the help view from various sections pieces, truncating it if the view
 // would otherwise wrap to two lines.
 func stashHelpViewBuilder(windowWidth int, sections ...string) string {
+	if len(sections) == 0 {
+		return ""
+	}
+
 	const truncationWidth = 1 // width of "…"
+
 	var (
 		s        string
 		next     string
 		maxWidth = windowWidth - stashViewHorizontalPadding - truncationWidth
 	)
 
-	if len(sections) == 0 {
-		return s
-	}
 	for i := 0; i < len(sections); i++ {
 
 		// If we need this more often we'll formalize something rather than
@@ -731,6 +733,8 @@ func stashHelpViewBuilder(windowWidth int, sections ...string) string {
 			next += stashHelpDivider
 		}
 
+		// Only this (and the following) help text items if we have the
+		// horizontal space
 		if ansi.PrintableRuneWidth(s)+ansi.PrintableRuneWidth(next) >= maxWidth {
 			s += common.Subtle("…")
 			break
