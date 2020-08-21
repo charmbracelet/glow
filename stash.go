@@ -36,7 +36,7 @@ var (
 			if err != nil {
 				return fmt.Errorf("error reading file")
 			}
-			err = cc.StashMarkdown(memo, string(b))
+			_, err = cc.StashMarkdown(memo, string(b))
 			if err != nil {
 				return fmt.Errorf("error stashing markdown")
 			}

@@ -475,13 +475,18 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 	md.localPath = ""
 
 	return func() tea.Msg {
-		err := cc.StashMarkdown(md.Note, md.Body)
+		newMd, err := cc.StashMarkdown(md.Note, md.Body)
 		if err != nil {
 			if debug {
 				log.Println("error stashing document:", err)
 			}
 			return errMsg(err)
 		}
+
+		// We really just need to know the ID so we can operate on this newly
+		// stashed markdown.
+		md.ID = newMd.ID
+
 		return stashSuccessMsg(md)
 	}
 }

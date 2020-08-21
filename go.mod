@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/chroma v0.8.0 // indirect
 	github.com/charmbracelet/bubbles v0.5.2-0.20200820173131-d4a0ecd3ee70
 	github.com/charmbracelet/bubbletea v0.10.3
-	github.com/charmbracelet/charm v0.7.1-0.20200821004146-148a655040c4
+	github.com/charmbracelet/charm v0.7.1-0.20200821194648-662b3ca6fc7e
 	github.com/charmbracelet/glamour v0.2.1-0.20200820173154-593dda41c59f
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/mattn/go-runewidth v0.0.9
@@ -19,5 +19,5 @@ require (
 	github.com/yuin/goldmark v1.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
-	golang.org/x/sys v0.0.0-20200820212457-1fb795427249
+	golang.org/x/sys v0.0.0-20200821140526-fda516888d29
 )
