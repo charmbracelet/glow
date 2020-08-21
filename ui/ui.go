@@ -50,7 +50,7 @@ func NewProgram(style string, cfg Config) *tea.Program {
 
 // MESSAGES
 
-type errMsg error
+type errMsg struct{ err error }
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
 type keygenFailedMsg struct{ err error }
@@ -67,6 +67,7 @@ type gotNewsMsg []*charm.Markdown
 type statusMessageTimeoutMsg applicationContext
 type newsLoadErrMsg struct{ err error }
 
+func (e errMsg) Error() string          { return e.err.Error() }
 func (k keygenFailedMsg) Error() string { return k.err.Error() }
 func (s stashLoadErrMsg) Error() string { return s.err.Error() }
 func (s newsLoadErrMsg) Error() string  { return s.err.Error() }
@@ -407,7 +408,7 @@ func findLocalFiles() tea.Msg {
 		if debug {
 			log.Println("error finding local files:", err)
 		}
-		return errMsg(err)
+		return errMsg{err}
 	}
 
 	ch, err := gitcha.FindFiles(cwd, []string{"*.md"})
@@ -440,7 +441,7 @@ func newCharmClient(identityFile *string) tea.Cmd {
 	return func() tea.Msg {
 		cfg, err := charm.ConfigFromEnv()
 		if err != nil {
-			return errMsg(err)
+			return errMsg{err}
 		}
 
 		if identityFile != nil {
@@ -457,7 +458,7 @@ func newCharmClient(identityFile *string) tea.Cmd {
 			if debug {
 				log.Println("error creating new charm client:", err)
 			}
-			return errMsg(err)
+			return errMsg{err}
 		}
 
 		return newCharmClientMsg(cc)

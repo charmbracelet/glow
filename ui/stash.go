@@ -764,7 +764,7 @@ func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 			if debug {
 				log.Println("error loading remote markdown:", err)
 			}
-			return errMsg(err)
+			return errMsg{err}
 		}
 
 		return fetchedMarkdownMsg(&markdown{
@@ -777,10 +777,10 @@ func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 func loadLocalMarkdown(md *markdown) tea.Cmd {
 	return func() tea.Msg {
 		if md.markdownType != localMarkdown {
-			return errMsg(errors.New("could not load local file: not a local file"))
+			return errMsg{errors.New("could not load local file: not a local file")}
 		}
 		if md.localPath == "" {
-			return errMsg(errors.New("could not load file: missing path"))
+			return errMsg{errors.New("could not load file: missing path")}
 		}
 
 		data, err := ioutil.ReadFile(md.localPath)
@@ -788,7 +788,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 			if debug {
 				log.Println("error reading local markdown:", err)
 			}
-			return errMsg(err)
+			return errMsg{err}
 		}
 		md.Body = string(data)
 		return fetchedMarkdownMsg(md)
@@ -799,7 +799,7 @@ func deleteStashedItem(cc *charm.Client, id int) tea.Cmd {
 	return func() tea.Msg {
 		err := cc.DeleteMarkdown(id)
 		if err != nil {
-			return errMsg(err)
+			return errMsg{err}
 		}
 		return deletedStashedItemMsg(id)
 	}

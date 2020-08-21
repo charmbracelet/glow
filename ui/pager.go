@@ -431,7 +431,7 @@ func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 			if debug {
 				log.Println("error rendering with Glamour:", err)
 			}
-			return errMsg(err)
+			return errMsg{err}
 		}
 		return contentRenderedMsg(s)
 	}
@@ -440,7 +440,7 @@ func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 	if cc == nil {
 		return func() tea.Msg {
-			return errMsg(errors.New("can't set note; no charm client"))
+			return errMsg{errors.New("can't set note; no charm client")}
 		}
 	}
 	return func() tea.Msg {
@@ -448,7 +448,7 @@ func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 			if debug {
 				log.Println("error saving note:", err)
 			}
-			return errMsg(err)
+			return errMsg{err}
 		}
 		return noteSavedMsg(&charm.Markdown{ID: id, Note: note})
 	}
@@ -480,7 +480,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			if debug {
 				log.Println("error stashing document:", err)
 			}
-			return errMsg(err)
+			return errMsg{err}
 		}
 
 		// We really just need to know the ID so we can operate on this newly
