@@ -54,9 +54,6 @@ type errMsg error
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
 type keygenFailedMsg struct{ err error }
-
-func (k keygenFailedMsg) Error() string { return k.err.Error() }
-
 type keygenSuccessMsg struct{}
 type initLocalFileSearchMsg struct {
 	cwd string
@@ -66,15 +63,13 @@ type foundLocalFileMsg gitcha.SearchResult
 type localFileSearchFinished struct{}
 type gotStashMsg []*charm.Markdown
 type stashLoadErrMsg struct{ err error }
-
-func (s stashLoadErrMsg) Error() string { return s.err.Error() }
-
 type gotNewsMsg []*charm.Markdown
+type statusMessageTimeoutMsg applicationContext
 type newsLoadErrMsg struct{ err error }
 
-func (s newsLoadErrMsg) Error() string { return s.err.Error() }
-
-type statusMessageTimeoutMsg applicationContext
+func (k keygenFailedMsg) Error() string { return k.err.Error() }
+func (s stashLoadErrMsg) Error() string { return s.err.Error() }
+func (s newsLoadErrMsg) Error() string  { return s.err.Error() }
 
 // MODEL
 

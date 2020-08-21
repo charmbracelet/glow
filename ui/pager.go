@@ -486,7 +486,6 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		// We really just need to know the ID so we can operate on this newly
 		// stashed markdown.
 		md.ID = newMd.ID
-
 		return stashSuccessMsg(md)
 	}
 }
