@@ -400,7 +400,14 @@ func findLocalFiles() tea.Msg {
 		return errMsg(err)
 	}
 
-	ch := gitcha.FindFileFromList(cwd, []string{"*.md"})
+	ch, err := gitcha.FindFiles(cwd, []string{"*.md"})
+	if err != nil {
+		if debug {
+			log.Println("error finding local files:", err)
+		}
+		return errMsg(err)
+	}
+
 	return initLocalFileSearchMsg{ch: ch, cwd: cwd}
 }
 
