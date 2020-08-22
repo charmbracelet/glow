@@ -416,7 +416,7 @@ func findLocalFiles() tea.Msg {
 		if debug {
 			log.Println("error finding local files:", err)
 		}
-		return errMsg(err)
+		return errMsg{err}
 	}
 
 	return initLocalFileSearchMsg{ch: ch, cwd: cwd}
