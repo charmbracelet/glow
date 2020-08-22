@@ -14,7 +14,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
 	github.com/muesli/gitcha v0.0.0-20200822081321-a2a5e01d2e54
 	github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d
-	github.com/muesli/termenv v0.7.0
+	github.com/muesli/termenv v0.7.2
 	github.com/spf13/cobra v1.0.0
 	github.com/yuin/goldmark v1.2.1 // indirect
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
