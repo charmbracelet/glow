@@ -13,10 +13,13 @@ import (
 )
 
 var (
-	identityFile string
-	forceKey     bool
-	memo         string
-	stashCmd     = &cobra.Command{
+	/*
+		identityFile string
+		forceKey     bool
+	*/
+
+	memo     string
+	stashCmd = &cobra.Command{
 		Use:    "stash SOURCE",
 		Hidden: false,
 		Short:  "stash a markdown",
@@ -49,13 +52,17 @@ func getCharmConfig() *charm.Config {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if identityFile != "" {
-		cfg.SSHKeyPath = identityFile
-		cfg.ForceKey = true
-	}
-	if forceKey {
-		cfg.ForceKey = true
-	}
+
+	/*
+		if identityFile != "" {
+			cfg.SSHKeyPath = identityFile
+			cfg.ForceKey = true
+		}
+		if forceKey {
+			cfg.ForceKey = true
+		}
+	*/
+
 	return cfg
 }
 

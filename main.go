@@ -176,7 +176,7 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 		}
 
 		// Config from flags
-		cfg.IdentityFile = identityFile
+		// cfg.IdentityFile = identityFile
 
 		// Log to file, if set
 		if cfg.Logfile != "" {
@@ -294,8 +294,10 @@ func init() {
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 
 	// For network-related operations, namely stashing and the TUI
-	rootCmd.PersistentFlags().StringVarP(&identityFile, "identity", "i", "", "path to identity file (that is, an ssh private key)")
-	rootCmd.PersistentFlags().BoolVarP(&forceKey, "force-key", "f", false, "force the use of the SSH key on disk (that is, ignore ssh-agent)")
+	/*
+		rootCmd.PersistentFlags().StringVarP(&identityFile, "identity", "i", "", "path to identity file (that is, an ssh private key)")
+		rootCmd.PersistentFlags().BoolVarP(&forceKey, "force-key", "f", false, "force the use of the SSH key on disk (that is, ignore ssh-agent)")
+	*/
 
 	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
