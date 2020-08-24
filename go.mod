@@ -12,7 +12,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/meowgorithm/babyenv v1.3.0
 	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
-	github.com/muesli/gitcha v0.0.0-20200822081321-a2a5e01d2e54
+	github.com/muesli/gitcha v0.1.1-0.20200824155329-3a36d51c187f
 	github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d
 	github.com/muesli/termenv v0.7.2
 	github.com/spf13/cobra v1.0.0
