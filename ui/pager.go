@@ -576,7 +576,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 
 	// trim lines
-	lines := strings.Split(string(out), "\n")
+	lines := strings.Split(out, "\n")
 
 	var content string
 	for i, s := range lines {
