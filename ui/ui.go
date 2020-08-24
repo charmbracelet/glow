@@ -272,10 +272,8 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	// We found a local file
 	case foundLocalFileMsg:
-		pathStr, err := localFileToMarkdown(m.cwd, gitcha.SearchResult(msg))
-		if err == nil {
-			m.stash.addMarkdowns(pathStr)
-		}
+		newMd := localFileToMarkdown(m.cwd, gitcha.SearchResult(msg))
+		m.stash.addMarkdowns(newMd)
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case sshAuthErrMsg:
@@ -515,7 +513,7 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 // Convert local file path to Markdown. Note that we could be doing things
 // like checking if the file is a directory, but we trust that gitcha has
 // already done that.
-func localFileToMarkdown(cwd string, res gitcha.SearchResult) (*markdown, error) {
+func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
 		markdownType: localMarkdown,
 		localPath:    res.Path,
@@ -529,7 +527,7 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) (*markdown, error)
 	t := res.Info.ModTime()
 	md.CreatedAt = t
 
-	return md, nil
+	return md
 }
 
 func indent(s string, n int) string {
