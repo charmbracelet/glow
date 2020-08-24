@@ -445,7 +445,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				_, exists := m.filesStashing[md.localPath]
 
 				if exists || (md.markdownType != localMarkdown) || md.localPath == "" {
-					if md.localPath == "" {
+					if md.markdownType == localMarkdown && md.localPath == "" {
 						log.Printf("refusing to load markdown; local path is empty: %#v", md)
 					}
 					break
