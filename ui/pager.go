@@ -45,7 +45,7 @@ var (
 	statusBarBg     = common.NewColorPair("#242424", "#E6E6E6")
 	statusBarNoteFg = common.NewColorPair("#7D7D7D", "#656565")
 
-	// Styling functions
+	// Styling functions.
 	statusBarScrollPosStyle        = newStyle(common.NewColorPair("#5A5A5A", "#949494").String(), statusBarBg.String())
 	statusBarNoteStyle             = newStyle(statusBarNoteFg.String(), statusBarBg.String())
 	statusBarHelpStyle             = newStyle(statusBarNoteFg.String(), common.NewColorPair("#323232", "#DCDCDC").String())
@@ -59,7 +59,7 @@ var (
 	helpViewStyle = newStyle(statusBarNoteFg.String(), common.NewColorPair("#1B1B1B", "#f2f2f2").String())
 )
 
-// Create a new termenv styling function
+// Create a new termenv styling function.
 func newStyle(fg, bg string) func(string) string {
 	return te.Style{}.
 		Foreground(te.ColorProfile().Color(fg)).
@@ -546,7 +546,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 	}
 }
 
-// This is where the magic happens
+// This is where the magic happens.
 func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	if !config.GlamourEnabled {

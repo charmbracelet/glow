@@ -58,7 +58,7 @@ const (
 // and news.
 type markdown struct {
 	markdownType markdownType
-	localPath    string // only relevent to local files and converted files that are newly stashed
+	localPath    string // only relevant to local files and converted files that are newly stashed
 	charm.Markdown
 }
 
@@ -66,7 +66,7 @@ func (m markdown) sortAsLocal() bool {
 	return m.markdownType == localMarkdown || m.markdownType == convertedMarkdown
 }
 
-// Sort documents with local files first, then by date
+// Sort documents with local files first, then by date.
 type markdownsByLocalFirst []*markdown
 
 func (m markdownsByLocalFirst) Len() int      { return len(m) }
@@ -173,12 +173,12 @@ func (m *stashModel) setSize(width, height int) {
 	}
 }
 
-// markdownIndex returns the index of the currently selected markdown item.
+// MarkdownIndex returns the index of the currently selected markdown item.
 func (m stashModel) markdownIndex() int {
 	return m.paginator.Page*m.paginator.PerPage + m.index
 }
 
-// return the current selected markdown in the stash
+// Return the current selected markdown in the stash.
 func (m stashModel) selectedMarkdown() *markdown {
 	i := m.markdownIndex()
 	if i < 0 || len(m.markdowns) == 0 || len(m.markdowns) <= i {
@@ -187,7 +187,7 @@ func (m stashModel) selectedMarkdown() *markdown {
 	return m.markdowns[i]
 }
 
-// adds markdown documents to the model
+// Adds markdown documents to the model.
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	if len(mds) > 0 {
 		m.markdowns = append(m.markdowns, mds...)
@@ -196,7 +196,7 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	}
 }
 
-// find a local markdown by its path and remove it
+// Find a local markdown by its path and remove it.
 func (m *stashModel) removeLocalMarkdown(localPath string) error {
 	i := -1
 
@@ -224,7 +224,7 @@ func (m *stashModel) removeLocalMarkdown(localPath string) error {
 	return nil
 }
 
-// return the number of markdown documents of a given type
+// Return the number of markdown documents of a given type.
 func (m stashModel) countMarkdowns(t markdownType) (found int) {
 	if len(m.markdowns) == 0 {
 		return
