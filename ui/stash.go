@@ -608,7 +608,7 @@ func stashView(m stashModel) string {
 		} else {
 			switch m.state {
 			case stashStatePromptDelete:
-				header = redFg("Delete this item? ") + faintRedFg("(y/N)")
+				header = redFg("Delete this item from your stash? ") + faintRedFg("(y/N)")
 			case stashStateSettingNote:
 				header = yellowFg("Set the memo for this item?")
 			}
