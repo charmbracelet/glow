@@ -59,6 +59,7 @@ const (
 type markdown struct {
 	markdownType markdownType
 	localPath    string // only relevant to local files and converted files that are newly stashed
+	displayPath  string // what we show in the note field
 	charm.Markdown
 }
 
@@ -526,6 +527,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					// If document was stashed during this session, convert it
 					// back to a local file.
 					m.markdowns[i].markdownType = localMarkdown
+					m.markdowns[i].Note = m.markdowns[i].displayPath
 				} else {
 					// Delete optimistically and remove the stashed item
 					// before we've received a success response.

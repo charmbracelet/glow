@@ -585,15 +585,12 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
 		markdownType: localMarkdown,
 		localPath:    res.Path,
+		displayPath:  strings.Replace(res.Path, cwd+"/", "", -1), // strip absolute path
 		Markdown:     charm.Markdown{},
 	}
 
-	// Strip absolute path
-	md.Markdown.Note = strings.Replace(res.Path, cwd+"/", "", -1)
-
-	// Get last modified time
-	t := res.Info.ModTime()
-	md.CreatedAt = t
+	md.Markdown.Note = md.displayPath
+	md.CreatedAt = res.Info.ModTime() // last modified time
 
 	return md
 }
