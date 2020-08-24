@@ -810,7 +810,7 @@ func stashHelpViewBuilder(windowWidth int, sections ...string) string {
 	return s
 }
 
-// CMD
+// COMMANDS
 
 func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 	return func() tea.Msg {
