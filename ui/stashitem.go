@@ -46,7 +46,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		} else {
 			title = newsPrefix + truncate(title, truncateTo-rw.StringWidth(newsPrefix))
 		}
-	case stashedMarkdown:
+	case stashedMarkdown, convertedMarkdown:
 		icon = stashIcon
 		icon = stashIcon
 		if title == "" {

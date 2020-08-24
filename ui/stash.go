@@ -51,14 +51,19 @@ const (
 	stashedMarkdown markdownType = iota
 	newsMarkdown
 	localMarkdown
+	convertedMarkdown // used to be local, now its stashed
 )
 
 // markdown wraps charm.Markdown so we can differentiate between stashed items
 // and news.
 type markdown struct {
 	markdownType markdownType
-	localPath    string // only relevent to local files
+	localPath    string // only relevent to local files and converted files that are newly stashed
 	charm.Markdown
+}
+
+func (m markdown) sortAsLocal() bool {
+	return m.markdownType == localMarkdown || m.markdownType == convertedMarkdown
 }
 
 // Sort documents with local files first, then by date
@@ -67,20 +72,20 @@ type markdownsByLocalFirst []*markdown
 func (m markdownsByLocalFirst) Len() int      { return len(m) }
 func (m markdownsByLocalFirst) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m markdownsByLocalFirst) Less(i, j int) bool {
-	iType := m[i].markdownType
-	jType := m[j].markdownType
+	iIsLocal := m[i].sortAsLocal()
+	jIsLocal := m[j].sortAsLocal()
 
-	// Local files come first
-	if iType == localMarkdown && jType != localMarkdown {
+	// Local files (and files that used to be local) come first
+	if iIsLocal && !jIsLocal {
 		return true
 	}
-	if iType != localMarkdown && jType == localMarkdown {
+	if !iIsLocal && jIsLocal {
 		return false
 	}
 
 	// If both are local files, sort by filename. Note that we should never
 	// hit equality here since two files can't have the same path.
-	if iType == localMarkdown && jType == localMarkdown {
+	if iIsLocal && jIsLocal {
 		return strings.Compare(m[i].localPath, m[j].localPath) == -1
 	}
 
@@ -189,6 +194,34 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 		sort.Sort(markdownsByLocalFirst(m.markdowns))
 		m.paginator.SetTotalPages(len(m.markdowns))
 	}
+}
+
+// find a local markdown by its path and remove it
+func (m *stashModel) removeLocalMarkdown(localPath string) error {
+	i := -1
+
+	// Look for local markdown
+	for j, doc := range m.markdowns {
+		if doc.localPath == localPath {
+			i = j
+			break
+		}
+	}
+
+	// Did we find it?
+	if i == -1 {
+		err := fmt.Errorf("could't find local markdown %s; not removing from stash", localPath)
+		if debug {
+			log.Println(err)
+		}
+		return err
+	}
+
+	// Slice out markdown
+	if i >= 0 {
+		m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
+	}
+	return nil
 }
 
 // return the number of markdown documents of a given type
@@ -314,7 +347,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	case stashSuccessMsg:
 		md := markdown(msg)
 		delete(m.filesStashing, md.localPath) // remove from the things-we're-stashing list
-		md.localPath = ""
+
+		_ = m.removeLocalMarkdown(md.localPath)
 		m.addMarkdowns(&md)
 
 		m.showStatusMessage = true
@@ -410,7 +444,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				// if we're busy stashing this don't do it again
 				_, exists := m.filesStashing[md.localPath]
 
-				if exists || md.markdownType != localMarkdown || md.localPath == "" {
+				if exists || (md.markdownType != localMarkdown) || md.localPath == "" {
+					if md.localPath == "" {
+						log.Printf("refusing to load markdown; local path is empty: %#v", md)
+					}
 					break
 				}
 
@@ -421,7 +458,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			case "x":
 				m.hideStatusMessage()
 
-				isUserMarkdown := m.selectedMarkdown().markdownType == stashedMarkdown
+				t := m.selectedMarkdown().markdownType
+				isUserMarkdown := t == stashedMarkdown || t == convertedMarkdown
 				isValidState := m.state != stashStateSettingNote
 
 				if isUserMarkdown && isValidState {
@@ -775,7 +813,7 @@ func loadRemoteMarkdown(cc *charm.Client, id int, t markdownType) tea.Cmd {
 			err error
 		)
 
-		if t == stashedMarkdown {
+		if t == stashedMarkdown || t == convertedMarkdown {
 			md, err = cc.GetStashMarkdown(id)
 		} else {
 			md, err = cc.GetNewsMarkdown(id)

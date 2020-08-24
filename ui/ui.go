@@ -340,6 +340,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		// message and generally don't want any other effects.
 		if m.state == stateShowDocument {
 			md := markdown(msg)
+			_ = m.stash.removeLocalMarkdown(md.localPath)
 			m.stash.addMarkdowns(&md)
 		}
 	}

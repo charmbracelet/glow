@@ -283,7 +283,6 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 		// that of a stashed document, but don't re-render since the body is
 		// identical to what's already rendered.
 		m.currentDocument = markdown(msg)
-		m.currentDocument.localPath = ""
 
 		// Show a success message to the user.
 		m.state = pagerStateStatusMessage
@@ -513,13 +512,16 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		if len(md.Body) == 0 {
 			data, err := ioutil.ReadFile(md.localPath)
 			if err != nil {
+				if debug {
+					log.Println("error loading doucument body for stashing:", err)
+				}
 				return stashErrMsg{err}
 			}
 			md.Body = string(data)
 		}
 
-		// Turn local markdown into a stashed markdown
-		md.markdownType = stashedMarkdown
+		// Turn local markdown into a newly stashed (converted) markdown
+		md.markdownType = convertedMarkdown
 		md.CreatedAt = time.Now()
 
 		// Set the note as the filename without the extension
