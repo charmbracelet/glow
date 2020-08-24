@@ -423,7 +423,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.hideStatusMessage()
 
 				md := m.selectedMarkdown()
-				isUserMarkdown := md.markdownType == stashedMarkdown
+				isUserMarkdown := md.markdownType == stashedMarkdown || md.markdownType == convertedMarkdown
 				isSettingNote := m.state == stashStateSettingNote
 				isPromptingDelete := m.state == stashStatePromptDelete
 
@@ -441,7 +441,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					break
 				}
 
-				// if we're busy stashing this don't do it again
+				// If we're busy stashing this don't do it again
 				_, exists := m.filesStashing[md.localPath]
 
 				if exists || (md.markdownType != localMarkdown) || md.localPath == "" {

@@ -598,6 +598,7 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	return md
 }
 
+// Lightweight version of reflow's indent function.
 func indent(s string, n int) string {
 	if n <= 0 || s == "" {
 		return s
