@@ -215,8 +215,11 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 					return m, nil
 				}
 			case "m":
+				isStashed := m.currentDocument.markdownType == stashedMarkdown ||
+					m.currentDocument.markdownType == convertedMarkdown
+
 				// Users can only set the note on user-stashed markdown
-				if m.currentDocument.markdownType != stashedMarkdown {
+				if !isStashed {
 					break
 				}
 
@@ -338,7 +341,7 @@ func pagerView(m pagerModel) string {
 
 func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	var (
-		isStashed         bool = m.currentDocument.markdownType == stashedMarkdown
+		isStashed         bool = m.currentDocument.markdownType == stashedMarkdown || m.currentDocument.markdownType == convertedMarkdown
 		showStatusMessage bool = m.state == pagerStateStatusMessage
 	)
 
