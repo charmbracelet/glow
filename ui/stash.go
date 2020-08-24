@@ -522,9 +522,15 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				i := m.markdownIndex()
 				id := m.markdowns[i].ID
 
-				// Delete optimistically and remove the stashed item
-				// before we've received a success response.
-				m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
+				if m.markdowns[i].markdownType == convertedMarkdown {
+					// If document was stashed during this session, convert it
+					// back to a local file.
+					m.markdowns[i].markdownType = localMarkdown
+				} else {
+					// Delete optimistically and remove the stashed item
+					// before we've received a success response.
+					m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
+				}
 
 				// Update pagination
 				m.paginator.SetTotalPages(len(m.markdowns))
