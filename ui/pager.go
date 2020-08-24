@@ -42,17 +42,21 @@ var (
 			Background(common.Green.Color()).
 			String()
 
-	statusBarBg          = common.NewColorPair("#242424", "#E6E6E6")
-	statusBarNoteFg      = common.NewColorPair("#7D7D7D", "#656565")
-	statusBarScrollPosFg = common.NewColorPair("#5A5A5A", "#949494")
+	statusBarBg     = common.NewColorPair("#242424", "#E6E6E6")
+	statusBarNoteFg = common.NewColorPair("#7D7D7D", "#656565")
 
 	// Styling functions
-	statusBarScrollPosStyle     = newStyle(statusBarScrollPosFg.String(), statusBarBg.String())
-	statusBarNoteStyle          = newStyle(statusBarNoteFg.String(), statusBarBg.String())
-	statusBarHelpStyle          = newStyle(statusBarNoteFg.String(), common.NewColorPair("#323232", "#DCDCDC").String())
-	statusBarMessageHeaderStyle = newStyle(common.Cream.String(), common.Green.String())
-	statusBarMessageBodyStyle   = newStyle(mintGreen, darkGreen)
-	helpViewStyle               = newStyle(statusBarNoteFg.String(), common.NewColorPair("#1B1B1B", "#f2f2f2").String())
+	statusBarScrollPosStyle        = newStyle(common.NewColorPair("#5A5A5A", "#949494").String(), statusBarBg.String())
+	statusBarNoteStyle             = newStyle(statusBarNoteFg.String(), statusBarBg.String())
+	statusBarHelpStyle             = newStyle(statusBarNoteFg.String(), common.NewColorPair("#323232", "#DCDCDC").String())
+	statusBarStashDotStyle         = newStyle(common.Green.String(), statusBarBg.String())
+	statusBarMessageHeaderStyle    = newStyle(common.Cream.String(), common.Green.String())
+	statusBarMessageBodyStyle      = newStyle(mintGreen, darkGreen)
+	statusBarMessageStashDotStyle  = newStyle(mintGreen, darkGreen)
+	statusBarMessageScrollPosStyle = newStyle(mintGreen, darkGreen)
+	statusBarMessageHelpStyle      = newStyle("#B6FFE4", common.Green.String())
+
+	helpViewStyle = newStyle(statusBarNoteFg.String(), common.NewColorPair("#1B1B1B", "#f2f2f2").String())
 )
 
 // Create a new termenv styling function
@@ -322,8 +326,6 @@ func pagerView(m pagerModel) string {
 	switch m.state {
 	case pagerStateSetNote:
 		pagerSetNoteView(&b, m)
-	case pagerStateStatusMessage:
-		pagerStatusMessageView(&b, m)
 	default:
 		pagerStatusBarView(&b, m)
 	}
@@ -336,58 +338,86 @@ func pagerView(m pagerModel) string {
 }
 
 func pagerStatusBarView(b *strings.Builder, m pagerModel) {
+	var (
+		isStashed         bool = m.currentDocument.markdownType == stashedMarkdown
+		showStatusMessage bool = m.state == pagerStateStatusMessage
+	)
+
 	// Logo
 	logo := glowLogoView(" Glow ")
 
 	// Scroll percent
-	scrollPercent := math.Max(0.0, math.Min(1.0, m.viewport.ScrollPercent()))
-	percentText := fmt.Sprintf(" %3.f%% ", scrollPercent*100)
+	percent := math.Max(0.0, math.Min(1.0, m.viewport.ScrollPercent()))
+	scrollPercent := fmt.Sprintf(" %3.f%% ", percent*100)
+	if showStatusMessage {
+		scrollPercent = statusBarMessageScrollPosStyle(scrollPercent)
+	} else {
+		scrollPercent = statusBarScrollPosStyle(scrollPercent)
+	}
 
 	// "Help" note
-	helpNote := statusBarHelpStyle(" ? Help ")
+	var helpNote string
+	if showStatusMessage {
+		helpNote = statusBarMessageHelpStyle(" ? Help ")
+	} else {
+		helpNote = statusBarHelpStyle(" ? Help ")
+	}
 
 	// Status indicator; spinner or stash dot
 	var statusIndicator string
 	if m.state == pagerStateStashing {
 		statusIndicator = statusBarNoteStyle(" ") + spinner.View(m.spinner)
-	} else if m.currentDocument.markdownType == stashedMarkdown {
-		statusIndicator = te.String(" •").
-			Foreground(common.Green.Color()).
-			Background(statusBarBg.Color()).
-			String()
+	} else if isStashed && showStatusMessage {
+		statusIndicator = statusBarMessageStashDotStyle(" •")
+	} else if isStashed {
+		statusIndicator = statusBarStashDotStyle(" •")
 	}
 
 	// Note
-	noteText := m.currentDocument.Note
-	if len(noteText) == 0 {
-		noteText = "(No title)"
+	var note string
+	if showStatusMessage {
+		note = "Stashed!"
+	} else {
+		note = m.currentDocument.Note
+		if len(note) == 0 {
+			note = "(No memo)"
+		}
 	}
-	noteText = truncate(" "+noteText+" ", max(0,
+	note = truncate(" "+note+" ", max(0,
 		m.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(statusIndicator)-
-			ansi.PrintableRuneWidth(percentText)-
+			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
 	))
+	if showStatusMessage {
+		note = statusBarMessageBodyStyle(note)
+	} else {
+		note = statusBarNoteStyle(note)
+	}
 
 	// Empty space
-	emptyCell := te.String(" ").Background(statusBarBg.Color()).String()
 	padding := max(0,
 		m.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(statusIndicator)-
-			ansi.PrintableRuneWidth(noteText)-
-			ansi.PrintableRuneWidth(percentText)-
+			ansi.PrintableRuneWidth(note)-
+			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
 	)
-	emptySpace := strings.Repeat(emptyCell, padding)
+	emptySpace := strings.Repeat(" ", padding)
+	if showStatusMessage {
+		emptySpace = statusBarMessageBodyStyle(emptySpace)
+	} else {
+		emptySpace = statusBarNoteStyle(emptySpace)
+	}
 
 	fmt.Fprintf(b, "%s%s%s%s%s%s",
 		logo,
 		statusIndicator,
-		statusBarNoteStyle(noteText),
+		note,
 		emptySpace,
-		statusBarScrollPosStyle(percentText),
+		scrollPercent,
 		helpNote,
 	)
 }
@@ -395,29 +425,6 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 func pagerSetNoteView(b *strings.Builder, m pagerModel) {
 	fmt.Fprint(b, noteHeading)
 	fmt.Fprint(b, textinput.View(m.textInput))
-}
-
-func pagerStatusMessageView(b *strings.Builder, m pagerModel) {
-	const bodyGapWidth = 2 // extra spaces we're adding before/after the body
-
-	header := m.statusMessageHeader
-	if len(header) > 0 {
-		header = " " + header + " "
-	}
-	body := m.statusMessageBody
-	bodyWidth := runewidth.StringWidth(body)
-	availBodySpace := m.width - runewidth.StringWidth(header) - bodyGapWidth
-
-	if availBodySpace < runewidth.StringWidth(body) {
-		body = runewidth.Truncate(body, availBodySpace, "…")
-	} else if availBodySpace > bodyWidth {
-		body = " " + body + " " + strings.Repeat(" ", availBodySpace-bodyWidth)
-	}
-
-	if len(header) > 0 {
-		fmt.Fprintf(b, statusBarMessageHeaderStyle(header))
-	}
-	fmt.Fprintf(b, statusBarMessageBodyStyle(body))
 }
 
 func pagerHelpView(m pagerModel, width int) (s string) {
