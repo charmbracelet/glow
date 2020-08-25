@@ -115,7 +115,6 @@ const (
 type model struct {
 	cfg            Config
 	cc             *charm.Client
-	user           *charm.User
 	keygenState    keygenState
 	state          state
 	fatalErr       error

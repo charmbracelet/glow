@@ -19,12 +19,10 @@ const (
 
 var (
 	greenFg        = te.Style{}.Foreground(common.NewColorPair("#04B575", "#04B575").Color()).Styled
-	faintGreenFg   = te.Style{}.Foreground(common.NewColorPair("#2B4A3F", "#ABE5D1").Color()).Styled
 	fuchsiaFg      = te.Style{}.Foreground(common.Fuschia.Color()).Styled
 	dullFuchsiaFg  = te.Style{}.Foreground(common.NewColorPair("#AD58B4", "#F793FF").Color()).Styled
 	yellowFg       = te.Style{}.Foreground(common.YellowGreen.Color()).Styled                        // renders light green on light backgrounds
 	dullYellowFg   = te.Style{}.Foreground(common.NewColorPair("#9BA92F", "#6BCB94").Color()).Styled // renders light green on light backgrounds
-	indigoFg       = te.Style{}.Foreground(common.Indigo.Color()).Styled
 	subtleIndigoFg = te.Style{}.Foreground(common.NewColorPair("#514DC1", "#7D79F6").Color()).Styled
 	redFg          = te.Style{}.Foreground(common.Red.Color()).Styled
 	faintRedFg     = te.Style{}.Foreground(common.FaintRed.Color()).Styled
@@ -32,11 +30,13 @@ var (
 )
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
-	truncateTo := m.terminalWidth - stashViewHorizontalPadding*2
-	gutter := " "
-	title := md.Note
-	date := relativeTime(md.CreatedAt)
-	icon := ""
+	var (
+		truncateTo = m.terminalWidth - stashViewHorizontalPadding*2
+		gutter     string
+		title      = md.Note
+		date       = relativeTime(md.CreatedAt)
+		icon       = ""
+	)
 
 	switch md.markdownType {
 	case newsMarkdown:
