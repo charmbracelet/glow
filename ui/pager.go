@@ -48,8 +48,7 @@ var (
 	statusBarNoteStyle             = newStyle(statusBarNoteFg.String(), statusBarBg.String())
 	statusBarHelpStyle             = newStyle(statusBarNoteFg.String(), common.NewColorPair("#323232", "#DCDCDC").String())
 	statusBarStashDotStyle         = newStyle(common.Green.String(), statusBarBg.String())
-	statusBarMessageHeaderStyle    = newStyle(common.Cream.String(), common.Green.String())
-	statusBarMessageBodyStyle      = newStyle(mintGreen, darkGreen)
+	statusBarMessageStyle          = newStyle(mintGreen, darkGreen)
 	statusBarMessageStashDotStyle  = newStyle(mintGreen, darkGreen)
 	statusBarMessageScrollPosStyle = newStyle(mintGreen, darkGreen)
 	statusBarMessageHelpStyle      = newStyle("#B6FFE4", common.Green.String())
@@ -101,9 +100,8 @@ type pagerModel struct {
 	textInput    textinput.Model
 	spinner      spinner.Model
 
-	statusMessageHeader string
-	statusMessageBody   string
-	statusMessageTimer  *time.Timer
+	statusMessage      string
+	statusMessageTimer *time.Timer
 
 	// Current document being rendered, sans-glamour rendering. We cache
 	// it here so we can re-render it on resize.
@@ -177,8 +175,7 @@ func (m *pagerModel) toggleHelp() {
 func (m *pagerModel) showStatusMessage(statusMessage string) tea.Cmd {
 	// Show a success message to the user
 	m.state = pagerStateStatusMessage
-	m.statusMessageHeader = statusMessage
-	m.statusMessageBody = ""
+	m.statusMessage = statusMessage
 	if m.statusMessageTimer != nil {
 		m.statusMessageTimer.Stop()
 	}
@@ -420,7 +417,7 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 			ansi.PrintableRuneWidth(helpNote),
 	))
 	if showStatusMessage {
-		note = statusBarMessageBodyStyle(note)
+		note = statusBarMessageStyle(note)
 	} else {
 		note = statusBarNoteStyle(note)
 	}
@@ -436,7 +433,7 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	)
 	emptySpace := strings.Repeat(" ", padding)
 	if showStatusMessage {
-		emptySpace = statusBarMessageBodyStyle(emptySpace)
+		emptySpace = statusBarMessageStyle(emptySpace)
 	} else {
 		emptySpace = statusBarNoteStyle(emptySpace)
 	}
