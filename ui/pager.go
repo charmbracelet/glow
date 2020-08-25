@@ -230,6 +230,16 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 					m.state = pagerStateBrowse
 					return m, nil
 				}
+			case "home", "g":
+				m.viewport.GotoTop()
+				if m.viewport.HighPerformanceRendering {
+					cmds = append(cmds, viewport.Sync(m.viewport))
+				}
+			case "end", "G":
+				m.viewport.GotoBottom()
+				if m.viewport.HighPerformanceRendering {
+					cmds = append(cmds, viewport.Sync(m.viewport))
+				}
 			case "m":
 				isStashed := m.currentDocument.markdownType == stashedMarkdown ||
 					m.currentDocument.markdownType == convertedMarkdown
@@ -455,21 +465,24 @@ func pagerSetNoteView(b *strings.Builder, m pagerModel) {
 
 func pagerHelpView(m pagerModel, width int) (s string) {
 	col1 := [...]string{
+		"g/home  go to top",
+		"G/end   go to bottom",
+		"",
 		"m       set memo",
 		"esc     back to files",
 		"q       quit",
 	}
 	if m.currentDocument.markdownType != stashedMarkdown {
-		col1[0] = "s       stash this document"
+		col1[4] = "s       stash this document"
 	}
 
 	s += "\n"
 	s += "k/↑      up                  " + col1[0] + "\n"
 	s += "j/↓      down                " + col1[1] + "\n"
 	s += "j/↓      down                " + col1[2] + "\n"
-	s += "b/pgup   page up\n"
-	s += "f/pgdn   page down\n"
-	s += "u        ½ page up\n"
+	s += "b/pgup   page up             " + col1[3] + "\n"
+	s += "f/pgdn   page down           " + col1[4] + "\n"
+	s += "u        ½ page up           " + col1[5] + "\n"
 	s += "d        ½ page down"
 
 	s = indent(s, 2)
