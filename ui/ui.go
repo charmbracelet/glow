@@ -215,7 +215,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			// Special cases for the pager
 			case stateShowDocument:
 				switch m.pager.state {
-
 				// If setting a note send all keys straight through
 				case pagerStateSetNote:
 					var batch []tea.Cmd
@@ -236,7 +235,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 						return m, tea.Batch(batch...)
 					}
 				}
-
 			}
 
 			return m, tea.Quit
@@ -348,7 +346,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	// Process children
 	switch m.state {
-
 	case stateShowStash:
 		newStashModel, cmd := stashUpdate(msg, m.stash)
 		m.stash = newStashModel
@@ -366,7 +363,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 // VIEW
 
 func view(mdl tea.Model) string {
-
 	m, ok := mdl.(model)
 	if !ok {
 		return "could not perform assertion on model in view"

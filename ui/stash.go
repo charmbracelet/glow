@@ -284,7 +284,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-
 	case errMsg:
 		m.err = msg
 
@@ -373,13 +372,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	switch m.state {
 	case stashStateReady:
-
 		switch msg := msg.(type) {
-
 		// Handle keys
 		case tea.KeyMsg:
 			switch msg.String() {
-
 			case "k", "up":
 				m.index--
 				if m.index < 0 && m.paginator.Page == 0 {
@@ -483,7 +479,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.state = stashStateShowingError
 					return m, nil
 				}
-
 			}
 		}
 
@@ -523,7 +518,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	case stashStatePromptDelete:
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
-
 			// Confirm deletion
 			case "y":
 				if m.state != stashStatePromptDelete {
@@ -586,7 +580,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		if _, ok := msg.(tea.KeyMsg); ok {
 			m.state = stashStateReady
 		}
-
 	}
 
 	// If an item is being confirmed for delete, any key (other than the key
@@ -598,7 +591,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 // VIEW
 
 func stashView(m stashModel) string {
-
 	var s string
 	switch m.state {
 	case stashStateShowingError:
@@ -796,7 +788,6 @@ func stashHelpViewBuilder(windowWidth int, sections ...string) string {
 	)
 
 	for i := 0; i < len(sections); i++ {
-
 		// If we need this more often we'll formalize something rather than
 		// use an if clause/switch here.
 		switch sections[i] {

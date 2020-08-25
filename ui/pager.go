@@ -115,7 +115,6 @@ type pagerModel struct {
 }
 
 func newPagerModel(glamourStyle string) pagerModel {
-
 	// Init viewport
 	vp := viewport.Model{}
 	vp.YPosition = 0
@@ -176,7 +175,6 @@ func (m *pagerModel) toggleHelp() {
 // that the the returned command should be sent back the through the pager
 // update function.
 func (m *pagerModel) showStatusMessage(statusMessage string) tea.Cmd {
-
 	// Show a success message to the user
 	m.state = pagerStateStatusMessage
 	m.statusMessageHeader = statusMessage
@@ -211,7 +209,6 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-
 	case tea.KeyMsg:
 		switch m.state {
 		case pagerStateSetNote:
@@ -507,7 +504,6 @@ func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 
 // This is where the magic happens.
 func glamourRender(m pagerModel, markdown string) (string, error) {
-
 	if !config.GlamourEnabled {
 		return markdown, nil
 	}
