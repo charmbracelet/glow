@@ -135,6 +135,7 @@ func newPagerModel(glamourStyle string) pagerModel {
 	sp := spinner.NewModel()
 	sp.ForegroundColor = statusBarNoteFg.String()
 	sp.BackgroundColor = statusBarBg.String()
+	sp.HideFor = time.Millisecond * 50
 	sp.MinimumLifetime = time.Millisecond * 180
 
 	return pagerModel{
@@ -278,11 +279,11 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if m.state == pagerStateStashing || !m.spinner.MinimumLifetimeReached() {
+		if m.state == pagerStateStashing || m.spinner.Visible() {
 			newSpinnerModel, cmd := spinner.Update(msg, m.spinner)
 			m.spinner = newSpinnerModel
 			cmds = append(cmds, cmd)
-		} else if m.state == pagerStateStashSuccess && m.spinner.MinimumLifetimeReached() {
+		} else if m.state == pagerStateStashSuccess && !m.spinner.Visible() {
 			m.state = pagerStateBrowse
 			m.currentDocument = *m.stashedDocument
 			m.stashedDocument = nil
@@ -308,7 +309,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 		// message in the main update function where we're adding this stashed
 		// item to the stash listing.
 		m.state = pagerStateStashSuccess
-		if m.spinner.MinimumLifetimeReached() {
+		if !m.spinner.Visible() {
 			m.state = pagerStateBrowse
 			m.currentDocument = markdown(msg)
 			cmd := m.showStatusMessage("Stashed!")
@@ -389,7 +390,7 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	// Status indicator; spinner or stash dot
 	var statusIndicator string
 	if m.state == pagerStateStashing || m.state == pagerStateStashSuccess {
-		if !m.spinner.Hidden() {
+		if m.spinner.Visible() {
 			statusIndicator = statusBarNoteStyle(" ") + spinner.View(m.spinner)
 		}
 	} else if isStashed && showStatusMessage {

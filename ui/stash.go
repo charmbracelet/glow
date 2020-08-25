@@ -132,9 +132,10 @@ type stashModel struct {
 	terminalHeight     int
 	stashFullyLoaded   bool        // have we loaded everything from the server?
 	loadingFromNetwork bool        // are we currently loading something from the network?
-	loaded             loadedState // what's loaded? we find out with bitmasking
+	loaded             loadedState // tracks news, stash and local files loading; we find out with bitmasking
 
-	// Paths to files being stashed. We treat this like a set.
+	// Paths to files being stashed. We treat this like a set, ignoring the
+	// value portion with an empty struct.
 	filesStashing map[string]struct{}
 
 	// This is just the index of the current page in view. To get the index
@@ -248,9 +249,12 @@ func (m *stashModel) hideStatusMessage() {
 // INIT
 
 func newStashModel() stashModel {
-	s := spinner.NewModel()
-	s.Frames = spinner.Line
-	s.ForegroundColor = common.SpinnerColor.String()
+	sp := spinner.NewModel()
+	sp.Frames = spinner.Line
+	sp.ForegroundColor = common.SpinnerColor.String()
+	sp.HideFor = time.Millisecond * 50
+	sp.MinimumLifetime = time.Millisecond * 180
+	sp.Start()
 
 	p := paginator.NewModel()
 	p.Type = paginator.Dots
@@ -263,7 +267,7 @@ func newStashModel() stashModel {
 	ni.Focus()
 
 	m := stashModel{
-		spinner:            s,
+		spinner:            sp,
 		noteInput:          ni,
 		page:               1,
 		paginator:          p,
@@ -327,7 +331,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		condition := !m.loaded.done() ||
 			m.loadingFromNetwork ||
 			m.state == stashStateLoadingDocument ||
-			len(m.filesStashing) > 0
+			len(m.filesStashing) > 0 ||
+			m.spinner.Visible()
 
 		if condition {
 			newSpinnerModel, cmd := spinner.Update(msg, m.spinner)
@@ -442,18 +447,23 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					break
 				}
 
-				// If we're busy stashing this don't do it again
-				_, exists := m.filesStashing[md.localPath]
+				_, exists := m.filesStashing[md.localPath] // is the file currently being stashed?
 
 				if exists || (md.markdownType != localMarkdown) || md.localPath == "" {
 					if md.markdownType == localMarkdown && md.localPath == "" {
-						log.Printf("refusing to load markdown; local path is empty: %#v", md)
+						log.Printf("refusing to stash markdown; local path is empty: %#v", md)
 					}
 					break
 				}
 
+				// Checks passed; perform the stash
 				m.filesStashing[md.localPath] = struct{}{}
-				cmds = append(cmds, stashDocument(m.cc, *md), spinner.Tick(m.spinner))
+				cmds = append(cmds, stashDocument(m.cc, *md))
+
+				if m.loaded.done() && !m.spinner.Visible() {
+					m.spinner.Start()
+					cmds = append(cmds, spinner.Tick(m.spinner))
+				}
 
 			// Prompt for deletion
 			case "x":
@@ -598,7 +608,7 @@ func stashView(m stashModel) string {
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
 
 		loadingIndicator := ""
-		if !m.loaded.done() || m.loadingFromNetwork || len(m.filesStashing) > 0 {
+		if !m.loaded.done() || m.loadingFromNetwork || m.spinner.Visible() {
 			loadingIndicator = spinner.View(m.spinner)
 		}
 
@@ -623,7 +633,7 @@ func stashView(m stashModel) string {
 		}
 
 		// Only draw the normal header if we're not using the header area for
-		// something else (like a prompt)
+		// something else (like a prompt or status message)
 		if header == "" {
 			header = stashHeaderView(m)
 		}
