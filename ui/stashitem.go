@@ -32,7 +32,6 @@ var (
 )
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
-
 	truncateTo := m.terminalWidth - stashViewHorizontalPadding*2
 	gutter := " "
 	title := md.Note
