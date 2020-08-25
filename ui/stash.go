@@ -686,7 +686,7 @@ func stashHeaderView(m stashModel) string {
 	}
 
 	localItems := m.countMarkdowns(localMarkdown)
-	stashedItems := m.countMarkdowns(stashedMarkdown)
+	stashedItems := m.countMarkdowns(stashedMarkdown) + m.countMarkdowns(convertedMarkdown)
 
 	// Loading's finished and all we have is news.
 	if !loading && localItems == 0 && stashedItems == 0 {
