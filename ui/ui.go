@@ -154,7 +154,7 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 	return func() (tea.Model, tea.Cmd) {
 		if style == "auto" {
 			dbg := te.HasDarkBackground()
-			if dbg == true {
+			if dbg {
 				style = "dark"
 			} else {
 				style = "light"
