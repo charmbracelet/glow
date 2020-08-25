@@ -85,6 +85,7 @@ const (
 	pagerStateBrowse pagerState = iota
 	pagerStateSetNote
 	pagerStateStashing
+	pagerStateStashSuccess
 	pagerStateStatusMessage
 )
 
@@ -95,8 +96,8 @@ type pagerModel struct {
 	glamourStyle string
 	width        int
 	height       int
-	textInput    textinput.Model
 	showHelp     bool
+	textInput    textinput.Model
 	spinner      spinner.Model
 
 	statusMessageHeader string
@@ -106,6 +107,10 @@ type pagerModel struct {
 	// Current document being rendered, sans-glamour rendering. We cache
 	// it here so we can re-render it on resize.
 	currentDocument markdown
+
+	// Newly stashed markdown. We store it here temporarily so we can replace
+	// currentDocument above after a stash.
+	stashedDocument *markdown
 }
 
 func newPagerModel(glamourStyle string) pagerModel {
@@ -130,6 +135,7 @@ func newPagerModel(glamourStyle string) pagerModel {
 	sp := spinner.NewModel()
 	sp.ForegroundColor = statusBarNoteFg.String()
 	sp.BackgroundColor = statusBarBg.String()
+	sp.MinimumLifetime = time.Millisecond * 180
 
 	return pagerModel{
 		state:        pagerStateBrowse,
@@ -162,6 +168,23 @@ func (m *pagerModel) toggleHelp() {
 	if m.viewport.PastBottom() {
 		m.viewport.GotoBottom()
 	}
+}
+
+// Perform stuff that needs to happen after a successful markdown stash. Note
+// that the the returned command should be sent back the through the pager
+// update function.
+func (m *pagerModel) showStatusMessage(statusMessage string) tea.Cmd {
+
+	// Show a success message to the user
+	m.state = pagerStateStatusMessage
+	m.statusMessageHeader = statusMessage
+	m.statusMessageBody = ""
+	if m.statusMessageTimer != nil {
+		m.statusMessageTimer.Stop()
+	}
+	m.statusMessageTimer = time.NewTimer(statusMessageTimeout)
+
+	return waitForStatusMessageTimeout(pagerContext, m.statusMessageTimer)
 }
 
 func (m *pagerModel) unload() {
@@ -239,6 +262,7 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 				// Stash a local document
 				if m.state != pagerStateStashing && m.currentDocument.markdownType == localMarkdown {
 					m.state = pagerStateStashing
+					m.spinner.Start()
 					cmds = append(
 						cmds,
 						stashDocument(m.cc, m.currentDocument),
@@ -254,9 +278,15 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if m.state == pagerStateStashing {
+		if m.state == pagerStateStashing || !m.spinner.MinimumLifetimeReached() {
 			newSpinnerModel, cmd := spinner.Update(msg, m.spinner)
 			m.spinner = newSpinnerModel
+			cmds = append(cmds, cmd)
+		} else if m.state == pagerStateStashSuccess && m.spinner.MinimumLifetimeReached() {
+			m.state = pagerStateBrowse
+			m.currentDocument = *m.stashedDocument
+			m.stashedDocument = nil
+			cmd := m.showStatusMessage("Stashed!")
 			cmds = append(cmds, cmd)
 		}
 
@@ -274,25 +304,19 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 
 	case stashSuccessMsg:
 		// Stashing was successful. Convert the loaded document to a stashed
-		// one. Note that we're also handling this message in the main update
-		// function where we're adding this stashed item to the stash listing.
-
-		m.state = pagerStateBrowse
-
-		// Replace the current document in the state so its metadata becomes
-		// that of a stashed document, but don't re-render since the body is
-		// identical to what's already rendered.
-		m.currentDocument = markdown(msg)
-
-		// Show a success message to the user.
-		m.state = pagerStateStatusMessage
-		m.statusMessageHeader = "Stashed!"
-		m.statusMessageBody = ""
-		if m.statusMessageTimer != nil {
-			m.statusMessageTimer.Stop()
+		// one and show a status message. Note that we're also handling this
+		// message in the main update function where we're adding this stashed
+		// item to the stash listing.
+		m.state = pagerStateStashSuccess
+		if m.spinner.MinimumLifetimeReached() {
+			m.state = pagerStateBrowse
+			m.currentDocument = markdown(msg)
+			cmd := m.showStatusMessage("Stashed!")
+			cmds = append(cmds, cmd)
+		} else {
+			md := markdown(msg)
+			m.stashedDocument = &md
 		}
-		m.statusMessageTimer = time.NewTimer(statusMessageTimeout)
-		cmds = append(cmds, waitForStatusMessageTimeout(pagerContext, m.statusMessageTimer))
 
 	case stashErrMsg:
 		// TODO
@@ -364,8 +388,10 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 
 	// Status indicator; spinner or stash dot
 	var statusIndicator string
-	if m.state == pagerStateStashing {
-		statusIndicator = statusBarNoteStyle(" ") + spinner.View(m.spinner)
+	if m.state == pagerStateStashing || m.state == pagerStateStashSuccess {
+		if !m.spinner.Hidden() {
+			statusIndicator = statusBarNoteStyle(" ") + spinner.View(m.spinner)
+		}
 	} else if isStashed && showStatusMessage {
 		statusIndicator = statusBarMessageStashDotStyle(" •")
 	} else if isStashed {
