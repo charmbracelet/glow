@@ -399,6 +399,16 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.paginator.NextPage()
 				}
 
+			// Go to the very start
+			case "home", "g":
+				m.paginator.Page = 0
+				m.index = 0
+
+			// Go to the very end
+			case "end", "G":
+				m.paginator.Page = m.paginator.TotalPages - 1
+				m.index = m.paginator.ItemsOnPage(len(m.markdowns)) - 1
+
 			// Open document
 			case "enter":
 				m.hideStatusMessage()
