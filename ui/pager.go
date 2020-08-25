@@ -360,6 +360,11 @@ func pagerView(m pagerModel) string {
 }
 
 func pagerStatusBarView(b *strings.Builder, m pagerModel) {
+	const (
+		minPercent               float64 = 0.0
+		maxPercent               float64 = 1.0
+		percentToStringMagnitude float64 = 100.0
+	)
 	var (
 		isStashed         bool = m.currentDocument.markdownType == stashedMarkdown || m.currentDocument.markdownType == convertedMarkdown
 		showStatusMessage bool = m.state == pagerStateStatusMessage
@@ -369,8 +374,8 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	logo := glowLogoView(" Glow ")
 
 	// Scroll percent
-	percent := math.Max(0.0, math.Min(1.0, m.viewport.ScrollPercent()))
-	scrollPercent := fmt.Sprintf(" %3.f%% ", percent*100)
+	percent := math.Max(minPercent, math.Min(maxPercent, m.viewport.ScrollPercent()))
+	scrollPercent := fmt.Sprintf(" %3.f%% ", percent*percentToStringMagnitude)
 	if showStatusMessage {
 		scrollPercent = statusBarMessageScrollPosStyle(scrollPercent)
 	} else {
