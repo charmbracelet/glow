@@ -23,11 +23,12 @@ var (
 	memo string
 
 	stashCmd = &cobra.Command{
-		Use:    "stash SOURCE",
-		Hidden: false,
-		Short:  "stash a markdown",
-		Long:   "",
-		Args:   cobra.ExactArgs(1),
+		Use:     "stash SOURCE",
+		Hidden:  false,
+		Short:   "stash a markdown",
+		Long:    formatBlock(fmt.Sprintf("\nSave a mardkdown file to your %s.", common.Keyword("stash"))),
+		Example: formatBlock("glow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			filePath := args[0]
 
@@ -82,7 +83,8 @@ func initCharmClient() *charm.Client {
 	cfg := getCharmConfig()
 	cc, err := charm.NewClient(cfg)
 	if err == charm.ErrMissingSSHAuth {
-		log.Fatal("Missing ssh key. Run `ssh-keygen` to make one or set the `CHARM_SSH_KEY_PATH` env var to your private key path.")
+		fmt.Println(formatBlock("We had some trouble authenticating via SSH. If this continues to happen the Charm tool may be able to help you. More info at https://github.com/charmbracelet/charm."))
+		os.Exit(1)
 	} else if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

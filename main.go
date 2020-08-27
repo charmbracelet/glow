@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/ui"
 )
@@ -33,6 +34,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:              "glow SOURCE",
 		Short:            "Render markdown on the CLI, with pizzazz!",
+		Long:             formatBlock(fmt.Sprintf("\nRender markdown on the CLI, %s!", common.Keyword("with pizzazz"))),
 		SilenceErrors:    false,
 		SilenceUsage:     false,
 		TraverseChildren: true,
