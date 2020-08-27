@@ -25,7 +25,7 @@ var (
 	stashCmd = &cobra.Command{
 		Use:     "stash SOURCE",
 		Hidden:  false,
-		Short:   "stash a markdown",
+		Short:   "Stash a markdown",
 		Long:    formatBlock(fmt.Sprintf("\nSave a mardkdown file to your %s.", common.Keyword("stash"))),
 		Example: formatBlock("glow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
 		Args:    cobra.ExactArgs(1),
