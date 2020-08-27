@@ -21,8 +21,8 @@ out the beauty—and power—of the CLI.
 
 Use it to discover markdown files, read documentation directly on the command
 line and stash markdown files to your own private collection so you can read
-them anywhere. Glow it will find markdown files in subdirectories for, if
-you’re in a Git repo, search the repo.
+them anywhere. Glow will find local markdown files in subdirectories or a local
+Git repository.
 
 By the way, all data stashed is encrypted end-to-end: only you can decrypt it.
 More on that below.
@@ -63,7 +63,7 @@ go get github.com/charmbracelet/glow
 
 ## Usage
 
-Run without arguments to start the TUI and browser local and stashed markdown.
+Run without arguments to start the TUI and browse local and stashed markdown.
 Or, to simply format a document on the CLI, use a markdown source as the
 primary argument:
 
