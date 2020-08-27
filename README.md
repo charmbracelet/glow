@@ -84,13 +84,16 @@ glow https://host.tld/file.md
 ### Stashing
 
 Glow works with the Charm Cloud to allow you to store any markdown file in your
-own private collection. When you run:
+own private collection. You can stash a local document from the Glow TUI by
+pressing `s`. You can also stash from the CLI:
 
-`glow stash README.md`
+```bash
+glow stash README.md
+```
 
-You'll add that markdown file to your stash. Running `glow` without arguments
-will let you browse through all your stashed documents. This is a great way to
-keep track of things that you need to reference often.
+Then, when you run `glow` without arguments will you can browse through your
+stashed documents. This is a great way to keep track of things that you need to
+reference often.
 
 Stashing is private, its contents will not be exposed publicly, and it's
 encrypted end-to-end. More on encryption below.
@@ -105,8 +108,8 @@ glow -w 60
 
 ### Paging
 
-The output can be displayed in the user's preferred pager with the `-p` flag.
-This defaults to the ANSI-aware `less -r` if `$PAGER` is not explicitly set.
+CLI output can be displayed in your preferred pager with the `-p` flag. This defaults
+to the ANSI-aware `less -r` if `$PAGER` is not explicitly set.
 
 ### Styles
 
@@ -154,4 +157,4 @@ Part of [Charm](https://charm.sh).
 
 <img alt="the Charm logo" src="https://stuff.charm.sh/charm-badge.jpg" width="400">
 
-Charm loves open source! / Charm热爱开源!
+Charm热爱开源! / Charm loves open source!
