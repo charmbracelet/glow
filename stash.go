@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
@@ -18,7 +20,8 @@ var (
 		forceKey     bool
 	*/
 
-	memo     string
+	memo string
+
 	stashCmd = &cobra.Command{
 		Use:    "stash SOURCE",
 		Hidden: false,
@@ -26,20 +29,29 @@ var (
 		Long:   "",
 		Args:   cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			filePath := args[0]
+
+			if memo == "" {
+				memo = strings.Replace(path.Base(filePath), path.Ext(filePath), "", 1)
+			}
+
 			cc := initCharmClient()
-			f, err := os.Open(args[0])
+			f, err := os.Open(filePath)
 			if err != nil {
 				return fmt.Errorf("bad filename")
 			}
+
 			defer f.Close()
 			b, err := ioutil.ReadAll(f)
 			if err != nil {
 				return fmt.Errorf("error reading file")
 			}
+
 			_, err = cc.StashMarkdown(memo, string(b))
 			if err != nil {
 				return fmt.Errorf("error stashing markdown")
 			}
+
 			dot := termenv.String("•").Foreground(common.Green.Color()).String()
 			fmt.Println(dot + " Stashed!")
 			return nil
