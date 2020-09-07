@@ -10,7 +10,7 @@ import (
 // in a dot directory and browsing files beneath this function won't return
 // true every time.
 func isDotFileOrDir(cwd, path string) bool {
-	p := strings.Replace(path, cwd, "", 1)
+	p := strings.TrimPrefix(path, cwd)
 	for _, v := range strings.Split(p, string(os.PathSeparator)) {
 		if len(v) > 0 && v[0] == '.' {
 			return true
