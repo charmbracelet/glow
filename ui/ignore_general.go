@@ -2,10 +2,10 @@
 
 package ui
 
-// Whether or not we should ignore the given path
-func ignorePath(m model, p string) bool {
-	if isDotFileOrDir(m.cwd, p) {
-		return true
+func ignorePatterns(m model) []string {
+	return []string{
+		m.cfg.Gopath,
+		"node_modules"
+		".*",
 	}
-	return pathIsChild(m.cfg.Gopath, p)
 }

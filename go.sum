@@ -98,6 +98,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5
 github.com/meowgorithm/babyenv v1.2.1/go.mod h1:lwNX+J6AGBFqNrMZ2PTLkM6SO+W4X8DOg9zBDO4j3Ig=
 github.com/meowgorithm/babyenv v1.3.0 h1:klb7ugoZt0/Xlqkd5kLxM7eLZX8waiwxHZWW5nfEZ0Q=
 github.com/meowgorithm/babyenv v1.3.0/go.mod h1:lwNX+J6AGBFqNrMZ2PTLkM6SO+W4X8DOg9zBDO4j3Ig=
+github.com/meowgorithm/gitcha v0.1.2-0.20200907220241-87b69df49486 h1:Q59vhaeBGofDFPzw9dc05t/xF5w7qlgpXLsUi3Bt5kw=
+github.com/meowgorithm/gitcha v0.1.2-0.20200907220241-87b69df49486/go.mod h1:Ri8m9TZS4+ORG4JVmVKUQcWZuxDvUW3UKxMdQfzG2zI=
 github.com/microcosm-cc/bluemonday v1.0.2/go.mod h1:iVP4YcDBq+n/5fb23BhYFvIMq/leAFZyRl6bYmGDlGc=
 github.com/microcosm-cc/bluemonday v1.0.4 h1:p0L+CTpo/PLFdkoPcJemLXG+fpMD7pYOoDEq1axMbGg=
 github.com/microcosm-cc/bluemonday v1.0.4/go.mod h1:8iwZnFn2CDDNZ0r6UXhF4xawGvzaqzCRa1n3/lO3W2w=
@@ -106,8 +108,6 @@ github.com/mikesmitty/edkey v0.0.0-20170222072505-3356ea4e686a/go.mod h1:v8eSC2S
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
-github.com/muesli/gitcha v0.1.1 h1:TzTFwvwTg0oq7DXFyVXFa6usbG9v6MyBT7W/+ic/9xg=
-github.com/muesli/gitcha v0.1.1/go.mod h1:Ri8m9TZS4+ORG4JVmVKUQcWZuxDvUW3UKxMdQfzG2zI=
 github.com/muesli/go-app-paths v0.2.1 h1:Qi+2igkDX2aPqyRddp7P0sMQIBwBqhkfQfNcjdGjL6Y=
 github.com/muesli/go-app-paths v0.2.1/go.mod h1:SxS3Umca63pcFcLtbjVb+J0oD7cl4ixQWoBKhGEtEho=
 github.com/muesli/reflow v0.1.0/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=

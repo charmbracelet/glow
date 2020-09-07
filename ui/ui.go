@@ -67,7 +67,6 @@ type initLocalFileSearchMsg struct {
 	ch  chan gitcha.SearchResult
 }
 type foundLocalFileMsg gitcha.SearchResult
-type skipLocalFileMsg gitcha.SearchResult
 type localFileSearchFinished struct{}
 type gotStashMsg []*charm.Markdown
 type stashLoadErrMsg struct{ err error }
@@ -172,7 +171,7 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 		}
 
 		return m, tea.Batch(
-			findLocalFiles,
+			findLocalFiles(m),
 			newCharmClient,
 			spinner.Tick(m.stash.spinner),
 		)
@@ -277,10 +276,6 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	case foundLocalFileMsg:
 		newMd := localFileToMarkdown(m.cwd, gitcha.SearchResult(msg))
 		m.stash.addMarkdowns(newMd)
-		cmds = append(cmds, findNextLocalFile(m))
-
-		// We found a file that we want to ignore
-	case skipLocalFileMsg:
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case sshAuthErrMsg:
@@ -406,36 +401,36 @@ func errorView(err error, fatal bool) string {
 
 // COMMANDS
 
-func findLocalFiles() tea.Msg {
-	cwd, err := os.Getwd()
-	if err != nil {
-		if debug {
-			log.Println("error finding local files:", err)
+func findLocalFiles(m model) tea.Cmd {
+	return func() tea.Msg {
+		cwd, err := os.Getwd()
+		if err != nil {
+			if debug {
+				log.Println("error finding local files:", err)
+			}
+			return errMsg{err}
 		}
-		return errMsg{err}
-	}
 
-	ch, err := gitcha.FindFiles(cwd, []string{"*.md"})
-	if err != nil {
-		if debug {
-			log.Println("error finding local files:", err)
+		var ignore []string
+		if !m.cfg.ShowAllFiles {
+			ignore = ignorePatterns(m)
 		}
-		return errMsg{err}
-	}
 
-	return initLocalFileSearchMsg{ch: ch, cwd: cwd}
+		ch, err := gitcha.FindFilesExcept(cwd, []string{"*.md"}, ignore)
+		if err != nil {
+			if debug {
+				log.Println("error finding local files:", err)
+			}
+			return errMsg{err}
+		}
+
+		return initLocalFileSearchMsg{ch: ch, cwd: cwd}
+	}
 }
 
 func findNextLocalFile(m model) tea.Cmd {
 	return func() tea.Msg {
 		res, ok := <-m.localFileFinder
-
-		if !m.cfg.ShowAllFiles && ignorePath(m, res.Path) {
-			if debug {
-				log.Println("ignoring file:", res.Path)
-			}
-			return skipLocalFileMsg(res)
-		}
 
 		if ok {
 			// Okay now find the next one

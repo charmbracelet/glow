@@ -21,3 +21,5 @@ require (
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
 	golang.org/x/sys v0.0.0-20200821140526-fda516888d29
 )
+
+replace github.com/muesli/gitcha => github.com/meowgorithm/gitcha v0.1.2-0.20200907220241-87b69df49486
