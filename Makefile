@@ -2,6 +2,8 @@
 
 .PHONY: default clean glow run log
 
+LOGFILE := debug.log
+
 default: glow
 
 clean:
@@ -11,9 +13,8 @@ glow:
 	go build
 
 run: clean glow
-	export GLOW_UI_LOGFILE=debug.log
-	./glow
+	GLOW_UI_LOGFILE=$(LOGFILE) ./glow
 
 log:
-	> debug.log
-	tail -f debug.log
+	> $(LOGFILE)
+	tail -f $(LOGFILE)
