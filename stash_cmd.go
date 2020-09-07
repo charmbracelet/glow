@@ -15,11 +15,6 @@ import (
 )
 
 var (
-	/*
-		identityFile string
-		forceKey     bool
-	*/
-
 	memo string
 
 	stashCmd = &cobra.Command{
@@ -65,16 +60,6 @@ func getCharmConfig() *charm.Config {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	/*
-		if identityFile != "" {
-			cfg.SSHKeyPath = identityFile
-			cfg.ForceKey = true
-		}
-		if forceKey {
-			cfg.ForceKey = true
-		}
-	*/
 
 	return cfg
 }
