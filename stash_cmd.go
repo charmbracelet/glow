@@ -18,13 +18,17 @@ var (
 	memo string
 
 	stashCmd = &cobra.Command{
-		Use:     "stash SOURCE",
+		Use:     "stash [SOURCE]",
 		Hidden:  false,
 		Short:   "Stash a markdown",
-		Long:    formatBlock(fmt.Sprintf("\nSave a mardkdown file to your %s.", common.Keyword("stash"))),
-		Example: formatBlock("glow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
-		Args:    cobra.ExactArgs(1),
+		Long:    formatBlock(fmt.Sprintf("\nDo %s stuff. Run with no arguments to browse your stash or pass a path to a markdown file to stash it.", common.Keyword("stash"))),
+		Example: formatBlock("glow stash\nglow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
+		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return runTUI(true)
+			}
+
 			filePath := args[0]
 
 			if memo == "" {

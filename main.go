@@ -171,36 +171,7 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 
 	// Only run TUI if there are no arguments (excluding flags)
 	if arg == "" {
-
-		// Read environment to get debugging stuff
-		var cfg ui.Config
-		if err := babyenv.Parse(&cfg); err != nil {
-			return fmt.Errorf("error parsing config: %v", err)
-		}
-
-		// Log to file, if set
-		if cfg.Logfile != "" {
-			f, err := tea.LogToFile(cfg.Logfile, "glow")
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-		}
-
-		cfg.ShowAllFiles = showAllFiles
-
-		// Run Bubble Tea program
-		p := ui.NewProgram(style, cfg)
-		p.EnterAltScreen()
-		if err := p.Start(); err != nil {
-			return err
-		}
-		p.ExitAltScreen()
-		p.DisableMouseCellMotion()
-
-		// Exit message
-		fmt.Printf("\n  Thanks for using Glow!\n\n")
-		return nil
+		return runTUI(false)
 	}
 
 	// create an io.Reader from the markdown source in cli-args
@@ -271,6 +242,41 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	}
 
 	fmt.Fprint(w, content)
+	return nil
+}
+
+func runTUI(stashedOnly bool) error {
+	// Read environment to get debugging stuff
+	var cfg ui.Config
+	if err := babyenv.Parse(&cfg); err != nil {
+		return fmt.Errorf("error parsing config: %v", err)
+	}
+
+	// Log to file, if set
+	if cfg.Logfile != "" {
+		f, err := tea.LogToFile(cfg.Logfile, "glow")
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+	}
+
+	cfg.ShowAllFiles = showAllFiles
+	if stashedOnly {
+		cfg.StashedOnly = true
+	}
+
+	// Run Bubble Tea program
+	p := ui.NewProgram(style, cfg)
+	p.EnterAltScreen()
+	if err := p.Start(); err != nil {
+		return err
+	}
+	p.ExitAltScreen()
+	p.DisableMouseCellMotion()
+
+	// Exit message
+	fmt.Printf("\n  Thanks for using Glow!\n\n")
 	return nil
 }
 

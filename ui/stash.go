@@ -107,8 +107,12 @@ const (
 	loadedLocalFiles
 )
 
-func (s loadedState) done() bool {
-	return s&loadedStash != 0 && s&loadedNews != 0 && s&loadedLocalFiles != 0
+func (s loadedState) done(stashedOnly bool) bool {
+	state := s&loadedStash != 0 && s&loadedNews != 0
+	if stashedOnly {
+		return state
+	}
+	return state && s&loadedLocalFiles != 0
 }
 
 type stashState int
@@ -327,7 +331,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		condition := !m.loaded.done() ||
+		condition := !m.loaded.done(stashedOnly) ||
 			m.loadingFromNetwork ||
 			m.state == stashStateLoadingDocument ||
 			len(m.filesStashing) > 0 ||
@@ -466,7 +470,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.filesStashing[md.localPath] = struct{}{}
 				cmds = append(cmds, stashDocument(m.cc, *md))
 
-				if m.loaded.done() && !m.spinner.Visible() {
+				if m.loaded.done(stashedOnly) && !m.spinner.Visible() {
 					m.spinner.Start()
 					cmds = append(cmds, spinner.Tick(m.spinner))
 				}
@@ -610,7 +614,7 @@ func stashView(m stashModel) string {
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
 
 		loadingIndicator := ""
-		if !m.loaded.done() || m.loadingFromNetwork || m.spinner.Visible() {
+		if !m.loaded.done(stashedOnly) || m.loadingFromNetwork || m.spinner.Visible() {
 			loadingIndicator = spinner.View(m.spinner)
 		}
 
@@ -679,7 +683,7 @@ func glowLogoView(text string) string {
 }
 
 func stashHeaderView(m stashModel) string {
-	loading := !m.loaded.done()
+	loading := !m.loaded.done(stashedOnly)
 	noMarkdowns := len(m.markdowns) == 0
 
 	// Still loading. We haven't found files, stashed items, or news yet.
@@ -692,7 +696,11 @@ func stashHeaderView(m stashModel) string {
 
 	// Loading's finished and all we have is news.
 	if !loading && localItems == 0 && stashedItems == 0 {
-		return common.Subtle("No local or stashed markdown files found.")
+		if stashedOnly {
+			return common.Subtle("No stashed markdown files found.")
+		} else {
+			return common.Subtle("No local or stashed markdown files found.")
+		}
 	}
 
 	// There are local and/or stashed files, so display counts.

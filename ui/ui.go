@@ -28,13 +28,15 @@ var (
 	config            Config
 	glowLogoTextColor = common.Color("#ECFD65")
 	debug             = false // true if we're logging to a file, in which case we'll log more stuff
+	stashedOnly       = false
 )
 
-// Config contains configuration specified to the TUI.
+// Config contains TUI-specific configuration.
 type Config struct {
 	ShowAllFiles bool
 	Gopath       string `env:"GOPATH"`
 	HomeDir      string `env:"HOME"`
+	StashedOnly  bool
 
 	// For debugging the UI
 	Logfile              string `env:"GLOW_UI_LOGFILE"`
@@ -143,7 +145,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 	if m.pager.viewport.HighPerformanceRendering {
 		batch = append(batch, tea.ClearScrollArea)
 	}
-	if !m.stash.loaded.done() || m.stash.loadingFromNetwork {
+	if !m.stash.loaded.done(stashedOnly) || m.stash.loadingFromNetwork {
 		batch = append(batch, spinner.Tick(m.stash.spinner))
 	}
 	return batch
@@ -162,6 +164,8 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 			}
 		}
 
+		stashedOnly = cfg.StashedOnly
+
 		m := model{
 			cfg:         cfg,
 			stash:       newStashModel(),
@@ -170,11 +174,15 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 			keygenState: keygenUnstarted,
 		}
 
-		return m, tea.Batch(
-			findLocalFiles(m),
+		cmds := []tea.Cmd{
 			newCharmClient,
 			spinner.Tick(m.stash.spinner),
-		)
+		}
+		if !cfg.StashedOnly {
+			cmds = append(cmds, findLocalFiles(m))
+		}
+
+		return m, tea.Batch(cmds...)
 	}
 }
 
