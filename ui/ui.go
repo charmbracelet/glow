@@ -33,6 +33,8 @@ var (
 // Config contains configuration specified to the TUI.
 type Config struct {
 	ShowAllFiles bool
+	Gopath       string `env:"GOPATH"`
+	HomeDir      string `env:"HOME"`
 
 	// For debugging the UI
 	Logfile              string `env:"GLOW_UI_LOGFILE"`
@@ -428,7 +430,7 @@ func findNextLocalFile(m model) tea.Cmd {
 	return func() tea.Msg {
 		res, ok := <-m.localFileFinder
 
-		if !m.cfg.ShowAllFiles && isDotFileOrDir(m.cwd, res.Path) {
+		if !m.cfg.ShowAllFiles && ignorePath(m, res.Path) {
 			if debug {
 				log.Println("ignoring file:", res.Path)
 			}
@@ -614,20 +616,6 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md.CreatedAt = res.Info.ModTime() // last modified time
 
 	return md
-}
-
-// Returns whether or not the given path contains a file or directory starting
-// with a dot. This is relative to the current working directory, so if you're
-// in a dot directory and browsing files beneath this function won't return
-// true every time.
-func isDotFileOrDir(cwd, path string) bool {
-	p := strings.Replace(path, cwd, "", 1)
-	for _, v := range strings.Split(p, string(os.PathSeparator)) {
-		if len(v) > 0 && v[0] == '.' {
-			return true
-		}
-	}
-	return false
 }
 
 // Lightweight version of reflow's indent function.
