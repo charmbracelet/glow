@@ -688,7 +688,11 @@ func stashHeaderView(m stashModel) string {
 
 	// Still loading. We haven't found files, stashed items, or news yet.
 	if loading && noMarkdowns {
-		return common.Subtle("Looking for stuff...")
+		if stashedOnly {
+			return common.Subtle("Loading your stash...")
+		} else {
+			return common.Subtle("Looking for stuff...")
+		}
 	}
 
 	localItems := m.countMarkdowns(localMarkdown)
