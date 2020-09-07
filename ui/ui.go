@@ -32,8 +32,6 @@ var (
 
 // Config contains configuration specified to the TUI.
 type Config struct {
-	IdentityFile string
-
 	// For debugging the UI
 	Logfile              string `env:"GLOW_UI_LOGFILE"`
 	HighPerformancePager bool   `env:"GLOW_UI_HIGH_PERFORMANCE_PAGER" default:"true"`
@@ -170,7 +168,7 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 
 		return m, tea.Batch(
 			findLocalFiles,
-			newCharmClient(&cfg.IdentityFile),
+			newCharmClient,
 			spinner.Tick(m.stash.spinner),
 		)
 	}
@@ -302,7 +300,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	case keygenSuccessMsg:
 		// The keygen's done, so let's try initializing the charm client again
 		m.keygenState = keygenFinished
-		cmds = append(cmds, newCharmClient(nil))
+		cmds = append(cmds, newCharmClient)
 
 	case newCharmClientMsg:
 		m.cc = msg
@@ -434,32 +432,26 @@ func findNextLocalFile(m model) tea.Cmd {
 	}
 }
 
-func newCharmClient(identityFile *string) tea.Cmd {
-	return func() tea.Msg {
-		cfg, err := charm.ConfigFromEnv()
-		if err != nil {
-			return errMsg{err}
-		}
-
-		if identityFile != nil {
-			cfg.SSHKeyPath = *identityFile
-		}
-
-		cc, err := charm.NewClient(cfg)
-		if err == charm.ErrMissingSSHAuth {
-			if debug {
-				log.Println("missing SSH auth:", err)
-			}
-			return sshAuthErrMsg{}
-		} else if err != nil {
-			if debug {
-				log.Println("error creating new charm client:", err)
-			}
-			return errMsg{err}
-		}
-
-		return newCharmClientMsg(cc)
+func newCharmClient() tea.Msg {
+	cfg, err := charm.ConfigFromEnv()
+	if err != nil {
+		return errMsg{err}
 	}
+
+	cc, err := charm.NewClient(cfg)
+	if err == charm.ErrMissingSSHAuth {
+		if debug {
+			log.Println("missing SSH auth:", err)
+		}
+		return sshAuthErrMsg{}
+	} else if err != nil {
+		if debug {
+			log.Println("error creating new charm client:", err)
+		}
+		return errMsg{err}
+	}
+
+	return newCharmClientMsg(cc)
 }
 
 func loadStash(m stashModel) tea.Cmd {
