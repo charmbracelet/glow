@@ -26,10 +26,11 @@ var (
 	Version   = ""
 	CommitSHA = ""
 
-	readmeNames = []string{"README.md", "README"}
-	pager       bool
-	style       string
-	width       uint
+	readmeNames  = []string{"README.md", "README"}
+	pager        bool
+	style        string
+	width        uint
+	showAllFiles bool
 
 	rootCmd = &cobra.Command{
 		Use:              "glow SOURCE",
@@ -186,6 +187,8 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 			defer f.Close()
 		}
 
+		cfg.ShowAllFiles = showAllFiles
+
 		// Run Bubble Tea program
 		p := ui.NewProgram(style, cfg)
 		p.EnterAltScreen()
@@ -291,6 +294,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
+	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show files and directories starting with a dot (TUI-mode only)")
 
 	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")

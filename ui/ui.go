@@ -32,6 +32,8 @@ var (
 
 // Config contains configuration specified to the TUI.
 type Config struct {
+	ShowAllFiles bool
+
 	// For debugging the UI
 	Logfile              string `env:"GLOW_UI_LOGFILE"`
 	HighPerformancePager bool   `env:"GLOW_UI_HIGH_PERFORMANCE_PAGER" default:"true"`
@@ -63,6 +65,7 @@ type initLocalFileSearchMsg struct {
 	ch  chan gitcha.SearchResult
 }
 type foundLocalFileMsg gitcha.SearchResult
+type skipLocalFileMsg gitcha.SearchResult
 type localFileSearchFinished struct{}
 type gotStashMsg []*charm.Markdown
 type stashLoadErrMsg struct{ err error }
@@ -274,6 +277,10 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		m.stash.addMarkdowns(newMd)
 		cmds = append(cmds, findNextLocalFile(m))
 
+		// We found a file that we want to ignore
+	case skipLocalFileMsg:
+		cmds = append(cmds, findNextLocalFile(m))
+
 	case sshAuthErrMsg:
 		// If we haven't run the keygen yet, do that
 		if m.keygenState != keygenFinished {
@@ -419,14 +426,22 @@ func findLocalFiles() tea.Msg {
 
 func findNextLocalFile(m model) tea.Cmd {
 	return func() tea.Msg {
-		pathStr, ok := <-m.localFileFinder
+		res, ok := <-m.localFileFinder
+
+		if !m.cfg.ShowAllFiles && isDotFileOrDir(m.cwd, res.Path) {
+			if debug {
+				log.Println("ignoring file:", res.Path)
+			}
+			return skipLocalFileMsg(res)
+		}
+
 		if ok {
 			// Okay now find the next one
-			return foundLocalFileMsg(pathStr)
+			return foundLocalFileMsg(res)
 		}
 		// We're done
 		if debug {
-			log.Println("Local file search finished")
+			log.Println("local file search finished")
 		}
 		return localFileSearchFinished{}
 	}
@@ -599,6 +614,20 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md.CreatedAt = res.Info.ModTime() // last modified time
 
 	return md
+}
+
+// Returns whether or not the given path contains a file or directory starting
+// with a dot. This is relative to the current working directory, so if you're
+// in a dot directory and browsing files beneath this function won't return
+// true every time.
+func isDotFileOrDir(cwd, path string) bool {
+	p := strings.Replace(path, cwd, "", 1)
+	for _, v := range strings.Split(p, string(os.PathSeparator)) {
+		if len(v) > 0 && v[0] == '.' {
+			return true
+		}
+	}
+	return false
 }
 
 // Lightweight version of reflow's indent function.
