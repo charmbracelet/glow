@@ -39,9 +39,9 @@ type Config struct {
 	StashedOnly  bool
 
 	// For debugging the UI
-	Logfile              string `env:"GLOW_UI_LOGFILE"`
-	HighPerformancePager bool   `env:"GLOW_UI_HIGH_PERFORMANCE_PAGER" default:"true"`
-	GlamourEnabled       bool   `env:"GLOW_UI_ENABLE_GLAMOUR" default:"true"`
+	Logfile              string `env:"GLOW_LOGFILE"`
+	HighPerformancePager bool   `env:"GLOW_HIGH_PERFORMANCE_PAGER" default:"true"`
+	GlamourEnabled       bool   `env:"GLOW_ENABLE_GLAMOUR" default:"true"`
 }
 
 // NewProgram returns a new Tea program.

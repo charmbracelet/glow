@@ -13,7 +13,7 @@ glow:
 	go build
 
 run: clean glow
-	GLOW_UI_LOGFILE=$(LOGFILE) ./glow
+	GLOW_LOGFILE=$(LOGFILE) ./glow
 
 log:
 	> $(LOGFILE)
