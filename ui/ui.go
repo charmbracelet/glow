@@ -464,6 +464,13 @@ func newCharmClient(identityFile *string) tea.Cmd {
 
 func loadStash(m stashModel) tea.Cmd {
 	return func() tea.Msg {
+		if m.cc == nil {
+			err := errors.New("no charm client")
+			if debug {
+				log.Println("error loading stash:", err)
+			}
+			return stashLoadErrMsg{err}
+		}
 		stash, err := m.cc.GetStash(m.page)
 		if err != nil {
 			if debug {
@@ -477,6 +484,13 @@ func loadStash(m stashModel) tea.Cmd {
 
 func loadNews(m stashModel) tea.Cmd {
 	return func() tea.Msg {
+		if m.cc == nil {
+			err := errors.New("no charm client")
+			if debug {
+				log.Println("error loading news:", err)
+			}
+			return newsLoadErrMsg{err}
+		}
 		news, err := m.cc.GetNews(1) // just fetch the first page
 		if err != nil {
 			if debug {
@@ -502,7 +516,11 @@ func generateSSHKeys() tea.Msg {
 func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 	if cc == nil {
 		return func() tea.Msg {
-			return errMsg{errors.New("can't set note; no charm client")}
+			err := errors.New("can't set note; no charm client")
+			if debug {
+				log.Println("error saving note:", err)
+			}
+			return errMsg{err}
 		}
 	}
 	return func() tea.Msg {
@@ -522,7 +540,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			return func() tea.Msg {
 				err := errors.New("can't stash; no charm client")
 				if debug {
-					log.Println("error stash document:", err)
+					log.Println("error stashing document:", err)
 				}
 				return stashErrMsg{err}
 			}
