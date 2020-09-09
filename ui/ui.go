@@ -294,6 +294,9 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		} else {
 			// The keygen ran but things still didn't work and we can't auth
 			m.stash.err = errors.New("SSH authentication failed; we tried ssh-agent, loading keys from disk, and generating SSH keys")
+			if debug {
+				log.Println(m.stash.err)
+			}
 
 			// Even though it failed, news/stash loading is finished
 			m.stash.loaded |= loadedStash | loadedNews
@@ -303,6 +306,9 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	case keygenFailedMsg:
 		// Keygen failed. That sucks.
 		m.stash.err = errors.New("could not authenticate; could not generate SSH keys")
+		if debug {
+			log.Println(m.stash.err)
+		}
 		m.keygenState = keygenFinished
 
 		// Even though it failed, news/stash loading is finished
@@ -515,12 +521,18 @@ func loadNews(m stashModel) tea.Cmd {
 }
 
 func generateSSHKeys() tea.Msg {
+	if debug {
+		log.Println("running keygen...")
+	}
 	_, err := keygen.NewSSHKeyPair(nil)
 	if err != nil {
 		if debug {
 			log.Println("keygen failed:", err)
 		}
 		return keygenFailedMsg{err}
+	}
+	if debug {
+		log.Println("keys generated succcessfully")
 	}
 	return keygenSuccessMsg{}
 }
