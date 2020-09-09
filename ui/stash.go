@@ -833,7 +833,7 @@ func deleteStashedItem(cc *charm.Client, id int) tea.Cmd {
 	return func() tea.Msg {
 		err := cc.DeleteMarkdown(id)
 		if err != nil {
-			if err == nil {
+			if debug {
 				log.Println("could not delete stashed item:", err)
 			}
 			return errMsg{err}
