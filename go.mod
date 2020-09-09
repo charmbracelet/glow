@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/chroma v0.8.0 // indirect
 	github.com/charmbracelet/bubbles v0.5.2-0.20200825133643-5f7c8b537514
 	github.com/charmbracelet/bubbletea v0.10.3
-	github.com/charmbracelet/charm v0.8.0
+	github.com/charmbracelet/charm v0.8.1-0.20200909235124-49a4d7b584d4
 	github.com/charmbracelet/glamour v0.2.1-0.20200820173154-593dda41c59f
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/google/uuid v1.1.2 // indirect

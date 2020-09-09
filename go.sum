@@ -28,6 +28,8 @@ github.com/charmbracelet/bubbletea v0.10.3 h1:arYCVde6OHbejtz08VOtAjsw4LlMR9pQhJ
 github.com/charmbracelet/bubbletea v0.10.3/go.mod h1:fB1bVmlaXBYYv4G0jtuGSP/m8V2sMM97pq7QqQnubWI=
 github.com/charmbracelet/charm v0.8.0 h1:6h7tVxKHW3lJUzhOZlvlgQI3DjAbPe7PhjUJlxwJMc0=
 github.com/charmbracelet/charm v0.8.0/go.mod h1:yjf8flsA3BC+oJz67FXnSZWDOpKb2LZaQ1Cn1hPz5Y0=
+github.com/charmbracelet/charm v0.8.1-0.20200909235124-49a4d7b584d4 h1:cvYO9eSknLYYwf1LrGGtduQodMW9UMM+QqxANPyl63A=
+github.com/charmbracelet/charm v0.8.1-0.20200909235124-49a4d7b584d4/go.mod h1:yjf8flsA3BC+oJz67FXnSZWDOpKb2LZaQ1Cn1hPz5Y0=
 github.com/charmbracelet/glamour v0.2.1-0.20200820173154-593dda41c59f h1:VXwz/CsPDsrqUzQhp0eOB7VviujsiWKX/3H9cJOiHqc=
 github.com/charmbracelet/glamour v0.2.1-0.20200820173154-593dda41c59f/go.mod h1:DxzK1feHER8JTrWJ4uhme1kTGs4/ozEoQhIyYzwnew0=
 github.com/chris-ramon/douceur v0.2.0 h1:IDMEdxlEUUBYBKE4z/mJnFyVXox+MjuEVDJNN27glkU=
