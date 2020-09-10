@@ -91,6 +91,7 @@ const (
 
 type pagerModel struct {
 	cc           *charm.Client
+	authStatus   authStatus
 	viewport     viewport.Model
 	state        pagerState
 	glamourStyle string
@@ -112,7 +113,7 @@ type pagerModel struct {
 	stashedDocument *markdown
 }
 
-func newPagerModel(glamourStyle string) pagerModel {
+func newPagerModel(as authStatus, glamourStyle string) pagerModel {
 	// Init viewport
 	vp := viewport.Model{}
 	vp.YPosition = 0
@@ -138,6 +139,7 @@ func newPagerModel(glamourStyle string) pagerModel {
 
 	return pagerModel{
 		state:        pagerStateBrowse,
+		authStatus:   as,
 		glamourStyle: glamourStyle,
 		textInput:    ti,
 		viewport:     vp,
@@ -265,6 +267,10 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 
 				return m, textinput.Blink(m.textInput)
 			case "s":
+				if m.authStatus != authOK {
+					break
+				}
+
 				// Stash a local document
 				if m.state != pagerStateStashing && m.currentDocument.markdownType == localMarkdown {
 					m.state = pagerStateStashing
@@ -472,7 +478,7 @@ func pagerHelpView(m pagerModel, width int) (s string) {
 		"esc     back to files",
 		"q       quit",
 	}
-	if m.currentDocument.markdownType != stashedMarkdown {
+	if m.authStatus == authOK && m.currentDocument.markdownType != stashedMarkdown {
 		col1[4] = "s       stash this document"
 	}
 

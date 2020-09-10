@@ -33,7 +33,8 @@ const (
 
 var (
 	stashHelpItemStyle func(string) string = te.Style{}.Foreground(common.NewColorPair("#5C5C5C", "#9B9B9B").Color()).Styled
-	stashHelpDivider   string              = te.String(" • ").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
+	dividerDot         string              = te.String(" • ").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
+	offlineHeaderNote  string              = te.String("(Offline)").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
 )
 
 // MSG
@@ -71,6 +72,7 @@ const (
 
 type stashModel struct {
 	cc                 *charm.Client
+	authStatus         authStatus
 	state              stashState
 	err                error
 	markdowns          []*markdown
@@ -196,7 +198,7 @@ func (m *stashModel) hideStatusMessage() {
 
 // INIT
 
-func newStashModel() stashModel {
+func newStashModel(as authStatus) stashModel {
 	sp := spinner.NewModel()
 	sp.Frames = spinner.Line
 	sp.ForegroundColor = common.SpinnerColor.String()
@@ -215,6 +217,7 @@ func newStashModel() stashModel {
 	ni.Focus()
 
 	m := stashModel{
+		authStatus:         as,
 		spinner:            sp,
 		noteInput:          ni,
 		page:               1,
@@ -396,15 +399,22 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// Stash
 			case "s":
-				md := m.selectedMarkdown()
-				if md == nil {
+				if m.authStatus != authOK || m.selectedMarkdown() == nil {
 					break
 				}
 
-				_, exists := m.filesStashing[md.localPath] // is the file currently being stashed?
+				md := m.selectedMarkdown()
 
-				if exists || (md.markdownType != localMarkdown) || md.localPath == "" {
-					if md.markdownType == localMarkdown && md.localPath == "" {
+				// is the file in the process of being stashed?
+				_, isBeingStashed := m.filesStashing[md.localPath]
+
+				isLocalMarkdown := md.markdownType == localMarkdown
+				markdownPathMissing := md.localPath == ""
+
+				if isBeingStashed || !isLocalMarkdown || markdownPathMissing {
+					if debug && isBeingStashed {
+						log.Printf("refusing to stash markdown; we're already stashing %s", md.localPath)
+					} else if debug && isLocalMarkdown && markdownPathMissing {
 						log.Printf("refusing to stash markdown; local path is empty: %#v", md)
 					}
 					break
@@ -630,12 +640,21 @@ func stashHeaderView(m stashModel) string {
 	loading := !m.loaded.done(stashedOnly)
 	noMarkdowns := len(m.markdowns) == 0
 
+	if m.authStatus == authFailed && stashedOnly {
+		return common.Subtle("Can’t load stash. Are you offline?")
+	}
+
+	var maybeOffline string
+	if m.authStatus == authFailed {
+		maybeOffline = " " + offlineHeaderNote
+	}
+
 	// Still loading. We haven't found files, stashed items, or news yet.
 	if loading && noMarkdowns {
 		if stashedOnly {
 			return common.Subtle("Loading your stash...")
 		} else {
-			return common.Subtle("Looking for stuff...")
+			return common.Subtle("Looking for stuff...") + maybeOffline
 		}
 	}
 
@@ -645,25 +664,26 @@ func stashHeaderView(m stashModel) string {
 	// Loading's finished and all we have is news.
 	if !loading && localItems == 0 && stashedItems == 0 {
 		if stashedOnly {
-			return common.Subtle("No stashed markdown files found.")
+			return common.Subtle("No stashed markdown files found.") + maybeOffline
 		} else {
-			return common.Subtle("No local or stashed markdown files found.")
+			return common.Subtle("No local or stashed markdown files found.") + maybeOffline
 		}
 	}
 
 	// There are local and/or stashed files, so display counts.
 	var s string
 	if localItems > 0 {
-		s += fmt.Sprintf("%d Local", localItems)
+		s += common.Subtle(fmt.Sprintf("%d Local", localItems))
 	}
 	if stashedItems > 0 {
 		var divider string
 		if localItems > 0 {
-			divider = " • "
+			divider = dividerDot
 		}
-		s += fmt.Sprintf("%s%d Stashed", divider, stashedItems)
+		si := common.Subtle(fmt.Sprintf("%d Stashed", stashedItems))
+		s += fmt.Sprintf("%s%s", divider, si)
 	}
-	return common.Subtle(s)
+	return common.Subtle(s) + maybeOffline
 }
 
 func stashPopulatedView(m stashModel) string {
@@ -727,7 +747,7 @@ func stashHelpView(m stashModel) string {
 		}
 		if isStashed {
 			h = append(h, []string{"x: delete", "m: set memo"}...)
-		} else if isLocal {
+		} else if isLocal && m.authStatus == authOK {
 			h = append(h, "s: stash")
 		}
 		if m.err != nil {
@@ -764,7 +784,7 @@ func stashHelpViewBuilder(windowWidth int, sections ...string) string {
 		}
 
 		if i < len(sections)-1 {
-			next += stashHelpDivider
+			next += dividerDot
 		}
 
 		// Only this (and the following) help text items if we have the

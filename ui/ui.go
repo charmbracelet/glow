@@ -77,14 +77,18 @@ type statusMessageTimeoutMsg applicationContext
 type newsLoadErrMsg struct{ err error }
 
 func (e errMsg) Error() string          { return e.err.Error() }
+func (e errMsg) Unwrap() error          { return e.err }
 func (k keygenFailedMsg) Error() string { return k.err.Error() }
+func (k keygenFailedMsg) Unwrap() error { return k.err }
 func (s stashLoadErrMsg) Error() string { return s.err.Error() }
+func (s stashLoadErrMsg) Unwrap() error { return s.err }
 func (s newsLoadErrMsg) Error() string  { return s.err.Error() }
+func (s newsLoadErrMsg) Unwrap() error  { return s.err }
 
 // MODEL
 
 // Which part of the application something appies to. Occasionally used as an
-// arguments to command and messages.
+// argument to commands and messages.
 type applicationContext int
 
 const (
@@ -99,12 +103,26 @@ const (
 	stateShowDocument
 )
 
-// String translates the staus to a human-readable string. This is just for
-// debugging.
 func (s state) String() string {
 	return [...]string{
 		"showing stash",
 		"showing document",
+	}[s]
+}
+
+type authStatus int
+
+const (
+	authConnecting authStatus = iota
+	authOK
+	authFailed
+)
+
+func (s authStatus) String() string {
+	return map[authStatus]string{
+		authConnecting: "connecting",
+		authOK:         "ok",
+		authFailed:     "failed",
 	}[s]
 }
 
@@ -119,6 +137,7 @@ const (
 type model struct {
 	cfg            Config
 	cc             *charm.Client
+	authStatus     authStatus
 	keygenState    keygenState
 	state          state
 	fatalErr       error
@@ -151,6 +170,12 @@ func (m *model) unloadDocument() []tea.Cmd {
 	return batch
 }
 
+func (m *model) setAuthStatus(as authStatus) {
+	m.authStatus = as
+	m.stash.authStatus = as
+	m.pager.authStatus = as
+}
+
 // INIT
 
 func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
@@ -168,11 +193,12 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 
 		m := model{
 			cfg:         cfg,
-			stash:       newStashModel(),
-			pager:       newPagerModel(style),
 			state:       stateShowStash,
+			authStatus:  authConnecting,
 			keygenState: keygenUnstarted,
 		}
+		m.pager = newPagerModel(m.authStatus, style)
+		m.stash = newStashModel(m.authStatus)
 
 		cmds := []tea.Cmd{
 			newCharmClient,
@@ -293,9 +319,10 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, generateSSHKeys)
 		} else {
 			// The keygen ran but things still didn't work and we can't auth
+			m.setAuthStatus(authFailed)
 			m.stash.err = errors.New("SSH authentication failed; we tried ssh-agent, loading keys from disk, and generating SSH keys")
 			if debug {
-				log.Println(m.stash.err)
+				log.Println("entering offline mode;", m.stash.err)
 			}
 
 			// Even though it failed, news/stash loading is finished
@@ -305,10 +332,12 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	case keygenFailedMsg:
 		// Keygen failed. That sucks.
+		m.setAuthStatus(authFailed)
 		m.stash.err = errors.New("could not authenticate; could not generate SSH keys")
 		if debug {
-			log.Println(m.stash.err)
+			log.Println("entering offline mode;", m.stash.err)
 		}
+
 		m.keygenState = keygenFinished
 
 		// Even though it failed, news/stash loading is finished
@@ -322,9 +351,13 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 
 	case newCharmClientMsg:
 		m.cc = msg
+		m.setAuthStatus(authOK)
 		m.stash.cc = msg
 		m.pager.cc = msg
 		cmds = append(cmds, loadStash(m.stash), loadNews(m.stash))
+
+	case stashLoadErrMsg:
+		m.setAuthStatus(authFailed)
 
 	case fetchedMarkdownMsg:
 		m.pager.currentDocument = *msg
@@ -492,7 +525,11 @@ func loadStash(m stashModel) tea.Cmd {
 		stash, err := m.cc.GetStash(m.page)
 		if err != nil {
 			if debug {
-				log.Println("error loading stash:", err)
+				if _, ok := err.(charm.ErrAuthFailed); ok {
+					log.Println("auth failure while loading stash:", err)
+				} else {
+					log.Println("error loading stash:", err)
+				}
 			}
 			return stashLoadErrMsg{err}
 		}
