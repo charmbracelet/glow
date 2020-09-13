@@ -22,7 +22,7 @@ var (
 	Version   = ""
 	CommitSHA = ""
 
-	readmeNames = []string{"README.md", "README"}
+	readmeNames = []string{"readme.md", "README.md", "README", "readme"}
 	pager       bool
 	style       string
 	width       uint

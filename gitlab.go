@@ -27,18 +27,17 @@ func findGitLabREADME(s string) (*source, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	u.Path += "/raw/master/"
 	for _, r := range readmeNames {
-		v := u
-		v.Path += "/raw/master/" + r
+		v := u.String() + r
 
-		resp, err := http.Get(v.String())
+		resp, err := http.Get(v)
 		if err != nil {
 			return nil, err
 		}
 
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, v.String()}, nil
+			return &source{resp.Body, v}, nil
 		}
 	}
 
