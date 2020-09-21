@@ -13,7 +13,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/meowgorithm/babyenv v1.3.0
 	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
-	github.com/muesli/gitcha v0.1.1
+	github.com/muesli/gitcha v0.1.2-0.20200908172931-5aa4fdccf2f6
 	github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d
 	github.com/muesli/termenv v0.7.2
 	github.com/spf13/cobra v1.0.0
@@ -22,5 +22,3 @@ require (
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
 	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009
 )
-
-replace github.com/muesli/gitcha => github.com/meowgorithm/gitcha v0.1.2-0.20200907220241-87b69df49486
