@@ -2,11 +2,11 @@
 
 package ui
 
-import "os"
+import "path/filepath"
 
 func ignorePatterns(m model) []string {
 	return []string{
-		m.cfg.HomeDir + string(os.PathSeparator) + "Library",
+		filepath.Join(m.cfg.HomeDir, "Library"),
 		m.cfg.Gopath,
 		"node_modules",
 		".*",
