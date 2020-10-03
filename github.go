@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -22,25 +23,33 @@ func isGitHubURL(s string) (string, bool) {
 }
 
 // findGitHubREADME tries to find the correct README filename in a repository
-func findGitHubREADME(s string) (*source, error) {
-	u, err := url.ParseRequestURI(s)
+func findGitHubREADME(repoURL string) (*source, error) {
+	user, repo, err := userAndRepoFromURL(repoURL)
 	if err != nil {
 		return nil, err
 	}
-	u.Host = "raw.githubusercontent.com"
 
-	for _, r := range readmeNames {
-		v := u
-		v.Path += "/master/" + r
+	client := &http.Client{}
 
-		resp, err := http.Get(v.String())
-		if err != nil {
-			return nil, err
-		}
+	apiReadmeURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", user, repo)
 
-		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, v.String()}, nil
-		}
+	req, err := http.NewRequest("GET", apiReadmeURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Accept", "application/vnd.github.v3.raw")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return &source{
+			reader: resp.Body,
+			URL:    repoURL,
+		}, nil
 	}
 
 	return nil, errors.New("can't find README in GitHub repository")
