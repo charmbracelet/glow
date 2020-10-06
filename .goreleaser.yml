@@ -2,16 +2,16 @@ env:
   - GO111MODULE=on
 before:
   hooks:
-  - go mod download
+    - go mod download
 builds:
-  -
-    id: "glow"
+  - id: "glow"
     binary: glow
     ldflags: -s -w -X main.Version={{ .Version }} -X main.CommitSHA={{ .Commit }}
     goos:
       - linux
-      #- freebsd
-      #- windows
+      # - freebsd
+      - darwin
+      # - windows
     goarch:
       - amd64
       - arm64
@@ -20,14 +20,6 @@ builds:
     goarm:
       - 6
       - 7
-  -
-    id: "darwin"
-    binary: "glow"
-    ldflags: -s -w -X main.Version={{ .Version }} -X main.CommitSHA={{ .Commit }}
-    goos:
-      - darwin
-    goarch:
-      - amd64
 
 archives:
   - id: default
@@ -38,19 +30,13 @@ archives:
         format: zip
     replacements:
       windows: Windows
-      386: i386
-      amd64: x86_64
-  - id: darwin
-    builds:
-      - darwin
-    replacements:
       darwin: Darwin
+      386: i386
       amd64: x86_64
 
 nfpms:
-  -
-    builds:
-    - glow
+  - builds:
+      - glow
 
     vendor: charmbracelet
     homepage: "https://charm.sh/"
@@ -63,8 +49,7 @@ nfpms:
     bindir: /usr/bin
 
 brews:
-  - ids:
-    - darwin
+  - goarm: 6
     tap:
       owner: charmbracelet
       name: homebrew-tap
@@ -79,12 +64,12 @@ signs:
   - artifacts: checksum
 
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
   name_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - "^docs:"
+      - "^test:"
