@@ -52,5 +52,25 @@ func findGitHubREADME(repoURL string) (*source, error) {
 		}, nil
 	}
 
+	// if GitHub API rate limit is exceeded try to guess the readme path
+	if resp.StatusCode == http.StatusForbidden {
+		for _, r := range readmeNames {
+			rawReadmeURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/master/%s", user, repo, r)
+
+			resp, err := http.Get(rawReadmeURL)
+			if err != nil {
+				return nil, err
+			}
+
+			if resp.StatusCode == http.StatusOK {
+				fmt.Println(rawReadmeURL)
+				return &source{
+					reader: resp.Body,
+					URL:    repoURL,
+				}, nil
+			}
+		}
+	}
+
 	return nil, errors.New("can't find README in GitHub repository")
 }
