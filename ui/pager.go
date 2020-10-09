@@ -479,12 +479,12 @@ func pagerHelpView(m pagerModel, width int) (s string) {
 		"q       quit",
 	}
 	if m.authStatus == authOK && m.currentDocument.markdownType != stashedMarkdown {
-		col1[4] = "s       stash this document"
+		col1[5] = "s       stash this document"
 	}
 
 	s += "\n"
 	s += "k/↑      up                  " + col1[0] + "\n"
-	s += "j/↓      down                " + col1[1] + "\n"	
+	s += "j/↓      down                " + col1[1] + "\n"
 	s += "b/pgup   page up             " + col1[2] + "\n"
 	s += "f/pgdn   page down           " + col1[3] + "\n"
 	s += "u        ½ page up           " + col1[4] + "\n"
