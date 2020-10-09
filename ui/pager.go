@@ -484,12 +484,11 @@ func pagerHelpView(m pagerModel, width int) (s string) {
 
 	s += "\n"
 	s += "k/↑      up                  " + col1[0] + "\n"
-	s += "j/↓      down                " + col1[1] + "\n"
-	s += "j/↓      down                " + col1[2] + "\n"
-	s += "b/pgup   page up             " + col1[3] + "\n"
-	s += "f/pgdn   page down           " + col1[4] + "\n"
-	s += "u        ½ page up           " + col1[5] + "\n"
-	s += "d        ½ page down"
+	s += "j/↓      down                " + col1[1] + "\n"	
+	s += "b/pgup   page up             " + col1[2] + "\n"
+	s += "f/pgdn   page down           " + col1[3] + "\n"
+	s += "u        ½ page up           " + col1[4] + "\n"
+	s += "d        ½ page down         " + col1[5] + "\n"
 
 	s = indent(s, 2)
 
