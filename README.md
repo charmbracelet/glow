@@ -65,7 +65,7 @@ go get github.com/charmbracelet/glow
 
 Simply run `glow` without arguments to start the textual user iterface and
 browse local and stashed markdown. Glow will find local markdown files it the
-current directory or below or, if you’re in a Git repository, Glow will search
+current directory and below or, if you’re in a Git repository, Glow will search
 the repo.
 
 Markdown files can be read with Glow's high-performance pager. Most of the
