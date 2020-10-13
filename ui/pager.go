@@ -29,7 +29,6 @@ const (
 	darkGreen        = "#1C8760"
 	noteHeadingText  = " Set Memo "
 	notePromptText   = " > "
-	pagerStashIcon   = "🔒"
 )
 
 var (
@@ -49,7 +48,7 @@ var (
 	statusBarHelpStyle             = newStyle(statusBarNoteFg.String(), common.NewColorPair("#323232", "#DCDCDC").String())
 	statusBarStashDotStyle         = newStyle(common.Green.String(), statusBarBg.String())
 	statusBarMessageStyle          = newStyle(mintGreen, darkGreen)
-	statusBarMessageStashDotStyle  = newStyle(mintGreen, darkGreen)
+	statusBarMessageStashIconStyle = newStyle(mintGreen, darkGreen)
 	statusBarMessageScrollPosStyle = newStyle(mintGreen, darkGreen)
 	statusBarMessageHelpStyle      = newStyle("#B6FFE4", common.Green.String())
 
@@ -410,7 +409,7 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 			statusIndicator = statusBarNoteStyle(" ") + spinner.View(m.spinner)
 		}
 	} else if isStashed && showStatusMessage {
-		statusIndicator = statusBarMessageStashDotStyle(" " + pagerStashIcon)
+		statusIndicator = statusBarMessageStashIconStyle(" " + pagerStashIcon)
 	} else if isStashed {
 		statusIndicator = statusBarStashDotStyle(" " + pagerStashIcon)
 	}
