@@ -73,7 +73,7 @@ func sourceFromArg(arg string) (*source, error) {
 	}
 
 	// HTTP(S) URLs:
-	if u, err := url.ParseRequestURI(arg); err == nil {
+	if u, err := url.ParseRequestURI(arg); err == nil && strings.Contains(arg, "://") {
 		if u.Scheme != "" {
 			if u.Scheme != "http" && u.Scheme != "https" {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
