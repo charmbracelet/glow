@@ -10,9 +10,10 @@ builds:
     ldflags: -s -w -X main.Version={{ .Version }} -X main.CommitSHA={{ .Commit }}
     goos:
       - linux
-      # - freebsd
+      - freebsd
+      - openbsd
       - darwin
-      # - windows
+      - windows
     goarch:
       - amd64
       - arm64
@@ -45,6 +46,7 @@ nfpms:
     description: "Render markdown on the CLI"
     license: MIT
     formats:
+      - apk
       - deb
       - rpm
     bindir: /usr/bin
