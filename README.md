@@ -52,7 +52,7 @@ Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
 FreeBSD, and OpenBSD binaries are available, as well as Debian, RPM, and Alpine
 packages. ARM builds are also available for Linux, FreeBSD, and OpenBSD.
 
-Or just use `go get`:
+Or just use `go get` (requires Go 1.13+):
 
 ```bash
 go get github.com/charmbracelet/glow
