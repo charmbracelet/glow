@@ -35,6 +35,9 @@ Use your fave package manager:
 # macOS or Linux
 brew install glow
 
+# macOS (with MacPorts)
+sudo port install glow
+
 # Arch Linux (btw)
 yay -S glow
 
