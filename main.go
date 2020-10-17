@@ -262,9 +262,7 @@ func runTUI(stashedOnly bool) error {
 	}
 
 	cfg.ShowAllFiles = showAllFiles
-	if stashedOnly {
-		cfg.StashedOnly = true
-	}
+	cfg.StashedOnly = stashedOnly
 
 	// Run Bubble Tea program
 	p := ui.NewProgram(style, cfg)

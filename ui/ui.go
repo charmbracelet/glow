@@ -28,7 +28,6 @@ var (
 	config            Config
 	glowLogoTextColor = common.Color("#ECFD65")
 	debug             = false // true if we're logging to a file, in which case we'll log more stuff
-	stashedOnly       = false
 )
 
 // Config contains TUI-specific configuration.
@@ -135,7 +134,7 @@ const (
 )
 
 type model struct {
-	cfg            Config
+	cfg            *Config
 	cc             *charm.Client
 	authStatus     authStatus
 	keygenState    keygenState
@@ -164,7 +163,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 	if m.pager.viewport.HighPerformanceRendering {
 		batch = append(batch, tea.ClearScrollArea)
 	}
-	if !m.stash.loaded.done(stashedOnly) || m.stash.loadingFromNetwork {
+	if !m.stash.loaded.done(m.cfg.StashedOnly) || m.stash.loadingFromNetwork {
 		batch = append(batch, spinner.Tick(m.stash.spinner))
 	}
 	return batch
@@ -189,16 +188,14 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 			}
 		}
 
-		stashedOnly = cfg.StashedOnly
-
 		m := model{
-			cfg:         cfg,
+			cfg:         &cfg,
 			state:       stateShowStash,
 			authStatus:  authConnecting,
 			keygenState: keygenUnstarted,
 		}
 		m.pager = newPagerModel(m.authStatus, style)
-		m.stash = newStashModel(m.authStatus)
+		m.stash = newStashModel(&cfg, m.authStatus)
 
 		cmds := []tea.Cmd{
 			newCharmClient,
