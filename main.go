@@ -31,6 +31,7 @@ var (
 	style        string
 	width        uint
 	showAllFiles bool
+	localOnly    bool
 
 	rootCmd = &cobra.Command{
 		Use:              "glow SOURCE",
@@ -262,7 +263,12 @@ func runTUI(stashedOnly bool) error {
 	}
 
 	cfg.ShowAllFiles = showAllFiles
-	cfg.StashedOnly = stashedOnly
+
+	if stashedOnly {
+		cfg.DocumentTypes = ui.StashedDocument | ui.NewsDocument
+	} else if localOnly {
+		cfg.DocumentTypes = ui.LocalDocument
+	}
 
 	// Run Bubble Tea program
 	p := ui.NewProgram(style, cfg)
@@ -299,6 +305,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 
 	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")

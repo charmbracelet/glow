@@ -35,7 +35,9 @@ type Config struct {
 	ShowAllFiles bool
 	Gopath       string `env:"GOPATH"`
 	HomeDir      string `env:"HOME"`
-	StashedOnly  bool
+
+	// Which document types shall we show? We work though this with bitmasking.
+	DocumentTypes DocumentType
 
 	// For debugging the UI
 	Logfile              string `env:"GLOW_LOGFILE"`
@@ -163,7 +165,10 @@ func (m *model) unloadDocument() []tea.Cmd {
 	if m.pager.viewport.HighPerformanceRendering {
 		batch = append(batch, tea.ClearScrollArea)
 	}
-	if !m.stash.loaded.done(m.cfg.StashedOnly) || m.stash.loadingFromNetwork {
+
+	stashedOnly := m.cfg.DocumentTypes&LocalDocument == 0
+
+	if !m.stash.loaded.done(stashedOnly) || m.stash.loadingFromNetwork {
 		batch = append(batch, spinner.Tick(m.stash.spinner))
 	}
 	return batch
@@ -197,11 +202,20 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 		m.pager = newPagerModel(m.authStatus, style)
 		m.stash = newStashModel(&cfg, m.authStatus)
 
-		cmds := []tea.Cmd{
-			newCharmClient,
-			spinner.Tick(m.stash.spinner),
+		if cfg.DocumentTypes == 0 {
+			cfg.DocumentTypes = LocalDocument | StashedDocument | NewsDocument
 		}
-		if !cfg.StashedOnly {
+
+		var cmds []tea.Cmd
+
+		if cfg.DocumentTypes&StashedDocument != 0 || cfg.DocumentTypes&NewsDocument != 0 {
+			cmds = append(cmds,
+				newCharmClient,
+				spinner.Tick(m.stash.spinner),
+			)
+		}
+
+		if cfg.DocumentTypes&LocalDocument != 0 {
 			cmds = append(cmds, findLocalFiles(m))
 		}
 
@@ -297,21 +311,18 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		// TODO: load more stash pages if we've resized, are on the last page,
 		// and haven't loaded more pages yet.
 
-	// We've started looking for local files
 	case initLocalFileSearchMsg:
 		m.localFileFinder = msg.ch
 		m.cwd = msg.cwd
 		cmds = append(cmds, findNextLocalFile(m))
 
-	// We found a local file
 	case foundLocalFileMsg:
 		newMd := localFileToMarkdown(m.cwd, gitcha.SearchResult(msg))
 		m.stash.addMarkdowns(newMd)
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case sshAuthErrMsg:
-		// If we haven't run the keygen yet, do that
-		if m.keygenState != keygenFinished {
+		if m.keygenState != keygenFinished { // if we haven't run the keygen yet, do that
 			m.keygenState = keygenRunning
 			cmds = append(cmds, generateSSHKeys)
 		} else {
