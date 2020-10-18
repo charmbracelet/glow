@@ -265,9 +265,9 @@ func runTUI(stashedOnly bool) error {
 	cfg.ShowAllFiles = showAllFiles
 
 	if stashedOnly {
-		cfg.DocumentTypes = ui.StashedDocument | ui.NewsDocument
+		cfg.DocumentTypes = ui.StashedDocuments | ui.NewsDocuments
 	} else if localOnly {
-		cfg.DocumentTypes = ui.LocalDocument
+		cfg.DocumentTypes = ui.LocalDocuments
 	}
 
 	// Run Bubble Tea program

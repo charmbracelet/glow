@@ -47,17 +47,9 @@ type deletedStashedItemMsg int
 type DocumentType byte
 
 const (
-	LocalDocument DocumentType = 1 << iota
-	StashedDocument
-	NewsDocument
-)
-
-type loadedState byte
-
-const (
-	loadedStash loadedState = 1 << iota
-	loadedNews
-	loadedLocalFiles
+	LocalDocuments DocumentType = 1 << iota
+	StashedDocuments
+	NewsDocuments
 )
 
 type stashState int
@@ -81,9 +73,9 @@ type stashModel struct {
 	noteInput          textinput.Model
 	terminalWidth      int
 	terminalHeight     int
-	stashFullyLoaded   bool        // have we loaded everything from the server?
-	loadingFromNetwork bool        // are we currently loading something from the network?
-	loaded             loadedState // tracks news, stash and local files loading; we find out with bitmasking
+	stashFullyLoaded   bool         // have we loaded all available stashed documents from the server?
+	loadingFromNetwork bool         // are we currently loading something from the network?
+	loaded             DocumentType // load status for news, stash and local files loading; we find out exactly with bitmasking
 
 	// Paths to files being stashed. We treat this like a set, ignoring the
 	// value portion with an empty struct.
@@ -110,21 +102,16 @@ type stashModel struct {
 }
 
 func (m stashModel) localOnly() bool {
-	return m.cfg.DocumentTypes == LocalDocument
+	return m.cfg.DocumentTypes == LocalDocuments
 }
 
 func (m stashModel) stashedOnly() bool {
-	return m.cfg.DocumentTypes&LocalDocument == 0
+	return m.cfg.DocumentTypes&LocalDocuments == 0
 }
 
 func (m stashModel) loadingDone() bool {
-	state := m.loaded&loadedStash != 0 && m.loaded&loadedNews != 0
-	if m.stashedOnly() {
-		return state
-	} else if m.localOnly() {
-		return m.loaded&loadedLocalFiles != 0
-	}
-	return state && m.loaded&loadedLocalFiles != 0
+	// Do the types loaded match the types we want to have?
+	return m.loaded == m.cfg.DocumentTypes
 }
 
 func (m *stashModel) setSize(width, height int) {
@@ -260,24 +247,24 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	case stashLoadErrMsg:
 		m.err = msg.err
-		m.loaded |= loadedStash // still done, albeit unsuccessfully
+		m.loaded |= StashedDocuments // still done, albeit unsuccessfully
 		m.stashFullyLoaded = true
 		m.loadingFromNetwork = false
 
 	case newsLoadErrMsg:
 		m.err = msg.err
-		m.loaded |= loadedNews // still done, albeit unsuccessfully
+		m.loaded |= NewsDocuments // still done, albeit unsuccessfully
 
 	// We're finished searching for local files
 	case localFileSearchFinished:
-		m.loaded |= loadedLocalFiles
+		m.loaded |= LocalDocuments
 
 	// Stash results have come in from the server
 	case gotStashMsg:
 		// This doesn't mean the whole stash listing is loaded, but some we've
 		// finished checking for the stash, at least, so mark the stash as
 		// loaded here.
-		m.loaded |= loadedStash
+		m.loaded |= StashedDocuments
 
 		m.loadingFromNetwork = false
 
@@ -291,7 +278,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	// News has come in from the server
 	case gotNewsMsg:
-		m.loaded |= loadedNews
+		m.loaded |= NewsDocuments
 		if len(msg) > 0 {
 			docs := wrapMarkdowns(newsMarkdown, msg)
 			m.addMarkdowns(docs...)
