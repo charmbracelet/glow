@@ -60,14 +60,6 @@ const (
 	loadedLocalFiles
 )
 
-func (s loadedState) done(stashedOnly bool) bool {
-	state := s&loadedStash != 0 && s&loadedNews != 0
-	if stashedOnly {
-		return state
-	}
-	return state && s&loadedLocalFiles != 0
-}
-
 type stashState int
 
 const (
@@ -123,6 +115,16 @@ func (m stashModel) localOnly() bool {
 
 func (m stashModel) stashedOnly() bool {
 	return m.cfg.DocumentTypes&LocalDocument == 0
+}
+
+func (m stashModel) loadingDone() bool {
+	state := m.loaded&loadedStash != 0 && m.loaded&loadedNews != 0
+	if m.stashedOnly() {
+		return state
+	} else if m.localOnly() {
+		return m.loaded&loadedLocalFiles != 0
+	}
+	return state && m.loaded&loadedLocalFiles != 0
 }
 
 func (m *stashModel) setSize(width, height int) {
@@ -296,7 +298,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		condition := !m.loaded.done(m.stashedOnly()) ||
+		condition := !m.loadingDone() ||
 			m.loadingFromNetwork ||
 			m.state == stashStateLoadingDocument ||
 			len(m.filesStashing) > 0 ||
@@ -442,7 +444,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.filesStashing[md.localPath] = struct{}{}
 				cmds = append(cmds, stashDocument(m.cc, *md))
 
-				if m.loaded.done(m.stashedOnly()) && !m.spinner.Visible() {
+				if m.loadingDone() && !m.spinner.Visible() {
 					m.spinner.Start()
 					cmds = append(cmds, spinner.Tick(m.spinner))
 				}
@@ -586,7 +588,7 @@ func stashView(m stashModel) string {
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
 
 		loadingIndicator := ""
-		if !m.localOnly() && (!m.loaded.done(m.stashedOnly()) || m.loadingFromNetwork || m.spinner.Visible()) {
+		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
 			loadingIndicator = spinner.View(m.spinner)
 		}
 
@@ -655,7 +657,7 @@ func glowLogoView(text string) string {
 }
 
 func stashHeaderView(m stashModel) string {
-	loading := !m.loaded.done(m.stashedOnly())
+	loading := !m.loadingDone()
 	noMarkdowns := len(m.markdowns) == 0
 
 	if m.authStatus == authFailed && m.stashedOnly() {

@@ -166,9 +166,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 		batch = append(batch, tea.ClearScrollArea)
 	}
 
-	stashedOnly := m.cfg.DocumentTypes&LocalDocument == 0
-
-	if !m.stash.loaded.done(stashedOnly) || m.stash.loadingFromNetwork {
+	if !m.stash.loadingDone() || m.stash.loadingFromNetwork {
 		batch = append(batch, spinner.Tick(m.stash.spinner))
 	}
 	return batch
