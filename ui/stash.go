@@ -44,6 +44,14 @@ type deletedStashedItemMsg int
 
 // MODEL
 
+type DocumentType byte
+
+const (
+	LocalDocument DocumentType = 1 << iota
+	StashedDocument
+	NewsDocument
+)
+
 type loadedState byte
 
 const (
@@ -107,6 +115,14 @@ type stashModel struct {
 	showStatusMessage  bool
 	statusMessage      string
 	statusMessageTimer *time.Timer
+}
+
+func (m stashModel) localOnly() bool {
+	return m.cfg.DocumentTypes == LocalDocument
+}
+
+func (m stashModel) stashedOnly() bool {
+	return m.cfg.DocumentTypes&LocalDocument == 0
 }
 
 func (m *stashModel) setSize(width, height int) {
@@ -280,7 +296,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		condition := !m.loaded.done(m.cfg.StashedOnly) ||
+		condition := !m.loaded.done(m.stashedOnly()) ||
 			m.loadingFromNetwork ||
 			m.state == stashStateLoadingDocument ||
 			len(m.filesStashing) > 0 ||
@@ -426,7 +442,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.filesStashing[md.localPath] = struct{}{}
 				cmds = append(cmds, stashDocument(m.cc, *md))
 
-				if m.loaded.done(m.cfg.StashedOnly) && !m.spinner.Visible() {
+				if m.loaded.done(m.stashedOnly()) && !m.spinner.Visible() {
 					m.spinner.Start()
 					cmds = append(cmds, spinner.Tick(m.spinner))
 				}
@@ -570,7 +586,7 @@ func stashView(m stashModel) string {
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
 
 		loadingIndicator := ""
-		if !m.loaded.done(m.cfg.StashedOnly) || m.loadingFromNetwork || m.spinner.Visible() {
+		if !m.localOnly() && (!m.loaded.done(m.stashedOnly()) || m.loadingFromNetwork || m.spinner.Visible()) {
 			loadingIndicator = spinner.View(m.spinner)
 		}
 
@@ -639,10 +655,10 @@ func glowLogoView(text string) string {
 }
 
 func stashHeaderView(m stashModel) string {
-	loading := !m.loaded.done(m.cfg.StashedOnly)
+	loading := !m.loaded.done(m.stashedOnly())
 	noMarkdowns := len(m.markdowns) == 0
 
-	if m.authStatus == authFailed && m.cfg.StashedOnly {
+	if m.authStatus == authFailed && m.stashedOnly() {
 		return common.Subtle("Can’t load stash. Are you offline?")
 	}
 
@@ -653,7 +669,7 @@ func stashHeaderView(m stashModel) string {
 
 	// Still loading. We haven't found files, stashed items, or news yet.
 	if loading && noMarkdowns {
-		if m.cfg.StashedOnly {
+		if m.stashedOnly() {
 			return common.Subtle("Loading your stash...")
 		} else {
 			return common.Subtle("Looking for stuff...") + maybeOffline
@@ -665,7 +681,7 @@ func stashHeaderView(m stashModel) string {
 
 	// Loading's finished and all we have is news.
 	if !loading && localItems == 0 && stashedItems == 0 {
-		if m.cfg.StashedOnly {
+		if m.stashedOnly() {
 			return common.Subtle("No stashed markdown files found.") + maybeOffline
 		} else {
 			return common.Subtle("No local or stashed markdown files found.") + maybeOffline
