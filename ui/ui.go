@@ -201,19 +201,19 @@ func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
 		m.stash = newStashModel(&cfg, m.authStatus)
 
 		if cfg.DocumentTypes == 0 {
-			cfg.DocumentTypes = LocalDocument | StashedDocument | NewsDocument
+			cfg.DocumentTypes = LocalDocuments | StashedDocuments | NewsDocuments
 		}
 
 		var cmds []tea.Cmd
 
-		if cfg.DocumentTypes&StashedDocument != 0 || cfg.DocumentTypes&NewsDocument != 0 {
+		if cfg.DocumentTypes&StashedDocuments != 0 || cfg.DocumentTypes&NewsDocuments != 0 {
 			cmds = append(cmds,
 				newCharmClient,
 				spinner.Tick(m.stash.spinner),
 			)
 		}
 
-		if cfg.DocumentTypes&LocalDocument != 0 {
+		if cfg.DocumentTypes&LocalDocuments != 0 {
 			cmds = append(cmds, findLocalFiles(m))
 		}
 
@@ -332,7 +332,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 			}
 
 			// Even though it failed, news/stash loading is finished
-			m.stash.loaded |= loadedStash | loadedNews
+			m.stash.loaded |= StashedDocuments | NewsDocuments
 			m.stash.loadingFromNetwork = false
 		}
 
@@ -347,7 +347,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		m.keygenState = keygenFinished
 
 		// Even though it failed, news/stash loading is finished
-		m.stash.loaded |= loadedStash | loadedNews
+		m.stash.loaded |= StashedDocuments | NewsDocuments
 		m.stash.loadingFromNetwork = false
 
 	case keygenSuccessMsg:
