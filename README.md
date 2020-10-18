@@ -68,7 +68,7 @@ go build
 
 ## The TUI
 
-Simply run `glow` without arguments to start the textual user iterface and
+Simply run `glow` without arguments to start the textual user interface and
 browse local and stashed markdown. Glow will find local markdown files it the
 current directory and below or, if you’re in a Git repository, Glow will search
 the repo.
