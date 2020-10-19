@@ -469,16 +469,18 @@ func pagerSetNoteView(b *strings.Builder, m pagerModel) {
 }
 
 func pagerHelpView(m pagerModel, width int) (s string) {
+	memoOrStash := "m       set memo"
+	if m.authStatus == authOK && m.currentDocument.markdownType != stashedMarkdown {
+		memoOrStash = "s       stash this document"
+	}
+
 	col1 := [...]string{
 		"g/home  go to top",
 		"G/end   go to bottom",
 		"",
-		"m       set memo",
+		memoOrStash,
 		"esc     back to files",
 		"q       quit",
-	}
-	if m.authStatus == authOK && m.currentDocument.markdownType != stashedMarkdown {
-		col1[5] = "s       stash this document"
 	}
 
 	s += "\n"
