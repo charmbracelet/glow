@@ -4,8 +4,8 @@ go 1.13
 
 require (
 	github.com/alecthomas/chroma v0.8.0 // indirect
-	github.com/charmbracelet/bubbles v0.6.1
-	github.com/charmbracelet/bubbletea v0.11.1
+	github.com/charmbracelet/bubbles v0.7.0
+	github.com/charmbracelet/bubbletea v0.12.0
 	github.com/charmbracelet/charm v0.8.2
 	github.com/charmbracelet/glamour v0.2.1-0.20200829234023-6c0e29c4dae5
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
@@ -17,7 +17,7 @@ require (
 	github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d
 	github.com/muesli/termenv v0.7.4
 	github.com/spf13/cobra v1.0.0
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee
+	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
-	golang.org/x/sys v0.0.0-20201013132646-2da7054afaeb
+	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13
 )
