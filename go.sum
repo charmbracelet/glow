@@ -25,12 +25,12 @@ github.com/calmh/randomart v1.1.0/go.mod h1:DQUbPVyP+7PAs21w/AnfMKG5NioxS3TbZ2F9
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/charmbracelet/bubbles v0.6.0 h1:i884UciNkSDSOQKgYrMFCLcVN8r0tX5K4pthOwBkZ7Q=
 github.com/charmbracelet/bubbles v0.6.0/go.mod h1:MxySU+YRGbAhZQJavZlW2os+fIeOW69MI3iXqA+2/WA=
-github.com/charmbracelet/bubbles v0.6.1 h1:SnyRY9vJMXW1sjECGUVdbec4O6V425ImAkIdwX3HkK8=
-github.com/charmbracelet/bubbles v0.6.1/go.mod h1:MxySU+YRGbAhZQJavZlW2os+fIeOW69MI3iXqA+2/WA=
+github.com/charmbracelet/bubbles v0.7.0 h1:jOmI1Q0rtjSqzHytDvULlz3z0iuzBtc+4kN+Riqezmg=
+github.com/charmbracelet/bubbles v0.7.0/go.mod h1:J/CGU2bBL7CPljsjqef5azk793t5jWgBtdlhCEiXgJs=
 github.com/charmbracelet/bubbletea v0.10.3/go.mod h1:fB1bVmlaXBYYv4G0jtuGSP/m8V2sMM97pq7QqQnubWI=
 github.com/charmbracelet/bubbletea v0.10.5/go.mod h1:Nay5oWkkSZvc6E/be+W3nDFXAsVytNUNKV9jbXcuae0=
-github.com/charmbracelet/bubbletea v0.11.1 h1:A+1+YqYN0j/ghKfGZ27LJo+Vg80fGDP+MTudHO56t2o=
-github.com/charmbracelet/bubbletea v0.11.1/go.mod h1:3gZkYELUOiEUOp0bTInkxguucy/xRbGSOcbMs1geLxg=
+github.com/charmbracelet/bubbletea v0.12.0 h1:/pUHp1GWRDyK1TJAWkXrnRH1u8Xc5076oH/J0NHxH+M=
+github.com/charmbracelet/bubbletea v0.12.0/go.mod h1:3gZkYELUOiEUOp0bTInkxguucy/xRbGSOcbMs1geLxg=
 github.com/charmbracelet/charm v0.8.2 h1:sYJhP7YopJUvjWE8VKlNrcAHAaRZsEgKn8z2FoIhHOI=
 github.com/charmbracelet/charm v0.8.2/go.mod h1:xi3evUxj8hw+dMApaXRczb2SiEzrn8a3NYobj0off+c=
 github.com/charmbracelet/glamour v0.2.1-0.20200829234023-6c0e29c4dae5 h1:XgXVfMdJTNTq/ajMvwiB1OW3Tg/TXHtM3tYr/vYF76w=
@@ -199,6 +199,8 @@ golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 h1:hb9wdF1z5waM+dSIICn1l0
 golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee h1:4yd7jl+vXjalO5ztz6Vc1VADv+S/80LGJmyl1ROJ2AI=
 golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 h1:pLI5jrR7OSLijeIDcmRxNmw2api+jEfxLoykJVice/E=
+golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
 golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3/go.mod h1:6SW0HCj/g11FgYtHlgUYUwCkIfeOF89ocIRzGO/8vkc=
 golang.org/x/net v0.0.0-20180826012351-8a410e7b638d/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
@@ -230,8 +232,9 @@ golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f h1:+Nyd8tzPX9R7BWHguqsrbFdRx
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634 h1:bNEHhJCnrwMKNMmOx3yAynp5vs5/gRy+XWFtZFu7NBM=
 golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20201013132646-2da7054afaeb h1:HS9IzC4UFbpMBLQUDSQcU+ViVT1vdFCQVjdPVpTlZrs=
-golang.org/x/sys v0.0.0-20201013132646-2da7054afaeb/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13 h1:5jaG59Zhd+8ZXe8C+lgiAGqkOaZBruqrWclLkgAww34=
+golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/time v0.0.0-20190308202827-9d24e82272b4/go.mod h1:tRJNPiyCQ0inRvYxbN9jk5I+vvW/OXSQhTDSoE431IQ=
 golang.org/x/tools v0.0.0-20180221164845-07fd8470d635/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=

@@ -55,10 +55,8 @@ func NewProgram(style string, cfg Config) *tea.Program {
 		debug = true
 	}
 	config = cfg
-	return tea.NewProgram(initialize(cfg, style), update, view)
+	return tea.NewProgram(newModel(cfg, style))
 }
-
-// MESSAGES
 
 type errMsg struct{ err error }
 type newCharmClientMsg *charm.Client
@@ -85,8 +83,6 @@ func (s stashLoadErrMsg) Error() string { return s.err.Error() }
 func (s stashLoadErrMsg) Unwrap() error { return s.err }
 func (s newsLoadErrMsg) Error() string  { return s.err.Error() }
 func (s newsLoadErrMsg) Unwrap() error  { return s.err }
-
-// MODEL
 
 // Which part of the application something appies to. Occasionally used as an
 // argument to commands and messages.
@@ -178,59 +174,49 @@ func (m *model) setAuthStatus(as authStatus) {
 	m.pager.authStatus = as
 }
 
-// INIT
-
-func initialize(cfg Config, style string) func() (tea.Model, tea.Cmd) {
-	return func() (tea.Model, tea.Cmd) {
-		if style == "auto" {
-			dbg := te.HasDarkBackground()
-			if dbg {
-				style = "dark"
-			} else {
-				style = "light"
-			}
+func newModel(cfg Config, style string) tea.Model {
+	if style == "auto" {
+		dbg := te.HasDarkBackground()
+		if dbg {
+			style = "dark"
+		} else {
+			style = "light"
 		}
+	}
 
-		m := model{
-			cfg:         &cfg,
-			state:       stateShowStash,
-			authStatus:  authConnecting,
-			keygenState: keygenUnstarted,
-		}
-		m.pager = newPagerModel(m.authStatus, style)
-		m.stash = newStashModel(&cfg, m.authStatus)
+	if cfg.DocumentTypes == 0 {
+		cfg.DocumentTypes = LocalDocuments | StashedDocuments | NewsDocuments
+	}
 
-		if cfg.DocumentTypes == 0 {
-			cfg.DocumentTypes = LocalDocuments | StashedDocuments | NewsDocuments
-		}
-
-		var cmds []tea.Cmd
-
-		if cfg.DocumentTypes&StashedDocuments != 0 || cfg.DocumentTypes&NewsDocuments != 0 {
-			cmds = append(cmds,
-				newCharmClient,
-				spinner.Tick(m.stash.spinner),
-			)
-		}
-
-		if cfg.DocumentTypes&LocalDocuments != 0 {
-			cmds = append(cmds, findLocalFiles(m))
-		}
-
-		return m, tea.Batch(cmds...)
+	as := authConnecting
+	return model{
+		cfg:         &cfg,
+		state:       stateShowStash,
+		authStatus:  as,
+		keygenState: keygenUnstarted,
+		pager:       newPagerModel(as, style),
+		stash:       newStashModel(&cfg, as),
 	}
 }
 
-// UPDATE
+func (m model) Init() tea.Cmd {
+	var cmds []tea.Cmd
 
-func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
-	m, ok := mdl.(model)
-	if !ok {
-		return model{
-			fatalErr: errors.New("could not perform assertion on model in update"),
-		}, tea.Quit
+	if m.cfg.DocumentTypes&StashedDocuments != 0 || m.cfg.DocumentTypes&NewsDocuments != 0 {
+		cmds = append(cmds,
+			newCharmClient,
+			spinner.Tick(m.stash.spinner),
+		)
 	}
 
+	if m.cfg.DocumentTypes&LocalDocuments != 0 {
+		cmds = append(cmds, findLocalFiles(m))
+	}
+
+	return tea.Batch(cmds...)
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// If there's been an error, any key exits
 	if m.fatalErr != nil {
 		if _, ok := msg.(tea.KeyMsg); ok {
@@ -414,14 +400,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// VIEW
-
-func view(mdl tea.Model) string {
-	m, ok := mdl.(model)
-	if !ok {
-		return "could not perform assertion on model in view"
-	}
-
+func (m model) View() string {
 	if m.fatalErr != nil {
 		return errorView(m.fatalErr, true)
 	}
