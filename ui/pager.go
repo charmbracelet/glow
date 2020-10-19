@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	pagerHelpHeight int // strings.Count(pagerHelpView(pagerModel{}, 0), "\n")
+	pagerHelpHeight int
 
 	noteHeading = te.String(noteHeadingText).
 			Foreground(common.Cream.Color()).
@@ -460,7 +460,8 @@ func (m pagerModel) setNoteView(b *strings.Builder) {
 
 func (m pagerModel) helpView() (s string) {
 	memoOrStash := "m       set memo"
-	if m.authStatus == authOK && m.currentDocument.markdownType != stashedMarkdown {
+	log.Println(m.currentDocument.markdownType)
+	if m.authStatus == authOK && m.currentDocument.markdownType == localMarkdown {
 		memoOrStash = "s       stash this document"
 	}
 
