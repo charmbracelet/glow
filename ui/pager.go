@@ -460,12 +460,11 @@ func (m pagerModel) setNoteView(b *strings.Builder) {
 
 func (m pagerModel) helpView() (s string) {
 	memoOrStash := "m       set memo"
-	log.Println(m.currentDocument.markdownType)
 	if m.authStatus == authOK && m.currentDocument.markdownType == localMarkdown {
 		memoOrStash = "s       stash this document"
 	}
 
-	col1 := [...]string{
+	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
 		"",
@@ -474,13 +473,21 @@ func (m pagerModel) helpView() (s string) {
 		"q       quit",
 	}
 
+	if m.currentDocument.markdownType == newsMarkdown {
+		deleteFromStringSlice(col1, 3)
+	}
+
 	s += "\n"
 	s += "k/↑      up                  " + col1[0] + "\n"
 	s += "j/↓      down                " + col1[1] + "\n"
 	s += "b/pgup   page up             " + col1[2] + "\n"
 	s += "f/pgdn   page down           " + col1[3] + "\n"
 	s += "u        ½ page up           " + col1[4] + "\n"
-	s += "d        ½ page down         " + col1[5]
+	s += "d        ½ page down         "
+
+	if len(col1) > 5 {
+		s += col1[5]
+	}
 
 	s = indent(s, 2)
 
@@ -556,4 +563,13 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 
 	return content, nil
+}
+
+// ETC
+
+// Note: this runs in linear time; O(n).
+func deleteFromStringSlice(a []string, i int) []string {
+	copy(a[i:], a[i+1:])
+	a[len(a)-1] = ""
+	return a[:len(a)-1]
 }
