@@ -253,7 +253,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 				// If setting a note send all keys straight through
 				case pagerStateSetNote:
 					var batch []tea.Cmd
-					newPagerModel, cmd := pagerUpdate(msg, m.pager)
+					newPagerModel, cmd := m.pager.Update(msg)
 					m.pager = newPagerModel
 					batch = append(batch, cmd)
 					return m, tea.Batch(batch...)
@@ -400,7 +400,7 @@ func update(msg tea.Msg, mdl tea.Model) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 
 	case stateShowDocument:
-		newPagerModel, cmd := pagerUpdate(msg, m.pager)
+		newPagerModel, cmd := m.pager.Update(msg)
 		m.pager = newPagerModel
 		cmds = append(cmds, cmd)
 	}
@@ -422,7 +422,7 @@ func view(mdl tea.Model) string {
 
 	switch m.state {
 	case stateShowDocument:
-		return pagerView(m.pager)
+		return m.pager.View()
 	default:
 		return stashView(m.stash)
 	}

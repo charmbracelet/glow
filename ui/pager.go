@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	pagerHelpHeight = strings.Count(pagerHelpView(pagerModel{}, 0), "\n")
+	pagerHelpHeight int // strings.Count(pagerHelpView(pagerModel{}, 0), "\n")
 
 	noteHeading = te.String(noteHeadingText).
 			Foreground(common.Cream.Color()).
@@ -55,7 +55,7 @@ var (
 	helpViewStyle = newStyle(statusBarNoteFg.String(), common.NewColorPair("#1B1B1B", "#f2f2f2").String())
 )
 
-// Create a new termenv styling function.
+// Returns a termenv style.
 func newStyle(fg, bg string) func(string) string {
 	return te.Style{}.
 		Foreground(te.ColorProfile().Color(fg)).
@@ -63,20 +63,12 @@ func newStyle(fg, bg string) func(string) string {
 		Styled
 }
 
-// MSG
-
 type contentRenderedMsg string
 type noteSavedMsg *charm.Markdown
 type stashSuccessMsg markdown
-type stashErrMsg struct {
-	err error
-}
+type stashErrMsg struct{ err error }
 
-func (s stashErrMsg) Error() string {
-	return s.err.Error()
-}
-
-// MODEL
+func (s stashErrMsg) Error() string { return s.err.Error() }
 
 type pagerState int
 
@@ -154,6 +146,9 @@ func (m *pagerModel) setSize(w, h int) {
 	m.textInput.Width = w - len(noteHeadingText) - len(notePromptText) - 1
 
 	if m.showHelp {
+		if pagerHelpHeight == 0 {
+			pagerHelpHeight = strings.Count(m.helpView(), "\n")
+		}
 		m.viewport.Height -= (statusBarHeight + pagerHelpHeight)
 	}
 }
@@ -198,9 +193,7 @@ func (m *pagerModel) unload() {
 	m.textInput.Reset()
 }
 
-// UPDATE
-
-func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
+func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -349,29 +342,26 @@ func pagerUpdate(msg tea.Msg, m pagerModel) (pagerModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// VIEW
-
-func pagerView(m pagerModel) string {
+func (m pagerModel) View() string {
 	var b strings.Builder
-
 	fmt.Fprint(&b, viewport.View(m.viewport)+"\n")
 
 	// Footer
 	switch m.state {
 	case pagerStateSetNote:
-		pagerSetNoteView(&b, m)
+		m.setNoteView(&b)
 	default:
-		pagerStatusBarView(&b, m)
+		m.statusBarView(&b)
 	}
 
 	if m.showHelp {
-		fmt.Fprint(&b, pagerHelpView(m, m.width))
+		fmt.Fprint(&b, m.helpView())
 	}
 
 	return b.String()
 }
 
-func pagerStatusBarView(b *strings.Builder, m pagerModel) {
+func (m pagerModel) statusBarView(b *strings.Builder) {
 	const (
 		minPercent               float64 = 0.0
 		maxPercent               float64 = 1.0
@@ -463,12 +453,12 @@ func pagerStatusBarView(b *strings.Builder, m pagerModel) {
 	)
 }
 
-func pagerSetNoteView(b *strings.Builder, m pagerModel) {
+func (m pagerModel) setNoteView(b *strings.Builder) {
 	fmt.Fprint(b, noteHeading)
 	fmt.Fprint(b, textinput.View(m.textInput))
 }
 
-func pagerHelpView(m pagerModel, width int) (s string) {
+func (m pagerModel) helpView() (s string) {
 	memoOrStash := "m       set memo"
 	if m.authStatus == authOK && m.currentDocument.markdownType != stashedMarkdown {
 		memoOrStash = "s       stash this document"
@@ -494,11 +484,11 @@ func pagerHelpView(m pagerModel, width int) (s string) {
 	s = indent(s, 2)
 
 	// Fill up empty cells with spaces for background coloring
-	if width > 0 {
+	if m.width > 0 {
 		lines := strings.Split(s, "\n")
 		for i := 0; i < len(lines); i++ {
 			l := runewidth.StringWidth(lines[i])
-			n := max(width-l, 0)
+			n := max(m.width-l, 0)
 			lines[i] += strings.Repeat(" ", n)
 		}
 
