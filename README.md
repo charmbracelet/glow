@@ -69,12 +69,12 @@ go build
 ## The TUI
 
 Simply run `glow` without arguments to start the textual user interface and
-browse local and stashed markdown. Glow will find local markdown files it the
+browse local and stashed markdown. Glow will find local markdown files in the
 current directory and below or, if you’re in a Git repository, Glow will search
 the repo.
 
 Markdown files can be read with Glow's high-performance pager. Most of the
-keystokes you know from `less` are the same, but you can press `?` to list
+keystrokes you know from `less` are the same, but you can press `?` to list
 the hotkeys.
 
 ### Stashing
