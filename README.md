@@ -49,6 +49,9 @@ nix-env -iA nixpkgs.glow
 
 # FreeBSD
 pkg install glow
+
+# Windows (with Scoop)
+scoop install glow
 ```
 
 Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
