@@ -165,6 +165,23 @@ glow --help
 Check out the [Glamour Style Section](https://github.com/charmbracelet/glamour/blob/master/styles/gallery/README.md)
 to find more styles. Or [make your own](https://github.com/charmbracelet/glamour/tree/master/styles)!
 
+## The Config File
+
+If you find yourself supplying the same flags to `glow` all the time, it's
+probably a good idea to create a config file. Put a file named `glow.yml` in
+the default config path of you platform. If you're not sure where that is refer
+to `glow --help`, which will display the path in which `glow` expects its
+config.
+
+Here's an example config:
+
+```yaml
+# style name or JSON path (default "auto")
+style: "light"
+# show local files only; no network (TUI-mode only)
+local: true
+```
+
 ## 🔒 Encryption: How It Works
 
 Encryption works by issuing symmetric keys (basically a generated password) and
