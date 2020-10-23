@@ -306,8 +306,11 @@ func init() {
 	}
 	rootCmd.Version = Version
 
+	scope := gap.NewScope(gap.User, "glow")
+	defaultConfigFile, _ := scope.ConfigPath("glow.yml")
+
 	// "Glow Classic" cli arguments
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file")
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", defaultConfigFile))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
