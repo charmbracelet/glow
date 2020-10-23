@@ -134,6 +134,11 @@ func sourceFromArg(arg string) (*source, error) {
 }
 
 func validateOptions(cmd *cobra.Command) {
+	// grab config values from Viper
+	style = viper.GetString("style")
+	width = viper.GetUint("width")
+	localOnly = viper.GetBool("local")
+
 	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
 	// We want to use a special no-TTY style, when stdout is not a terminal
 	// and there was no specific style passed by arg
@@ -142,22 +147,19 @@ func validateOptions(cmd *cobra.Command) {
 	}
 
 	// Detect terminal width
-	if isTerminal && !cmd.Flags().Changed("width") {
+	if isTerminal && width == 0 && !cmd.Flags().Changed("width") {
 		w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
 		if err == nil {
 			width = uint(w)
+		}
+
+		if width > 120 {
+			width = 120
 		}
 	}
 	if width == 0 {
 		width = 80
 	}
-	if width > 120 {
-		width = 120
-	}
-
-	// grab config values from Viper
-	style = viper.GetString("style")
-	localOnly = viper.GetBool("local")
 }
 
 func execute(cmd *cobra.Command, args []string) error {
@@ -319,8 +321,10 @@ func init() {
 
 	// Config bindings
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
+	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("local", rootCmd.Flags().Lookup("local"))
 	viper.SetDefault("style", "auto")
+	viper.SetDefault("width", 0)
 	viper.SetDefault("local", "false")
 
 	// Stash

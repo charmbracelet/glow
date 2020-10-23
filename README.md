@@ -180,6 +180,8 @@ Here's an example config:
 style: "light"
 # show local files only; no network (TUI-mode only)
 local: true
+# word-wrap at width
+width: 80
 ```
 
 ## 🔒 Encryption: How It Works
