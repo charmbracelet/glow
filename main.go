@@ -13,7 +13,9 @@ import (
 	"strings"
 
 	"github.com/meowgorithm/babyenv"
+	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh/terminal"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -27,6 +29,7 @@ var (
 	CommitSHA = ""
 
 	readmeNames  = []string{"README.md", "README"}
+	configFile   string
 	pager        bool
 	style        string
 	width        uint
@@ -151,6 +154,10 @@ func validateOptions(cmd *cobra.Command) {
 	if width > 120 {
 		width = 120
 	}
+
+	// grab config values from Viper
+	style = viper.GetString("style")
+	localOnly = viper.GetBool("local")
 }
 
 func execute(cmd *cobra.Command, args []string) error {
@@ -169,7 +176,6 @@ func execute(cmd *cobra.Command, args []string) error {
 }
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
-
 	// Only run TUI if there are no arguments (excluding flags)
 	if arg == "" {
 		return runTUI(false)
@@ -301,13 +307,53 @@ func init() {
 	rootCmd.Version = Version
 
 	// "Glow Classic" cli arguments
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file")
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 
+	// Config bindings
+	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
+	_ = viper.BindPFlag("local", rootCmd.Flags().Lookup("local"))
+	viper.SetDefault("style", "auto")
+	viper.SetDefault("local", "false")
+
 	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
 	rootCmd.AddCommand(stashCmd)
+
+	cobra.OnInitialize(initConfig)
+}
+
+func initConfig() {
+	if configFile != "" {
+		viper.SetConfigFile(configFile)
+	} else {
+		scope := gap.NewScope(gap.User, "glow")
+		dirs, err := scope.ConfigDirs()
+		if err != nil {
+			fmt.Println("Can't retrieve default config. Please manually pass a config file with '--config'")
+			os.Exit(1)
+		}
+
+		for _, v := range dirs {
+			viper.AddConfigPath(v)
+		}
+		viper.SetConfigName("glow")
+		viper.SetConfigType("yaml")
+	}
+
+	viper.SetEnvPrefix("glow")
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			fmt.Println("Error parsing config:", err)
+			os.Exit(1)
+		}
+	}
+
+	// fmt.Println("Using config file:", viper.ConfigFileUsed())
 }

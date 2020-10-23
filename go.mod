@@ -14,9 +14,11 @@ require (
 	github.com/meowgorithm/babyenv v1.3.0
 	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
 	github.com/muesli/gitcha v0.1.2-0.20200908172931-5aa4fdccf2f6
-	github.com/muesli/reflow v0.1.1-0.20200715144030-a312cb5b2d8d
+	github.com/muesli/go-app-paths v0.2.1
+	github.com/muesli/reflow v0.2.0
 	github.com/muesli/termenv v0.7.4
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
+	github.com/spf13/viper v1.7.0
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
 	golang.org/x/sys v0.0.0-20201020230747-6e5568b54d1a
