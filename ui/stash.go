@@ -124,12 +124,19 @@ func (m *stashModel) setSize(width, height int) {
 	m.terminalHeight = height
 
 	// Update the paginator
-	perPage := max(1, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
-	m.paginator.PerPage = perPage
-	m.paginator.SetTotalPages(len(m.markdowns))
+	m.setTotalPages()
 
 	m.noteInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - len(setNotePromptText)
 	m.searchInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - len(searchNotePromptText)
+}
+
+// Sets the total paginator pages according to the amount of markdowns for the
+// current state.
+func (m *stashModel) setTotalPages() {
+	pages := len(m.getNotes())
+
+	m.paginator.PerPage = max(1, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
+	m.paginator.SetTotalPages(pages)
 
 	// Make sure the page stays in bounds
 	if m.paginator.Page >= m.paginator.TotalPages-1 {
@@ -159,7 +166,7 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	if len(mds) > 0 {
 		m.markdowns = append(m.markdowns, mds...)
 		sort.Sort(markdownsByLocalFirst(m.markdowns))
-		m.paginator.SetTotalPages(len(m.markdowns))
+		m.setTotalPages()
 	}
 }
 
@@ -417,6 +424,12 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.paginator.Page = m.paginator.TotalPages - 1
 				m.index = m.paginator.ItemsOnPage(pages) - 1
 
+			// esc only passed trough in stashStateSearchNotes
+			case "esc":
+				m.state = stashStateReady
+				m.searchInput.SetValue("") // clear the searchinput
+				m.setTotalPages()
+
 			// Open document
 			case "enter":
 				m.hideStatusMessage()
@@ -427,8 +440,13 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 				// Load the document from the server. We'll handle the message
 				// that comes back in the main update function.
-				m.state = stashStateLoadingDocument
 				md := m.selectedMarkdown()
+				m.state = stashStateLoadingDocument
+
+				// This is only relevant when "enter" was called from the
+				// filtered stash view
+				m.searchInput.SetValue("")
+				m.setTotalPages()
 
 				if md.markdownType == localMarkdown {
 					cmds = append(cmds, loadLocalMarkdown(md))
@@ -562,27 +580,32 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					break
 				}
 
-				i := m.markdownIndex()
-				id := m.markdowns[i].ID
+				smd := m.selectedMarkdown()
+				for i, md := range m.markdowns {
+					if md != smd {
+						continue
+					}
 
-				if m.markdowns[i].markdownType == convertedMarkdown {
-					// If document was stashed during this session, convert it
-					// back to a local file.
-					m.markdowns[i].markdownType = localMarkdown
-					m.markdowns[i].Note = m.markdowns[i].displayPath
-				} else {
+					if md.markdownType == convertedMarkdown {
+						// If document was stashed during this session, convert it
+						// back to a local file.
+						md.markdownType = localMarkdown
+						md.Note = m.markdowns[i].displayPath
+					}
 					// Delete optimistically and remove the stashed item
 					// before we've received a success response.
 					m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
 				}
 
-				// Update pagination
-				m.paginator.SetTotalPages(len(m.markdowns))
-				m.paginator.Page = min(m.paginator.Page, m.paginator.TotalPages-1)
-
 				// Set state and delete
 				m.state = stashStateReady
-				return m, deleteStashedItem(m.cc, id)
+				if m.searchInput.Value() != "" {
+					m.state = stashStateShowFiltered
+				}
+
+				// Update pagination
+				m.setTotalPages()
+				return m, deleteStashedItem(m.cc, smd.ID)
 
 			default:
 				m.state = stashStateReady
@@ -620,6 +643,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		newSearchInputModel, cmd := textinput.Update(msg, m.searchInput)
 		m.searchInput = newSearchInputModel
 		cmds = append(cmds, cmd)
+
+		// Update pagination
+		m.setTotalPages()
+
 	case stashStateSettingNote:
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
