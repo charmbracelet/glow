@@ -17,6 +17,7 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
 	te "github.com/muesli/termenv"
@@ -144,10 +145,13 @@ func (m stashModel) markdownIndex() int {
 // Return the current selected markdown in the stash.
 func (m stashModel) selectedMarkdown() *markdown {
 	i := m.markdownIndex()
-	if i < 0 || len(m.markdowns) == 0 || len(m.markdowns) <= i {
+	markdowns := m.getNotes()
+
+	if i < 0 || len(markdowns) == 0 || len(markdowns) <= i {
 		return nil
 	}
-	return m.markdowns[i]
+
+	return markdowns[i]
 }
 
 // Adds markdown documents to the model.
@@ -189,15 +193,47 @@ func (m *stashModel) removeLocalMarkdown(localPath string) error {
 
 // Return the number of markdown documents of a given type.
 func (m stashModel) countMarkdowns(t markdownType) (found int) {
-	if len(m.markdowns) == 0 {
+	if len(m.getNotes()) == 0 {
 		return
 	}
-	for i := 0; i < len(m.markdowns); i++ {
-		if m.markdowns[i].markdownType == t {
+	for i := 0; i < len(m.getNotes()); i++ {
+		if m.getNotes()[i].markdownType == t {
 			found++
 		}
 	}
 	return
+}
+
+// Returns the stashed markdown notes. When the model state indicates that
+// filtering is desired this also filters and ranks the notes by the search term
+// in the searchinput field.
+func (m *stashModel) getNotes() []*markdown {
+	if m.searchInput.Value() == "" {
+		return m.markdowns
+	}
+
+	if m.state != stashStateSearchNotes &&
+		m.state != stashStateShowFiltered &&
+		m.state != stashStatePromptDelete &&
+		m.state != stashStateSettingNote {
+		return m.markdowns
+	}
+
+	targets := []string{}
+
+	for _, t := range m.markdowns {
+		targets = append(targets, t.Note)
+	}
+
+	ranks := fuzzy.RankFindFold(m.searchInput.Value(), targets)
+	sort.Sort(ranks)
+
+	filtered := []*markdown{}
+	for _, r := range ranks {
+		filtered = append(filtered, m.markdowns[r.OriginalIndex])
+	}
+
+	return filtered
 }
 
 func (m *stashModel) hideStatusMessage() {
@@ -342,6 +378,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	switch m.state {
 	case stashStateReady, stashStateShowFiltered:
+		pages := len(m.getNotes())
+
 		switch msg := msg.(type) {
 		// Handle keys
 		case tea.KeyMsg:
@@ -377,13 +415,13 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			// Go to the very end
 			case "end", "G":
 				m.paginator.Page = m.paginator.TotalPages - 1
-				m.index = m.paginator.ItemsOnPage(len(m.markdowns)) - 1
+				m.index = m.paginator.ItemsOnPage(pages) - 1
 
 			// Open document
 			case "enter":
 				m.hideStatusMessage()
 
-				if len(m.markdowns) == 0 {
+				if pages == 0 {
 					break
 				}
 
@@ -502,7 +540,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 		// Keep the index in bounds when paginating
-		itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
+		itemsOnPage := m.paginator.ItemsOnPage(len(m.getNotes()))
 		if m.index > itemsOnPage-1 {
 			m.index = max(0, itemsOnPage-1)
 		}
@@ -763,9 +801,10 @@ func stashHeaderView(m stashModel) string {
 func stashPopulatedView(m stashModel) string {
 	var b strings.Builder
 
-	if len(m.markdowns) > 0 {
-		start, end := m.paginator.GetSliceBounds(len(m.markdowns))
-		docs := m.markdowns[start:end]
+	markdowns := m.getNotes()
+	if len(markdowns) > 0 {
+		start, end := m.paginator.GetSliceBounds(len(markdowns))
+		docs := markdowns[start:end]
 
 		for i, md := range docs {
 			stashItemView(&b, m, i, md)
@@ -778,10 +817,10 @@ func stashPopulatedView(m stashModel) string {
 	// If there aren't enough items to fill up this page (always the last page)
 	// then we need to add some newlines to fill up the space where stash items
 	// would have been.
-	itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
+	itemsOnPage := m.paginator.ItemsOnPage(len(markdowns))
 	if itemsOnPage < m.paginator.PerPage {
 		n := (m.paginator.PerPage - itemsOnPage) * stashViewItemHeight
-		if len(m.markdowns) == 0 {
+		if len(markdowns) == 0 {
 			n -= stashViewItemHeight - 1
 		}
 		for i := 0; i < n; i++ {
