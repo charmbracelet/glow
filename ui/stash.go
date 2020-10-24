@@ -29,6 +29,7 @@ const (
 	stashViewBottomPadding     = 4
 	stashViewHorizontalPadding = 6
 	setNotePromptText          = "Memo: "
+	searchNotePromptText       = "Search: "
 )
 
 var (
@@ -73,6 +74,7 @@ type stashModel struct {
 	markdowns          []*markdown
 	spinner            spinner.Model
 	noteInput          textinput.Model
+	searchInput        textinput.Model
 	terminalWidth      int
 	terminalHeight     int
 	stashFullyLoaded   bool         // have we loaded all available stashed documents from the server?
@@ -126,6 +128,7 @@ func (m *stashModel) setSize(width, height int) {
 	m.paginator.SetTotalPages(len(m.markdowns))
 
 	m.noteInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - len(setNotePromptText)
+	m.searchInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - len(searchNotePromptText)
 
 	// Make sure the page stays in bounds
 	if m.paginator.Page >= m.paginator.TotalPages-1 {
@@ -224,11 +227,18 @@ func newStashModel(cfg *Config, as authStatus) stashModel {
 	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
+	si := textinput.NewModel()
+	si.Prompt = te.String(searchNotePromptText).Foreground(common.YellowGreen.Color()).String()
+	si.CursorColor = common.Fuschia.String()
+	si.CharLimit = noteCharacterLimit
+	si.Focus()
+
 	m := stashModel{
 		cfg:                cfg,
 		authStatus:         as,
 		spinner:            sp,
 		noteInput:          ni,
+		searchInput:        si,
 		page:               1,
 		paginator:          p,
 		loadingFromNetwork: true,
@@ -399,6 +409,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				}
 
 				m.state = stashStateSearchNotes
+				m.searchInput.CursorEnd()
+				m.searchInput.Focus()
+				return m, textinput.Blink(m.searchInput)
+
 			// Set note
 			case "m":
 				m.hideStatusMessage()
@@ -534,6 +548,9 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			default:
 				m.state = stashStateReady
+				if m.searchInput.Value() != "" {
+					m.state = stashStateShowFiltered
+				}
 			}
 		}
 
@@ -543,14 +560,37 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			case "esc":
 				// Cancel search
 				m.state = stashStateReady
+				m.searchInput.Reset()
+			case "enter", "tab":
+				m.hideStatusMessage()
+
+				if len(m.markdowns) == 0 {
+					break
+				}
+
+				m.searchInput.Blur()
+
+				m.state = stashStateShowFiltered
+				if m.searchInput.Value() == "" {
+					m.searchInput.Reset()
+					m.state = stashStateReady
+				}
 			}
 		}
+
+		// Update the text input component
+		newSearchInputModel, cmd := textinput.Update(msg, m.searchInput)
+		m.searchInput = newSearchInputModel
+		cmds = append(cmds, cmd)
 	case stashStateSettingNote:
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
 			case "esc":
 				// Cancel note
 				m.state = stashStateReady
+				if m.searchInput.Value() != "" {
+					m.state = stashStateShowFiltered
+				}
 				m.noteInput.Reset()
 			case "enter":
 				// Set new note
@@ -560,6 +600,9 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				md.Note = newNote
 				m.noteInput.Reset()
 				m.state = stashStateReady
+				if m.searchInput.Value() != "" {
+					m.state = stashStateShowFiltered
+				}
 				return m, cmd
 			}
 		}
@@ -592,7 +635,7 @@ func stashView(m stashModel) string {
 		s += " " + spinner.View(m.spinner) + " Loading document..."
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete, stashStateSearchNotes, stashStateShowFiltered:
 
-		loadingIndicator := ""
+		loadingIndicator := " "
 		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
 			loadingIndicator = spinner.View(m.spinner)
 		}
@@ -623,6 +666,12 @@ func stashView(m stashModel) string {
 			header = stashHeaderView(m)
 		}
 
+		logoOrSearch := glowLogoView(" Glow ")
+		// we replace the logo with the search field in
+		if m.state == stashStateSearchNotes || m.state == stashStateShowFiltered {
+			logoOrSearch = textinput.View(m.searchInput)
+		}
+
 		var pagination string
 		if m.paginator.TotalPages > 1 {
 			pagination = paginator.View(m.paginator)
@@ -640,9 +689,9 @@ func stashView(m stashModel) string {
 		}
 
 		s += fmt.Sprintf(
-			"  %s %s\n\n  %s\n\n%s\n\n%s  %s\n\n  %s",
-			glowLogoView(" Glow "),
+			"%s %s\n\n  %s\n\n%s\n\n%s  %s\n\n  %s",
 			loadingIndicator,
+			logoOrSearch,
 			header,
 			stashPopulatedView(m),
 			blankLines,
