@@ -60,6 +60,8 @@ const (
 	stashStateLoadingDocument
 	stashStateSettingNote
 	stashStateShowingError
+	stashStateSearchNotes
+	stashStateShowFiltered
 )
 
 type stashModel struct {
@@ -329,7 +331,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	}
 
 	switch m.state {
-	case stashStateReady:
+	case stashStateReady, stashStateShowFiltered:
 		switch msg := msg.(type) {
 		// Handle keys
 		case tea.KeyMsg:
@@ -388,6 +390,15 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 				cmds = append(cmds, spinner.Tick(m.spinner))
 
+			// Search through your notes
+			case "/":
+				m.hideStatusMessage()
+
+				if pages == 0 {
+					break
+				}
+
+				m.state = stashStateSearchNotes
 			// Set note
 			case "m":
 				m.hideStatusMessage()
@@ -526,6 +537,14 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			}
 		}
 
+	case stashStateSearchNotes:
+		if msg, ok := msg.(tea.KeyMsg); ok {
+			switch msg.String() {
+			case "esc":
+				// Cancel search
+				m.state = stashStateReady
+			}
+		}
 	case stashStateSettingNote:
 		if msg, ok := msg.(tea.KeyMsg); ok {
 			switch msg.String() {
@@ -559,7 +578,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	// If an item is being confirmed for delete, any key (other than the key
 	// used for confirmation above) cancels the deletion
-
 	return m, tea.Batch(cmds...)
 }
 
@@ -572,7 +590,7 @@ func stashView(m stashModel) string {
 		return errorView(m.err, false)
 	case stashStateLoadingDocument:
 		s += " " + spinner.View(m.spinner) + " Loading document..."
-	case stashStateReady, stashStateSettingNote, stashStatePromptDelete:
+	case stashStateReady, stashStateSettingNote, stashStatePromptDelete, stashStateSearchNotes, stashStateShowFiltered:
 
 		loadingIndicator := ""
 		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
@@ -742,9 +760,14 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "enter: confirm", "esc: cancel")
 	} else if m.state == stashStatePromptDelete {
 		h = append(h, "y: delete", "n: cancel")
+	} else if m.state == stashStateSearchNotes {
+		h = append(h, "enter: confirm", "esc: cancel", "ctrl+j/ctrl+k, ↑/↓: choose")
 	} else {
 		if len(m.markdowns) > 0 {
 			h = append(h, "enter: open")
+		}
+		if m.state == stashStateShowFiltered {
+			h = append(h, "esc: clear search")
 		}
 		if len(m.markdowns) > 1 {
 			h = append(h, "j/k, ↑/↓: choose")
@@ -753,13 +776,14 @@ func stashHelpView(m stashModel) string {
 			h = append(h, "h/l, ←/→: page")
 		}
 		if isStashed {
-			h = append(h, []string{"x: delete", "m: set memo"}...)
+			h = append(h, "x: delete", "m: set memo")
 		} else if isLocal && m.authStatus == authOK {
 			h = append(h, "s: stash")
 		}
 		if m.err != nil {
 			h = append(h, "!: errors")
 		}
+		h = append(h, "/: search")
 		h = append(h, "q: quit")
 	}
 	return stashHelpViewBuilder(m.terminalWidth, h...)
