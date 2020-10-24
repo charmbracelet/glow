@@ -32,9 +32,11 @@ var (
 
 // Config contains TUI-specific configuration.
 type Config struct {
-	ShowAllFiles bool
-	Gopath       string `env:"GOPATH"`
-	HomeDir      string `env:"HOME"`
+	ShowAllFiles    bool
+	Gopath          string `env:"GOPATH"`
+	HomeDir         string `env:"HOME"`
+	GlamourMaxWidth uint
+	GlamourStyle    string
 
 	// Which document types shall we show? We work though this with bitmasking.
 	DocumentTypes DocumentType
@@ -46,7 +48,7 @@ type Config struct {
 }
 
 // NewProgram returns a new Tea program.
-func NewProgram(style string, cfg Config) *tea.Program {
+func NewProgram(cfg Config) *tea.Program {
 	if cfg.Logfile != "" {
 		log.Println("-- Starting Glow ----------------")
 		log.Printf("High performance pager: %v", cfg.HighPerformancePager)
@@ -55,7 +57,7 @@ func NewProgram(style string, cfg Config) *tea.Program {
 		debug = true
 	}
 	config = cfg
-	return tea.NewProgram(newModel(cfg, style))
+	return tea.NewProgram(newModel(cfg))
 }
 
 type errMsg struct{ err error }
@@ -174,13 +176,13 @@ func (m *model) setAuthStatus(as authStatus) {
 	m.pager.authStatus = as
 }
 
-func newModel(cfg Config, style string) tea.Model {
-	if style == "auto" {
+func newModel(cfg Config) tea.Model {
+	if cfg.GlamourStyle == "auto" {
 		dbg := te.HasDarkBackground()
 		if dbg {
-			style = "dark"
+			cfg.GlamourStyle = "dark"
 		} else {
-			style = "light"
+			cfg.GlamourStyle = "light"
 		}
 	}
 
@@ -194,7 +196,7 @@ func newModel(cfg Config, style string) tea.Model {
 		state:       stateShowStash,
 		authStatus:  as,
 		keygenState: keygenUnstarted,
-		pager:       newPagerModel(as, style),
+		pager:       newPagerModel(&cfg, as),
 		stash:       newStashModel(&cfg, as),
 	}
 }

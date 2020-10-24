@@ -271,6 +271,8 @@ func runTUI(stashedOnly bool) error {
 	}
 
 	cfg.ShowAllFiles = showAllFiles
+	cfg.GlamourMaxWidth = width
+	cfg.GlamourStyle = style
 
 	if stashedOnly {
 		cfg.DocumentTypes = ui.StashedDocuments | ui.NewsDocuments
@@ -279,7 +281,7 @@ func runTUI(stashedOnly bool) error {
 	}
 
 	// Run Bubble Tea program
-	p := ui.NewProgram(style, cfg)
+	p := ui.NewProgram(cfg)
 	p.EnterAltScreen()
 	if err := p.Start(); err != nil {
 		return err

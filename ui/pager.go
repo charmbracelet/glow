@@ -20,15 +20,14 @@ import (
 )
 
 const (
-	maxDocumentWidth = 120
-	statusBarHeight  = 1
-	gray             = "#333333"
-	yellowGreen      = "#ECFD65"
-	fuschia          = "#EE6FF8"
-	mintGreen        = "#89F0CB"
-	darkGreen        = "#1C8760"
-	noteHeadingText  = " Set Memo "
-	notePromptText   = " > "
+	statusBarHeight = 1
+	gray            = "#333333"
+	yellowGreen     = "#ECFD65"
+	fuschia         = "#EE6FF8"
+	mintGreen       = "#89F0CB"
+	darkGreen       = "#1C8760"
+	noteHeadingText = " Set Memo "
+	notePromptText  = " > "
 )
 
 var (
@@ -81,16 +80,16 @@ const (
 )
 
 type pagerModel struct {
-	cc           *charm.Client
-	authStatus   authStatus
-	viewport     viewport.Model
-	state        pagerState
-	glamourStyle string
-	width        int
-	height       int
-	showHelp     bool
-	textInput    textinput.Model
-	spinner      spinner.Model
+	cfg        *Config
+	cc         *charm.Client
+	authStatus authStatus
+	viewport   viewport.Model
+	state      pagerState
+	width      int
+	height     int
+	showHelp   bool
+	textInput  textinput.Model
+	spinner    spinner.Model
 
 	statusMessage      string
 	statusMessageTimer *time.Timer
@@ -104,7 +103,7 @@ type pagerModel struct {
 	stashedDocument *markdown
 }
 
-func newPagerModel(as authStatus, glamourStyle string) pagerModel {
+func newPagerModel(cfg *Config, as authStatus) pagerModel {
 	// Init viewport
 	vp := viewport.Model{}
 	vp.YPosition = 0
@@ -129,12 +128,12 @@ func newPagerModel(as authStatus, glamourStyle string) pagerModel {
 	sp.MinimumLifetime = time.Millisecond * 180
 
 	return pagerModel{
-		state:        pagerStateBrowse,
-		authStatus:   as,
-		glamourStyle: glamourStyle,
-		textInput:    ti,
-		viewport:     vp,
-		spinner:      sp,
+		cfg:        cfg,
+		state:      pagerStateBrowse,
+		authStatus: as,
+		textInput:  ti,
+		viewport:   vp,
+		spinner:    sp,
 	}
 }
 
@@ -529,13 +528,13 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	// initialize glamour
 	var gs glamour.TermRendererOption
-	if m.glamourStyle == "auto" {
+	if m.cfg.GlamourStyle == "auto" {
 		gs = glamour.WithAutoStyle()
 	} else {
-		gs = glamour.WithStylePath(m.glamourStyle)
+		gs = glamour.WithStylePath(m.cfg.GlamourStyle)
 	}
 
-	width := max(0, min(maxDocumentWidth, m.viewport.Width))
+	width := max(0, min(int(m.cfg.GlamourMaxWidth), m.viewport.Width))
 	r, err := glamour.NewTermRenderer(
 		gs,
 		glamour.WithWordWrap(width),
