@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/glamour v0.2.1-0.20200829234023-6c0e29c4dae5
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/google/uuid v1.1.2 // indirect
+	github.com/lithammer/fuzzysearch v1.1.1
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/meowgorithm/babyenv v1.3.0
 	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
