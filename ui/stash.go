@@ -250,6 +250,47 @@ func (m *stashModel) hideStatusMessage() {
 	}
 }
 
+func (m *stashModel) moveCursorUp() {
+	m.index--
+	if m.index < 0 && m.paginator.Page == 0 {
+		// Stop
+		m.index = 0
+		return
+	}
+
+	if m.index >= 0 {
+		return
+	}
+	// Go to previous page
+	m.paginator.PrevPage()
+
+	m.index = m.paginator.ItemsOnPage(len(m.getNotes())) - 1
+}
+
+func (m *stashModel) moveCursorDown() {
+	itemsOnPage := m.paginator.ItemsOnPage(len(m.getNotes()))
+
+	m.index++
+	if m.index < itemsOnPage {
+		return
+	}
+
+	if !m.paginator.OnLastPage() {
+		m.paginator.NextPage()
+		m.index = 0
+		return
+	}
+
+	// during filtering the cursor position can exceed the number of
+	// itemsOnPage. It's more intuitive to start the cursor at the
+	// topmost position when moving it down in this scenario.
+	if m.index > itemsOnPage {
+		m.index = 0
+		return
+	}
+	m.index = itemsOnPage - 1
+}
+
 // INIT
 
 func newStashModel(cfg *Config, as authStatus) stashModel {
@@ -391,28 +432,11 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		// Handle keys
 		case tea.KeyMsg:
 			switch msg.String() {
-			case "k", "up":
-				m.index--
-				if m.index < 0 && m.paginator.Page == 0 {
-					// Stop
-					m.index = 0
-				} else if m.index < 0 {
-					// Go to previous page
-					m.paginator.PrevPage()
-					m.index = m.paginator.ItemsOnPage(len(m.markdowns)) - 1
-				}
+			case "k", "ctrl+k", "up":
+				m.moveCursorUp()
 
-			case "j", "down":
-				itemsOnPage := m.paginator.ItemsOnPage(len(m.markdowns))
-				m.index++
-				if m.index >= itemsOnPage && m.paginator.OnLastPage() {
-					// Stop
-					m.index = itemsOnPage - 1
-				} else if m.index >= itemsOnPage {
-					// Go to next page
-					m.index = 0
-					m.paginator.NextPage()
-				}
+			case "j", "ctrl+j", "down":
+				m.moveCursorDown()
 
 			// Go to the very start
 			case "home", "g":
@@ -636,6 +660,13 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.searchInput.Reset()
 					m.state = stashStateReady
 				}
+
+			case "ctrl+k", "up":
+				m.moveCursorUp()
+				m.state = stashStateShowFiltered
+			case "ctrl+j", "down":
+				m.moveCursorDown()
+				m.state = stashStateShowFiltered
 			}
 		}
 
