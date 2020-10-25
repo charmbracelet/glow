@@ -661,6 +661,19 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					break
 				}
 
+				// When there's only one filtered markdown left and the cursor
+				// is placed on it we can diretly "enter" it and change to the
+				// markdown view
+				if h := m.getNotes(); len(h) == 1 && h[0].ID == m.selectedMarkdown().ID {
+					m.state = stashStateReady
+					m.searchInput.Reset()
+
+					var cmd tea.Cmd
+					m, cmd = stashUpdate(msg, m)
+					cmds = append(cmds, cmd)
+					break
+				}
+
 				m.searchInput.Blur()
 
 				m.state = stashStateShowFiltered
