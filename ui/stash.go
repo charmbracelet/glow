@@ -229,7 +229,15 @@ func (m *stashModel) getNotes() []*markdown {
 	targets := []string{}
 
 	for _, t := range m.markdowns {
-		targets = append(targets, t.Note)
+		prefix := ""
+		switch t.markdownType {
+		case newsMarkdown:
+			prefix = "News: "
+		case convertedMarkdown:
+			prefix = t.localPath
+		}
+
+		targets = append(targets, prefix+t.Note)
 	}
 
 	ranks := fuzzy.RankFindFold(m.searchInput.Value(), targets)
