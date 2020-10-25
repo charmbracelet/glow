@@ -851,9 +851,10 @@ func stashHeaderView(m stashModel) string {
 
 	localItems := m.countMarkdowns(localMarkdown)
 	stashedItems := m.countMarkdowns(stashedMarkdown) + m.countMarkdowns(convertedMarkdown)
+	newsItems := m.countMarkdowns(newsMarkdown)
 
 	// Loading's finished and all we have is news.
-	if !loading && localItems == 0 && stashedItems == 0 {
+	if !loading && localItems == 0 && stashedItems == 0 && newsItems == 0 {
 		if m.stashedOnly() {
 			return common.Subtle("No stashed markdown files found.") + maybeOffline
 		} else {
@@ -872,6 +873,18 @@ func stashHeaderView(m stashModel) string {
 			divider = dividerDot
 		}
 		si := common.Subtle(fmt.Sprintf("%d Stashed", stashedItems))
+		s += fmt.Sprintf("%s%s", divider, si)
+	}
+	if newsItems > 0 {
+		var divider string
+		if localItems > 0 || stashedItems > 0 {
+			divider = dividerDot
+		}
+		si := common.Subtle(fmt.Sprintf("%d News", newsItems))
+		if newsItems == 1 {
+			si = common.Subtle(fmt.Sprintf("%d New", newsItems))
+		}
+
 		s += fmt.Sprintf("%s%s", divider, si)
 	}
 	return common.Subtle(s) + maybeOffline
