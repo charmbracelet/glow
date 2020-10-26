@@ -27,6 +27,11 @@ var configCmd = &cobra.Command{
 	Example: formatBlock("glow config\nglow config --config path/to/config.yml"),
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		editor := os.Getenv("EDITOR")
+		if editor == "" {
+			return errors.New("no EDITOR environment variable set")
+		}
+
 		if configFile == "" {
 			scope := gap.NewScope(gap.User, "glow")
 
@@ -59,11 +64,6 @@ var configCmd = &cobra.Command{
 			}
 		} else if err != nil { // some other error occurred
 			return err
-		}
-
-		editor := os.Getenv("EDITOR")
-		if editor == "" {
-			return errors.New("no EDITOR environment variable set")
 		}
 
 		c := exec.Command(editor, configFile)
