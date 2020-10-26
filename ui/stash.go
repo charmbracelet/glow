@@ -785,7 +785,10 @@ func stashView(m stashModel) string {
 
 		logoOrSearch := glowLogoView(" Glow ")
 		// we replace the logo with the search field in
-		if m.state == stashStateSearchNotes || m.state == stashStateShowFiltered {
+		if m.state == stashStateSearchNotes {
+			logoOrSearch = textinput.View(m.searchInput)
+		} else if m.state == stashStateShowFiltered {
+			m.searchInput.TextColor = m.searchInput.PlaceholderColor
 			logoOrSearch = textinput.View(m.searchInput)
 		}
 

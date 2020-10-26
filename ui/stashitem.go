@@ -69,6 +69,14 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			icon = ""
 			title = textinput.View(m.noteInput)
 			date = dullYellowFg(date)
+		case stashStateSearchNotes:
+			if len(m.getNotes()) != 1 {
+				gutter = dullFuchsiaFg(verticalLine)
+				icon = dullFuchsiaFg(icon)
+				title = dullFuchsiaFg(title)
+				break
+			}
+			fallthrough
 		default:
 			// Selected
 			gutter = dullFuchsiaFg(verticalLine)
@@ -80,7 +88,11 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		// Normal
 		if md.markdownType == newsMarkdown {
 			gutter = " "
-			title = te.String(title).Foreground(common.Indigo.Color()).String()
+			if m.state == stashStateSearchNotes {
+				title = subtleIndigoFg(title)
+			} else {
+				title = te.String(title).Foreground(common.Indigo.Color()).String()
+			}
 			date = subtleIndigoFg(date)
 		} else {
 			icon = greenFg(icon)
@@ -89,6 +101,13 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			}
 			gutter = " "
 			date = warmGrayFg(date)
+		}
+
+		if m.state == stashStateSearchNotes {
+			icon = common.Subtle(icon)
+			title = common.Subtle(title)
+			gutter = common.Subtle(gutter)
+			date = common.Subtle(date)
 		}
 	}
 
