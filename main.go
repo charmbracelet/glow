@@ -333,6 +333,8 @@ func init() {
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
 	rootCmd.AddCommand(stashCmd)
 
+	rootCmd.AddCommand(configCmd)
+
 	cobra.OnInitialize(initConfig)
 }
 
