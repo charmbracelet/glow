@@ -25,6 +25,7 @@ var (
 		Example: formatBlock("glow stash\nglow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			initConfig()
 			if len(args) == 0 {
 				return runTUI(true)
 			}

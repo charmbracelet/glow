@@ -163,6 +163,7 @@ func validateOptions(cmd *cobra.Command) {
 }
 
 func execute(cmd *cobra.Command, args []string) error {
+	initConfig()
 	validateOptions(cmd)
 
 	if len(args) == 0 {
@@ -334,8 +335,6 @@ func init() {
 	rootCmd.AddCommand(stashCmd)
 
 	rootCmd.AddCommand(configCmd)
-
-	cobra.OnInitialize(initConfig)
 }
 
 func initConfig() {
