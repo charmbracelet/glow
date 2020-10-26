@@ -13,9 +13,9 @@ import (
 )
 
 const defaultConfig = `# style name or JSON path (default "auto")
-style: "light"
+style: "auto"
 # show local files only; no network (TUI-mode only)
-local: true
+local: false
 # word-wrap at width
 width: 80`
 
