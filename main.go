@@ -297,7 +297,7 @@ func runTUI(stashedOnly bool) error {
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		os.Exit(-1)
+		os.Exit(1)
 	}
 }
 
