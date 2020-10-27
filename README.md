@@ -168,10 +168,10 @@ to find more styles. Or [make your own](https://github.com/charmbracelet/glamour
 ## The Config File
 
 If you find yourself supplying the same flags to `glow` all the time, it's
-probably a good idea to create a config file. Put a file named `glow.yml` in
-the default config path of you platform. If you're not sure where that is refer
-to `glow --help`, which will display the path in which `glow` expects its
-config.
+probably a good idea to create a config file. Run `glow config`, which will open
+it in your favorite $EDITOR. Alternatively you can manually put a file named
+`glow.yml` in the default config path of you platform. If you're not sure where
+that is, please refer to `glow --help`.
 
 Here's an example config:
 
