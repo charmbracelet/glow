@@ -892,9 +892,6 @@ func stashHeaderView(m stashModel) string {
 			divider = dividerDot
 		}
 		si := common.Subtle(fmt.Sprintf("%d News", newsItems))
-		if newsItems == 1 {
-			si = common.Subtle(fmt.Sprintf("%d New", newsItems))
-		}
 
 		s += fmt.Sprintf("%s%s", divider, si)
 	}
