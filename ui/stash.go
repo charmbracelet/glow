@@ -495,6 +495,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			case "/":
 				m.hideStatusMessage()
 
+				m.paginator.Page = 0
+				m.index = 0
 				m.state = stashStateSearchNotes
 				m.searchInput.CursorEnd()
 				m.searchInput.Focus()
