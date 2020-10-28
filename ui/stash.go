@@ -505,6 +505,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			case "m":
 				m.hideStatusMessage()
 
+				if pages == 0 {
+					break
+				}
+
 				md := m.selectedMarkdown()
 				isUserMarkdown := md.markdownType == stashedMarkdown || md.markdownType == convertedMarkdown
 				isSettingNote := m.state == stashStateSettingNote
@@ -520,6 +524,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			// Stash
 			case "s":
 				if m.authStatus != authOK || m.selectedMarkdown() == nil {
+					break
+				}
+
+				if pages == 0 {
 					break
 				}
 
@@ -552,6 +560,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			// Prompt for deletion
 			case "x":
 				m.hideStatusMessage()
+
+				if pages == 0 {
+					break
+				}
 
 				t := m.selectedMarkdown().markdownType
 				isUserMarkdown := t == stashedMarkdown || t == convertedMarkdown
@@ -933,7 +945,7 @@ func stashHelpView(m stashModel) string {
 		isLocal   bool
 	)
 
-	if len(m.markdowns) > 0 {
+	if len(m.getNotes()) > 0 {
 		md := m.selectedMarkdown()
 		isStashed = md != nil && md.markdownType == stashedMarkdown
 		isLocal = md != nil && md.markdownType == localMarkdown
