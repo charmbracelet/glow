@@ -133,10 +133,13 @@ func (m *stashModel) setSize(width, height int) {
 // Sets the total paginator pages according to the amount of markdowns for the
 // current state.
 func (m *stashModel) setTotalPages() {
-	pages := len(m.getNotes())
-
 	m.paginator.PerPage = max(1, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
-	m.paginator.SetTotalPages(pages)
+
+	if pages := len(m.getNotes()); pages < 1 {
+		m.paginator.SetTotalPages(1)
+	} else {
+		m.paginator.SetTotalPages(pages)
+	}
 
 	// Make sure the page stays in bounds
 	if m.paginator.Page >= m.paginator.TotalPages-1 {
