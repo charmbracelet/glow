@@ -15,6 +15,7 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/keygen"
 	"github.com/charmbracelet/charm/ui/common"
+	"github.com/charmbracelet/glow/utils"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
 )
@@ -355,6 +356,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fetchedMarkdownMsg:
 		m.pager.currentDocument = *msg
+		msg.Body = string(utils.RemoveFrontmatter([]byte(msg.Body)))
 		cmds = append(cmds, renderWithGlamour(m.pager, msg.Body))
 
 	case contentRenderedMsg:
