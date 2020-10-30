@@ -22,6 +22,7 @@ import (
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/ui"
+	"github.com/charmbracelet/glow/utils"
 )
 
 var (
@@ -194,6 +195,8 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	b = utils.RemoveFrontmatter(b)
 
 	// render
 	var baseURL string
