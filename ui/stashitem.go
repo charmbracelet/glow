@@ -93,7 +93,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			title = textinput.View(m.noteInput)
 			date = dullYellowFg(date)
 		case stashStateSearchNotes:
-			if len(m.getNotes()) != 1 {
+			if len(m.getNotes()) != 1 && m.searchInput.Value() == "" {
 				gutter = dimDullFuchsiaFg(verticalLine)
 				icon = dimDullFuchsiaFg(icon)
 				title = dimFuchsiaFg(title)
@@ -114,14 +114,14 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 		if md.markdownType == newsMarkdown {
 			gutter = " "
-			if m.state == stashStateSearchNotes {
+			if m.state == stashStateSearchNotes && m.searchInput.Value() == "" {
 				title = dimIndigoFg(title)
 				date = dimSubtleIndigoFg(date)
 			} else {
 				title = indigoFg(title)
 				date = subtleIndigoFg(date)
 			}
-		} else if m.state == stashStateSearchNotes {
+		} else if m.state == stashStateSearchNotes && m.searchInput.Value() == "" {
 			icon = dimGreenFg(icon)
 			if title == noMemoTitle {
 				title = dimWarmGrayFg(title)
