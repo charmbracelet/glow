@@ -636,10 +636,11 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 						// back to a local file.
 						md.markdownType = localMarkdown
 						md.Note = m.markdowns[i].displayPath
+					} else {
+						// Delete optimistically and remove the stashed item
+						// before we've received a success response.
+						m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
 					}
-					// Delete optimistically and remove the stashed item
-					// before we've received a success response.
-					m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
 				}
 
 				// Set state and delete
