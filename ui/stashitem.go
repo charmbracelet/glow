@@ -18,16 +18,39 @@ const (
 )
 
 var (
-	greenFg        = te.Style{}.Foreground(common.NewColorPair("#04B575", "#04B575").Color()).Styled
-	fuchsiaFg      = te.Style{}.Foreground(common.Fuschia.Color()).Styled
-	dullFuchsiaFg  = te.Style{}.Foreground(common.NewColorPair("#AD58B4", "#F793FF").Color()).Styled
-	yellowFg       = te.Style{}.Foreground(common.YellowGreen.Color()).Styled                        // renders light green on light backgrounds
-	dullYellowFg   = te.Style{}.Foreground(common.NewColorPair("#9BA92F", "#6BCB94").Color()).Styled // renders light green on light backgrounds
-	subtleIndigoFg = te.Style{}.Foreground(common.NewColorPair("#514DC1", "#7D79F6").Color()).Styled
-	redFg          = te.Style{}.Foreground(common.Red.Color()).Styled
-	faintRedFg     = te.Style{}.Foreground(common.FaintRed.Color()).Styled
-	warmGrayFg     = te.Style{}.Foreground(common.NewColorPair("#979797", "#847A85").Color()).Styled
+	normalFg    = makeFgStyle(common.NewColorPair("#dddddd", "#000"))
+	dimNormalFg = makeFgStyle(common.NewColorPair("#777777", "#000"))
+
+	warmGrayFg    = makeFgStyle(common.NewColorPair("#979797", "#847A85"))
+	dimWarmGrayFg = makeFgStyle(common.NewColorPair("#4D4D4D", "#000000"))
+
+	grayFg    = makeFgStyle(common.NewColorPair("#626262", "#000"))
+	dimGrayFg = makeFgStyle(common.NewColorPair("#3F3F3F", "#000"))
+
+	greenFg    = makeFgStyle(common.NewColorPair("#04B575", "#04B575"))
+	dimGreenFg = makeFgStyle(common.NewColorPair("#0B5137", "#000000"))
+
+	fuchsiaFg    = makeFgStyle(common.Fuschia)
+	dimFuchsiaFg = makeFgStyle(common.NewColorPair("#99519E", "#000000"))
+
+	dullFuchsiaFg    = makeFgStyle(common.NewColorPair("#AD58B4", "#F793FF"))
+	dimDullFuchsiaFg = makeFgStyle(common.NewColorPair("#6B3A6F", "#000000"))
+
+	indigoFg    = makeFgStyle(common.Indigo)
+	dimIndigoFg = makeFgStyle(common.NewColorPair("#494690", "#000000"))
+
+	subtleIndigoFg    = makeFgStyle(common.NewColorPair("#514DC1", "#7D79F6"))
+	dimSubtleIndigoFg = makeFgStyle(common.NewColorPair("#383584", "#000000"))
+
+	yellowFg     = makeFgStyle(common.YellowGreen)                        // renders light green on light backgrounds
+	dullYellowFg = makeFgStyle(common.NewColorPair("#9BA92F", "#6BCB94")) // renders light green on light backgrounds
+	redFg        = makeFgStyle(common.Red)
+	faintRedFg   = makeFgStyle(common.FaintRed)
 )
+
+func makeFgStyle(c common.ColorPair) func(string) string {
+	return te.Style{}.Foreground(c.Color()).Styled
+}
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	var (
@@ -56,59 +79,69 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	}
 
 	if index == m.index {
+		// Selected item
+
 		switch m.state {
 		case stashStatePromptDelete:
-			// Deleting
 			gutter = faintRedFg(verticalLine)
 			icon = faintRedFg(icon)
 			title = redFg(title)
 			date = faintRedFg(date)
 		case stashStateSettingNote:
-			// Setting note
 			gutter = dullYellowFg(verticalLine)
 			icon = ""
 			title = textinput.View(m.noteInput)
 			date = dullYellowFg(date)
 		case stashStateSearchNotes:
 			if len(m.getNotes()) != 1 {
-				gutter = dullFuchsiaFg(verticalLine)
-				icon = dullFuchsiaFg(icon)
-				title = dullFuchsiaFg(title)
+				gutter = dimDullFuchsiaFg(verticalLine)
+				icon = dimDullFuchsiaFg(icon)
+				title = dimFuchsiaFg(title)
+				date = dimDullFuchsiaFg(date)
 				break
 			}
+			// If we've filtered down to exactly item color it as though it's
+			// not filtered, since pressing return will open it.
 			fallthrough
 		default:
-			// Selected
 			gutter = dullFuchsiaFg(verticalLine)
 			icon = dullFuchsiaFg(icon)
 			title = fuchsiaFg(title)
 			date = dullFuchsiaFg(date)
 		}
 	} else {
-		// Normal
+		// Regular (non-selected) items
+
 		if md.markdownType == newsMarkdown {
 			gutter = " "
 			if m.state == stashStateSearchNotes {
-				title = subtleIndigoFg(title)
+				title = dimIndigoFg(title)
+				date = dimSubtleIndigoFg(date)
 			} else {
-				title = te.String(title).Foreground(common.Indigo.Color()).String()
+				title = indigoFg(title)
+				date = subtleIndigoFg(date)
 			}
-			date = subtleIndigoFg(date)
+		} else if m.state == stashStateSearchNotes {
+			icon = dimGreenFg(icon)
+			if title == noMemoTitle {
+				title = dimWarmGrayFg(title)
+			} else {
+				title = dimNormalFg(title)
+			}
+			gutter = " "
+			date = dimWarmGrayFg(date)
+
 		} else {
 			icon = greenFg(icon)
 			if title == noMemoTitle {
 				title = warmGrayFg(title)
+			} else {
+				title = normalFg(title)
 			}
 			gutter = " "
 			date = warmGrayFg(date)
 		}
 
-		if m.state == stashStateSearchNotes {
-			icon = common.Subtle(icon)
-			title = common.Subtle(title)
-			gutter = common.Subtle(gutter)
-			date = common.Subtle(date)
-		}
 	}
 
 	fmt.Fprintf(b, "%s %s%s\n", gutter, icon, title)
