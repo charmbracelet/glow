@@ -938,9 +938,10 @@ func stashHelpView(m stashModel) string {
 		h         []string
 		isStashed bool
 		isLocal   bool
+		numDocs   = len(m.getNotes())
 	)
 
-	if len(m.getNotes()) > 0 {
+	if numDocs > 0 {
 		md := m.selectedMarkdown()
 		isStashed = md != nil && md.markdownType == stashedMarkdown
 		isLocal = md != nil && md.markdownType == localMarkdown
@@ -950,6 +951,8 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "enter: confirm", "esc: cancel")
 	} else if m.state == stashStatePromptDelete {
 		h = append(h, "y: delete", "n: cancel")
+	} else if m.state == stashStateSearchNotes && numDocs == 1 {
+		h = append(h, "enter: open", "esc: cancel")
 	} else if m.state == stashStateSearchNotes {
 		h = append(h, "enter: confirm", "esc: cancel", "ctrl+j/ctrl+k, ↑/↓: choose")
 	} else {
