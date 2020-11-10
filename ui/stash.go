@@ -701,11 +701,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.state = stashStateReady
 				}
 
-			case "ctrl+k", "up":
-				m.moveCursorUp()
-				m.state = stashStateShowFiltered
-			case "ctrl+j", "down":
-				m.moveCursorDown()
+			case "ctrl+k", "ctrl+j", "up", "down":
 				m.state = stashStateShowFiltered
 			}
 		}
