@@ -78,7 +78,15 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		title = truncate(title, truncateTo)
 	}
 
-	if index == m.index {
+	isSelected := index == m.index
+	notSearchingNotes := m.state != stashStateSearchNotes
+
+	// If there are multiple items being filtered we don't highlight a selected
+	// item in the results. If we've filtered down to one item, however,
+	// highlight that first item since pressing return will open it.
+	singleFilteredItem := m.state == stashStateSearchNotes && len(m.getNotes()) == 1
+
+	if isSelected && notSearchingNotes || singleFilteredItem {
 		// Selected item
 
 		switch m.state {
@@ -92,17 +100,6 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			icon = ""
 			title = textinput.View(m.noteInput)
 			date = dullYellowFg(date)
-		case stashStateSearchNotes:
-			if len(m.getNotes()) != 1 && m.searchInput.Value() == "" {
-				gutter = dimDullFuchsiaFg(verticalLine)
-				icon = dimDullFuchsiaFg(icon)
-				title = dimFuchsiaFg(title)
-				date = dimDullFuchsiaFg(date)
-				break
-			}
-			// If we've filtered down to exactly item color it as though it's
-			// not filtered, since pressing return will open it.
-			fallthrough
 		default:
 			gutter = dullFuchsiaFg(verticalLine)
 			icon = dullFuchsiaFg(icon)
