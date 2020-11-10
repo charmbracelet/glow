@@ -18,29 +18,29 @@ const (
 )
 
 var (
-	normalFg    = makeFgStyle(common.NewColorPair("#dddddd", "#000"))
-	dimNormalFg = makeFgStyle(common.NewColorPair("#777777", "#000"))
+	normalFg    = makeFgStyle(common.NewColorPair("#dddddd", "#1a1a1a"))
+	dimNormalFg = makeFgStyle(common.NewColorPair("#777777", "#A49FA5"))
 
 	warmGrayFg    = makeFgStyle(common.NewColorPair("#979797", "#847A85"))
-	dimWarmGrayFg = makeFgStyle(common.NewColorPair("#4D4D4D", "#000000"))
+	dimWarmGrayFg = makeFgStyle(common.NewColorPair("#4D4D4D", "#C2B8C2"))
 
 	grayFg    = makeFgStyle(common.NewColorPair("#626262", "#000"))
 	dimGrayFg = makeFgStyle(common.NewColorPair("#3F3F3F", "#000"))
 
 	greenFg    = makeFgStyle(common.NewColorPair("#04B575", "#04B575"))
-	dimGreenFg = makeFgStyle(common.NewColorPair("#0B5137", "#000000"))
+	dimGreenFg = makeFgStyle(common.NewColorPair("#0B5137", "#82E1BF"))
 
 	fuchsiaFg    = makeFgStyle(common.Fuschia)
-	dimFuchsiaFg = makeFgStyle(common.NewColorPair("#99519E", "#000000"))
+	dimFuchsiaFg = makeFgStyle(common.NewColorPair("#99519E", "#F1A8FF"))
 
 	dullFuchsiaFg    = makeFgStyle(common.NewColorPair("#AD58B4", "#F793FF"))
-	dimDullFuchsiaFg = makeFgStyle(common.NewColorPair("#6B3A6F", "#000000"))
+	dimDullFuchsiaFg = makeFgStyle(common.NewColorPair("#6B3A6F", "#F6C9FF"))
 
 	indigoFg    = makeFgStyle(common.Indigo)
-	dimIndigoFg = makeFgStyle(common.NewColorPair("#494690", "#000000"))
+	dimIndigoFg = makeFgStyle(common.NewColorPair("#494690", "#9498FF"))
 
 	subtleIndigoFg    = makeFgStyle(common.NewColorPair("#514DC1", "#7D79F6"))
-	dimSubtleIndigoFg = makeFgStyle(common.NewColorPair("#383584", "#000000"))
+	dimSubtleIndigoFg = makeFgStyle(common.NewColorPair("#383584", "#BBBDFF"))
 
 	yellowFg     = makeFgStyle(common.YellowGreen)                        // renders light green on light backgrounds
 	dullYellowFg = makeFgStyle(common.NewColorPair("#9BA92F", "#6BCB94")) // renders light green on light backgrounds
