@@ -221,7 +221,6 @@ func (m *stashModel) getNotes() []*markdown {
 	if m.searchInput.Value() == "" {
 		return m.markdowns
 	}
-
 	if m.state != stashStateSearchNotes &&
 		m.state != stashStateShowFiltered &&
 		m.state != stashStatePromptDelete &&
@@ -479,11 +478,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				// that comes back in the main update function.
 				md := m.selectedMarkdown()
 				m.state = stashStateLoadingDocument
-
-				// This is only relevant when "enter" was called from the
-				// filtered stash view
-				m.searchInput.SetValue("")
-				m.setTotalPages()
 
 				if md.markdownType == localMarkdown {
 					cmds = append(cmds, loadLocalMarkdown(md))
