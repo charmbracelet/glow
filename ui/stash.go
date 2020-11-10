@@ -671,10 +671,19 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					break
 				}
 
+				h := m.getNotes()
+
+				// If we've filtered down to nothing, cancel the search
+				if len(h) == 0 {
+					m.state = stashStateReady
+					m.searchInput.Reset()
+					break
+				}
+
 				// When there's only one filtered markdown left and the cursor
 				// is placed on it we can diretly "enter" it and change to the
 				// markdown view
-				if h := m.getNotes(); len(h) == 1 && h[0].ID == m.selectedMarkdown().ID {
+				if len(h) == 1 && h[0].ID == m.selectedMarkdown().ID {
 					m.state = stashStateReady
 					m.searchInput.Reset()
 
@@ -794,7 +803,8 @@ func stashView(m stashModel) string {
 		}
 
 		logoOrSearch := glowLogoView(" Glow ")
-		// we replace the logo with the search field in
+
+		// If we're filtering we replace the logo with the search field
 		if m.state == stashStateSearchNotes {
 			logoOrSearch = textinput.View(m.searchInput)
 		} else if m.state == stashStateShowFiltered {
@@ -953,6 +963,8 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "y: delete", "n: cancel")
 	} else if m.state == stashStateSearchNotes && numDocs == 1 {
 		h = append(h, "enter: open", "esc: cancel")
+	} else if m.state == stashStateSearchNotes && numDocs == 0 {
+		h = append(h, "enter/esc: cancel")
 	} else if m.state == stashStateSearchNotes {
 		h = append(h, "enter: confirm", "esc: cancel", "ctrl+j/ctrl+k, ↑/↓: choose")
 	} else {
