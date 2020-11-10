@@ -156,9 +156,14 @@ type model struct {
 // method alters the model we also need to send along any commands returned.
 func (m *model) unloadDocument() []tea.Cmd {
 	m.state = stateShowStash
-	m.stash.state = stashStateReady
 	m.pager.unload()
 	m.pager.showHelp = false
+
+	if m.stash.searchInput.Value() == "" {
+		m.stash.state = stashStateReady
+	} else {
+		m.stash.state = stashStateShowFiltered
+	}
 
 	var batch []tea.Cmd
 	if m.pager.viewport.HighPerformanceRendering {
