@@ -19,11 +19,7 @@ import (
 	te "github.com/muesli/termenv"
 )
 
-const (
-	statusBarHeight = 1
-	noteHeadingText = " Set Memo "
-	notePromptText  = " > "
-)
+const statusBarHeight = 1
 
 var (
 	pagerHelpHeight int
@@ -31,7 +27,7 @@ var (
 	mintGreen = common.NewColorPair("#89F0CB", "#89F0CB")
 	darkGreen = common.NewColorPair("#1C8760", "#1C8760")
 
-	noteHeading = te.String(noteHeadingText).
+	noteHeading = te.String(" Set Memo ").
 			Foreground(common.Cream.Color()).
 			Background(common.Green.Color()).
 			String()
@@ -100,7 +96,7 @@ func newPagerModel(cfg *Config, as authStatus) pagerModel {
 
 	// Text input for notes/memos
 	ti := textinput.NewModel()
-	ti.Prompt = te.String(notePromptText).
+	ti.Prompt = te.String(" > ").
 		Foreground(common.Color(darkGray)).
 		Background(common.YellowGreen.Color()).
 		String()
@@ -132,7 +128,9 @@ func (m *pagerModel) setSize(w, h int) {
 	m.height = h
 	m.viewport.Width = w
 	m.viewport.Height = h - statusBarHeight
-	m.textInput.Width = w - len(noteHeadingText) - len(notePromptText) - 1
+	m.textInput.Width = w -
+		ansi.PrintableRuneWidth(noteHeading) -
+		ansi.PrintableRuneWidth(m.textInput.Prompt) - 1
 
 	if m.showHelp {
 		if pagerHelpHeight == 0 {
