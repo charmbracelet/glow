@@ -34,9 +34,10 @@ const (
 )
 
 var (
-	stashHelpItemStyle func(string) string = te.Style{}.Foreground(common.NewColorPair("#5C5C5C", "#9B9B9B").Color()).Styled
-	dividerDot         string              = te.String(" • ").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
-	offlineHeaderNote  string              = te.String("(Offline)").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
+	stashHelpItemStyle        styleFunc = newFgStyle(common.NewColorPair("#5C5C5C", "#9B9B9B"))
+	stashTextInputPromptStyle styleFunc = newFgStyle(common.YellowGreen)
+	dividerDot                string    = te.String(" • ").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
+	offlineHeaderNote         string    = te.String("(Offline)").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
 )
 
 // MSG
@@ -318,13 +319,13 @@ func newStashModel(cfg *Config, as authStatus) stashModel {
 	p.InactiveDot = common.Subtle("•")
 
 	ni := textinput.NewModel()
-	ni.Prompt = te.String(setNotePromptText).Foreground(common.YellowGreen.Color()).String()
+	ni.Prompt = stashTextInputPromptStyle(setNotePromptText)
 	ni.CursorColor = common.Fuschia.String()
 	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
 	si := textinput.NewModel()
-	si.Prompt = te.String(searchNotePromptText).Foreground(common.YellowGreen.Color()).String()
+	si.Prompt = stashTextInputPromptStyle(searchNotePromptText)
 	si.CursorColor = common.Fuschia.String()
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
