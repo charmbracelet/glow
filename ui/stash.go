@@ -664,7 +664,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				// Cancel search
 				m.state = stashStateReady
 				m.searchInput.Reset()
-			case "enter", "tab":
+			case "enter", "tab", "shift+tab", "ctrl+k", "up", "ctrl+j", "down":
 				m.hideStatusMessage()
 
 				if len(m.markdowns) == 0 {
@@ -700,9 +700,6 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.searchInput.Reset()
 					m.state = stashStateReady
 				}
-
-			case "ctrl+k", "ctrl+j", "up", "down":
-				m.state = stashStateShowFiltered
 			}
 		}
 
