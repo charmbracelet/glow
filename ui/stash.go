@@ -215,8 +215,8 @@ func (m stashModel) countMarkdowns(t markdownType) (found int) {
 }
 
 // Returns the stashed markdown notes. When the model state indicates that
-// filtering is desired this also filters and ranks the notes by the search term
-// in the searchinput field.
+// filtering is desired, this also filters and ranks the notes by the search
+// term in the searchInput field.
 func (m *stashModel) getNotes() []*markdown {
 	if m.searchInput.Value() == "" {
 		return m.markdowns
@@ -463,7 +463,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			// esc only passed trough in stashStateSearchNotes
 			case "esc":
 				m.state = stashStateReady
-				m.searchInput.SetValue("") // clear the searchinput
+				m.searchInput.SetValue("") // clear the searchInput
 				m.setTotalPages()
 
 			// Open document
@@ -520,11 +520,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// Stash
 			case "s":
-				if m.authStatus != authOK || m.selectedMarkdown() == nil {
-					break
-				}
-
-				if pages == 0 {
+				if pages == 0 || m.authStatus != authOK || m.selectedMarkdown() == nil {
 					break
 				}
 
