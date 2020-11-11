@@ -21,11 +21,6 @@ import (
 
 const (
 	statusBarHeight = 1
-	gray            = "#333333"
-	yellowGreen     = "#ECFD65"
-	fuschia         = "#EE6FF8"
-	mintGreen       = "#89F0CB"
-	darkGreen       = "#1C8760"
 	noteHeadingText = " Set Memo "
 	notePromptText  = " > "
 )
@@ -33,34 +28,28 @@ const (
 var (
 	pagerHelpHeight int
 
+	mintGreen = common.NewColorPair("#89F0CB", "#89F0CB")
+	darkGreen = common.NewColorPair("#1C8760", "#1C8760")
+
 	noteHeading = te.String(noteHeadingText).
 			Foreground(common.Cream.Color()).
 			Background(common.Green.Color()).
 			String()
 
-	statusBarBg     = common.NewColorPair("#242424", "#E6E6E6")
 	statusBarNoteFg = common.NewColorPair("#7D7D7D", "#656565")
+	statusBarBg     = common.NewColorPair("#242424", "#E6E6E6")
 
-	// Styling functions.
-	statusBarScrollPosStyle        = newStyle(common.NewColorPair("#5A5A5A", "#949494").String(), statusBarBg.String())
-	statusBarNoteStyle             = newStyle(statusBarNoteFg.String(), statusBarBg.String())
-	statusBarHelpStyle             = newStyle(statusBarNoteFg.String(), common.NewColorPair("#323232", "#DCDCDC").String())
-	statusBarStashDotStyle         = newStyle(common.Green.String(), statusBarBg.String())
+	// Styling funcs
+	statusBarScrollPosStyle        = newStyle(common.NewColorPair("#5A5A5A", "#949494"), statusBarBg)
+	statusBarNoteStyle             = newStyle(statusBarNoteFg, statusBarBg)
+	statusBarHelpStyle             = newStyle(statusBarNoteFg, common.NewColorPair("#323232", "#DCDCDC"))
+	statusBarStashDotStyle         = newStyle(common.Green, statusBarBg)
 	statusBarMessageStyle          = newStyle(mintGreen, darkGreen)
 	statusBarMessageStashIconStyle = newStyle(mintGreen, darkGreen)
 	statusBarMessageScrollPosStyle = newStyle(mintGreen, darkGreen)
-	statusBarMessageHelpStyle      = newStyle("#B6FFE4", common.Green.String())
-
-	helpViewStyle = newStyle(statusBarNoteFg.String(), common.NewColorPair("#1B1B1B", "#f2f2f2").String())
+	statusBarMessageHelpStyle      = newStyle(common.NewColorPair("#B6FFE4", "#B6FFE4"), common.Green)
+	helpViewStyle                  = newStyle(statusBarNoteFg, common.NewColorPair("#1B1B1B", "#f2f2f2"))
 )
-
-// Returns a termenv style.
-func newStyle(fg, bg string) func(string) string {
-	return te.Style{}.
-		Foreground(te.ColorProfile().Color(fg)).
-		Background(te.ColorProfile().Color(bg)).
-		Styled
-}
 
 type contentRenderedMsg string
 type noteSavedMsg *charm.Markdown
@@ -109,18 +98,19 @@ func newPagerModel(cfg *Config, as authStatus) pagerModel {
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
 
-	// Init text input UI for notes/memos
+	// Text input for notes/memos
 	ti := textinput.NewModel()
 	ti.Prompt = te.String(notePromptText).
-		Foreground(te.ColorProfile().Color(gray)).
-		Background(te.ColorProfile().Color(yellowGreen)).
+		Foreground(common.Color(darkGray)).
+		Background(common.YellowGreen.Color()).
 		String()
-	ti.TextColor = gray
-	ti.BackgroundColor = yellowGreen
-	ti.CursorColor = fuschia
+	ti.TextColor = darkGray
+	ti.BackgroundColor = common.YellowGreen.String()
+	ti.CursorColor = common.Fuschia.String()
 	ti.CharLimit = noteCharacterLimit
 	ti.Focus()
 
+	// Text input for search
 	sp := spinner.NewModel()
 	sp.ForegroundColor = statusBarNoteFg.String()
 	sp.BackgroundColor = statusBarBg.String()
