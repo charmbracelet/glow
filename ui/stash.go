@@ -29,8 +29,6 @@ const (
 	stashViewTopPadding        = 5
 	stashViewBottomPadding     = 4
 	stashViewHorizontalPadding = 6
-	setNotePromptText          = "Memo: "
-	searchNotePromptText       = "Search: "
 )
 
 var (
@@ -127,8 +125,8 @@ func (m *stashModel) setSize(width, height int) {
 	// Update the paginator
 	m.setTotalPages()
 
-	m.noteInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - len(setNotePromptText)
-	m.searchInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - len(searchNotePromptText)
+	m.noteInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.noteInput.Prompt)
+	m.searchInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.searchInput.Prompt)
 }
 
 // Sets the total paginator pages according to the amount of markdowns for the
@@ -319,13 +317,13 @@ func newStashModel(cfg *Config, as authStatus) stashModel {
 	p.InactiveDot = common.Subtle("•")
 
 	ni := textinput.NewModel()
-	ni.Prompt = stashTextInputPromptStyle(setNotePromptText)
+	ni.Prompt = stashTextInputPromptStyle("Memo: ")
 	ni.CursorColor = common.Fuschia.String()
 	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
 	si := textinput.NewModel()
-	si.Prompt = stashTextInputPromptStyle(searchNotePromptText)
+	si.Prompt = stashTextInputPromptStyle("Search: ")
 	si.CursorColor = common.Fuschia.String()
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
