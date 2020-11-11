@@ -444,10 +444,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		// Handle keys
 		case tea.KeyMsg:
 			switch msg.String() {
-			case "k", "ctrl+k", "up":
+			case "k", "ctrl+k", "up", "shift+tab":
 				m.moveCursorUp()
 
-			case "j", "ctrl+j", "down":
+			case "j", "ctrl+j", "down", "tab":
 				m.moveCursorDown()
 
 			// Go to the very start
