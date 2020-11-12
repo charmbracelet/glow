@@ -654,7 +654,7 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
 		markdownType: localMarkdown,
 		localPath:    res.Path,
-		displayPath:  strings.Replace(res.Path, cwd+"/", "", -1), // strip absolute path
+		displayPath:  strings.Replace(res.Path, cwd+string(os.PathSeparator), "", -1), // strip absolute path
 		Markdown:     charm.Markdown{},
 	}
 
