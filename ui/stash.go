@@ -237,7 +237,7 @@ func (m *stashModel) getNotes() []*markdown {
 		case stashedMarkdown:
 			note = t.Note
 		default:
-			note = t.localPath
+			note = t.displayPath
 		}
 
 		targets = append(targets, note)
