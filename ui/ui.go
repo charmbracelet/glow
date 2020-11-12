@@ -245,7 +245,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case stateShowStash:
 
 				switch m.stash.state {
-				case stashStateSettingNote, stashStatePromptDelete, stashStateShowingError, stashStateSearchNotes, stashStateShowFiltered:
+				case stashStateSettingNote, stashStatePromptDelete,
+					stashStateShowingError, stashStateSearchNotes:
 					m.stash, cmd = stashUpdate(msg, m.stash)
 					return m, cmd
 				}
