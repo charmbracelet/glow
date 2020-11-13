@@ -171,7 +171,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 	}
 
 	if !m.stash.loadingDone() || m.stash.loadingFromNetwork {
-		batch = append(batch, spinner.Tick(m.stash.spinner))
+		batch = append(batch, spinner.Tick)
 	}
 	return batch
 }
@@ -213,7 +213,7 @@ func (m model) Init() tea.Cmd {
 	if m.cfg.DocumentTypes&StashedDocuments != 0 || m.cfg.DocumentTypes&NewsDocuments != 0 {
 		cmds = append(cmds,
 			newCharmClient,
-			spinner.Tick(m.stash.spinner),
+			spinner.Tick,
 		)
 	}
 
