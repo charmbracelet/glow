@@ -240,13 +240,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "esc":
 			var cmd tea.Cmd
 
-			// Send these keys through to stash
+			// Send q/esc through to stash
 			switch m.state {
 			case stateShowStash:
 
 				switch m.stash.state {
+
+				// Send q/esc through in these cases
 				case stashStateSettingNote, stashStatePromptDelete,
-					stashStateShowingError, stashStateSearchNotes:
+					stashStateShowingError, stashStateSearchNotes,
+					stashStateShowFiltered:
+
+					// If we're fitering, only send esc through so we can clear
+					// the filter results. Q quits as normal.
+					if m.stash.state == stashStateShowFiltered && msg.String() == "q" {
+						return m, tea.Quit
+					}
+
 					m.stash, cmd = stashUpdate(msg, m.stash)
 					return m, cmd
 				}
