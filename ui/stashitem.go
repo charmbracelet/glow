@@ -3,8 +3,11 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
+	"github.com/charmbracelet/charm/ui/common"
 	rw "github.com/mattn/go-runewidth"
+	"github.com/muesli/termenv"
 )
 
 const (
@@ -65,7 +68,12 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		default:
 			gutter = dullFuchsiaFg(verticalLine)
 			icon = dullFuchsiaFg(icon)
-			title = fuchsiaFg(title)
+			if singleFilteredItem {
+				s := termenv.Style{}.Foreground(common.Fuschia.Color())
+				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
+			} else {
+				title = fuchsiaFg(title)
+			}
 			date = dullFuchsiaFg(date)
 		}
 	} else {
@@ -73,11 +81,13 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 		if md.markdownType == newsMarkdown {
 			gutter = " "
+
 			if m.state == stashStateFilterNotes && m.filterInput.Value() == "" {
 				title = dimIndigoFg(title)
 				date = dimSubtleIndigoFg(date)
 			} else {
-				title = indigoFg(title)
+				s := termenv.Style{}.Foreground(common.Indigo.Color())
+				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 				date = subtleIndigoFg(date)
 			}
 		} else if m.state == stashStateFilterNotes && m.filterInput.Value() == "" {
@@ -91,11 +101,13 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			date = dimWarmGrayFg(date)
 
 		} else {
+
 			icon = greenFg(icon)
 			if title == noMemoTitle {
 				title = warmGrayFg(title)
 			} else {
-				title = normalFg(title)
+				s := termenv.Style{}.Foreground(common.NewColorPair("#dddddd", "#1a1a1a").Color())
+				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 			}
 			gutter = " "
 			date = warmGrayFg(date)
@@ -105,4 +117,21 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 	fmt.Fprintf(b, "%s %s%s\n", gutter, icon, title)
 	fmt.Fprintf(b, "%s %s", gutter, date)
+}
+
+func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle termenv.Style) string {
+	b := strings.Builder{}
+	n := []rune(needles)
+	j := 0
+
+	for _, h := range []rune(haystack) {
+		if j < len(n) && unicode.ToLower(h) == unicode.ToLower(n[j]) {
+			b.WriteString(matchedStyle.Styled(string(h)))
+			j++
+			continue
+		}
+		b.WriteString(defaultStyle.Styled(string(h)))
+	}
+
+	return b.String()
 }
