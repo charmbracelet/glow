@@ -41,14 +41,14 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	}
 
 	isSelected := index == m.index
-	notSearchingNotes := m.state != stashStateSearchNotes
+	notFilteringNotes := m.state != stashStateFilterNotes
 
 	// If there are multiple items being filtered we don't highlight a selected
 	// item in the results. If we've filtered down to one item, however,
 	// highlight that first item since pressing return will open it.
-	singleFilteredItem := m.state == stashStateSearchNotes && len(m.getNotes()) == 1
+	singleFilteredItem := m.state == stashStateFilterNotes && len(m.getNotes()) == 1
 
-	if isSelected && notSearchingNotes || singleFilteredItem {
+	if isSelected && notFilteringNotes || singleFilteredItem {
 		// Selected item
 
 		switch m.state {
@@ -73,14 +73,14 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 		if md.markdownType == newsMarkdown {
 			gutter = " "
-			if m.state == stashStateSearchNotes && m.searchInput.Value() == "" {
+			if m.state == stashStateFilterNotes && m.filterInput.Value() == "" {
 				title = dimIndigoFg(title)
 				date = dimSubtleIndigoFg(date)
 			} else {
 				title = indigoFg(title)
 				date = subtleIndigoFg(date)
 			}
-		} else if m.state == stashStateSearchNotes && m.searchInput.Value() == "" {
+		} else if m.state == stashStateFilterNotes && m.filterInput.Value() == "" {
 			icon = dimGreenFg(icon)
 			if title == noMemoTitle {
 				title = dimWarmGrayFg(title)

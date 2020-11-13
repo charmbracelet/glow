@@ -159,7 +159,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 	m.pager.unload()
 	m.pager.showHelp = false
 
-	if m.stash.searchInput.Value() == "" {
+	if m.stash.filterInput.Value() == "" {
 		m.stash.state = stashStateReady
 	} else {
 		m.stash.state = stashStateShowFiltered
@@ -248,7 +248,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// Send q/esc through in these cases
 				case stashStateSettingNote, stashStatePromptDelete,
-					stashStateShowingError, stashStateSearchNotes,
+					stashStateShowingError, stashStateFilterNotes,
 					stashStateShowFiltered:
 
 					// If we're fitering, only send esc through so we can clear
