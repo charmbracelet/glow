@@ -306,7 +306,7 @@ func (m *stashModel) moveCursorDown() {
 
 func newStashModel(cfg *Config, as authStatus) stashModel {
 	sp := spinner.NewModel()
-	sp.Frames = spinner.Line
+	sp.Spinner = spinner.Line
 	sp.ForegroundColor = common.SpinnerColor.String()
 	sp.HideFor = time.Millisecond * 50
 	sp.MinimumLifetime = time.Millisecond * 180
@@ -399,7 +399,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			m.spinner.Visible()
 
 		if condition {
-			newSpinnerModel, cmd := spinner.Update(msg, m.spinner)
+			newSpinnerModel, cmd := m.spinner.Update(msg)
 			m.spinner = newSpinnerModel
 			cmds = append(cmds, cmd)
 		}
@@ -484,7 +484,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					cmds = append(cmds, loadRemoteMarkdown(m.cc, md.ID, md.markdownType))
 				}
 
-				cmds = append(cmds, spinner.Tick(m.spinner))
+				cmds = append(cmds, spinner.Tick)
 
 			// Search through your notes
 			case "/":
@@ -495,7 +495,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.state = stashStateSearchNotes
 				m.searchInput.CursorEnd()
 				m.searchInput.Focus()
-				return m, textinput.Blink(m.searchInput)
+				return m, textinput.Blink
 
 			// Set note
 			case "m":
@@ -514,7 +514,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.state = stashStateSettingNote
 					m.noteInput.SetValue(md.Note)
 					m.noteInput.CursorEnd()
-					return m, textinput.Blink(m.noteInput)
+					return m, textinput.Blink
 				}
 
 			// Stash
@@ -546,7 +546,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 				if m.loadingDone() && !m.spinner.Visible() {
 					m.spinner.Start()
-					cmds = append(cmds, spinner.Tick(m.spinner))
+					cmds = append(cmds, spinner.Tick)
 				}
 
 			// Prompt for deletion
@@ -577,19 +577,17 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		// Update paginator. Pagination key handling is done here, but it could
 		// also be moved up to this level, in which case we'd use model methods
 		// like model.PageUp().
-		newPaginatorModel, cmd := paginator.Update(msg, m.paginator)
+		newPaginatorModel, cmd := m.paginator.Update(msg)
 		m.paginator = newPaginatorModel
 		cmds = append(cmds, cmd)
 
 		// Extra paginator keystrokes
 		if key, ok := msg.(tea.KeyMsg); ok {
-			if key.Type == tea.KeyRune {
-				switch key.Rune {
-				case 'b', 'u':
-					m.paginator.PrevPage()
-				case 'f', 'd':
-					m.paginator.NextPage()
-				}
+			switch key.String() {
+			case "b", "u":
+				m.paginator.PrevPage()
+			case "f", "d":
+				m.paginator.NextPage()
 			}
 		}
 
@@ -699,7 +697,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 		// Update the search text input component
-		newSearchInputModel, cmd := textinput.Update(msg, m.searchInput)
+		newSearchInputModel, cmd := m.searchInput.Update(msg)
 		m.searchInput = newSearchInputModel
 		cmds = append(cmds, cmd)
 
@@ -732,7 +730,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 		// Update the note text input component
-		newNoteInputModel, cmd := textinput.Update(msg, m.noteInput)
+		newNoteInputModel, cmd := m.noteInput.Update(msg)
 		m.noteInput = newNoteInputModel
 		cmds = append(cmds, cmd)
 
@@ -756,12 +754,12 @@ func stashView(m stashModel) string {
 	case stashStateShowingError:
 		return errorView(m.err, false)
 	case stashStateLoadingDocument:
-		s += " " + spinner.View(m.spinner) + " Loading document..."
+		s += " " + m.spinner.View() + " Loading document..."
 	case stashStateReady, stashStateSettingNote, stashStatePromptDelete, stashStateSearchNotes, stashStateShowFiltered:
 
 		loadingIndicator := " "
 		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
-			loadingIndicator = spinner.View(m.spinner)
+			loadingIndicator = m.spinner.View()
 		}
 
 		// We need to fill any empty height with newlines so the footer reaches
@@ -794,18 +792,18 @@ func stashView(m stashModel) string {
 
 		// If we're filtering we replace the logo with the search field
 		if m.state == stashStateSearchNotes || m.state == stashStateShowFiltered {
-			logoOrSearch = textinput.View(m.searchInput)
+			logoOrSearch = m.searchInput.View()
 		}
 
 		var pagination string
 		if m.paginator.TotalPages > 1 {
-			pagination = paginator.View(m.paginator)
+			pagination = m.paginator.View()
 
 			// If the dot pagination is wider than the width of the window
 			// switch to the arabic paginator.
 			if ansi.PrintableRuneWidth(pagination) > m.terminalWidth-stashViewHorizontalPadding {
 				m.paginator.Type = paginator.Arabic
-				pagination = common.Subtle(paginator.View(m.paginator))
+				pagination = common.Subtle(m.paginator.View())
 			}
 
 			// We could also look at m.stashFullyLoaded and add an indicator

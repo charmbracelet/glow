@@ -244,7 +244,7 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					m.textInput.CursorEnd()
 				}
 
-				return m, textinput.Blink(m.textInput)
+				return m, textinput.Blink
 			case "s":
 				if m.authStatus != authOK {
 					break
@@ -257,7 +257,7 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					cmds = append(
 						cmds,
 						stashDocument(m.cc, m.currentDocument),
-						spinner.Tick(m.spinner),
+						spinner.Tick,
 					)
 				}
 			case "?":
@@ -270,7 +270,7 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	case spinner.TickMsg:
 		if m.state == pagerStateStashing || m.spinner.Visible() {
-			newSpinnerModel, cmd := spinner.Update(msg, m.spinner)
+			newSpinnerModel, cmd := m.spinner.Update(msg)
 			m.spinner = newSpinnerModel
 			cmds = append(cmds, cmd)
 		} else if m.state == pagerStateStashSuccess && !m.spinner.Visible() {
@@ -319,10 +319,10 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	switch m.state {
 	case pagerStateSetNote:
-		m.textInput, cmd = textinput.Update(msg, m.textInput)
+		m.textInput, cmd = m.textInput.Update(msg)
 		cmds = append(cmds, cmd)
 	default:
-		m.viewport, cmd = viewport.Update(msg, m.viewport)
+		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -331,7 +331,7 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 func (m pagerModel) View() string {
 	var b strings.Builder
-	fmt.Fprint(&b, viewport.View(m.viewport)+"\n")
+	fmt.Fprint(&b, m.viewport.View()+"\n")
 
 	// Footer
 	switch m.state {
@@ -383,7 +383,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	var statusIndicator string
 	if m.state == pagerStateStashing || m.state == pagerStateStashSuccess {
 		if m.spinner.Visible() {
-			statusIndicator = statusBarNoteStyle(" ") + spinner.View(m.spinner)
+			statusIndicator = statusBarNoteStyle(" ") + m.spinner.View()
 		}
 	} else if isStashed && showStatusMessage {
 		statusIndicator = statusBarMessageStashIconStyle(" " + pagerStashIcon)
@@ -442,7 +442,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 
 func (m pagerModel) setNoteView(b *strings.Builder) {
 	fmt.Fprint(b, noteHeading)
-	fmt.Fprint(b, textinput.View(m.textInput))
+	fmt.Fprint(b, m.textInput.View())
 }
 
 func (m pagerModel) helpView() (s string) {

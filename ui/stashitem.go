@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
 	rw "github.com/mattn/go-runewidth"
 )
 
@@ -61,7 +60,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		case stashStateSettingNote:
 			gutter = dullYellowFg(verticalLine)
 			icon = ""
-			title = textinput.View(m.noteInput)
+			title = m.noteInput.View()
 			date = dullYellowFg(date)
 		default:
 			gutter = dullFuchsiaFg(verticalLine)

@@ -43,12 +43,12 @@ github.com/calmh/randomart v1.1.0 h1:evl+iwc10LXtHdMZhzLxmsCQVmWnkXs44SbC6Uk0Il8
 github.com/calmh/randomart v1.1.0/go.mod h1:DQUbPVyP+7PAs21w/AnfMKG5NioxS3TbZ2F9MSK/jFM=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/charmbracelet/bubbles v0.6.0/go.mod h1:MxySU+YRGbAhZQJavZlW2os+fIeOW69MI3iXqA+2/WA=
-github.com/charmbracelet/bubbles v0.7.1 h1:qvXoIh7ItTA+IA+IO2xxuI9ntp+uVprDAK+IoMzC5OI=
-github.com/charmbracelet/bubbles v0.7.1/go.mod h1:UV3dot0XR45cnQX2d8gtohfUFMepquRG2WE56LPKWNc=
+github.com/charmbracelet/bubbles v0.7.5 h1:N6TiahuRt2iGNE5gYxKBQ5/C6Lc8xxSp5LY9QJ09mS4=
+github.com/charmbracelet/bubbles v0.7.5/go.mod h1:IRTORFvhEI6OUH7WhN2Ks8Z8miNGimk1BE6cmHijOkM=
 github.com/charmbracelet/bubbletea v0.10.3/go.mod h1:fB1bVmlaXBYYv4G0jtuGSP/m8V2sMM97pq7QqQnubWI=
 github.com/charmbracelet/bubbletea v0.10.5/go.mod h1:Nay5oWkkSZvc6E/be+W3nDFXAsVytNUNKV9jbXcuae0=
-github.com/charmbracelet/bubbletea v0.12.1 h1:t21pkG2IDBRduPbt2J64Dx5yt8yIidAkXwhhrc11SzY=
-github.com/charmbracelet/bubbletea v0.12.1/go.mod h1:3gZkYELUOiEUOp0bTInkxguucy/xRbGSOcbMs1geLxg=
+github.com/charmbracelet/bubbletea v0.12.2 h1:y9Yo2Pv8tcm3mAJsWONGsmHhzrbNxJVxpVtemikxE9A=
+github.com/charmbracelet/bubbletea v0.12.2/go.mod h1:3gZkYELUOiEUOp0bTInkxguucy/xRbGSOcbMs1geLxg=
 github.com/charmbracelet/charm v0.8.2 h1:sYJhP7YopJUvjWE8VKlNrcAHAaRZsEgKn8z2FoIhHOI=
 github.com/charmbracelet/charm v0.8.2/go.mod h1:xi3evUxj8hw+dMApaXRczb2SiEzrn8a3NYobj0off+c=
 github.com/charmbracelet/glamour v0.2.1-0.20200829234023-6c0e29c4dae5 h1:XgXVfMdJTNTq/ajMvwiB1OW3Tg/TXHtM3tYr/vYF76w=
