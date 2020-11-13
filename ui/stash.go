@@ -698,7 +698,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			}
 		}
 
-		// Update the text input component
+		// Update the search text input component
 		newSearchInputModel, cmd := textinput.Update(msg, m.searchInput)
 		m.searchInput = newSearchInputModel
 		cmds = append(cmds, cmd)
@@ -731,7 +731,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			}
 		}
 
-		// Update the text input component used to set notes
+		// Update the note text input component
 		newNoteInputModel, cmd := textinput.Update(msg, m.noteInput)
 		m.noteInput = newNoteInputModel
 		cmds = append(cmds, cmd)
