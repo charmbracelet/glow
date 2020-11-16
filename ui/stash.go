@@ -17,10 +17,10 @@ import (
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/dustin/go-humanize"
-	"github.com/lithammer/fuzzysearch/fuzzy"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
 	te "github.com/muesli/termenv"
+	"github.com/sahilm/fuzzy"
 )
 
 const (
@@ -243,12 +243,12 @@ func (m *stashModel) getNotes() []*markdown {
 		targets = append(targets, note)
 	}
 
-	ranks := fuzzy.RankFindFold(m.filterInput.Value(), targets)
+	ranks := fuzzy.Find(m.filterInput.Value(), targets)
 	sort.Sort(ranks)
 
 	filtered := []*markdown{}
 	for _, r := range ranks {
-		filtered = append(filtered, m.markdowns[r.OriginalIndex])
+		filtered = append(filtered, m.markdowns[r.Index])
 	}
 
 	return filtered

@@ -3,11 +3,11 @@ package ui
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/charmbracelet/charm/ui/common"
 	rw "github.com/mattn/go-runewidth"
 	"github.com/muesli/termenv"
+	"github.com/sahilm/fuzzy"
 )
 
 const (
@@ -121,16 +121,24 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle termenv.Style) string {
 	b := strings.Builder{}
-	n := []rune(needles)
-	j := 0
 
-	for _, h := range []rune(haystack) {
-		if j < len(n) && unicode.ToLower(h) == unicode.ToLower(n[j]) {
-			b.WriteString(matchedStyle.Styled(string(h)))
-			j++
-			continue
+	matches := fuzzy.Find(needles, []string{haystack})
+	if len(matches) == 0 {
+		return defaultStyle.Styled(haystack)
+	}
+
+	m := matches[0] // only one match exists
+	for i, rune := range haystack {
+		styled := false
+		for _, mi := range m.MatchedIndexes {
+			if i == mi {
+				b.WriteString(matchedStyle.Styled(string(rune)))
+				styled = true
+			}
 		}
-		b.WriteString(defaultStyle.Styled(string(h)))
+		if !styled {
+			b.WriteString(defaultStyle.Styled(string(rune)))
+		}
 	}
 
 	return b.String()

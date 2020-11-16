@@ -10,7 +10,7 @@ require (
 	github.com/charmbracelet/glamour v0.2.1-0.20200829234023-6c0e29c4dae5
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/google/uuid v1.1.2 // indirect
-	github.com/lithammer/fuzzysearch v1.1.1
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/meowgorithm/babyenv v1.3.0
 	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
@@ -18,6 +18,7 @@ require (
 	github.com/muesli/go-app-paths v0.2.1
 	github.com/muesli/reflow v0.2.0
 	github.com/muesli/termenv v0.7.4
+	github.com/sahilm/fuzzy v0.1.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897
