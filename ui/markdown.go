@@ -21,7 +21,6 @@ const (
 type markdown struct {
 	markdownType markdownType
 	localPath    string // only relevant to local files and converted files that are newly stashed
-	displayPath  string // what we show in the note field
 	charm.Markdown
 }
 

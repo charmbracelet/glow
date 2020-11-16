@@ -317,6 +317,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case initLocalFileSearchMsg:
 		m.localFileFinder = msg.ch
 		m.cwd = msg.cwd
+		m.stash.cwd = msg.cwd
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case foundLocalFileMsg:
@@ -379,7 +380,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = stateShowDocument
 
 	case noteSavedMsg:
-		// A note was saved to a document. This will have be done in the
+		// A note was saved to a document. This will have been done in the
 		// pager, so we'll need to find the corresponding note in the stash.
 		// So, pass the message to the stash for processing.
 		stashModel, cmd := stashUpdate(msg, m.stash)
@@ -665,14 +666,17 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
 		markdownType: localMarkdown,
 		localPath:    res.Path,
-		displayPath:  strings.Replace(res.Path, cwd+string(os.PathSeparator), "", -1), // strip absolute path
-		Markdown:     charm.Markdown{},
+		Markdown: charm.Markdown{
+			Note:      stripAbsolutePath(res.Path, cwd),
+			CreatedAt: res.Info.ModTime(),
+		},
 	}
 
-	md.Markdown.Note = md.displayPath
-	md.CreatedAt = res.Info.ModTime() // last modified time
-
 	return md
+}
+
+func stripAbsolutePath(fullPath, cwd string) string {
+	return strings.Replace(fullPath, cwd+string(os.PathSeparator), "", -1)
 }
 
 // Lightweight version of reflow's indent function.
