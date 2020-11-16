@@ -68,6 +68,7 @@ const (
 type stashModel struct {
 	cc                 *charm.Client
 	cfg                *Config
+	cwd                string
 	authStatus         authStatus
 	state              stashState
 	err                error
@@ -231,13 +232,10 @@ func (m *stashModel) getNotes() []*markdown {
 
 	for _, t := range m.markdowns {
 		note := ""
-		switch t.markdownType {
-		case newsMarkdown:
+		if t.markdownType == newsMarkdown {
 			note = "News: " + t.Note
-		case stashedMarkdown:
+		} else {
 			note = t.Note
-		default:
-			note = t.displayPath
 		}
 
 		targets = append(targets, note)
@@ -624,7 +622,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 						// If document was stashed during this session, convert it
 						// back to a local file.
 						md.markdownType = localMarkdown
-						md.Note = m.markdowns[i].displayPath
+						md.Note = stripAbsolutePath(m.markdowns[i].localPath, m.cwd)
 					} else {
 						// Delete optimistically and remove the stashed item
 						// before we've received a success response.
