@@ -215,7 +215,7 @@ func (m stashModel) countMarkdowns(t markdownType) (found int) {
 // Returns the stashed markdown notes. When the model state indicates that
 // filtering is desired, this also filters and ranks the notes by the filter
 // term in the filterInput field.
-func (m *stashModel) getNotes() []*markdown {
+func (m stashModel) getNotes() []*markdown {
 	if m.filterInput.Value() == "" {
 		return m.markdowns
 	}
