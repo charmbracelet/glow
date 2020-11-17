@@ -4,7 +4,7 @@ package ui
 
 func ignorePatterns(m model) []string {
 	return []string{
-		m.cfg.Gopath,
+		m.general.cfg.Gopath,
 		"node_modules",
 		".*",
 	}
