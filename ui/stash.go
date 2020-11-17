@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/charmbracelet/bubbles/paginator"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -21,6 +22,8 @@ import (
 	"github.com/muesli/reflow/ansi"
 	te "github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 const (
@@ -231,11 +234,14 @@ func (m *stashModel) getNotes() []*markdown {
 	targets := []string{}
 
 	for _, t := range m.markdowns {
-		note := ""
-		if t.markdownType == newsMarkdown {
-			note = "News: " + t.Note
-		} else {
+		note, err := normalize(t.Note)
+		if err != nil && debug {
+			log.Printf("error normalizing '%s': %v", t.Note, err)
 			note = t.Note
+		}
+
+		if t.markdownType == newsMarkdown {
+			note = "News: " + note
 		}
 
 		targets = append(targets, note)
@@ -1080,6 +1086,20 @@ func deleteStashedItem(cc *charm.Client, id int) tea.Cmd {
 }
 
 // ETC
+
+// Normalize text to aid in the filtering process. in particular, we remove
+// diacritics.
+func normalize(in string) (string, error) {
+	t := transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
+	out, _, err := transform.String(t, in)
+	return out, err
+}
+
+// Returns whether a given rune is a nonspacing mark (Mn is the key for
+// nonspacing marks)
+func isMn(r rune) bool {
+	return unicode.Is(unicode.Mn, r)
+}
 
 // wrapMarkdowns wraps a *charm.Markdown with a *markdown in order to add some
 // extra metadata.

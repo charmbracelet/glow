@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/charmbracelet/charm/ui/common"
@@ -122,13 +123,18 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle termenv.Style) string {
 	b := strings.Builder{}
 
-	matches := fuzzy.Find(needles, []string{haystack})
+	normalizedHay, err := normalize(haystack)
+	if err != nil && debug {
+		log.Printf("error normalizing '%s': %v", haystack, err)
+	}
+
+	matches := fuzzy.Find(needles, []string{normalizedHay})
 	if len(matches) == 0 {
 		return defaultStyle.Styled(haystack)
 	}
 
 	m := matches[0] // only one match exists
-	for i, rune := range haystack {
+	for i, rune := range []rune(haystack) {
 		styled := false
 		for _, mi := range m.MatchedIndexes {
 			if i == mi {
