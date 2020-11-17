@@ -65,16 +65,12 @@ const (
 )
 
 type pagerModel struct {
-	cfg        *Config
-	cc         *charm.Client
-	authStatus authStatus
-	viewport   viewport.Model
-	state      pagerState
-	width      int
-	height     int
-	showHelp   bool
-	textInput  textinput.Model
-	spinner    spinner.Model
+	general   *general
+	viewport  viewport.Model
+	state     pagerState
+	showHelp  bool
+	textInput textinput.Model
+	spinner   spinner.Model
 
 	statusMessage      string
 	statusMessageTimer *time.Timer
@@ -88,7 +84,7 @@ type pagerModel struct {
 	stashedDocument *markdown
 }
 
-func newPagerModel(cfg *Config, as authStatus) pagerModel {
+func newPagerModel(general *general) pagerModel {
 	// Init viewport
 	vp := viewport.Model{}
 	vp.YPosition = 0
@@ -114,18 +110,15 @@ func newPagerModel(cfg *Config, as authStatus) pagerModel {
 	sp.MinimumLifetime = time.Millisecond * 180
 
 	return pagerModel{
-		cfg:        cfg,
-		state:      pagerStateBrowse,
-		authStatus: as,
-		textInput:  ti,
-		viewport:   vp,
-		spinner:    sp,
+		general:   general,
+		state:     pagerStateBrowse,
+		textInput: ti,
+		viewport:  vp,
+		spinner:   sp,
 	}
 }
 
 func (m *pagerModel) setSize(w, h int) {
-	m.width = w
-	m.height = h
 	m.viewport.Width = w
 	m.viewport.Height = h - statusBarHeight
 	m.textInput.Width = w -
@@ -146,7 +139,7 @@ func (m *pagerModel) setContent(s string) {
 
 func (m *pagerModel) toggleHelp() {
 	m.showHelp = !m.showHelp
-	m.setSize(m.width, m.height)
+	m.setSize(m.general.width, m.general.height)
 	if m.viewport.PastBottom() {
 		m.viewport.GotoBottom()
 	}
@@ -198,7 +191,7 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				var cmd tea.Cmd
 				if m.textInput.Value() != m.currentDocument.Note { // don't update if the note didn't change
 					m.currentDocument.Note = m.textInput.Value() // update optimistically
-					cmd = saveDocumentNote(m.cc, m.currentDocument.ID, m.currentDocument.Note)
+					cmd = saveDocumentNote(m.general.cc, m.currentDocument.ID, m.currentDocument.Note)
 				}
 				m.state = pagerStateBrowse
 				m.textInput.Reset()
@@ -246,7 +239,7 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 				return m, textinput.Blink
 			case "s":
-				if m.authStatus != authOK {
+				if m.general.authStatus != authOK {
 					break
 				}
 
@@ -256,7 +249,7 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					m.spinner.Start()
 					cmds = append(
 						cmds,
-						stashDocument(m.cc, m.currentDocument),
+						stashDocument(m.general.cc, m.currentDocument),
 						spinner.Tick,
 					)
 				}
@@ -402,7 +395,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		}
 	}
 	note = truncate(" "+note+" ", max(0,
-		m.width-
+		m.general.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(statusIndicator)-
 			ansi.PrintableRuneWidth(scrollPercent)-
@@ -416,7 +409,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 
 	// Empty space
 	padding := max(0,
-		m.width-
+		m.general.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(statusIndicator)-
 			ansi.PrintableRuneWidth(note)-
@@ -447,7 +440,7 @@ func (m pagerModel) setNoteView(b *strings.Builder) {
 
 func (m pagerModel) helpView() (s string) {
 	memoOrStash := "m       set memo"
-	if m.authStatus == authOK && m.currentDocument.markdownType == localMarkdown {
+	if m.general.authStatus == authOK && m.currentDocument.markdownType == localMarkdown {
 		memoOrStash = "s       stash this document"
 	}
 
@@ -479,11 +472,11 @@ func (m pagerModel) helpView() (s string) {
 	s = indent(s, 2)
 
 	// Fill up empty cells with spaces for background coloring
-	if m.width > 0 {
+	if m.general.width > 0 {
 		lines := strings.Split(s, "\n")
 		for i := 0; i < len(lines); i++ {
 			l := runewidth.StringWidth(lines[i])
-			n := max(m.width-l, 0)
+			n := max(m.general.width-l, 0)
 			lines[i] += strings.Repeat(" ", n)
 		}
 
@@ -516,13 +509,13 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	// initialize glamour
 	var gs glamour.TermRendererOption
-	if m.cfg.GlamourStyle == "auto" {
+	if m.general.cfg.GlamourStyle == "auto" {
 		gs = glamour.WithAutoStyle()
 	} else {
-		gs = glamour.WithStylePath(m.cfg.GlamourStyle)
+		gs = glamour.WithStylePath(m.general.cfg.GlamourStyle)
 	}
 
-	width := max(0, min(int(m.cfg.GlamourMaxWidth), m.viewport.Width))
+	width := max(0, min(int(m.general.cfg.GlamourMaxWidth), m.viewport.Width))
 	r, err := glamour.NewTermRenderer(
 		gs,
 		glamour.WithWordWrap(width),

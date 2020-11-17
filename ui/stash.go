@@ -69,18 +69,13 @@ const (
 )
 
 type stashModel struct {
-	cc                 *charm.Client
-	cfg                *Config
-	cwd                string
-	authStatus         authStatus
+	general            *general
 	state              stashState
 	err                error
 	markdowns          []*markdown
 	spinner            spinner.Model
 	noteInput          textinput.Model
 	filterInput        textinput.Model
-	terminalWidth      int
-	terminalHeight     int
 	stashFullyLoaded   bool         // have we loaded all available stashed documents from the server?
 	loadingFromNetwork bool         // are we currently loading something from the network?
 	loaded             DocumentType // load status for news, stash and local files loading; we find out exactly with bitmasking
@@ -110,33 +105,33 @@ type stashModel struct {
 }
 
 func (m stashModel) localOnly() bool {
-	return m.cfg.DocumentTypes == LocalDocuments
+	return m.general.cfg.DocumentTypes == LocalDocuments
 }
 
 func (m stashModel) stashedOnly() bool {
-	return m.cfg.DocumentTypes&LocalDocuments == 0
+	return m.general.cfg.DocumentTypes&LocalDocuments == 0
 }
 
 func (m stashModel) loadingDone() bool {
 	// Do the types loaded match the types we want to have?
-	return m.loaded == m.cfg.DocumentTypes
+	return m.loaded == m.general.cfg.DocumentTypes
 }
 
 func (m *stashModel) setSize(width, height int) {
-	m.terminalWidth = width
-	m.terminalHeight = height
+	m.general.width = width
+	m.general.height = height
 
 	// Update the paginator
 	m.setTotalPages()
 
-	m.noteInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.noteInput.Prompt)
-	m.filterInput.Width = m.terminalWidth - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.filterInput.Prompt)
+	m.noteInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.noteInput.Prompt)
+	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.filterInput.Prompt)
 }
 
 // Sets the total paginator pages according to the amount of markdowns for the
 // current state.
 func (m *stashModel) setTotalPages() {
-	m.paginator.PerPage = max(1, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
+	m.paginator.PerPage = max(1, (m.general.height-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
 
 	if pages := len(m.getNotes()); pages < 1 {
 		m.paginator.SetTotalPages(1)
@@ -298,7 +293,7 @@ func (m *stashModel) moveCursorDown() {
 
 // INIT
 
-func newStashModel(cfg *Config, as authStatus) stashModel {
+func newStashModel(general *general) stashModel {
 	sp := spinner.NewModel()
 	sp.Spinner = spinner.Line
 	sp.ForegroundColor = common.SpinnerColor.String()
@@ -323,8 +318,7 @@ func newStashModel(cfg *Config, as authStatus) stashModel {
 	si.Focus()
 
 	m := stashModel{
-		cfg:                cfg,
-		authStatus:         as,
+		general:            general,
 		spinner:            sp,
 		noteInput:          ni,
 		filterInput:        si,
@@ -475,7 +469,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				if md.markdownType == localMarkdown {
 					cmds = append(cmds, loadLocalMarkdown(md))
 				} else {
-					cmds = append(cmds, loadRemoteMarkdown(m.cc, md.ID, md.markdownType))
+					cmds = append(cmds, loadRemoteMarkdown(m.general.cc, md.ID, md.markdownType))
 				}
 
 				cmds = append(cmds, spinner.Tick)
@@ -530,7 +524,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// Stash
 			case "s":
-				if pages == 0 || m.authStatus != authOK || m.selectedMarkdown() == nil {
+				if pages == 0 || m.general.authStatus != authOK || m.selectedMarkdown() == nil {
 					break
 				}
 
@@ -553,7 +547,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 				// Checks passed; perform the stash
 				m.filesStashing[md.localPath] = struct{}{}
-				cmds = append(cmds, stashDocument(m.cc, *md))
+				cmds = append(cmds, stashDocument(m.general.cc, *md))
 
 				if m.loadingDone() && !m.spinner.Visible() {
 					m.spinner.Start()
@@ -635,7 +629,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 						// If document was stashed during this session, convert it
 						// back to a local file.
 						md.markdownType = localMarkdown
-						md.Note = stripAbsolutePath(m.markdowns[i].localPath, m.cwd)
+						md.Note = stripAbsolutePath(m.markdowns[i].localPath, m.general.cwd)
 					} else {
 						// Delete optimistically and remove the stashed item
 						// before we've received a success response.
@@ -651,7 +645,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 				// Update pagination
 				m.setTotalPages()
-				return m, deleteStashedItem(m.cc, smd.ID)
+				return m, deleteStashedItem(m.general.cc, smd.ID)
 
 			default:
 				m.state = stashStateReady
@@ -729,7 +723,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				// Set new note
 				md := m.selectedMarkdown()
 				newNote := m.noteInput.Value()
-				cmd := saveDocumentNote(m.cc, md.ID, newNote)
+				cmd := saveDocumentNote(m.general.cc, md.ID, newNote)
 				md.Note = newNote
 				m.noteInput.Reset()
 				m.state = stashStateReady
@@ -775,7 +769,7 @@ func stashView(m stashModel) string {
 
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
-		numBlankLines := max(0, (m.terminalHeight-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
+		numBlankLines := max(0, (m.general.height-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
 		blankLines := ""
 		if numBlankLines > 0 {
 			blankLines = strings.Repeat("\n", numBlankLines)
@@ -812,7 +806,7 @@ func stashView(m stashModel) string {
 
 			// If the dot pagination is wider than the width of the window
 			// switch to the arabic paginator.
-			if ansi.PrintableRuneWidth(pagination) > m.terminalWidth-stashViewHorizontalPadding {
+			if ansi.PrintableRuneWidth(pagination) > m.general.width-stashViewHorizontalPadding {
 				m.paginator.Type = paginator.Arabic
 				pagination = common.Subtle(m.paginator.View())
 			}
@@ -848,12 +842,12 @@ func stashHeaderView(m stashModel) string {
 	loading := !m.loadingDone()
 	noMarkdowns := len(m.markdowns) == 0
 
-	if m.authStatus == authFailed && m.stashedOnly() {
+	if m.general.authStatus == authFailed && m.stashedOnly() {
 		return common.Subtle("Can’t load stash. Are you offline?")
 	}
 
 	var maybeOffline string
-	if m.authStatus == authFailed {
+	if m.general.authStatus == authFailed {
 		maybeOffline = " " + offlineHeaderNote
 	}
 
@@ -976,7 +970,7 @@ func stashHelpView(m stashModel) string {
 		}
 		if isStashed {
 			h = append(h, "x: delete", "m: set memo")
-		} else if isLocal && m.authStatus == authOK {
+		} else if isLocal && m.general.authStatus == authOK {
 			h = append(h, "s: stash")
 		}
 		if m.err != nil {
@@ -985,7 +979,7 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "/: filter")
 		h = append(h, "q: quit")
 	}
-	return stashHelpViewBuilder(m.terminalWidth, h...)
+	return stashHelpViewBuilder(m.general.width, h...)
 }
 
 // builds the help view from various sections pieces, truncating it if the view

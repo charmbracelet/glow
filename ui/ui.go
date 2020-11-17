@@ -134,18 +134,25 @@ const (
 	keygenFinished
 )
 
+// General stuff we'll need to access in all models
+type general struct {
+	cfg        Config
+	cc         *charm.Client
+	cwd        string
+	authStatus authStatus
+	width      int
+	height     int
+}
+
 type model struct {
-	cfg            *Config
-	cc             *charm.Client
-	authStatus     authStatus
-	keygenState    keygenState
-	state          state
-	fatalErr       error
-	stash          stashModel
-	pager          pagerModel
-	terminalWidth  int
-	terminalHeight int
-	cwd            string // directory from which we're running Glow
+	general     *general
+	keygenState keygenState
+	state       state
+	fatalErr    error
+
+	// Sub-models
+	stash stashModel
+	pager pagerModel
 
 	// Channel that receives paths to local markdown files
 	// (via the github.com/muesli/gitcha package)
@@ -176,12 +183,6 @@ func (m *model) unloadDocument() []tea.Cmd {
 	return batch
 }
 
-func (m *model) setAuthStatus(as authStatus) {
-	m.authStatus = as
-	m.stash.authStatus = as
-	m.pager.authStatus = as
-}
-
 func newModel(cfg Config) tea.Model {
 	if cfg.GlamourStyle == "auto" {
 		dbg := te.HasDarkBackground()
@@ -196,28 +197,31 @@ func newModel(cfg Config) tea.Model {
 		cfg.DocumentTypes = LocalDocuments | StashedDocuments | NewsDocuments
 	}
 
-	as := authConnecting
+	general := general{
+		cfg:        cfg,
+		authStatus: authConnecting,
+	}
+
 	return model{
-		cfg:         &cfg,
+		general:     &general,
 		state:       stateShowStash,
-		authStatus:  as,
 		keygenState: keygenUnstarted,
-		pager:       newPagerModel(&cfg, as),
-		stash:       newStashModel(&cfg, as),
+		pager:       newPagerModel(&general),
+		stash:       newStashModel(&general),
 	}
 }
 
 func (m model) Init() tea.Cmd {
 	var cmds []tea.Cmd
 
-	if m.cfg.DocumentTypes&StashedDocuments != 0 || m.cfg.DocumentTypes&NewsDocuments != 0 {
+	if m.general.cfg.DocumentTypes&StashedDocuments != 0 || m.general.cfg.DocumentTypes&NewsDocuments != 0 {
 		cmds = append(cmds,
 			newCharmClient,
 			spinner.Tick,
 		)
 	}
 
-	if m.cfg.DocumentTypes&LocalDocuments != 0 {
+	if m.general.cfg.DocumentTypes&LocalDocuments != 0 {
 		cmds = append(cmds, findLocalFiles(m))
 	}
 
@@ -306,8 +310,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Window size is received when starting up and on every resize
 	case tea.WindowSizeMsg:
-		m.terminalWidth = msg.Width
-		m.terminalHeight = msg.Height
+		m.general.width = msg.Width
+		m.general.height = msg.Height
 		m.stash.setSize(msg.Width, msg.Height)
 		m.pager.setSize(msg.Width, msg.Height)
 
@@ -316,12 +320,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case initLocalFileSearchMsg:
 		m.localFileFinder = msg.ch
-		m.cwd = msg.cwd
-		m.stash.cwd = msg.cwd
+		m.general.cwd = msg.cwd
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case foundLocalFileMsg:
-		newMd := localFileToMarkdown(m.cwd, gitcha.SearchResult(msg))
+		newMd := localFileToMarkdown(m.general.cwd, gitcha.SearchResult(msg))
 		m.stash.addMarkdowns(newMd)
 		cmds = append(cmds, findNextLocalFile(m))
 
@@ -331,7 +334,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, generateSSHKeys)
 		} else {
 			// The keygen ran but things still didn't work and we can't auth
-			m.setAuthStatus(authFailed)
+			m.general.authStatus = authFailed
 			m.stash.err = errors.New("SSH authentication failed; we tried ssh-agent, loading keys from disk, and generating SSH keys")
 			if debug {
 				log.Println("entering offline mode;", m.stash.err)
@@ -344,7 +347,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case keygenFailedMsg:
 		// Keygen failed. That sucks.
-		m.setAuthStatus(authFailed)
+		m.general.authStatus = authFailed
 		m.stash.err = errors.New("could not authenticate; could not generate SSH keys")
 		if debug {
 			log.Println("entering offline mode;", m.stash.err)
@@ -362,14 +365,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, newCharmClient)
 
 	case newCharmClientMsg:
-		m.cc = msg
-		m.setAuthStatus(authOK)
-		m.stash.cc = msg
-		m.pager.cc = msg
+		m.general.cc = msg
+		m.general.authStatus = authOK
 		cmds = append(cmds, loadStash(m.stash), loadNews(m.stash))
 
 	case stashLoadErrMsg:
-		m.setAuthStatus(authFailed)
+		m.general.authStatus = authFailed
 
 	case fetchedMarkdownMsg:
 		m.pager.currentDocument = *msg
@@ -465,7 +466,7 @@ func findLocalFiles(m model) tea.Cmd {
 		}
 
 		var ignore []string
-		if !m.cfg.ShowAllFiles {
+		if !m.general.cfg.ShowAllFiles {
 			ignore = ignorePatterns(m)
 		}
 
@@ -521,14 +522,14 @@ func newCharmClient() tea.Msg {
 
 func loadStash(m stashModel) tea.Cmd {
 	return func() tea.Msg {
-		if m.cc == nil {
+		if m.general.cc == nil {
 			err := errors.New("no charm client")
 			if debug {
 				log.Println("error loading stash:", err)
 			}
 			return stashLoadErrMsg{err}
 		}
-		stash, err := m.cc.GetStash(m.page)
+		stash, err := m.general.cc.GetStash(m.page)
 		if err != nil {
 			if debug {
 				if _, ok := err.(charm.ErrAuthFailed); ok {
@@ -545,14 +546,14 @@ func loadStash(m stashModel) tea.Cmd {
 
 func loadNews(m stashModel) tea.Cmd {
 	return func() tea.Msg {
-		if m.cc == nil {
+		if m.general.cc == nil {
 			err := errors.New("no charm client")
 			if debug {
 				log.Println("error loading news:", err)
 			}
 			return newsLoadErrMsg{err}
 		}
-		news, err := m.cc.GetNews(1) // just fetch the first page
+		news, err := m.general.cc.GetNews(1) // just fetch the first page
 		if err != nil {
 			if debug {
 				log.Println("error loading news:", err)

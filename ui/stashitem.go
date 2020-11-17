@@ -20,7 +20,7 @@ const (
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	var (
-		truncateTo = m.terminalWidth - stashViewHorizontalPadding*2
+		truncateTo = m.general.width - stashViewHorizontalPadding*2
 		gutter     string
 		title      = md.Note
 		date       = relativeTime(md.CreatedAt)
