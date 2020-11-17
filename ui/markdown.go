@@ -20,7 +20,16 @@ const (
 // markdown wraps charm.Markdown.
 type markdown struct {
 	markdownType markdownType
-	localPath    string // only relevant to local files and converted files that are newly stashed
+
+	// Full path of a local markdown file. Only relevant to local documents and
+	// those that have been stashed in this session.
+	localPath string
+
+	// Value we filter against. This exists so that we can maintain positions
+	// of filtered items if notes are edited while a filter is active. This
+	// field is ephemeral, and should only be referenced during filtering.
+	filterValue string
+
 	charm.Markdown
 }
 

@@ -234,17 +234,7 @@ func (m *stashModel) getNotes() []*markdown {
 	targets := []string{}
 
 	for _, t := range m.markdowns {
-		note, err := normalize(t.Note)
-		if err != nil && debug {
-			log.Printf("error normalizing '%s': %v", t.Note, err)
-			note = t.Note
-		}
-
-		if t.markdownType == newsMarkdown {
-			note = "News: " + note
-		}
-
-		targets = append(targets, note)
+		targets = append(targets, t.filterValue)
 	}
 
 	ranks := fuzzy.Find(m.filterInput.Value(), targets)
@@ -493,6 +483,23 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			// Filter your notes
 			case "/":
 				m.hideStatusMessage()
+
+				// Build values we'll filter against
+				for _, md := range m.markdowns {
+					note, err := normalize(md.Note)
+					if err != nil {
+						if debug {
+							log.Printf("error normalizing '%s': %v", md.Note, err)
+						}
+						md.filterValue = md.Note
+						continue
+					}
+					if md.markdownType == newsMarkdown {
+						md.filterValue = "News: " + note
+						continue
+					}
+					md.filterValue = note
+				}
 
 				m.paginator.Page = 0
 				m.index = 0
