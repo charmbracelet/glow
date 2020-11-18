@@ -84,9 +84,9 @@ type stashModel struct {
 	// value portion with an empty struct.
 	filesStashing map[string]struct{}
 
-	// This is just the index of the current page in view. To get the index
-	// of the selected item as it relates to the full set of documents we've
-	// fetched use the mardownIndex() method of this struct.
+	// This is just the selected item in relation to the current page in view.
+	// To get the index of the selected item as it relates to the full set of
+	// documents we've fetched use the markdownIndex() method on this struct.
 	index int
 
 	// This handles the local pagination, which is different than the page
@@ -212,6 +212,21 @@ func (m stashModel) countMarkdowns(t markdownType) (found int) {
 	return
 }
 
+// Command for opening a markdown document in the pager. Note that this also
+// alters the model.
+func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
+	var cmd tea.Cmd
+	m.state = stashStateLoadingDocument
+
+	if md.markdownType == localMarkdown {
+		cmd = loadLocalMarkdown(md)
+	} else {
+		cmd = loadRemoteMarkdown(m.general.cc, md.ID, md.markdownType)
+	}
+
+	return tea.Batch(cmd, spinner.Tick)
+}
+
 // Returns the stashed markdown notes. When the model state indicates that
 // filtering is desired, this also filters and ranks the notes by the filter
 // term in the filterInput field.
@@ -281,7 +296,7 @@ func (m *stashModel) moveCursorDown() {
 		return
 	}
 
-	// during filtering the cursor position can exceed the number of
+	// During filtering the cursor position can exceed the number of
 	// itemsOnPage. It's more intuitive to start the cursor at the
 	// topmost position when moving it down in this scenario.
 	if m.index > itemsOnPage {
@@ -464,15 +479,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				// Load the document from the server. We'll handle the message
 				// that comes back in the main update function.
 				md := m.selectedMarkdown()
-				m.state = stashStateLoadingDocument
-
-				if md.markdownType == localMarkdown {
-					cmds = append(cmds, loadLocalMarkdown(md))
-				} else {
-					cmds = append(cmds, loadRemoteMarkdown(m.general.cc, md.ID, md.markdownType))
-				}
-
-				cmds = append(cmds, spinner.Tick)
+				cmds = append(cmds, m.openMarkdown(md))
 
 			// Filter your notes
 			case "/":
@@ -678,16 +685,12 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					break
 				}
 
-				// When there's only one filtered markdown left and the cursor
-				// is placed on it we can diretly "enter" it and change to the
-				// markdown view
-				if len(h) == 1 && h[0].ID == m.selectedMarkdown().ID {
+				// When there's only one filtered markdown left we can just
+				// "open" it directly
+				if len(h) == 1 {
 					m.state = stashStateReady
 					m.filterInput.Reset()
-
-					var cmd tea.Cmd
-					m, cmd = stashUpdate(msg, m)
-					cmds = append(cmds, cmd)
+					cmds = append(cmds, m.openMarkdown(h[0]))
 					break
 				}
 
