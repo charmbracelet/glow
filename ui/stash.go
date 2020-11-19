@@ -67,6 +67,7 @@ const (
 	stashStateShowingError
 	stashStateFilterNotes
 	stashStateShowFiltered
+	stashStateShowNews
 )
 
 type stashModel struct {
@@ -264,6 +265,16 @@ func (m stashModel) countMarkdowns(t markdownType) (found int) {
 }
 
 func (m stashModel) getVisibleMarkdowns() []*markdown {
+	if m.state == stashStateShowNews {
+		news := []*markdown{}
+		for _, md := range m.markdowns {
+			// TODO: Sort news according to their CreatedAt date
+			if md.markdownType == newsMarkdown {
+				news = append(news, md)
+			}
+		}
+		return news
+	}
 	if m.isFiltering() {
 		return m.filteredMarkdowns
 	}
@@ -486,7 +497,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 	}
 
 	switch m.state {
-	case stashStateReady, stashStateShowFiltered:
+	case stashStateReady, stashStateShowFiltered, stashStateShowNews:
 		pages := len(m.getVisibleMarkdowns())
 
 		switch msg := msg.(type) {
@@ -509,7 +520,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.paginator.Page = m.paginator.TotalPages - 1
 				m.index = m.paginator.ItemsOnPage(pages) - 1
 
-			// Note: esc is only passed trough in stashStateFilterNotes
+			// Note: esc is only passed trough in stashStateFilterNotes and stashStateShowNews
 			case "esc":
 				m.state = stashStateReady
 				m.resetFiltering()
@@ -529,6 +540,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// Filter your notes
 			case "/":
+				if m.state == stashStateShowNews {
+					break
+				}
+
 				m.hideStatusMessage()
 
 				// Build values we'll filter against
@@ -564,6 +579,15 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					m.noteInput.CursorEnd()
 					return m, textinput.Blink
 				}
+
+			// News
+			case "n":
+				m.hideStatusMessage()
+				m.paginator.Page = 0
+				m.index = 0
+				m.state = stashStateShowNews
+				m.setTotalPages()
+				return m, nil
 
 			// Stash
 			case "s":
@@ -817,7 +841,7 @@ func stashView(m stashModel) string {
 		return errorView(m.err, false)
 	case stashStateLoadingDocument:
 		s += " " + m.spinner.View() + " Loading document..."
-	case stashStateReady, stashStateSettingNote, stashStatePromptDelete, stashStateFilterNotes, stashStateShowFiltered:
+	case stashStateReady, stashStateSettingNote, stashStatePromptDelete, stashStateFilterNotes, stashStateShowFiltered, stashStateShowNews:
 
 		loadingIndicator := " "
 		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
@@ -855,6 +879,8 @@ func stashView(m stashModel) string {
 		// If we're filtering we replace the logo with the filter field
 		if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
 			logoOrFilter = m.filterInput.View()
+		} else if m.state == stashStateShowNews {
+			logoOrFilter = glowLogoView(" Newsfeed ")
 		}
 
 		var pagination string
@@ -1012,6 +1038,8 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "enter/esc: cancel")
 	} else if m.state == stashStateFilterNotes {
 		h = append(h, "enter: confirm", "esc: cancel", "ctrl+j/ctrl+k, ↑/↓: choose")
+	} else if m.state == stashStateShowNews {
+		h = append(h, "enter: open", "esc: return", "j/k, ↑/↓: choose", "q: quit")
 	} else {
 		if len(m.markdowns) > 0 {
 			h = append(h, "enter: open")

@@ -253,11 +253,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Send q/esc through in these cases
 				case stashStateSettingNote, stashStatePromptDelete,
 					stashStateShowingError, stashStateFilterNotes,
-					stashStateShowFiltered:
+					stashStateShowFiltered, stashStateShowNews:
 
 					// If we're fitering, only send esc through so we can clear
 					// the filter results. Q quits as normal.
 					if m.stash.state == stashStateShowFiltered && msg.String() == "q" {
+						return m, tea.Quit
+					}
+					// Q also quits glow when displaying only newsitems
+					if m.stash.state == stashStateShowNews && msg.String() == "q" {
 						return m, tea.Quit
 					}
 
