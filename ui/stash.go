@@ -369,49 +369,39 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		// We're finished searching for local files
 		m.loaded |= LocalDocuments
 
-	case gotStashMsg:
-		// Stash results have come in from the server.
+	case gotStashMsg, gotNewsMsg:
+		// Stash or news results have come in from the server.
 		//
-		// This doesn't mean the whole stash listing is loaded, but some we've
-		// finished checking for the stash, at least, so mark the stash as
-		// loaded here.
-		m.loaded |= StashedDocuments
-		m.loadingFromNetwork = false
+		// With the stash, this doesn't mean the whole stash listing is loaded,
+		// but some we've finished checking for the stash, at least, so mark
+		// the stash as loaded here.
+		var docs []*markdown
 
-		if len(msg) == 0 {
+		switch msg := msg.(type) {
+		case gotStashMsg:
+			m.loaded |= StashedDocuments
+			m.loadingFromNetwork = false
+			docs = wrapMarkdowns(stashedMarkdown, msg)
+
 			// If the server comes back with nothing then we've got everything
-			m.stashFullyLoaded = true
-		} else {
-			docs := wrapMarkdowns(stashedMarkdown, msg)
-
-			// If we're filtering build filter indexes immediately so any
-			// matching results will show up in the filter.
-			if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
-				for _, md := range docs {
-					md.buildFilterValue()
-				}
+			if len(msg) == 0 {
+				m.stashFullyLoaded = true
 			}
 
-			m.addMarkdowns(docs...)
+		case gotNewsMsg:
+			m.loaded |= NewsDocuments
+			docs = wrapMarkdowns(newsMarkdown, msg)
 		}
 
-	case gotNewsMsg:
-		// News has come in from the server
-		m.loaded |= NewsDocuments
-
-		if len(msg) > 0 {
-			docs := wrapMarkdowns(newsMarkdown, msg)
-
-			// If we're filtering build filter indexes immediately so any
-			// matching results will show up in the filter.
-			if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
-				for _, md := range docs {
-					md.buildFilterValue()
-				}
+		// If we're filtering build filter indexes immediately so any
+		// matching results will show up in the filter.
+		if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
+			for _, md := range docs {
+				md.buildFilterValue()
 			}
-
-			m.addMarkdowns(docs...)
 		}
+
+		m.addMarkdowns(docs...)
 
 	case spinner.TickMsg:
 		condition := !m.loadingDone() ||
