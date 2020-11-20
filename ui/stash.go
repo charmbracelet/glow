@@ -365,17 +365,17 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		m.err = msg.err
 		m.loaded |= NewsDocuments // still done, albeit unsuccessfully
 
-	// We're finished searching for local files
 	case localFileSearchFinished:
+		// We're finished searching for local files
 		m.loaded |= LocalDocuments
 
-	// Stash results have come in from the server
 	case gotStashMsg:
+		// Stash results have come in from the server.
+		//
 		// This doesn't mean the whole stash listing is loaded, but some we've
 		// finished checking for the stash, at least, so mark the stash as
 		// loaded here.
 		m.loaded |= StashedDocuments
-
 		m.loadingFromNetwork = false
 
 		if len(msg) == 0 {
@@ -383,14 +383,33 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			m.stashFullyLoaded = true
 		} else {
 			docs := wrapMarkdowns(stashedMarkdown, msg)
+
+			// If we're filtering build filter indexes immediately so any
+			// matching results will show up in the filter.
+			if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
+				for _, md := range docs {
+					md.buildFilterValue()
+				}
+			}
+
 			m.addMarkdowns(docs...)
 		}
 
-	// News has come in from the server
 	case gotNewsMsg:
+		// News has come in from the server
 		m.loaded |= NewsDocuments
+
 		if len(msg) > 0 {
 			docs := wrapMarkdowns(newsMarkdown, msg)
+
+			// If we're filtering build filter indexes immediately so any
+			// matching results will show up in the filter.
+			if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
+				for _, md := range docs {
+					md.buildFilterValue()
+				}
+			}
+
 			m.addMarkdowns(docs...)
 		}
 
@@ -487,19 +506,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 				// Build values we'll filter against
 				for _, md := range m.markdowns {
-					note, err := normalize(md.Note)
-					if err != nil {
-						if debug {
-							log.Printf("error normalizing '%s': %v", md.Note, err)
-						}
-						md.filterValue = md.Note
-						continue
-					}
-					if md.markdownType == newsMarkdown {
-						md.filterValue = "News: " + note
-						continue
-					}
-					md.filterValue = note
+					md.buildFilterValue()
 				}
 
 				m.paginator.Page = 0

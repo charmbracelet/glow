@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"log"
 	"strings"
 
 	"github.com/charmbracelet/charm"
@@ -31,6 +32,23 @@ type markdown struct {
 	filterValue string
 
 	charm.Markdown
+}
+
+func (m *markdown) buildFilterValue() {
+	note, err := normalize(m.Note)
+	if err != nil {
+		if debug {
+			log.Printf("error normalizing '%s': %v", m.Note, err)
+		}
+		m.filterValue = m.Note
+	}
+
+	if m.markdownType == newsMarkdown {
+		m.filterValue = "News: " + note
+		return
+	}
+
+	m.filterValue = note
 }
 
 // sortAsLocal returns whether or not this markdown should be sorted as though
