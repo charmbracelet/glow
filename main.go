@@ -36,6 +36,7 @@ var (
 	width        uint
 	showAllFiles bool
 	localOnly    bool
+	mouse        bool
 
 	rootCmd = &cobra.Command{
 		Use:              "glow SOURCE",
@@ -139,6 +140,7 @@ func validateOptions(cmd *cobra.Command) {
 	style = viper.GetString("style")
 	width = viper.GetUint("width")
 	localOnly = viper.GetBool("local")
+	mouse = viper.GetBool("mouse")
 
 	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
 	// We want to use a special no-TTY style, when stdout is not a terminal
@@ -287,11 +289,14 @@ func runTUI(stashedOnly bool) error {
 	// Run Bubble Tea program
 	p := ui.NewProgram(cfg)
 	p.EnterAltScreen()
+	defer p.ExitAltScreen()
+	if mouse {
+		p.EnableMouseCellMotion()
+		defer p.DisableMouseCellMotion()
+	}
 	if err := p.Start(); err != nil {
 		return err
 	}
-	p.ExitAltScreen()
-	p.DisableMouseCellMotion()
 
 	// Exit message
 	fmt.Printf("\n  Thanks for using Glow!\n\n")
@@ -324,11 +329,14 @@ func init() {
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("local", rootCmd.Flags().Lookup("local"))
+	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("local", "false")
