@@ -383,9 +383,14 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			m.loadingFromNetwork = false
 			docs = wrapMarkdowns(stashedMarkdown, msg)
 
-			// If the server comes back with nothing then we've got everything
 			if len(msg) == 0 {
+				// If the server comes back with nothing then we've got
+				// everything
 				m.stashFullyLoaded = true
+			} else {
+				// Load the next page
+				m.page++
+				cmds = append(cmds, loadStash(m))
 			}
 
 		case gotNewsMsg:

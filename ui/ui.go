@@ -315,9 +315,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.stash.setSize(msg.Width, msg.Height)
 		m.pager.setSize(msg.Width, msg.Height)
 
-		// TODO: load more stash pages if we've resized, are on the last page,
-		// and haven't loaded more pages yet.
-
 	case initLocalFileSearchMsg:
 		m.localFileFinder = msg.ch
 		m.general.cwd = msg.cwd
