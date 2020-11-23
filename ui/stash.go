@@ -45,6 +45,7 @@ var (
 
 type fetchedMarkdownMsg *markdown
 type deletedStashedItemMsg int
+type filteredMarkdownMsg []*markdown
 
 // MODEL
 
@@ -72,13 +73,20 @@ type stashModel struct {
 	general            *general
 	state              stashState
 	err                error
-	markdowns          []*markdown
 	spinner            spinner.Model
 	noteInput          textinput.Model
 	filterInput        textinput.Model
 	stashFullyLoaded   bool         // have we loaded all available stashed documents from the server?
 	loadingFromNetwork bool         // are we currently loading something from the network?
 	loaded             DocumentType // load status for news, stash and local files loading; we find out exactly with bitmasking
+
+	// The master set of markdown documents we're working with.
+	markdowns []*markdown
+
+	// Markdown documents we're currently displaying. Filtering, toggles and so
+	// on will alter this slice so we can show what is relevant. For that
+	// reason, this field should be considered ephemeral.
+	filteredMarkdowns []*markdown
 
 	// Paths to files being stashed. We treat this like a set, ignoring the
 	// value portion with an empty struct.
@@ -128,12 +136,38 @@ func (m *stashModel) setSize(width, height int) {
 	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.filterInput.Prompt)
 }
 
+func (m *stashModel) resetFiltering() {
+	m.filterInput.Reset()
+	sort.Stable(markdownsByLocalFirst(m.markdowns))
+	m.filteredMarkdowns = nil
+	m.setTotalPages()
+}
+
+// Is a filter currently being applied?
+func (m stashModel) isFiltering() bool {
+	switch m.state {
+	case stashStateFilterNotes, stashStateShowFiltered:
+		return true
+	case stashStatePromptDelete, stashStateSettingNote:
+		return m.filterInput.Value() != ""
+	default:
+		return false
+	}
+}
+
+// Should we be updating the filter?
+func (m stashModel) shouldUpdateFilter() bool {
+	// If we're in the middle of setting a note don't update the filter so that
+	// the focus won't jump around.
+	return m.isFiltering() && m.state != stashStateSettingNote
+}
+
 // Sets the total paginator pages according to the amount of markdowns for the
 // current state.
 func (m *stashModel) setTotalPages() {
 	m.paginator.PerPage = max(1, (m.general.height-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
 
-	if pages := len(m.getNotes()); pages < 1 {
+	if pages := len(m.getVisibleMarkdowns()); pages < 1 {
 		m.paginator.SetTotalPages(1)
 	} else {
 		m.paginator.SetTotalPages(pages)
@@ -153,38 +187,40 @@ func (m stashModel) markdownIndex() int {
 // Return the current selected markdown in the stash.
 func (m stashModel) selectedMarkdown() *markdown {
 	i := m.markdownIndex()
-	markdowns := m.getNotes()
 
-	if i < 0 || len(markdowns) == 0 || len(markdowns) <= i {
+	mds := m.getVisibleMarkdowns()
+	if i < 0 || len(mds) == 0 || len(mds) <= i {
 		return nil
 	}
 
-	return markdowns[i]
+	return mds[i]
 }
 
 // Adds markdown documents to the model.
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	if len(mds) > 0 {
 		m.markdowns = append(m.markdowns, mds...)
-		sort.Sort(markdownsByLocalFirst(m.markdowns))
+		if !m.isFiltering() {
+			sort.Stable(markdownsByLocalFirst(m.markdowns))
+		}
 		m.setTotalPages()
 	}
 }
 
-// Find a local markdown by its path and remove it.
-func (m *stashModel) removeLocalMarkdown(localPath string) error {
-	i := -1
+// Find a local markdown by its path and replace it
+func (m *stashModel) replaceLocalMarkdown(localPath string, newMarkdown *markdown) error {
+	var found bool
 
 	// Look for local markdown
-	for j, doc := range m.markdowns {
-		if doc.localPath == localPath {
-			i = j
+	for i, md := range m.markdowns {
+		if md.localPath == localPath {
+			m.markdowns[i] = newMarkdown
+			found = true
 			break
 		}
 	}
 
-	// Did we find it?
-	if i == -1 {
+	if !found {
 		err := fmt.Errorf("could't find local markdown %s; not removing from stash", localPath)
 		if debug {
 			log.Println(err)
@@ -192,24 +228,46 @@ func (m *stashModel) removeLocalMarkdown(localPath string) error {
 		return err
 	}
 
-	// Slice out markdown
-	if i >= 0 {
-		m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
+	if m.isFiltering() {
+		found = false
+		for i, md := range m.filteredMarkdowns {
+			if md.localPath == localPath {
+				m.filteredMarkdowns[i] = newMarkdown
+				found = true
+				break
+			}
+		}
+		if !found {
+			err := fmt.Errorf("warning: found local markdown %s in the master markdown list, but not in the filter results", localPath)
+			if debug {
+				log.Println(err)
+			}
+			return err
+		}
 	}
+
 	return nil
 }
 
 // Return the number of markdown documents of a given type.
 func (m stashModel) countMarkdowns(t markdownType) (found int) {
-	if len(m.getNotes()) == 0 {
+	mds := m.getVisibleMarkdowns()
+	if len(mds) == 0 {
 		return
 	}
-	for i := 0; i < len(m.getNotes()); i++ {
-		if m.getNotes()[i].markdownType == t {
+	for i := 0; i < len(mds); i++ {
+		if mds[i].markdownType == t {
 			found++
 		}
 	}
 	return
+}
+
+func (m stashModel) getVisibleMarkdowns() []*markdown {
+	if m.isFiltering() {
+		return m.filteredMarkdowns
+	}
+	return m.markdowns
 }
 
 // Command for opening a markdown document in the pager. Note that this also
@@ -225,37 +283,6 @@ func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 	}
 
 	return tea.Batch(cmd, spinner.Tick)
-}
-
-// Returns the stashed markdown notes. When the model state indicates that
-// filtering is desired, this also filters and ranks the notes by the filter
-// term in the filterInput field.
-func (m stashModel) getNotes() []*markdown {
-	if m.filterInput.Value() == "" {
-		return m.markdowns
-	}
-	if m.state != stashStateFilterNotes &&
-		m.state != stashStateShowFiltered &&
-		m.state != stashStatePromptDelete &&
-		m.state != stashStateSettingNote {
-		return m.markdowns
-	}
-
-	targets := []string{}
-
-	for _, t := range m.markdowns {
-		targets = append(targets, t.filterValue)
-	}
-
-	ranks := fuzzy.Find(m.filterInput.Value(), targets)
-	sort.Sort(ranks)
-
-	filtered := []*markdown{}
-	for _, r := range ranks {
-		filtered = append(filtered, m.markdowns[r.Index])
-	}
-
-	return filtered
 }
 
 func (m *stashModel) hideStatusMessage() {
@@ -279,11 +306,11 @@ func (m *stashModel) moveCursorUp() {
 	// Go to previous page
 	m.paginator.PrevPage()
 
-	m.index = m.paginator.ItemsOnPage(len(m.getNotes())) - 1
+	m.index = m.paginator.ItemsOnPage(len(m.getVisibleMarkdowns())) - 1
 }
 
 func (m *stashModel) moveCursorDown() {
-	itemsOnPage := m.paginator.ItemsOnPage(len(m.getNotes()))
+	itemsOnPage := m.paginator.ItemsOnPage(len(m.getVisibleMarkdowns()))
 
 	m.index++
 	if m.index < itemsOnPage {
@@ -400,13 +427,20 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 		// If we're filtering build filter indexes immediately so any
 		// matching results will show up in the filter.
-		if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
+		if m.isFiltering() {
 			for _, md := range docs {
 				md.buildFilterValue()
 			}
 		}
+		if m.shouldUpdateFilter() {
+			cmds = append(cmds, filterMarkdowns(m))
+		}
 
 		m.addMarkdowns(docs...)
+
+	case filteredMarkdownMsg:
+		m.filteredMarkdowns = msg
+		return m, nil
 
 	case spinner.TickMsg:
 		condition := !m.loadingDone() ||
@@ -435,8 +469,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		md := markdown(msg)
 		delete(m.filesStashing, md.localPath) // remove from the things-we're-stashing list
 
-		_ = m.removeLocalMarkdown(md.localPath)
-		m.addMarkdowns(&md)
+		_ = m.replaceLocalMarkdown(md.localPath, &md)
 
 		m.showStatusMessage = true
 		m.statusMessage = "Stashed!"
@@ -454,7 +487,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 	switch m.state {
 	case stashStateReady, stashStateShowFiltered:
-		pages := len(m.getNotes())
+		pages := len(m.getVisibleMarkdowns())
 
 		switch msg := msg.(type) {
 		// Handle keys
@@ -476,11 +509,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				m.paginator.Page = m.paginator.TotalPages - 1
 				m.index = m.paginator.ItemsOnPage(pages) - 1
 
-			// esc only passed trough in stashStateFilterNotes
+			// Note: esc is only passed trough in stashStateFilterNotes
 			case "esc":
 				m.state = stashStateReady
-				m.filterInput.SetValue("") // clear the filter input
-				m.setTotalPages()
+				m.resetFiltering()
 
 			// Open document
 			case "enter":
@@ -503,6 +535,8 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				for _, md := range m.markdowns {
 					md.buildFilterValue()
 				}
+
+				m.filteredMarkdowns = m.markdowns
 
 				m.paginator.Page = 0
 				m.index = 0
@@ -539,9 +573,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 				md := m.selectedMarkdown()
 
-				// is the file in the process of being stashed?
 				_, isBeingStashed := m.filesStashing[md.localPath]
-
 				isLocalMarkdown := md.markdownType == localMarkdown
 				markdownPathMissing := md.localPath == ""
 
@@ -606,7 +638,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 		}
 
 		// Keep the index in bounds when paginating
-		itemsOnPage := m.paginator.ItemsOnPage(len(m.getNotes()))
+		itemsOnPage := m.paginator.ItemsOnPage(len(m.getVisibleMarkdowns()))
 		if m.index > itemsOnPage-1 {
 			m.index = max(0, itemsOnPage-1)
 		}
@@ -642,18 +674,25 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					} else {
 						// Delete optimistically and remove the stashed item
 						// before we've received a success response.
-						m.markdowns = append(m.markdowns[:i], m.markdowns[i+1:]...)
+						if m.isFiltering() {
+							mds, _ := deleteMarkdown(m.filteredMarkdowns, m.markdowns[i])
+							m.filteredMarkdowns = mds
+						}
+						mds, _ := deleteMarkdown(m.markdowns, m.markdowns[i])
+						m.markdowns = mds
 					}
 				}
 
 				// Set state and delete
-				m.state = stashStateReady
-				if m.filterInput.Value() != "" {
+				if m.isFiltering() {
 					m.state = stashStateShowFiltered
+				} else {
+					m.state = stashStateReady
 				}
 
 				// Update pagination
 				m.setTotalPages()
+
 				return m, deleteStashedItem(m.general.cc, smd.ID)
 
 			default:
@@ -670,7 +709,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			case "esc":
 				// Cancel filtering
 				m.state = stashStateReady
-				m.filterInput.Reset()
+				m.resetFiltering()
 			case "enter", "tab", "shift+tab", "ctrl+k", "up", "ctrl+j", "down":
 				m.hideStatusMessage()
 
@@ -678,12 +717,12 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 					break
 				}
 
-				h := m.getNotes()
+				h := m.getVisibleMarkdowns()
 
 				// If we've filtered down to nothing, clear the filter
 				if len(h) == 0 {
 					m.state = stashStateReady
-					m.filterInput.Reset()
+					m.resetFiltering()
 					break
 				}
 
@@ -691,7 +730,7 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				// "open" it directly
 				if len(h) == 1 {
 					m.state = stashStateReady
-					m.filterInput.Reset()
+					m.resetFiltering()
 					cmds = append(cmds, m.openMarkdown(h[0]))
 					break
 				}
@@ -700,16 +739,23 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 				m.state = stashStateShowFiltered
 				if m.filterInput.Value() == "" {
-					m.filterInput.Reset()
 					m.state = stashStateReady
+					m.resetFiltering()
 				}
 			}
 		}
 
 		// Update the filter text input component
-		newFilterInputModel, cmd := m.filterInput.Update(msg)
+		newFilterInputModel, inputCmd := m.filterInput.Update(msg)
+		currentFilterVal := m.filterInput.Value()
+		newFilterVal := newFilterInputModel.Value()
 		m.filterInput = newFilterInputModel
-		cmds = append(cmds, cmd)
+		cmds = append(cmds, inputCmd)
+
+		// If the filtering input has changed, request updated filtering
+		if newFilterVal != currentFilterVal {
+			cmds = append(cmds, filterMarkdowns(m))
+		}
 
 		// Update pagination
 		m.setTotalPages()
@@ -719,9 +765,10 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 			switch msg.String() {
 			case "esc":
 				// Cancel note
-				m.state = stashStateReady
 				if m.filterInput.Value() != "" {
 					m.state = stashStateShowFiltered
+				} else {
+					m.state = stashStateReady
 				}
 				m.noteInput.Reset()
 			case "enter":
@@ -731,18 +778,23 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 				cmd := saveDocumentNote(m.general.cc, md.ID, newNote)
 				md.Note = newNote
 				m.noteInput.Reset()
-				m.state = stashStateReady
 				if m.filterInput.Value() != "" {
 					m.state = stashStateShowFiltered
+				} else {
+					m.state = stashStateReady
 				}
 				return m, cmd
 			}
 		}
 
+		if m.shouldUpdateFilter() {
+			cmds = append(cmds, filterMarkdowns(m))
+		}
+
 		// Update the note text input component
-		newNoteInputModel, cmd := m.noteInput.Update(msg)
+		newNoteInputModel, noteInputCmd := m.noteInput.Update(msg)
 		m.noteInput = newNoteInputModel
-		cmds = append(cmds, cmd)
+		cmds = append(cmds, noteInputCmd)
 
 	case stashStateShowingError:
 		// Any key exists the error view
@@ -906,10 +958,10 @@ func stashHeaderView(m stashModel) string {
 func stashPopulatedView(m stashModel) string {
 	var b strings.Builder
 
-	markdowns := m.getNotes()
-	if len(markdowns) > 0 {
-		start, end := m.paginator.GetSliceBounds(len(markdowns))
-		docs := markdowns[start:end]
+	mds := m.getVisibleMarkdowns()
+	if len(mds) > 0 {
+		start, end := m.paginator.GetSliceBounds(len(mds))
+		docs := mds[start:end]
 
 		for i, md := range docs {
 			stashItemView(&b, m, i, md)
@@ -922,10 +974,10 @@ func stashPopulatedView(m stashModel) string {
 	// If there aren't enough items to fill up this page (always the last page)
 	// then we need to add some newlines to fill up the space where stash items
 	// would have been.
-	itemsOnPage := m.paginator.ItemsOnPage(len(markdowns))
+	itemsOnPage := m.paginator.ItemsOnPage(len(mds))
 	if itemsOnPage < m.paginator.PerPage {
 		n := (m.paginator.PerPage - itemsOnPage) * stashViewItemHeight
-		if len(markdowns) == 0 {
+		if len(mds) == 0 {
 			n -= stashViewItemHeight - 1
 		}
 		for i := 0; i < n; i++ {
@@ -941,7 +993,7 @@ func stashHelpView(m stashModel) string {
 		h         []string
 		isStashed bool
 		isLocal   bool
-		numDocs   = len(m.getNotes())
+		numDocs   = len(m.getVisibleMarkdowns())
 	)
 
 	if numDocs > 0 {
@@ -1091,10 +1143,64 @@ func deleteStashedItem(cc *charm.Client, id int) tea.Cmd {
 	}
 }
 
+func filterMarkdowns(m stashModel) tea.Cmd {
+	return func() tea.Msg {
+		if m.filterInput.Value() == "" || !m.isFiltering() {
+			return filteredMarkdownMsg(m.markdowns) // return everything
+		}
+
+		targets := []string{}
+
+		for _, t := range m.markdowns {
+			targets = append(targets, t.filterValue)
+		}
+
+		ranks := fuzzy.Find(m.filterInput.Value(), targets)
+		sort.Stable(ranks)
+
+		filtered := []*markdown{}
+		for _, r := range ranks {
+			filtered = append(filtered, m.markdowns[r.Index])
+		}
+
+		return filteredMarkdownMsg(filtered)
+	}
+}
+
 // ETC
 
-// Normalize text to aid in the filtering process. in particular, we remove
-// diacritics.
+// Delete a markdown from a slice of markdowns
+func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error) {
+	index := -1
+
+	for i, v := range markdowns {
+		switch target.markdownType {
+		case localMarkdown, convertedMarkdown:
+			if v.localPath == target.localPath {
+				index = i
+			}
+		case stashedMarkdown, newsMarkdown:
+			if v.ID == target.ID {
+				index = i
+			}
+		default:
+			return nil, errors.New("unknown markdown type")
+		}
+	}
+
+	if index == -1 {
+		err := fmt.Errorf("could not find markdown to delete")
+		if debug {
+			log.Println(err)
+		}
+		return nil, err
+	}
+
+	return append(markdowns[:index], markdowns[index+1:]...), nil
+}
+
+// Normalize text to aid in the filtering process. In particular, we remove
+// diacritics, "ö" becomes "o".
 func normalize(in string) (string, error) {
 	t := transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
 	out, _, err := transform.String(t, in)
