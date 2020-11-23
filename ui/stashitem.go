@@ -50,7 +50,8 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	// If there are multiple items being filtered we don't highlight a selected
 	// item in the results. If we've filtered down to one item, however,
 	// highlight that first item since pressing return will open it.
-	singleFilteredItem := m.state == stashStateFilterNotes && len(m.getNotes()) == 1
+	singleFilteredItem :=
+		m.state == stashStateFilterNotes && len(m.getVisibleMarkdowns()) == 1
 
 	if isSelected && !isFilteringNotes || singleFilteredItem {
 		// Selected item

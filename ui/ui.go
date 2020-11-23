@@ -320,11 +320,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.general.cwd = msg.cwd
 		cmds = append(cmds, findNextLocalFile(m))
 
-	case foundLocalFileMsg:
-		newMd := localFileToMarkdown(m.general.cwd, gitcha.SearchResult(msg))
-		m.stash.addMarkdowns(newMd)
-		cmds = append(cmds, findNextLocalFile(m))
-
 	case sshAuthErrMsg:
 		if m.keygenState != keygenFinished { // if we haven't run the keygen yet, do that
 			m.keygenState = keygenRunning
@@ -387,11 +382,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case localFileSearchFinished, gotStashMsg, gotNewsMsg:
-		// Also pass these messages to the stash so we can keep it updated
-		// about network activity.
+		// Always pass these messages to the stash so we can keep it updated
+		// about network activity, even if the user isn't currently viewing
+		// the stash.
 		stashModel, cmd := stashUpdate(msg, m.stash)
 		m.stash = stashModel
 		return m, cmd
+
+	case foundLocalFileMsg:
+		newMd := localFileToMarkdown(m.general.cwd, gitcha.SearchResult(msg))
+		m.stash.addMarkdowns(newMd)
+		if m.stash.isFiltering() {
+			newMd.buildFilterValue()
+		}
+		if m.stash.shouldUpdateFilter() {
+			cmds = append(cmds, filterMarkdowns(m.stash))
+		}
+		cmds = append(cmds, findNextLocalFile(m))
 
 	case stashSuccessMsg:
 		// Something was stashed. Update the stash listing but don't run an
@@ -399,8 +406,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// message and generally don't want any other effects.
 		if m.state == stateShowDocument {
 			md := markdown(msg)
-			_ = m.stash.removeLocalMarkdown(md.localPath)
-			m.stash.addMarkdowns(&md)
+			_ = m.stash.replaceLocalMarkdown(md.localPath, &md)
 		}
 	}
 
