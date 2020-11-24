@@ -40,11 +40,21 @@ var (
 	dullYellowFg = newFgStyle(common.NewColorPair("#9BA92F", "#6BCB94")) // renders light green on light backgrounds
 	redFg        = newFgStyle(common.Red)
 	faintRedFg   = newFgStyle(common.FaintRed)
+
+	newsTitleStyle = newStyle(
+		common.NewColorPair(common.Indigo.String(), common.Cream.String()),
+		common.NewColorPair(common.Cream.String(), common.Indigo.String()),
+		true,
+	)
 )
 
 // Returns a termenv style with foreground and background options.
-func newStyle(fg, bg common.ColorPair) func(string) string {
-	return te.Style{}.Foreground(fg.Color()).Background(bg.Color()).Styled
+func newStyle(fg, bg common.ColorPair, bold bool) func(string) string {
+	s := te.Style{}.Foreground(fg.Color()).Background(bg.Color())
+	if bold {
+		s = s.Bold()
+	}
+	return s.Styled
 }
 
 // Returns a new termenv style with background options only.
