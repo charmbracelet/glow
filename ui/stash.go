@@ -582,11 +582,19 @@ func stashUpdate(msg tea.Msg, m stashModel) (stashModel, tea.Cmd) {
 
 			// News
 			case "n":
-				m.hideStatusMessage()
-				m.paginator.Page = 0
-				m.index = 0
-				m.state = stashStateShowNews
-				m.setTotalPages()
+				if m.state == stashStateShowNews {
+					// Exit news
+					m.state = stashStateReady
+					m.resetFiltering()
+				} else {
+					// Show news
+					m.hideStatusMessage()
+					m.paginator.Page = 0
+					m.index = 0
+					m.state = stashStateShowNews
+					m.setTotalPages()
+				}
+
 				return m, nil
 
 			// Stash
