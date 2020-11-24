@@ -36,15 +36,15 @@ var (
 	statusBarBg     = common.NewColorPair("#242424", "#E6E6E6")
 
 	// Styling funcs
-	statusBarScrollPosStyle        = newStyle(common.NewColorPair("#5A5A5A", "#949494"), statusBarBg)
-	statusBarNoteStyle             = newStyle(statusBarNoteFg, statusBarBg)
-	statusBarHelpStyle             = newStyle(statusBarNoteFg, common.NewColorPair("#323232", "#DCDCDC"))
-	statusBarStashDotStyle         = newStyle(common.Green, statusBarBg)
-	statusBarMessageStyle          = newStyle(mintGreen, darkGreen)
-	statusBarMessageStashIconStyle = newStyle(mintGreen, darkGreen)
-	statusBarMessageScrollPosStyle = newStyle(mintGreen, darkGreen)
-	statusBarMessageHelpStyle      = newStyle(common.NewColorPair("#B6FFE4", "#B6FFE4"), common.Green)
-	helpViewStyle                  = newStyle(statusBarNoteFg, common.NewColorPair("#1B1B1B", "#f2f2f2"))
+	statusBarScrollPosStyle        = newStyle(common.NewColorPair("#5A5A5A", "#949494"), statusBarBg, false)
+	statusBarNoteStyle             = newStyle(statusBarNoteFg, statusBarBg, false)
+	statusBarHelpStyle             = newStyle(statusBarNoteFg, common.NewColorPair("#323232", "#DCDCDC"), false)
+	statusBarStashDotStyle         = newStyle(common.Green, statusBarBg, false)
+	statusBarMessageStyle          = newStyle(mintGreen, darkGreen, false)
+	statusBarMessageStashIconStyle = newStyle(mintGreen, darkGreen, false)
+	statusBarMessageScrollPosStyle = newStyle(mintGreen, darkGreen, false)
+	statusBarMessageHelpStyle      = newStyle(common.NewColorPair("#B6FFE4", "#B6FFE4"), common.Green, false)
+	helpViewStyle                  = newStyle(statusBarNoteFg, common.NewColorPair("#1B1B1B", "#f2f2f2"), false)
 )
 
 type contentRenderedMsg string

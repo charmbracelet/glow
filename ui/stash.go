@@ -880,7 +880,7 @@ func stashView(m stashModel) string {
 		if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
 			logoOrFilter = m.filterInput.View()
 		} else if m.state == stashStateShowNews {
-			logoOrFilter = glowLogoView(" Newsfeed ")
+			logoOrFilter += newsTitleStyle(" News ")
 		}
 
 		var pagination string
