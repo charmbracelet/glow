@@ -16,6 +16,7 @@ import (
 	"github.com/charmbracelet/charm/keygen"
 	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glow/utils"
+	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
 )
@@ -194,7 +195,7 @@ func newModel(cfg Config) tea.Model {
 	}
 
 	if cfg.DocumentTypes == 0 {
-		cfg.DocumentTypes = LocalDocuments | StashedDocuments | NewsDocuments
+		cfg.DocumentTypes = LocalDocument | StashedDocument | NewsDocument
 	}
 
 	general := general{
@@ -213,15 +214,16 @@ func newModel(cfg Config) tea.Model {
 
 func (m model) Init() tea.Cmd {
 	var cmds []tea.Cmd
+	d := &m.general.cfg.DocumentTypes
 
-	if m.general.cfg.DocumentTypes&StashedDocuments != 0 || m.general.cfg.DocumentTypes&NewsDocuments != 0 {
+	if *d&StashedDocument != 0 || *d&NewsDocument != 0 {
 		cmds = append(cmds,
 			newCharmClient,
 			spinner.Tick,
 		)
 	}
 
-	if m.general.cfg.DocumentTypes&LocalDocuments != 0 {
+	if *d&LocalDocument != 0 {
 		cmds = append(cmds, findLocalFiles(m))
 	}
 
@@ -265,7 +267,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, tea.Quit
 					}
 
-					m.stash, cmd = stashUpdate(msg, m.stash)
+					m.stash, cmd = m.stash.update(msg)
 					return m, cmd
 				}
 
@@ -275,7 +277,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// If setting a note send all keys straight through
 				case pagerStateSetNote:
 					var batch []tea.Cmd
-					newPagerModel, cmd := m.pager.Update(msg)
+					newPagerModel, cmd := m.pager.update(msg)
 					m.pager = newPagerModel
 					batch = append(batch, cmd)
 					return m, tea.Batch(batch...)
@@ -337,7 +339,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// Even though it failed, news/stash loading is finished
-			m.stash.loaded |= StashedDocuments | NewsDocuments
+			m.stash.loaded |= StashedDocument | NewsDocument
 			m.stash.loadingFromNetwork = false
 		}
 
@@ -352,7 +354,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.keygenState = keygenFinished
 
 		// Even though it failed, news/stash loading is finished
-		m.stash.loaded |= StashedDocuments | NewsDocuments
+		m.stash.loaded |= StashedDocument | NewsDocument
 		m.stash.loadingFromNetwork = false
 
 	case keygenSuccessMsg:
@@ -381,7 +383,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// A note was saved to a document. This will have been done in the
 		// pager, so we'll need to find the corresponding note in the stash.
 		// So, pass the message to the stash for processing.
-		stashModel, cmd := stashUpdate(msg, m.stash)
+		stashModel, cmd := m.stash.update(msg)
 		m.stash = stashModel
 		return m, cmd
 
@@ -389,7 +391,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Always pass these messages to the stash so we can keep it updated
 		// about network activity, even if the user isn't currently viewing
 		// the stash.
-		stashModel, cmd := stashUpdate(msg, m.stash)
+		stashModel, cmd := m.stash.update(msg)
 		m.stash = stashModel
 		return m, cmd
 
@@ -417,12 +419,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Process children
 	switch m.state {
 	case stateShowStash:
-		newStashModel, cmd := stashUpdate(msg, m.stash)
+		newStashModel, cmd := m.stash.update(msg)
 		m.stash = newStashModel
 		cmds = append(cmds, cmd)
 
 	case stateShowDocument:
-		newPagerModel, cmd := m.pager.Update(msg)
+		newPagerModel, cmd := m.pager.update(msg)
 		m.pager = newPagerModel
 		cmds = append(cmds, cmd)
 	}
@@ -439,7 +441,7 @@ func (m model) View() string {
 	case stateShowDocument:
 		return m.pager.View()
 	default:
-		return stashView(m.stash)
+		return m.stash.view()
 	}
 }
 
@@ -637,7 +639,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		}
 
 		// Turn local markdown into a newly stashed (converted) markdown
-		md.markdownType = convertedMarkdown
+		md.markdownType = ConvertedDocument
 		md.CreatedAt = time.Now()
 
 		// Set the note as the filename without the extension
@@ -673,7 +675,7 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 // already done that.
 func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
-		markdownType: localMarkdown,
+		markdownType: LocalDocument,
 		localPath:    res.Path,
 		Markdown: charm.Markdown{
 			Note:      stripAbsolutePath(res.Path, cwd),
@@ -700,6 +702,10 @@ func indent(s string, n int) string {
 		fmt.Fprintf(&b, "%s%s\n", i, v)
 	}
 	return b.String()
+}
+
+func truncate(str string, num int) string {
+	return runewidth.Truncate(str, num, "…")
 }
 
 func min(a, b int) int {

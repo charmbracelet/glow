@@ -294,9 +294,9 @@ func runTUI(stashedOnly bool) error {
 	cfg.GlamourStyle = style
 
 	if stashedOnly {
-		cfg.DocumentTypes = ui.StashedDocuments | ui.NewsDocuments
+		cfg.DocumentTypes = ui.StashedDocument | ui.NewsDocument
 	} else if localOnly {
-		cfg.DocumentTypes = ui.LocalDocuments
+		cfg.DocumentTypes = ui.LocalDocument
 	}
 
 	// Run Bubble Tea program

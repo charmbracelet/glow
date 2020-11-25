@@ -173,7 +173,7 @@ func (m *pagerModel) unload() {
 	m.textInput.Reset()
 }
 
-func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
+func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -215,8 +215,8 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					cmds = append(cmds, viewport.Sync(m.viewport))
 				}
 			case "m":
-				isStashed := m.currentDocument.markdownType == stashedMarkdown ||
-					m.currentDocument.markdownType == convertedMarkdown
+				isStashed := m.currentDocument.markdownType == StashedDocument ||
+					m.currentDocument.markdownType == ConvertedDocument
 
 				// Users can only set the note on user-stashed markdown
 				if !isStashed {
@@ -244,7 +244,7 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 
 				// Stash a local document
-				if m.state != pagerStateStashing && m.currentDocument.markdownType == localMarkdown {
+				if m.state != pagerStateStashing && m.currentDocument.markdownType == LocalDocument {
 					m.state = pagerStateStashing
 					m.spinner.Start()
 					cmds = append(
@@ -348,7 +348,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		percentToStringMagnitude float64 = 100.0
 	)
 	var (
-		isStashed         bool = m.currentDocument.markdownType == stashedMarkdown || m.currentDocument.markdownType == convertedMarkdown
+		isStashed         bool = m.currentDocument.markdownType == StashedDocument || m.currentDocument.markdownType == ConvertedDocument
 		showStatusMessage bool = m.state == pagerStateStatusMessage
 	)
 
@@ -440,7 +440,7 @@ func (m pagerModel) setNoteView(b *strings.Builder) {
 
 func (m pagerModel) helpView() (s string) {
 	memoOrStash := "m       set memo"
-	if m.general.authStatus == authOK && m.currentDocument.markdownType == localMarkdown {
+	if m.general.authStatus == authOK && m.currentDocument.markdownType == LocalDocument {
 		memoOrStash = "s       stash this document"
 	}
 
@@ -453,7 +453,7 @@ func (m pagerModel) helpView() (s string) {
 		"q       quit",
 	}
 
-	if m.currentDocument.markdownType == newsMarkdown {
+	if m.currentDocument.markdownType == NewsDocument {
 		deleteFromStringSlice(col1, 3)
 	}
 
