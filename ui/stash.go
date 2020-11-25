@@ -268,13 +268,14 @@ func (m stashModel) getVisibleMarkdowns() []*markdown {
 	if m.state == stashStateShowNews {
 		news := []*markdown{}
 		for _, md := range m.markdowns {
-			// TODO: Sort news according to their CreatedAt date
 			if md.markdownType == newsMarkdown {
 				news = append(news, md)
 			}
 		}
+		sort.Sort(markdownsByLocalFirst(news)) // also sorts by date
 		return news
 	}
+
 	if m.isFiltering() {
 		return m.filteredMarkdowns
 	}
