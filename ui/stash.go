@@ -43,13 +43,11 @@ type filteredMarkdownMsg []*markdown
 
 // MODEL
 
-type stashState int
+type stashViewState int
 
 const (
-	stashStateReady stashState = iota
-	stashStatePromptDelete
+	stashStateReady stashViewState = iota
 	stashStateLoadingDocument
-	stashStateSettingNote
 	stashStateShowingError
 	stashStateShowNews
 )
@@ -62,10 +60,19 @@ const (
 	filterApplied             // a filter is applied and user is not editing filter
 )
 
+type selectionState int
+
+const (
+	selectionIdle = iota
+	selectionSettingNote
+	selectionPromptingDelete
+)
+
 type stashModel struct {
 	general            *general
-	state              stashState
+	state              stashViewState
 	filterState        filterState
+	selectionState     selectionState
 	err                error
 	spinner            spinner.Model
 	noteInput          textinput.Model
@@ -153,7 +160,7 @@ func (m stashModel) isFiltering() bool {
 func (m stashModel) shouldUpdateFilter() bool {
 	// If we're in the middle of setting a note don't update the filter so that
 	// the focus won't jump around.
-	return m.isFiltering() && m.state != stashStateSettingNote
+	return m.isFiltering() && m.selectionState != selectionSettingNote
 }
 
 // Sets the total paginator pages according to the amount of markdowns for the
@@ -518,14 +525,19 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		return m, tea.Batch(cmds...)
 	}
 
+	switch m.selectionState {
+	case selectionSettingNote:
+		cmds = append(cmds, m.handleNoteInput(msg))
+		return m, tea.Batch(cmds...)
+	case selectionPromptingDelete:
+		cmds = append(cmds, m.handleDeleteConfirmation(msg))
+		return m, tea.Batch(cmds...)
+	}
+
 	// Updates per the current state
 	switch m.state {
 	case stashStateReady, stashStateShowNews:
 		cmds = append(cmds, m.handleDocumentBrowsing(msg))
-	case stashStatePromptDelete:
-		cmds = append(cmds, m.handleDeleteConfirmation(msg))
-	case stashStateSettingNote:
-		cmds = append(cmds, m.handleNoteInput(msg))
 	case stashStateShowingError:
 		// Any key exists the error view
 		if _, ok := msg.(tea.KeyMsg); ok {
@@ -607,11 +619,11 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			md := m.selectedMarkdown()
 			isUserMarkdown := md.markdownType == StashedDocument || md.markdownType == ConvertedDocument
-			isSettingNote := m.state == stashStateSettingNote
-			isPromptingDelete := m.state == stashStatePromptDelete
+			isSettingNote := m.selectionState == selectionSettingNote
+			isPromptingDelete := m.selectionState == selectionPromptingDelete
 
 			if isUserMarkdown && !isSettingNote && !isPromptingDelete {
-				m.state = stashStateSettingNote
+				m.selectionState = selectionSettingNote
 				m.noteInput.SetValue(md.Note)
 				m.noteInput.CursorEnd()
 				return textinput.Blink
@@ -672,16 +684,16 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		case "x":
 			m.hideStatusMessage()
 
-			if pages == 0 {
+			validState := m.state == stashStateReady &&
+				m.selectionState == selectionIdle
+
+			if pages == 0 && !validState {
 				break
 			}
 
 			t := m.selectedMarkdown().markdownType
-			isUserMarkdown := t == StashedDocument || t == ConvertedDocument
-			isValidState := m.state != stashStateSettingNote
-
-			if isUserMarkdown && isValidState {
-				m.state = stashStatePromptDelete
+			if t == StashedDocument || t == ConvertedDocument {
+				m.selectionState = selectionPromptingDelete
 			}
 
 		// Show errors
@@ -735,7 +747,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 
 		// Confirm deletion
 		case "y":
-			if m.state != stashStatePromptDelete {
+			if m.selectionState != selectionPromptingDelete {
 				break
 			}
 
@@ -762,14 +774,14 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 				}
 			}
 
-			// Update pagination
+			m.selectionState = selectionIdle
 			m.setTotalPages()
 
 			return deleteStashedItem(m.general.cc, smd.ID)
 
 		default:
 			// Any other keys cancels deletion
-			m.state = stashStateReady
+			m.selectionState = selectionIdle
 
 		}
 	}
@@ -847,7 +859,7 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 		case "esc":
 			// Cancel note
 			m.noteInput.Reset()
-			m.state = stashStateReady
+			m.selectionState = selectionIdle
 		case "enter":
 			// Set new note
 			md := m.selectedMarkdown()
@@ -855,7 +867,7 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 			cmd := saveDocumentNote(m.general.cc, md.ID, newNote)
 			md.Note = newNote
 			m.noteInput.Reset()
-			m.state = stashStateReady
+			m.selectionState = selectionIdle
 			return cmd
 		}
 	}
@@ -881,7 +893,7 @@ func (m stashModel) view() string {
 		return errorView(m.err, false)
 	case stashStateLoadingDocument:
 		s += " " + m.spinner.View() + " Loading document..."
-	case stashStateReady, stashStateSettingNote, stashStatePromptDelete, stashStateShowNews:
+	case stashStateReady, stashStateShowNews:
 
 		loadingIndicator := " "
 		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
@@ -900,10 +912,10 @@ func (m stashModel) view() string {
 		if m.showStatusMessage {
 			header = greenFg(m.statusMessage)
 		} else {
-			switch m.state {
-			case stashStatePromptDelete:
+			switch m.selectionState {
+			case selectionPromptingDelete:
 				header = redFg("Delete this item from your stash? ") + faintRedFg("(y/N)")
-			case stashStateSettingNote:
+			case selectionSettingNote:
 				header = yellowFg("Set the memo for this item?")
 			}
 		}
@@ -1068,9 +1080,9 @@ func stashHelpView(m stashModel) string {
 		isLocal = md != nil && md.markdownType == LocalDocument
 	}
 
-	if m.state == stashStateSettingNote {
+	if m.selectionState == selectionSettingNote {
 		h = append(h, "enter: confirm", "esc: cancel")
-	} else if m.state == stashStatePromptDelete {
+	} else if m.selectionState == selectionPromptingDelete {
 		h = append(h, "y: delete", "n: cancel")
 	} else if m.filterState == filtering && numDocs == 1 {
 		h = append(h, "enter: open", "esc: cancel")

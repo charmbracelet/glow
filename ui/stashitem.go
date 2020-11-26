@@ -55,13 +55,13 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	if isSelected && !isFiltering || singleFilteredItem {
 		// Selected item
 
-		switch m.state {
-		case stashStatePromptDelete:
+		switch m.selectionState {
+		case selectionPromptingDelete:
 			gutter = faintRedFg(verticalLine)
 			icon = faintRedFg(icon)
 			title = redFg(title)
 			date = faintRedFg(date)
-		case stashStateSettingNote:
+		case selectionSettingNote:
 			gutter = dullYellowFg(verticalLine)
 			icon = ""
 			title = m.noteInput.View()
