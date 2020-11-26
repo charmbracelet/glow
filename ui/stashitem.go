@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	newsPrefix           = "News: "
 	verticalLine         = "│"
 	noMemoTitle          = "No Memo"
 	fileListingStashIcon = "• "
@@ -32,7 +31,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		if title == "" {
 			title = "News"
 		} else {
-			title = newsPrefix + truncate(title, truncateTo-rw.StringWidth(newsPrefix))
+			title = truncate(title, truncateTo)
 		}
 	case StashedDocument, ConvertedDocument:
 		icon = fileListingStashIcon
