@@ -107,7 +107,7 @@ type stashModel struct {
 }
 
 func (m stashModel) localOnly() bool {
-	return m.general.cfg.DocumentTypes == LocalDocument
+	return m.general.cfg.DocumentTypes^LocalDocument == 0
 }
 
 func (m stashModel) stashedOnly() bool {
@@ -117,6 +117,12 @@ func (m stashModel) stashedOnly() bool {
 func (m stashModel) loadingDone() bool {
 	// Do the types loaded match the types we want to have?
 	return m.loaded == m.general.cfg.DocumentTypes
+}
+
+// Returns whether or not we're online. That is, when "local-only" mode is
+// disabled and we've authenticated successfully.
+func (m stashModel) online() bool {
+	return !m.localOnly() && m.general.authStatus == authOK
 }
 
 func (m *stashModel) setSize(width, height int) {
@@ -613,7 +619,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 		// Show news
 		case "n":
-			if m.general.authStatus == authFailed {
+			if !m.online() {
 				// If we're offline disable the news section
 				return nil
 			}
