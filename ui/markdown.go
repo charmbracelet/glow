@@ -47,11 +47,6 @@ func (m *markdown) buildFilterValue() {
 		m.filterValue = m.Note
 	}
 
-	if m.markdownType == NewsDocument {
-		m.filterValue = "News: " + note
-		return
-	}
-
 	m.filterValue = note
 }
 
