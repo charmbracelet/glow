@@ -147,8 +147,8 @@ type general struct {
 
 type model struct {
 	general     *general
-	keygenState keygenState
 	state       state
+	keygenState keygenState
 	fatalErr    error
 
 	// Sub-models
