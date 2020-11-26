@@ -51,14 +51,21 @@ const (
 	stashStateLoadingDocument
 	stashStateSettingNote
 	stashStateShowingError
-	stashStateFilterNotes
-	stashStateShowFiltered
 	stashStateShowNews
+)
+
+type filterState int
+
+const (
+	unfiltered    filterState = iota
+	filtering                 // user is actively setting a filter
+	filterApplied             // a filter is applied and user is not editing filter
 )
 
 type stashModel struct {
 	general            *general
 	state              stashState
+	filterState        filterState
 	err                error
 	spinner            spinner.Model
 	noteInput          textinput.Model
@@ -124,6 +131,7 @@ func (m *stashModel) setSize(width, height int) {
 }
 
 func (m *stashModel) resetFiltering() {
+	m.filterState = unfiltered
 	m.filterInput.Reset()
 	sort.Stable(markdownsByLocalFirst(m.markdowns))
 	m.filteredMarkdowns = nil
@@ -132,14 +140,7 @@ func (m *stashModel) resetFiltering() {
 
 // Is a filter currently being applied?
 func (m stashModel) isFiltering() bool {
-	switch m.state {
-	case stashStateFilterNotes, stashStateShowFiltered:
-		return true
-	case stashStatePromptDelete, stashStateSettingNote:
-		return m.filterInput.Value() != ""
-	default:
-		return false
-	}
+	return m.filterState != unfiltered
 }
 
 // Should we be updating the filter?
@@ -422,8 +423,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		// Stash or news results have come in from the server.
 		//
 		// With the stash, this doesn't mean the whole stash listing is loaded,
-		// but some we've finished checking for the stash, at least, so mark
-		// the stash as loaded here.
+		// but now know it can load, at least, so mark the stash as loaded here.
 		var docs []*markdown
 
 		switch msg := msg.(type) {
@@ -507,14 +507,17 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		}
 	}
 
+	if m.filterState == filtering {
+		cmds = append(cmds, m.handleFiltering(msg))
+		return m, tea.Batch(cmds...)
+	}
+
 	// Updates per the current state
 	switch m.state {
-	case stashStateReady, stashStateShowFiltered, stashStateShowNews:
+	case stashStateReady, stashStateShowNews:
 		cmds = append(cmds, m.handleDocumentBrowsing(msg))
 	case stashStatePromptDelete:
 		cmds = append(cmds, m.handleDeleteConfirmation(msg))
-	case stashStateFilterNotes:
-		cmds = append(cmds, m.handleFiltering(msg))
 	case stashStateSettingNote:
 		cmds = append(cmds, m.handleNoteInput(msg))
 	case stashStateShowingError:
@@ -553,10 +556,9 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.paginator.Page = m.paginator.TotalPages - 1
 			m.index = m.paginator.ItemsOnPage(pages) - 1
 
-		// Note: esc is only passed trough in stashStateFilterNotes and stashStateShowNews
 		case "esc":
-			m.state = stashStateReady
 			m.resetFiltering()
+			m.state = stashStateReady
 
 		// Open document
 		case "enter":
@@ -584,7 +586,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			m.paginator.Page = 0
 			m.index = 0
-			m.state = stashStateFilterNotes
+			m.filterState = filtering
 			m.filterInput.CursorEnd()
 			m.filterInput.Focus()
 			return textinput.Blink
@@ -750,13 +752,6 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 				}
 			}
 
-			// Set state and delete
-			if m.isFiltering() {
-				m.state = stashStateShowFiltered
-			} else {
-				m.state = stashStateReady
-			}
-
 			// Update pagination
 			m.setTotalPages()
 
@@ -765,10 +760,6 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 		default:
 			// Any other keys cancels deletion
 			m.state = stashStateReady
-			if m.filterInput.Value() != "" {
-				m.state = stashStateShowFiltered
-			}
-			return nil
 
 		}
 	}
@@ -785,7 +776,6 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 		switch msg.String() {
 		case "esc":
 			// Cancel filtering
-			m.state = stashStateReady
 			m.resetFiltering()
 		case "enter", "tab", "shift+tab", "ctrl+k", "up", "ctrl+j", "down":
 			m.hideStatusMessage()
@@ -814,9 +804,8 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 
 			m.filterInput.Blur()
 
-			m.state = stashStateShowFiltered
+			m.filterState = filterApplied
 			if m.filterInput.Value() == "" {
-				m.state = stashStateReady
 				m.resetFiltering()
 			}
 		}
@@ -847,12 +836,8 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 		switch msg.String() {
 		case "esc":
 			// Cancel note
-			if m.filterInput.Value() != "" {
-				m.state = stashStateShowFiltered
-			} else {
-				m.state = stashStateReady
-			}
 			m.noteInput.Reset()
+			m.state = stashStateReady
 		case "enter":
 			// Set new note
 			md := m.selectedMarkdown()
@@ -860,11 +845,7 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 			cmd := saveDocumentNote(m.general.cc, md.ID, newNote)
 			md.Note = newNote
 			m.noteInput.Reset()
-			if m.filterInput.Value() != "" {
-				m.state = stashStateShowFiltered
-			} else {
-				m.state = stashStateReady
-			}
+			m.state = stashStateReady
 			return cmd
 		}
 	}
@@ -890,7 +871,7 @@ func (m stashModel) view() string {
 		return errorView(m.err, false)
 	case stashStateLoadingDocument:
 		s += " " + m.spinner.View() + " Loading document..."
-	case stashStateReady, stashStateSettingNote, stashStatePromptDelete, stashStateFilterNotes, stashStateShowFiltered, stashStateShowNews:
+	case stashStateReady, stashStateSettingNote, stashStatePromptDelete, stashStateShowNews:
 
 		loadingIndicator := " "
 		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
@@ -926,7 +907,7 @@ func (m stashModel) view() string {
 		logoOrFilter := glowLogoView(" Glow ")
 
 		// If we're filtering we replace the logo with the filter field
-		if m.state == stashStateFilterNotes || m.state == stashStateShowFiltered {
+		if m.isFiltering() {
 			logoOrFilter = m.filterInput.View()
 		} else if m.state == stashStateShowNews {
 			logoOrFilter += newsTitleStyle(" News ")
@@ -1081,11 +1062,11 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "enter: confirm", "esc: cancel")
 	} else if m.state == stashStatePromptDelete {
 		h = append(h, "y: delete", "n: cancel")
-	} else if m.state == stashStateFilterNotes && numDocs == 1 {
+	} else if m.filterState == filtering && numDocs == 1 {
 		h = append(h, "enter: open", "esc: cancel")
-	} else if m.state == stashStateFilterNotes && numDocs == 0 {
+	} else if m.filterState == filtering && numDocs == 0 {
 		h = append(h, "enter/esc: cancel")
-	} else if m.state == stashStateFilterNotes {
+	} else if m.filterState == filtering {
 		h = append(h, "enter: confirm", "esc: cancel", "ctrl+j/ctrl+k, ↑/↓: choose")
 	} else if m.state == stashStateShowNews {
 		h = append(h, "enter: open", "esc: return", "j/k, ↑/↓: choose", "q: quit")
@@ -1093,7 +1074,7 @@ func stashHelpView(m stashModel) string {
 		if len(m.markdowns) > 0 {
 			h = append(h, "enter: open")
 		}
-		if m.state == stashStateShowFiltered {
+		if m.filterState == filterApplied {
 			h = append(h, "esc: clear filter")
 		}
 		if len(m.markdowns) > 1 {
