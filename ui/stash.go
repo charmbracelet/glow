@@ -613,6 +613,10 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 		// Show news
 		case "n":
+			if m.general.authStatus == authFailed {
+				// If we're offline disable the news section
+				return nil
+			}
 			if m.state == stashStateShowNews {
 				// Exit news
 				m.state = stashStateReady
