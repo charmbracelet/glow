@@ -256,8 +256,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				// Send q/esc through in these cases
 				switch m.stash.state {
-				case stashStateSettingNote, stashStatePromptDelete,
-					stashStateShowingError, stashStateShowNews:
+				case stashStateShowingError, stashStateShowNews:
 
 					// Q also quits glow when displaying only newsitems. Esc
 					// still passes through.
