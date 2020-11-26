@@ -164,14 +164,9 @@ type model struct {
 // method alters the model we also need to send along any commands returned.
 func (m *model) unloadDocument() []tea.Cmd {
 	m.state = stateShowStash
+	m.stash.state = stashStateReady
 	m.pager.unload()
 	m.pager.showHelp = false
-
-	if m.stash.filterInput.Value() == "" {
-		m.stash.state = stashStateReady
-	} else {
-		m.stash.state = stashStateShowFiltered
-	}
 
 	var batch []tea.Cmd
 	if m.pager.viewport.HighPerformanceRendering {
@@ -250,19 +245,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.state {
 			case stateShowStash:
 
-				switch m.stash.state {
-
-				// Send q/esc through in these cases
-				case stashStateSettingNote, stashStatePromptDelete,
-					stashStateShowingError, stashStateFilterNotes,
-					stashStateShowFiltered, stashStateShowNews:
-
-					// If we're fitering, only send esc through so we can clear
-					// the filter results. Q quits as normal.
-					if m.stash.state == stashStateShowFiltered && msg.String() == "q" {
+				// Q quits if we're filtering, but we still send esc though.
+				if m.stash.isFiltering() {
+					if msg.String() == "q" {
 						return m, tea.Quit
 					}
-					// Q also quits glow when displaying only newsitems
+					m.stash, cmd = m.stash.update(msg)
+					return m, cmd
+				}
+
+				// Send q/esc through in these cases
+				switch m.stash.state {
+				case stashStateSettingNote, stashStatePromptDelete,
+					stashStateShowingError, stashStateShowNews:
+
+					// Q also quits glow when displaying only newsitems. Esc
+					// still passes through.
 					if m.stash.state == stashStateShowNews && msg.String() == "q" {
 						return m, tea.Quit
 					}
