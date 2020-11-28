@@ -29,6 +29,7 @@ type markdown struct {
 	charm.Markdown
 }
 
+// Generate the value we're doing to filter against.
 func (m *markdown) buildFilterValue() {
 	note, err := normalize(m.Note)
 	if err != nil {
@@ -109,6 +110,7 @@ func wrapMarkdowns(t DocType, md []*charm.Markdown) (m []*markdown) {
 	return m
 }
 
+// Return the time in a human-readable format relative to the current time.
 func relativeTime(then time.Time) string {
 	now := time.Now()
 	ago := now.Sub(then)
@@ -120,6 +122,7 @@ func relativeTime(then time.Time) string {
 	return then.Format("02 Jan 2006 15:04 MST")
 }
 
+// Magnitudes for relative time.
 var magnitudes = []humanize.RelTimeMagnitude{
 	{D: time.Second, Format: "now", DivBy: time.Second},
 	{D: 2 * time.Second, Format: "1 second %s", DivBy: 1},

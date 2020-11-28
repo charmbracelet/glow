@@ -58,10 +58,11 @@ func (d DocTypeSet) Difference(t ...DocType) DocTypeSet {
 
 // Equals returns whether or not the two sets are equal.
 func (d DocTypeSet) Equals(other DocTypeSet) bool {
-	return d.Contains(other.asSlice()...) && len(d) == len(other)
+	return d.Contains(other.AsSlice()...) && len(d) == len(other)
 }
 
-func (d DocTypeSet) asSlice() (agg []DocType) {
+// AsSlice returns the set as a slice of document types.
+func (d DocTypeSet) AsSlice() (agg []DocType) {
 	for k := range d {
 		agg = append(agg, k)
 	}

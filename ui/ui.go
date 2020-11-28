@@ -164,7 +164,7 @@ type model struct {
 // method alters the model we also need to send along any commands returned.
 func (m *model) unloadDocument() []tea.Cmd {
 	m.state = stateShowStash
-	m.stash.state = stashStateReady
+	m.stash.viewState = stashStateReady
 	m.pager.unload()
 	m.pager.showHelp = false
 
@@ -181,8 +181,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 
 func newModel(cfg Config) tea.Model {
 	if cfg.GlamourStyle == "auto" {
-		dbg := te.HasDarkBackground()
-		if dbg {
+		if te.HasDarkBackground() {
 			cfg.GlamourStyle = "dark"
 		} else {
 			cfg.GlamourStyle = "light"
@@ -190,7 +189,7 @@ func newModel(cfg Config) tea.Model {
 	}
 
 	if len(cfg.DocumentTypes) == 0 {
-		cfg.DocumentTypes.Add(LocalDoc, StashedDoc, NewsDoc)
+		cfg.DocumentTypes.Add(LocalDoc, StashedDoc, ConvertedDoc, NewsDoc)
 	}
 
 	general := general{
@@ -255,15 +254,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				// Send q/esc through in these cases
-				switch m.stash.state {
-				case stashStateShowingError, stashStateShowNews:
+				switch m.stash.viewState {
+				case stashStateReady:
 
 					// Q also quits glow when displaying only newsitems. Esc
 					// still passes through.
-					if m.stash.state == stashStateShowNews && msg.String() == "q" {
+					if msg.String() == "q" {
 						return m, tea.Quit
 					}
 
+					m.stash, cmd = m.stash.update(msg)
+					return m, cmd
+
+				case stashStateShowingError:
 					m.stash, cmd = m.stash.update(msg)
 					return m, cmd
 				}
@@ -304,11 +307,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Ctrl+C always quits no matter where in the application you are.
 		case "ctrl+c":
 			return m, tea.Quit
-
-		// Repaint
-		case "ctrl+l":
-			// TODO
-			return m, nil
 		}
 
 	// Window size is received when starting up and on every resize

@@ -43,23 +43,37 @@ type filteredMarkdownMsg []*markdown
 
 // MODEL
 
+// High-level state of the application.
 type stashViewState int
 
 const (
 	stashStateReady stashViewState = iota
 	stashStateLoadingDocument
 	stashStateShowingError
-	stashStateShowNews
 )
 
+// Which types of documents we are showing. We use an int as the underlying
+// type both for easy equality testing, and because the default state can have
+// different types of docs depending on the user's preferences. For example,
+// if the local-only flag is passed, the default state contains only documents
+// of type local. Otherwise, it could contain stash, news, and converted types.
+type stashDocState int
+
+const (
+	stashShowDefaultDocs stashDocState = iota
+	stashShowNewsDocs
+)
+
+// The current filtering state.
 type filterState int
 
 const (
-	unfiltered    filterState = iota
-	filtering                 // user is actively setting a filter
-	filterApplied             // a filter is applied and user is not editing filter
+	unfiltered    filterState = iota // no filter set
+	filtering                        // user is actively setting a filter
+	filterApplied                    // a filter is applied and user is not editing filter
 )
 
+// The state of the currently selected document.
 type selectionState int
 
 const (
@@ -70,15 +84,22 @@ const (
 
 type stashModel struct {
 	general            *general
-	state              stashViewState
-	filterState        filterState
-	selectionState     selectionState
 	err                error
 	spinner            spinner.Model
 	noteInput          textinput.Model
 	filterInput        textinput.Model
 	stashFullyLoaded   bool // have we loaded all available stashed documents from the server?
 	loadingFromNetwork bool // are we currently loading something from the network?
+	viewState          stashViewState
+	filterState        filterState
+	selectionState     selectionState
+
+	// The types of documents we are showing
+	docState stashDocState
+
+	// Maps document states to document types, i.e. the news state contains a
+	// set of type "news".
+	docStateMap map[stashDocState]DocTypeSet
 
 	// Tracks what exactly is loaded between the stash, news and local files
 	loaded DocTypeSet
@@ -124,7 +145,7 @@ func (m stashModel) stashedOnly() bool {
 }
 
 func (m stashModel) loadingDone() bool {
-	return m.loaded.Equals(m.general.cfg.DocumentTypes)
+	return m.loaded.Equals(m.general.cfg.DocumentTypes.Difference(ConvertedDoc))
 }
 
 // Returns whether or not we're online. That is, when "local-only" mode is
@@ -291,27 +312,19 @@ func (m stashModel) getVisibleMarkdowns() []*markdown {
 		return m.filteredMarkdowns
 	}
 
-	if m.state == stashStateShowNews {
-		return m.getMarkdownByType(NewsDoc)
-	}
-
-	return m.getMarkdownByType(LocalDoc, StashedDoc, ConvertedDoc)
+	return m.getMarkdownByType(m.docStateMap[m.docState].AsSlice()...)
 }
 
 // Return the markdowns eligible to be filtered.
 func (m stashModel) getFilterableMarkdowns() []*markdown {
-	if m.state == stashStateShowNews {
-		return m.getMarkdownByType(NewsDoc)
-	}
-
-	return m.getMarkdownByType(LocalDoc, StashedDoc, ConvertedDoc)
+	return m.getMarkdownByType(m.docStateMap[m.docState].AsSlice()...)
 }
 
 // Command for opening a markdown document in the pager. Note that this also
 // alters the model.
 func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 	var cmd tea.Cmd
-	m.state = stashStateLoadingDocument
+	m.viewState = stashStateLoadingDocument
 
 	if md.markdownType == LocalDoc {
 		cmd = loadLocalMarkdown(md)
@@ -406,6 +419,11 @@ func newStashModel(general *general) stashModel {
 		loaded:             NewDocTypeSet(),
 		loadingFromNetwork: true,
 		filesStashing:      make(map[string]struct{}),
+		docState:           stashShowDefaultDocs,
+		docStateMap: map[stashDocState]DocTypeSet{
+			stashShowDefaultDocs: general.cfg.DocumentTypes.Difference(NewsDoc),
+			stashShowNewsDocs:    NewDocTypeSet(NewsDoc),
+		},
 	}
 
 	return m
@@ -482,7 +500,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	case spinner.TickMsg:
 		condition := !m.loadingDone() ||
 			m.loadingFromNetwork ||
-			m.state == stashStateLoadingDocument ||
+			m.viewState == stashStateLoadingDocument ||
 			len(m.filesStashing) > 0 ||
 			m.spinner.Visible()
 
@@ -537,13 +555,13 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	}
 
 	// Updates per the current state
-	switch m.state {
-	case stashStateReady, stashStateShowNews:
+	switch m.viewState {
+	case stashStateReady:
 		cmds = append(cmds, m.handleDocumentBrowsing(msg))
 	case stashStateShowingError:
 		// Any key exists the error view
 		if _, ok := msg.(tea.KeyMsg); ok {
-			m.state = stashStateReady
+			m.viewState = stashStateReady
 		}
 	}
 
@@ -577,8 +595,11 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.index = m.paginator.ItemsOnPage(pages) - 1
 
 		case "esc":
-			m.resetFiltering()
-			m.state = stashStateReady
+			if m.isFiltering() {
+				m.resetFiltering()
+				break
+			}
+			m.docState = stashShowDefaultDocs
 
 		// Open document
 		case "enter":
@@ -637,16 +658,16 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				// If we're offline disable the news section
 				return nil
 			}
-			if m.state == stashStateShowNews {
+			if m.docState == stashShowNewsDocs {
 				// Exit news
-				m.state = stashStateReady
+				m.docState = stashShowDefaultDocs
 				m.resetFiltering()
 			} else {
 				// Show news
 				m.hideStatusMessage()
 				m.paginator.Page = 0
 				m.index = 0
-				m.state = stashStateShowNews
+				m.docState = stashShowNewsDocs
 				m.setTotalPages()
 			}
 
@@ -686,7 +707,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		case "x":
 			m.hideStatusMessage()
 
-			validState := m.state == stashStateReady &&
+			validState := m.viewState == stashStateReady &&
 				m.selectionState == selectionIdle
 
 			if pages == 0 && !validState {
@@ -700,8 +721,8 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 		// Show errors
 		case "!":
-			if m.err != nil && m.state == stashStateReady {
-				m.state = stashStateShowingError
+			if m.err != nil && m.viewState == stashStateReady {
+				m.viewState = stashStateShowingError
 				return nil
 			}
 		}
@@ -812,7 +833,7 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 
 			// If we've filtered down to nothing, clear the filter
 			if len(h) == 0 {
-				m.state = stashStateReady
+				m.viewState = stashStateReady
 				m.resetFiltering()
 				break
 			}
@@ -820,7 +841,7 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 			// When there's only one filtered markdown left we can just
 			// "open" it directly
 			if len(h) == 1 {
-				m.state = stashStateReady
+				m.viewState = stashStateReady
 				m.resetFiltering()
 				cmds = append(cmds, m.openMarkdown(h[0]))
 				break
@@ -890,12 +911,12 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 
 func (m stashModel) view() string {
 	var s string
-	switch m.state {
+	switch m.viewState {
 	case stashStateShowingError:
 		return errorView(m.err, false)
 	case stashStateLoadingDocument:
 		s += " " + m.spinner.View() + " Loading document..."
-	case stashStateReady, stashStateShowNews:
+	case stashStateReady:
 
 		loadingIndicator := " "
 		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
@@ -925,7 +946,7 @@ func (m stashModel) view() string {
 		// Only draw the normal header if we're not using the header area for
 		// something else (like a prompt or status message)
 		if header == "" {
-			header = stashHeaderView(m)
+			header = m.headerView()
 		}
 
 		logoOrFilter := glowLogoView(" Glow ")
@@ -933,7 +954,7 @@ func (m stashModel) view() string {
 		// If we're filtering we replace the logo with the filter field
 		if m.isFiltering() {
 			logoOrFilter = m.filterInput.View()
-		} else if m.state == stashStateShowNews {
+		} else if m.docState == stashShowNewsDocs {
 			logoOrFilter += newsTitleStyle(" News ")
 		}
 
@@ -958,10 +979,10 @@ func (m stashModel) view() string {
 			loadingIndicator,
 			logoOrFilter,
 			header,
-			stashPopulatedView(m),
+			m.populatedView(),
 			blankLines,
 			pagination,
-			stashHelpView(m),
+			m.miniHelpView(),
 		)
 	}
 	return "\n" + indent(s, stashIndent)
@@ -975,7 +996,7 @@ func glowLogoView(text string) string {
 		String()
 }
 
-func stashHeaderView(m stashModel) string {
+func (m stashModel) headerView() string {
 	loading := !m.loadingDone()
 	noMarkdowns := len(m.markdowns) == 0
 
@@ -1035,7 +1056,7 @@ func stashHeaderView(m stashModel) string {
 	return common.Subtle(s) + maybeOffline
 }
 
-func stashPopulatedView(m stashModel) string {
+func (m stashModel) populatedView() string {
 	var b strings.Builder
 
 	mds := m.getVisibleMarkdowns()
@@ -1068,7 +1089,7 @@ func stashPopulatedView(m stashModel) string {
 	return b.String()
 }
 
-func stashHelpView(m stashModel) string {
+func (m stashModel) miniHelpView() string {
 	var (
 		h         []string
 		isStashed bool
@@ -1092,7 +1113,7 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "enter/esc: cancel")
 	} else if m.filterState == filtering {
 		h = append(h, "enter: confirm", "esc: cancel", "ctrl+j/ctrl+k, ↑/↓: choose")
-	} else if m.state == stashStateShowNews {
+	} else if m.docState == stashShowNewsDocs {
 		h = append(h, "enter: open", "esc: return", "j/k, ↑/↓: choose", "q: quit")
 	} else {
 		if len(m.markdowns) > 0 {
@@ -1118,12 +1139,12 @@ func stashHelpView(m stashModel) string {
 		h = append(h, "/: filter")
 		h = append(h, "q: quit")
 	}
-	return stashHelpViewBuilder(m.general.width, h...)
+	return stashMiniHelpViewBuilder(m.general.width, h...)
 }
 
 // builds the help view from various sections pieces, truncating it if the view
 // would otherwise wrap to two lines.
-func stashHelpViewBuilder(windowWidth int, sections ...string) string {
+func stashMiniHelpViewBuilder(windowWidth int, sections ...string) string {
 	if len(sections) == 0 {
 		return ""
 	}
