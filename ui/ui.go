@@ -41,7 +41,7 @@ type Config struct {
 	GlamourStyle    string
 
 	// Which document types shall we show? We work though this with bitmasking.
-	DocumentTypes DocumentType
+	DocumentTypes DocTypeSet
 
 	// For debugging the UI
 	Logfile              string `env:"GLOW_LOGFILE"`
@@ -189,8 +189,8 @@ func newModel(cfg Config) tea.Model {
 		}
 	}
 
-	if cfg.DocumentTypes == 0 {
-		cfg.DocumentTypes = LocalDocument | StashedDocument | NewsDocument
+	if len(cfg.DocumentTypes) == 0 {
+		cfg.DocumentTypes.Add(LocalDoc, StashedDoc, NewsDoc)
 	}
 
 	general := general{
@@ -209,16 +209,16 @@ func newModel(cfg Config) tea.Model {
 
 func (m model) Init() tea.Cmd {
 	var cmds []tea.Cmd
-	d := &m.general.cfg.DocumentTypes
+	d := m.general.cfg.DocumentTypes
 
-	if *d&StashedDocument != 0 || *d&NewsDocument != 0 {
+	if d.Contains(StashedDoc) || d.Contains(NewsDoc) {
 		cmds = append(cmds,
 			newCharmClient,
 			spinner.Tick,
 		)
 	}
 
-	if *d&LocalDocument != 0 {
+	if d.Contains(LocalDoc) {
 		cmds = append(cmds, findLocalFiles(m))
 	}
 
@@ -336,7 +336,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// Even though it failed, news/stash loading is finished
-			m.stash.loaded |= StashedDocument | NewsDocument
+			m.stash.loaded.Add(StashedDoc, NewsDoc)
 			m.stash.loadingFromNetwork = false
 		}
 
@@ -351,7 +351,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.keygenState = keygenFinished
 
 		// Even though it failed, news/stash loading is finished
-		m.stash.loaded |= StashedDocument | NewsDocument
+		m.stash.loaded.Add(StashedDoc, NewsDoc)
 		m.stash.loadingFromNetwork = false
 
 	case keygenSuccessMsg:
@@ -636,7 +636,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		}
 
 		// Turn local markdown into a newly stashed (converted) markdown
-		md.markdownType = ConvertedDocument
+		md.markdownType = ConvertedDoc
 		md.CreatedAt = time.Now()
 
 		// Set the note as the filename without the extension
@@ -672,7 +672,7 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 // already done that.
 func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
-		markdownType: LocalDocument,
+		markdownType: LocalDoc,
 		localPath:    res.Path,
 		Markdown: charm.Markdown{
 			Note:      stripAbsolutePath(res.Path, cwd),

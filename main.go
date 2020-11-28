@@ -289,14 +289,15 @@ func runTUI(stashedOnly bool) error {
 		defer f.Close()
 	}
 
+	cfg.DocumentTypes = ui.NewDocTypeSet()
 	cfg.ShowAllFiles = showAllFiles
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
 
 	if stashedOnly {
-		cfg.DocumentTypes = ui.StashedDocument | ui.NewsDocument
+		cfg.DocumentTypes.Add(ui.StashedDoc, ui.NewsDoc)
 	} else if localOnly {
-		cfg.DocumentTypes = ui.LocalDocument
+		cfg.DocumentTypes.Add(ui.LocalDoc)
 	}
 
 	// Run Bubble Tea program
