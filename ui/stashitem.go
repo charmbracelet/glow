@@ -27,13 +27,13 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	)
 
 	switch md.markdownType {
-	case NewsDocument:
+	case NewsDoc:
 		if title == "" {
 			title = "News"
 		} else {
 			title = truncate(title, truncateTo)
 		}
-	case StashedDocument, ConvertedDocument:
+	case StashedDoc, ConvertedDoc:
 		icon = fileListingStashIcon
 		if title == "" {
 			title = noMemoTitle
@@ -80,7 +80,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	} else {
 		// Regular (non-selected) items
 
-		if md.markdownType == NewsDocument {
+		if md.markdownType == NewsDoc {
 			gutter = " "
 
 			if isFiltering && m.filterInput.Value() == "" {

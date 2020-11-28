@@ -13,18 +13,9 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-type DocumentType byte
-
-const (
-	LocalDocument DocumentType = 1 << iota
-	StashedDocument
-	ConvertedDocument
-	NewsDocument
-)
-
 // markdown wraps charm.Markdown.
 type markdown struct {
-	markdownType DocumentType
+	markdownType DocType
 
 	// Full path of a local markdown file. Only relevant to local documents and
 	// those that have been stashed in this session.
@@ -53,7 +44,7 @@ func (m *markdown) buildFilterValue() {
 // sortAsLocal returns whether or not this markdown should be sorted as though
 // it's a local markdown document.
 func (m markdown) sortAsLocal() bool {
-	return m.markdownType == LocalDocument || m.markdownType == ConvertedDocument
+	return m.markdownType == LocalDoc || m.markdownType == ConvertedDoc
 }
 
 // Sort documents with local files first, then by date.
@@ -108,7 +99,7 @@ func isMn(r rune) bool {
 
 // wrapMarkdowns wraps a *charm.Markdown with a *markdown in order to add some
 // extra metadata.
-func wrapMarkdowns(t DocumentType, md []*charm.Markdown) (m []*markdown) {
+func wrapMarkdowns(t DocType, md []*charm.Markdown) (m []*markdown) {
 	for _, v := range md {
 		m = append(m, &markdown{
 			markdownType: t,

@@ -215,8 +215,8 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					cmds = append(cmds, viewport.Sync(m.viewport))
 				}
 			case "m":
-				isStashed := m.currentDocument.markdownType == StashedDocument ||
-					m.currentDocument.markdownType == ConvertedDocument
+				isStashed := m.currentDocument.markdownType == StashedDoc ||
+					m.currentDocument.markdownType == ConvertedDoc
 
 				// Users can only set the note on user-stashed markdown
 				if !isStashed {
@@ -244,7 +244,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 
 				// Stash a local document
-				if m.state != pagerStateStashing && m.currentDocument.markdownType == LocalDocument {
+				if m.state != pagerStateStashing && m.currentDocument.markdownType == LocalDoc {
 					m.state = pagerStateStashing
 					m.spinner.Start()
 					cmds = append(
@@ -348,7 +348,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		percentToStringMagnitude float64 = 100.0
 	)
 	var (
-		isStashed         bool = m.currentDocument.markdownType == StashedDocument || m.currentDocument.markdownType == ConvertedDocument
+		isStashed         bool = m.currentDocument.markdownType == StashedDoc || m.currentDocument.markdownType == ConvertedDoc
 		showStatusMessage bool = m.state == pagerStateStatusMessage
 	)
 
@@ -440,7 +440,7 @@ func (m pagerModel) setNoteView(b *strings.Builder) {
 
 func (m pagerModel) helpView() (s string) {
 	memoOrStash := "m       set memo"
-	if m.general.authStatus == authOK && m.currentDocument.markdownType == LocalDocument {
+	if m.general.authStatus == authOK && m.currentDocument.markdownType == LocalDoc {
 		memoOrStash = "s       stash this document"
 	}
 
@@ -453,7 +453,7 @@ func (m pagerModel) helpView() (s string) {
 		"q       quit",
 	}
 
-	if m.currentDocument.markdownType == NewsDocument {
+	if m.currentDocument.markdownType == NewsDoc {
 		deleteFromStringSlice(col1, 3)
 	}
 

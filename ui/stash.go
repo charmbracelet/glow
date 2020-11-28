@@ -77,9 +77,11 @@ type stashModel struct {
 	spinner            spinner.Model
 	noteInput          textinput.Model
 	filterInput        textinput.Model
-	stashFullyLoaded   bool         // have we loaded all available stashed documents from the server?
-	loadingFromNetwork bool         // are we currently loading something from the network?
-	loaded             DocumentType // load status for news, stash and local files loading; we find out exactly with bitmasking
+	stashFullyLoaded   bool // have we loaded all available stashed documents from the server?
+	loadingFromNetwork bool // are we currently loading something from the network?
+
+	// Tracks what exactly is loaded between the stash, news and local files
+	loaded DocTypeSet
 
 	// The master set of markdown documents we're working with.
 	markdowns []*markdown
@@ -114,16 +116,15 @@ type stashModel struct {
 }
 
 func (m stashModel) localOnly() bool {
-	return m.general.cfg.DocumentTypes^LocalDocument == 0
+	return m.general.cfg.DocumentTypes.Equals(NewDocTypeSet(LocalDoc))
 }
 
 func (m stashModel) stashedOnly() bool {
-	return m.general.cfg.DocumentTypes&LocalDocument == 0
+	return m.general.cfg.DocumentTypes.Equals(NewDocTypeSet(StashedDoc))
 }
 
 func (m stashModel) loadingDone() bool {
-	// Do the types loaded match the types we want to have?
-	return m.loaded == m.general.cfg.DocumentTypes
+	return m.loaded.Equals(m.general.cfg.DocumentTypes)
 }
 
 // Returns whether or not we're online. That is, when "local-only" mode is
@@ -251,7 +252,7 @@ func (m *stashModel) replaceLocalMarkdown(localPath string, newMarkdown *markdow
 }
 
 // Return the number of markdown documents of a given type.
-func (m stashModel) countMarkdowns(t DocumentType) (found int) {
+func (m stashModel) countMarkdowns(t DocType) (found int) {
 	mds := m.getVisibleMarkdowns()
 	if len(mds) == 0 {
 		return
@@ -265,7 +266,7 @@ func (m stashModel) countMarkdowns(t DocumentType) (found int) {
 }
 
 // Sift through the master markdown collection for the specified types.
-func (m stashModel) getMarkdownByType(types ...DocumentType) []*markdown {
+func (m stashModel) getMarkdownByType(types ...DocType) []*markdown {
 	var agg []*markdown
 
 	if len(m.markdowns) == 0 {
@@ -291,19 +292,19 @@ func (m stashModel) getVisibleMarkdowns() []*markdown {
 	}
 
 	if m.state == stashStateShowNews {
-		return m.getMarkdownByType(NewsDocument)
+		return m.getMarkdownByType(NewsDoc)
 	}
 
-	return m.getMarkdownByType(LocalDocument, StashedDocument, ConvertedDocument)
+	return m.getMarkdownByType(LocalDoc, StashedDoc, ConvertedDoc)
 }
 
 // Return the markdowns eligible to be filtered.
 func (m stashModel) getFilterableMarkdowns() []*markdown {
 	if m.state == stashStateShowNews {
-		return m.getMarkdownByType(NewsDocument)
+		return m.getMarkdownByType(NewsDoc)
 	}
 
-	return m.getMarkdownByType(LocalDocument, StashedDocument, ConvertedDocument)
+	return m.getMarkdownByType(LocalDoc, StashedDoc, ConvertedDoc)
 }
 
 // Command for opening a markdown document in the pager. Note that this also
@@ -312,7 +313,7 @@ func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 	var cmd tea.Cmd
 	m.state = stashStateLoadingDocument
 
-	if md.markdownType == LocalDocument {
+	if md.markdownType == LocalDoc {
 		cmd = loadLocalMarkdown(md)
 	} else {
 		cmd = loadRemoteMarkdown(m.general.cc, md.ID, md.markdownType)
@@ -402,6 +403,7 @@ func newStashModel(general *general) stashModel {
 		filterInput:        si,
 		page:               1,
 		paginator:          p,
+		loaded:             NewDocTypeSet(),
 		loadingFromNetwork: true,
 		filesStashing:      make(map[string]struct{}),
 	}
@@ -420,17 +422,17 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 
 	case stashLoadErrMsg:
 		m.err = msg.err
-		m.loaded |= StashedDocument // still done, albeit unsuccessfully
+		m.loaded.Add(StashedDoc) // still done, albeit unsuccessfully
 		m.stashFullyLoaded = true
 		m.loadingFromNetwork = false
 
 	case newsLoadErrMsg:
 		m.err = msg.err
-		m.loaded |= NewsDocument // still done, albeit unsuccessfully
+		m.loaded.Add(NewsDoc) // still done, albeit unsuccessfully
 
 	case localFileSearchFinished:
 		// We're finished searching for local files
-		m.loaded |= LocalDocument
+		m.loaded.Add(LocalDoc)
 
 	case gotStashMsg, gotNewsMsg:
 		// Stash or news results have come in from the server.
@@ -441,9 +443,9 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 
 		switch msg := msg.(type) {
 		case gotStashMsg:
-			m.loaded |= StashedDocument
+			m.loaded.Add(StashedDoc)
 			m.loadingFromNetwork = false
-			docs = wrapMarkdowns(StashedDocument, msg)
+			docs = wrapMarkdowns(StashedDoc, msg)
 
 			if len(msg) == 0 {
 				// If the server comes back with nothing then we've got
@@ -456,8 +458,8 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 			}
 
 		case gotNewsMsg:
-			m.loaded |= NewsDocument
-			docs = wrapMarkdowns(NewsDocument, msg)
+			m.loaded.Add(NewsDoc)
+			docs = wrapMarkdowns(NewsDoc, msg)
 		}
 
 		// If we're filtering build filter indexes immediately so any
@@ -618,7 +620,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 
 			md := m.selectedMarkdown()
-			isUserMarkdown := md.markdownType == StashedDocument || md.markdownType == ConvertedDocument
+			isUserMarkdown := md.markdownType == StashedDoc || md.markdownType == ConvertedDoc
 			isSettingNote := m.selectionState == selectionSettingNote
 			isPromptingDelete := m.selectionState == selectionPromptingDelete
 
@@ -659,7 +661,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			md := m.selectedMarkdown()
 
 			_, isBeingStashed := m.filesStashing[md.localPath]
-			isLocalMarkdown := md.markdownType == LocalDocument
+			isLocalMarkdown := md.markdownType == LocalDoc
 			markdownPathMissing := md.localPath == ""
 
 			if isBeingStashed || !isLocalMarkdown || markdownPathMissing {
@@ -692,7 +694,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 
 			t := m.selectedMarkdown().markdownType
-			if t == StashedDocument || t == ConvertedDocument {
+			if t == StashedDoc || t == ConvertedDoc {
 				m.selectionState = selectionPromptingDelete
 			}
 
@@ -757,10 +759,10 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 					continue
 				}
 
-				if md.markdownType == ConvertedDocument {
+				if md.markdownType == ConvertedDoc {
 					// If document was stashed during this session, convert it
 					// back to a local file.
-					md.markdownType = LocalDocument
+					md.markdownType = LocalDoc
 					md.Note = stripAbsolutePath(m.markdowns[i].localPath, m.general.cwd)
 				} else {
 					// Delete optimistically and remove the stashed item
@@ -995,9 +997,9 @@ func stashHeaderView(m stashModel) string {
 		}
 	}
 
-	localItems := m.countMarkdowns(LocalDocument)
-	stashedItems := m.countMarkdowns(StashedDocument) + m.countMarkdowns(ConvertedDocument)
-	newsItems := m.countMarkdowns(NewsDocument)
+	localItems := m.countMarkdowns(LocalDoc)
+	stashedItems := m.countMarkdowns(StashedDoc) + m.countMarkdowns(ConvertedDoc)
+	newsItems := m.countMarkdowns(NewsDoc)
 
 	// Loading's finished and all we have is news.
 	if !loading && localItems == 0 && stashedItems == 0 && newsItems == 0 {
@@ -1076,8 +1078,8 @@ func stashHelpView(m stashModel) string {
 
 	if numDocs > 0 {
 		md := m.selectedMarkdown()
-		isStashed = md != nil && md.markdownType == StashedDocument
-		isLocal = md != nil && md.markdownType == LocalDocument
+		isStashed = md != nil && md.markdownType == StashedDoc
+		isLocal = md != nil && md.markdownType == LocalDoc
 	}
 
 	if m.selectionState == selectionSettingNote {
@@ -1162,14 +1164,14 @@ func stashHelpViewBuilder(windowWidth int, sections ...string) string {
 
 // COMMANDS
 
-func loadRemoteMarkdown(cc *charm.Client, id int, t DocumentType) tea.Cmd {
+func loadRemoteMarkdown(cc *charm.Client, id int, t DocType) tea.Cmd {
 	return func() tea.Msg {
 		var (
 			md  *charm.Markdown
 			err error
 		)
 
-		if t == StashedDocument || t == ConvertedDocument {
+		if t == StashedDoc || t == ConvertedDoc {
 			md, err = cc.GetStashMarkdown(id)
 		} else {
 			md, err = cc.GetNewsMarkdown(id)
@@ -1191,7 +1193,7 @@ func loadRemoteMarkdown(cc *charm.Client, id int, t DocumentType) tea.Cmd {
 
 func loadLocalMarkdown(md *markdown) tea.Cmd {
 	return func() tea.Msg {
-		if md.markdownType != LocalDocument {
+		if md.markdownType != LocalDoc {
 			return errMsg{errors.New("could not load local file: not a local file")}
 		}
 		if md.localPath == "" {
@@ -1256,11 +1258,11 @@ func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error
 
 	for i, v := range markdowns {
 		switch target.markdownType {
-		case LocalDocument, ConvertedDocument:
+		case LocalDoc, ConvertedDoc:
 			if v.localPath == target.localPath {
 				index = i
 			}
-		case StashedDocument, NewsDocument:
+		case StashedDoc, NewsDoc:
 			if v.ID == target.ID {
 				index = i
 			}
