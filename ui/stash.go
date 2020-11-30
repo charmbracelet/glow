@@ -662,7 +662,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 		// Show news
 		case "n":
-			if !m.online() {
+			if !m.online() || m.isFiltering() {
 				// If we're offline disable the news section
 				return nil
 			}
@@ -1109,12 +1109,33 @@ func (m stashModel) populatedView() string {
 }
 
 func (m stashModel) helpView() (string, int) {
+	numDocs := len(m.getVisibleMarkdowns())
+
+	if m.filterState == filtering {
+		var h []string
+
+		switch numDocs {
+		case 0:
+			h = []string{"enter/esc", "cancel"}
+		case 1:
+			h = []string{"enter", "open", "esc", "cancel"}
+		default:
+			h = []string{"enter", "confirm", "esc", "cancel", "ctrl+j/ctrl+k ↑/↓", "choose"}
+		}
+
+		if m.showFullHelp {
+			s := m.fullHelpView(h)
+			l := strings.Count(s, "\n") + 1
+			return s, l
+		}
+		return m.miniHelpView(h...), 1
+	}
+
 	var (
 		s                  string
 		isStashed, isLocal bool
-		numDocs            = len(m.getVisibleMarkdowns())
 
-		always, navHelp, filterHelp, selectionHelp, sectionHelp, appHelp []string
+		navHelp, filterHelp, selectionHelp, sectionHelp, appHelp []string
 	)
 
 	if numDocs > 0 {
@@ -1129,12 +1150,6 @@ func (m stashModel) helpView() (string, int) {
 	} else if m.selectionState == selectionPromptingDelete {
 		selectionHelp = append(selectionHelp, "y", "delete", "n", "cancel")
 		appHelp = append(appHelp, "q", "quit")
-	} else if m.filterState == filtering && numDocs == 1 {
-		navHelp = append(navHelp, "enter", "open", "esc", "cancel")
-	} else if m.filterState == filtering && numDocs == 0 {
-		always = append(always, "enter/esc", "cancel")
-	} else if m.filterState == filtering {
-		always = append(always, "enter", "confirm", "esc", "cancel", "ctrl+j/ctrl+k ↑/↓", "choose")
 	} else {
 		if numDocs > 0 {
 			navHelp = append(navHelp, "enter", "open", "j/k ↑/↓", "choose")
@@ -1169,13 +1184,12 @@ func (m stashModel) helpView() (string, int) {
 		if m.filterState != filtering {
 			appHelp = append(appHelp, "?", "close help")
 		}
-		s = m.fullHelpView(always, navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
+		s = m.fullHelpView(navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
 	} else {
 		if m.filterState != filtering {
 			appHelp = append(appHelp, "?", "help")
 		}
 		s = m.miniHelpView(concatStringSlices(
-			always,
 			filterHelp,
 			selectionHelp,
 			sectionHelp,
