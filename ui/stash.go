@@ -24,7 +24,7 @@ const (
 	stashIndent                = 1
 	stashViewItemHeight        = 3
 	stashViewTopPadding        = 5
-	stashViewBottomPadding     = 4
+	stashViewBottomPadding     = 3
 	stashViewHorizontalPadding = 6
 )
 
@@ -93,6 +93,7 @@ type stashModel struct {
 	viewState          stashViewState
 	filterState        filterState
 	selectionState     selectionState
+	showFullHelp       bool
 
 	// The types of documents we are showing
 	docState stashDocState
@@ -188,7 +189,13 @@ func (m stashModel) shouldUpdateFilter() bool {
 // Sets the total paginator pages according to the amount of markdowns for the
 // current state.
 func (m *stashModel) setTotalPages() {
-	m.paginator.PerPage = max(1, (m.general.height-stashViewTopPadding-stashViewBottomPadding)/stashViewItemHeight)
+	_, helpHeight := m.helpView()
+
+	availableHeight := m.general.height -
+		stashViewTopPadding -
+		stashViewBottomPadding -
+		helpHeight
+	m.paginator.PerPage = max(1, availableHeight/stashViewItemHeight)
 
 	if pages := len(m.getVisibleMarkdowns()); pages < 1 {
 		m.paginator.SetTotalPages(1)
@@ -719,6 +726,10 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				m.selectionState = selectionPromptingDelete
 			}
 
+		// Toggle full help
+		case "?":
+			m.showFullHelp = !m.showFullHelp
+
 		// Show errors
 		case "!":
 			if m.err != nil && m.viewState == stashStateReady {
@@ -923,9 +934,11 @@ func (m stashModel) view() string {
 			loadingIndicator = m.spinner.View()
 		}
 
+		help, helpHeight := m.helpView()
+
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
-		numBlankLines := max(0, (m.general.height-stashViewTopPadding-stashViewBottomPadding)%stashViewItemHeight)
+		numBlankLines := max(0, (m.general.height-stashViewTopPadding-stashViewBottomPadding-helpHeight)%stashViewItemHeight)
 		blankLines := ""
 		if numBlankLines > 0 {
 			blankLines = strings.Repeat("\n", numBlankLines)
@@ -982,7 +995,7 @@ func (m stashModel) view() string {
 			m.populatedView(),
 			blankLines,
 			pagination,
-			m.miniHelpView(),
+			help,
 		)
 	}
 	return "\n" + indent(s, stashIndent)
@@ -1089,6 +1102,17 @@ func (m stashModel) populatedView() string {
 	return b.String()
 }
 
+func (m stashModel) helpView() (string, int) {
+	var s string
+	if m.showFullHelp {
+		s = m.fullHelpView()
+	} else {
+		s = m.miniHelpView()
+	}
+
+	return s, strings.Count(s, "\n")
+}
+
 func (m stashModel) miniHelpView() string {
 	var (
 		h         []string
@@ -1104,48 +1128,55 @@ func (m stashModel) miniHelpView() string {
 	}
 
 	if m.selectionState == selectionSettingNote {
-		h = append(h, "enter: confirm", "esc: cancel")
+		h = append(h, "enter", "confirm", "esc", "cancel")
 	} else if m.selectionState == selectionPromptingDelete {
-		h = append(h, "y: delete", "n: cancel")
+		h = append(h, "y", "delete", "n", "cancel")
 	} else if m.filterState == filtering && numDocs == 1 {
-		h = append(h, "enter: open", "esc: cancel")
+		h = append(h, "enter", "open", "esc", "cancel")
 	} else if m.filterState == filtering && numDocs == 0 {
 		h = append(h, "enter/esc: cancel")
 	} else if m.filterState == filtering {
-		h = append(h, "enter: confirm", "esc: cancel", "ctrl+j/ctrl+k, ↑/↓: choose")
+		h = append(h, "enter", "confirm", "esc", "cancel", "ctrl+j/ctrl+k, ↑/↓", "choose")
+		h = append(h, "?", "help")
 	} else if m.docState == stashShowNewsDocs {
-		h = append(h, "enter: open", "esc: return", "j/k, ↑/↓: choose", "q: quit")
+		h = append(h, "enter", "open", "esc", "return", "j/k, ↑/↓", "choose", "q", "quit")
+		h = append(h, "?", "help")
 	} else {
 		if len(m.markdowns) > 0 {
-			h = append(h, "enter: open")
+			h = append(h, "enter", "open")
 		}
 		if m.filterState == filterApplied {
-			h = append(h, "esc: clear filter")
+			h = append(h, "esc", "clear filter")
 		}
 		if len(m.markdowns) > 1 {
-			h = append(h, "j/k, ↑/↓: choose")
+			h = append(h, "j/k, ↑/↓", "choose")
 		}
 		if m.paginator.TotalPages > 1 {
-			h = append(h, "h/l, ←/→: page")
+			h = append(h, "h/l, ←/→", "page")
 		}
 		if isStashed {
 			h = append(h, "x: delete", "m: set memo")
 		} else if isLocal && m.general.authStatus == authOK {
-			h = append(h, "s: stash")
+			h = append(h, "s", "stash")
 		}
 		if m.err != nil {
-			h = append(h, "!: errors")
+			h = append(h, "!", "errors")
 		}
-		h = append(h, "/: filter")
-		h = append(h, "q: quit")
+		h = append(h, "/", "filter")
+		h = append(h, "q", "quit")
+		h = append(h, "?", "help")
 	}
 	return stashMiniHelpViewBuilder(m.general.width, h...)
 }
 
-// builds the help view from various sections pieces, truncating it if the view
-// would otherwise wrap to two lines.
-func stashMiniHelpViewBuilder(windowWidth int, sections ...string) string {
-	if len(sections) == 0 {
+// Builds the help view from various sections pieces, truncating it if the view
+// would otherwise wrap to two lines. Help view entires should come in as pairs,
+// with the first being the key and the second being the help text.
+func stashMiniHelpViewBuilder(windowWidth int, entries ...string) string {
+	if len(entries)%2 != 0 {
+		panic("mini help view entires must be set in pairs")
+	}
+	if len(entries) == 0 {
 		return ""
 	}
 
@@ -1157,17 +1188,19 @@ func stashMiniHelpViewBuilder(windowWidth int, sections ...string) string {
 		maxWidth = windowWidth - stashViewHorizontalPadding - truncationWidth
 	)
 
-	for i := 0; i < len(sections); i++ {
+	for i := 0; i < len(entries); i = i + 2 {
+		next = fmt.Sprintf("%s: %s", entries[i], entries[i+1])
+
 		// If we need this more often we'll formalize something rather than
 		// use an if clause/switch here.
-		switch sections[i] {
-		case "s: stash":
-			next = greenFg(sections[i])
+		switch entries[i+1] {
+		case "stash":
+			next = greenFg(next)
 		default:
-			next = stashHelpItemStyle(sections[i])
+			next = stashHelpItemStyle(next)
 		}
 
-		if i < len(sections)-1 {
+		if i < len(entries)-1 {
 			next += dividerDot
 		}
 
@@ -1181,6 +1214,10 @@ func stashMiniHelpViewBuilder(windowWidth int, sections ...string) string {
 		s += next
 	}
 	return s
+}
+
+func (m stashModel) fullHelpView() string {
+	return ""
 }
 
 // COMMANDS
