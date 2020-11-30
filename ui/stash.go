@@ -22,9 +22,9 @@ import (
 
 const (
 	stashIndent                = 1
-	stashViewItemHeight        = 3
-	stashViewTopPadding        = 5
-	stashViewBottomPadding     = 3
+	stashViewItemHeight        = 3 // height of stash entry, including gap
+	stashViewTopPadding        = 5 // logo, status bar, gaps
+	stashViewBottomPadding     = 3 // pagination and gaps, but not help
 	stashViewHorizontalPadding = 6
 )
 
@@ -161,7 +161,7 @@ func (m *stashModel) setSize(width, height int) {
 
 	// Update the paginator
 	m.setTotalPages()
-
+	// height of stash entry, including gap
 	m.noteInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.noteInput.Prompt)
 	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.filterInput.Prompt)
 }
@@ -193,8 +193,9 @@ func (m *stashModel) setTotalPages() {
 
 	availableHeight := m.general.height -
 		stashViewTopPadding -
-		stashViewBottomPadding -
-		helpHeight
+		helpHeight -
+		stashViewBottomPadding
+
 	m.paginator.PerPage = max(1, availableHeight/stashViewItemHeight)
 
 	if pages := len(m.getVisibleMarkdowns()); pages < 1 {
@@ -729,6 +730,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		// Toggle full help
 		case "?":
 			m.showFullHelp = !m.showFullHelp
+			m.setTotalPages()
 
 		// Show errors
 		case "!":
@@ -938,7 +940,11 @@ func (m stashModel) view() string {
 
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
-		numBlankLines := max(0, (m.general.height-stashViewTopPadding-stashViewBottomPadding-helpHeight)%stashViewItemHeight)
+		availHeight := m.general.height -
+			stashViewTopPadding -
+			helpHeight -
+			stashViewBottomPadding
+		numBlankLines := max(0, availHeight%stashViewItemHeight)
 		blankLines := ""
 		if numBlankLines > 0 {
 			blankLines = strings.Repeat("\n", numBlankLines)
@@ -988,7 +994,7 @@ func (m stashModel) view() string {
 		}
 
 		s += fmt.Sprintf(
-			"%s %s\n\n  %s\n\n%s\n\n%s  %s\n\n  %s",
+			"%s %s\n\n  %s\n\n%s\n\n%s  %s\n\n%s",
 			loadingIndicator,
 			logoOrFilter,
 			header,
@@ -1103,22 +1109,12 @@ func (m stashModel) populatedView() string {
 }
 
 func (m stashModel) helpView() (string, int) {
-	var s string
-	if m.showFullHelp {
-		s = m.fullHelpView()
-	} else {
-		s = m.miniHelpView()
-	}
-
-	return s, strings.Count(s, "\n")
-}
-
-func (m stashModel) miniHelpView() string {
 	var (
-		h         []string
-		isStashed bool
-		isLocal   bool
-		numDocs   = len(m.getVisibleMarkdowns())
+		s                  string
+		isStashed, isLocal bool
+		numDocs            = len(m.getVisibleMarkdowns())
+
+		always, navHelp, filterHelp, selectionHelp, sectionHelp, appHelp []string
 	)
 
 	if numDocs > 0 {
@@ -1128,54 +1124,72 @@ func (m stashModel) miniHelpView() string {
 	}
 
 	if m.selectionState == selectionSettingNote {
-		h = append(h, "enter", "confirm", "esc", "cancel")
+		navHelp = append(navHelp, "enter", "confirm", "esc", "cancel")
+		appHelp = append(appHelp, "q", "quit")
 	} else if m.selectionState == selectionPromptingDelete {
-		h = append(h, "y", "delete", "n", "cancel")
+		selectionHelp = append(selectionHelp, "y", "delete", "n", "cancel")
+		appHelp = append(appHelp, "q", "quit")
 	} else if m.filterState == filtering && numDocs == 1 {
-		h = append(h, "enter", "open", "esc", "cancel")
+		navHelp = append(navHelp, "enter", "open", "esc", "cancel")
 	} else if m.filterState == filtering && numDocs == 0 {
-		h = append(h, "enter/esc: cancel")
+		always = append(always, "enter/esc", "cancel")
 	} else if m.filterState == filtering {
-		h = append(h, "enter", "confirm", "esc", "cancel", "ctrl+j/ctrl+k, ↑/↓", "choose")
-		h = append(h, "?", "help")
-	} else if m.docState == stashShowNewsDocs {
-		h = append(h, "enter", "open", "esc", "return", "j/k, ↑/↓", "choose", "q", "quit")
-		h = append(h, "?", "help")
+		always = append(always, "enter", "confirm", "esc", "cancel", "ctrl+j/ctrl+k ↑/↓", "choose")
 	} else {
-		if len(m.markdowns) > 0 {
-			h = append(h, "enter", "open")
-		}
-		if m.filterState == filterApplied {
-			h = append(h, "esc", "clear filter")
-		}
-		if len(m.markdowns) > 1 {
-			h = append(h, "j/k, ↑/↓", "choose")
+		if numDocs > 0 {
+			navHelp = append(navHelp, "enter", "open", "j/k ↑/↓", "choose")
 		}
 		if m.paginator.TotalPages > 1 {
-			h = append(h, "h/l, ←/→", "page")
+			navHelp = append(navHelp, "h/l ←/→", "page")
+		}
+		if m.filterState == filterApplied {
+			filterHelp = append(filterHelp, "/", "edit filter", "esc", "clear filter")
+		} else {
+			filterHelp = append(filterHelp, "/", "filter")
 		}
 		if isStashed {
-			h = append(h, "x: delete", "m: set memo")
-		} else if isLocal && m.general.authStatus == authOK {
-			h = append(h, "s", "stash")
+			selectionHelp = append(selectionHelp, "x", "delete", "m", "set memo")
+		} else if isLocal && m.online() {
+			selectionHelp = append(selectionHelp, "s", "stash")
+		}
+		if !m.isFiltering() {
+			if m.docState == stashShowNewsDocs {
+				sectionHelp = append(sectionHelp, "n", "home")
+			} else {
+				sectionHelp = append(sectionHelp, "n", "news")
+			}
 		}
 		if m.err != nil {
-			h = append(h, "!", "errors")
+			appHelp = append(appHelp, "!", "errors")
 		}
-		h = append(h, "/", "filter")
-		h = append(h, "q", "quit")
-		h = append(h, "?", "help")
+		appHelp = append(appHelp, "q", "quit")
 	}
-	return stashMiniHelpViewBuilder(m.general.width, h...)
+
+	if m.showFullHelp {
+		if m.filterState != filtering {
+			appHelp = append(appHelp, "?", "close help")
+		}
+		s = m.fullHelpView(always, navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
+	} else {
+		if m.filterState != filtering {
+			appHelp = append(appHelp, "?", "help")
+		}
+		s = m.miniHelpView(concatStringSlices(
+			always,
+			filterHelp,
+			selectionHelp,
+			sectionHelp,
+			appHelp,
+		)...)
+	}
+
+	return s, strings.Count(s, "\n") + 1
 }
 
 // Builds the help view from various sections pieces, truncating it if the view
 // would otherwise wrap to two lines. Help view entires should come in as pairs,
 // with the first being the key and the second being the help text.
-func stashMiniHelpViewBuilder(windowWidth int, entries ...string) string {
-	if len(entries)%2 != 0 {
-		panic("mini help view entires must be set in pairs")
-	}
+func (m stashModel) miniHelpView(entries ...string) string {
 	if len(entries) == 0 {
 		return ""
 	}
@@ -1183,9 +1197,13 @@ func stashMiniHelpViewBuilder(windowWidth int, entries ...string) string {
 	const truncationWidth = 1 // width of "…"
 
 	var (
-		s        string
-		next     string
-		maxWidth = windowWidth - stashViewHorizontalPadding - truncationWidth
+		next       string
+		leftGutter = "  "
+		maxWidth   = m.general.width -
+			stashViewHorizontalPadding -
+			truncationWidth -
+			ansi.PrintableRuneWidth(leftGutter)
+		s = leftGutter
 	)
 
 	for i := 0; i < len(entries); i = i + 2 {
@@ -1200,7 +1218,7 @@ func stashMiniHelpViewBuilder(windowWidth int, entries ...string) string {
 			next = stashHelpItemStyle(next)
 		}
 
-		if i < len(entries)-1 {
+		if i < len(entries)-2 {
 			next += dividerDot
 		}
 
@@ -1216,8 +1234,146 @@ func stashMiniHelpViewBuilder(windowWidth int, entries ...string) string {
 	return s
 }
 
-func (m stashModel) fullHelpView() string {
-	return ""
+func (m stashModel) fullHelpView(cols ...[]string) string {
+	var (
+		// Keys and values grouped by column
+		keys [][]string
+		vals [][]string
+
+		longestCol int
+
+		// Final rows grouped by column
+		assembledCols [][]string
+	)
+
+	// Get key/value pairs
+	for _, col := range cols {
+		if len(col) == 0 {
+			continue // ignore empty columns
+		}
+
+		ks, vs := parseHelpTextPairs(col)
+		keys = append(keys, ks)
+		vals = append(vals, vs)
+	}
+
+	// Find the longest column
+	for _, ks := range keys {
+		if len(ks) > longestCol {
+			longestCol = len(ks)
+		}
+	}
+
+	// Build columns
+	for i := range keys {
+		rows := buildHelpTextColumn(keys[i], vals[i], longestCol)
+		assembledCols = append(assembledCols, rows)
+	}
+
+	// Merge columns
+	return mergeStashHelpColumns(assembledCols...)
+}
+
+// Separate a slice into keys and values. This will panic if it's passed an odd
+// number of arguments.
+func parseHelpTextPairs(pairs []string) (keys []string, vals []string) {
+	if len(pairs)%2 != 0 {
+		panic("help text group must have an even number of items")
+	}
+
+	for i := 0; i < len(pairs); i = i + 2 {
+		keys = append(keys, pairs[i])
+		vals = append(vals, pairs[i+1])
+	}
+
+	return
+}
+
+// Build rows from keys and values.
+func buildHelpTextColumn(keys, vals []string, colHeight int) (rows []string) {
+	if len(keys) != len(vals) {
+		panic("help text column keys and vals must be of equal lengths")
+	}
+
+	keyWidth := widestString(keys...)
+	valWidth := widestString(vals...)
+
+	for i := 0; i < colHeight; i++ {
+		var (
+			b    = strings.Builder{}
+			k, v string
+		)
+		if i < len(keys) {
+			k = keys[i]
+		}
+		if i < len(vals) {
+			v = vals[i]
+		}
+		b.WriteString(k)
+		b.WriteString(strings.Repeat(" ", keyWidth-ansi.PrintableRuneWidth(k))) // pad keys
+		b.WriteString("  ")                                                     // gap
+		b.WriteString(v)
+		b.WriteString(strings.Repeat(" ", valWidth-ansi.PrintableRuneWidth(v))) // pad vals
+		rows = append(rows, b.String())
+	}
+
+	return
+}
+
+// Merge columns together to build the help view.
+func mergeStashHelpColumns(cols ...[]string) string {
+	const minimumHeight = 3
+
+	var longestCol int
+	for _, v := range cols {
+		n := len(v)
+		if n > longestCol {
+			longestCol = n
+		}
+	}
+
+	if longestCol < minimumHeight {
+		longestCol = minimumHeight
+	}
+
+	b := strings.Builder{}
+	for i := 0; i < longestCol; i++ {
+		for j, col := range cols {
+			if i >= len(col) {
+				// Skip if we're past the length of this column
+				continue
+			}
+			if j == 0 {
+				b.WriteString("  ") // gutter
+			} else if j > 0 {
+				b.WriteString("    ") // gap
+			}
+			b.WriteString(col[i])
+		}
+		if i < longestCol-1 {
+			b.WriteRune('\n')
+		}
+	}
+
+	return b.String()
+}
+
+func concatStringSlices(s ...[]string) (agg []string) {
+	for _, v := range s {
+		agg = append(agg, v...)
+	}
+	return
+}
+
+// Return the cell width of the widest of the given strings.
+func widestString(s ...string) (max int) {
+	for _, v := range s {
+		n := ansi.PrintableRuneWidth(v)
+		if n > max {
+			max = n
+		}
+	}
+	return
 }
 
 // COMMANDS
