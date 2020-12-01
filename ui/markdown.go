@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/charm"
 	"github.com/dustin/go-humanize"
+	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 )
@@ -85,17 +86,12 @@ func (m markdown) relativeTime() string {
 }
 
 // Normalize text to aid in the filtering process. In particular, we remove
-// diacritics, "ö" becomes "o".
+// diacritics, "ö" becomes "o". Note that Mn is the unicode key for nonspacing
+// marks.
 func normalize(in string) (string, error) {
-	t := transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	out, _, err := transform.String(t, in)
 	return out, err
-}
-
-// Returns whether a given rune is a nonspacing mark (Mn is the key for
-// nonspacing marks)
-func isMn(r rune) bool {
-	return unicode.Is(unicode.Mn, r)
 }
 
 // wrapMarkdowns wraps a *charm.Markdown with a *markdown in order to add some
