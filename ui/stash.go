@@ -29,10 +29,9 @@ const (
 )
 
 var (
-	stashHelpItemStyle        styleFunc = newFgStyle(common.NewColorPair("#5C5C5C", "#9B9B9B"))
 	stashTextInputPromptStyle styleFunc = newFgStyle(common.YellowGreen)
-	dividerDot                string    = te.String(" • ").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
-	offlineHeaderNote         string    = te.String("(Offline)").Foreground(common.NewColorPair("#3C3C3C", "#DDDADA").Color()).String()
+	dividerDot                string    = darkGrayFg(" • ")
+	offlineHeaderNote         string    = darkGrayFg("(Offline)")
 )
 
 // MSG
@@ -403,7 +402,8 @@ func newStashModel(general *general) stashModel {
 
 	p := paginator.NewModel()
 	p.Type = paginator.Dots
-	p.InactiveDot = common.Subtle("•")
+	p.ActiveDot = brightGrayFg("•")
+	p.InactiveDot = darkGrayFg("•")
 
 	ni := textinput.NewModel()
 	ni.Prompt = stashTextInputPromptStyle("Memo: ")
@@ -1181,13 +1181,13 @@ func (m stashModel) helpView() (string, int) {
 	}
 
 	if m.showFullHelp {
-		if m.filterState != filtering {
+		if m.filterState != filtering && m.selectionState == selectionIdle {
 			appHelp = append(appHelp, "?", "close help")
 		}
 		s = m.fullHelpView(navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
 	} else {
-		if m.filterState != filtering {
-			appHelp = append(appHelp, "?", "help")
+		if m.filterState != filtering && m.selectionState == selectionIdle {
+			appHelp = append(appHelp, "?", "more")
 		}
 		s = m.miniHelpView(concatStringSlices(
 			filterHelp,
@@ -1221,16 +1221,19 @@ func (m stashModel) miniHelpView(entries ...string) string {
 	)
 
 	for i := 0; i < len(entries); i = i + 2 {
-		next = fmt.Sprintf("%s: %s", entries[i], entries[i+1])
+		k := entries[i]
+		v := entries[i+1]
 
-		// If we need this more often we'll formalize something rather than
-		// use an if clause/switch here.
-		switch entries[i+1] {
-		case "stash":
-			next = greenFg(next)
+		switch k {
+		case "s":
+			k = greenFg(k)
+			v = dimGreenFg(v)
 		default:
-			next = stashHelpItemStyle(next)
+			k = grayFg(k)
+			v = midGrayFg(v)
 		}
+
+		next = fmt.Sprintf("%s %s", k, v)
 
 		if i < len(entries)-2 {
 			next += dividerDot
@@ -1322,6 +1325,14 @@ func buildHelpTextColumn(keys, vals []string, colHeight int) (rows []string) {
 		}
 		if i < len(vals) {
 			v = vals[i]
+		}
+		switch k {
+		case "s":
+			k = greenFg(k)
+			v = dimGreenFg(v)
+		default:
+			k = grayFg(k)
+			v = midGrayFg(v)
 		}
 		b.WriteString(k)
 		b.WriteString(strings.Repeat(" ", keyWidth-ansi.PrintableRuneWidth(k))) // pad keys

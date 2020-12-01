@@ -94,24 +94,24 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		} else if isFiltering && m.filterInput.Value() == "" {
 			icon = dimGreenFg(icon)
 			if title == noMemoTitle {
-				title = dimWarmGrayFg(title)
+				title = dimBrightGrayFg(title)
 			} else {
 				title = dimNormalFg(title)
 			}
 			gutter = " "
-			date = dimWarmGrayFg(date)
+			date = dimBrightGrayFg(date)
 
 		} else {
 
 			icon = greenFg(icon)
 			if title == noMemoTitle {
-				title = warmGrayFg(title)
+				title = brightGrayFg(title)
 			} else {
 				s := termenv.Style{}.Foreground(common.NewColorPair("#dddddd", "#1a1a1a").Color())
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 			}
 			gutter = " "
-			date = warmGrayFg(date)
+			date = brightGrayFg(date)
 		}
 
 	}
