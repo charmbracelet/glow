@@ -69,7 +69,7 @@ func (d DocTypeSet) AsSlice() (agg []DocType) {
 	return
 }
 
-// Return a copy of the given DocumentTypes map.
+// Return a copy of the given DoctTypes map.
 func copyDocumentTypes(d DocTypeSet) DocTypeSet {
 	c := make(map[DocType]struct{})
 	for k, v := range d {
