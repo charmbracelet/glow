@@ -146,7 +146,7 @@ func (m stashModel) helpView() (string, int) {
 	}
 
 	// If there's no filtering happening
-	if !m.isFiltering() {
+	if !m.isFiltering() && m.online() {
 		if m.docState == stashShowNewsDocs {
 			sectionHelp = []string{"n", "home"}
 		} else {
