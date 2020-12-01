@@ -100,9 +100,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			}
 			gutter = " "
 			date = dimBrightGrayFg(date)
-
 		} else {
-
 			icon = greenFg(icon)
 			if title == noMemoTitle {
 				title = brightGrayFg(title)
@@ -113,7 +111,6 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			gutter = " "
 			date = brightGrayFg(date)
 		}
-
 	}
 
 	fmt.Fprintf(b, "%s %s%s\n", gutter, icon, title)

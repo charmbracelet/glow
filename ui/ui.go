@@ -135,7 +135,7 @@ const (
 	keygenFinished
 )
 
-// General stuff we'll need to access in all models
+// General stuff we'll need to access in all models.
 type general struct {
 	cfg        Config
 	cc         *charm.Client

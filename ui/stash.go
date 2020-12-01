@@ -237,7 +237,7 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	}
 }
 
-// Find a local markdown by its path and replace it
+// Find a local markdown by its path and replace it.
 func (m *stashModel) replaceLocalMarkdown(localPath string, newMarkdown *markdown) error {
 	var found bool
 
@@ -576,7 +576,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// Updates for when a user is browsing the markdown listing
+// Updates for when a user is browsing the markdown listing.
 func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 
@@ -780,7 +780,6 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
-
 		// Confirm deletion
 		case "y":
 			if m.selectionState != selectionPromptingDelete {
@@ -818,14 +817,13 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 		default:
 			// Any other keys cancels deletion
 			m.selectionState = selectionIdle
-
 		}
 	}
 
 	return nil
 }
 
-// Updates for when a user is in the filter editing interface
+// Updates for when a user is in the filter editing interface.
 func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 
@@ -1032,9 +1030,8 @@ func (m stashModel) headerView() string {
 	if loading && noMarkdowns {
 		if m.stashedOnly() {
 			return common.Subtle("Loading your stash...")
-		} else {
-			return common.Subtle("Looking for stuff...") + maybeOffline
 		}
+		return common.Subtle("Looking for stuff...") + maybeOffline
 	}
 
 	localItems := m.countMarkdowns(LocalDoc)
@@ -1491,7 +1488,7 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 
 // ETC
 
-// Delete a markdown from a slice of markdowns
+// Delete a markdown from a slice of markdowns.
 func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error) {
 	index := -1
 

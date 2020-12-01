@@ -35,7 +35,7 @@ var (
 	statusBarNoteFg = common.NewColorPair("#7D7D7D", "#656565")
 	statusBarBg     = common.NewColorPair("#242424", "#E6E6E6")
 
-	// Styling funcs
+	// Styling funcs.
 	statusBarScrollPosStyle        = newStyle(common.NewColorPair("#5A5A5A", "#949494"), statusBarBg, false)
 	statusBarNoteStyle             = newStyle(statusBarNoteFg, statusBarBg, false)
 	statusBarHelpStyle             = newStyle(statusBarNoteFg, common.NewColorPair("#323232", "#DCDCDC"), false)
