@@ -15,14 +15,15 @@ var (
 	normalFg    = newFgStyle(common.NewColorPair("#dddddd", "#1a1a1a"))
 	dimNormalFg = newFgStyle(common.NewColorPair("#777777", "#A49FA5"))
 
-	warmGrayFg    = newFgStyle(common.NewColorPair("#979797", "#847A85"))
-	dimWarmGrayFg = newFgStyle(common.NewColorPair("#4D4D4D", "#C2B8C2"))
+	brightGrayFg    = newFgStyle(common.NewColorPair("#979797", "#847A85"))
+	dimBrightGrayFg = newFgStyle(common.NewColorPair("#4D4D4D", "#C2B8C2"))
 
-	grayFg    = newFgStyle(common.NewColorPair("#626262", "#000"))
-	dimGrayFg = newFgStyle(common.NewColorPair("#3F3F3F", "#000"))
+	grayFg     = newFgStyle(common.NewColorPair("#626262", "#909090"))
+	midGrayFg  = newFgStyle(common.NewColorPair("#434343", "#BCBCBC"))
+	darkGrayFg = newFgStyle(common.NewColorPair("#3C3C3C", "#DDDADA"))
 
 	greenFg    = newFgStyle(common.NewColorPair("#04B575", "#04B575"))
-	dimGreenFg = newFgStyle(common.NewColorPair("#0B5137", "#82E1BF"))
+	dimGreenFg = newFgStyle(common.NewColorPair("#0B5137", "#72D2B0"))
 
 	fuchsiaFg    = newFgStyle(common.Fuschia)
 	dimFuchsiaFg = newFgStyle(common.NewColorPair("#99519E", "#F1A8FF"))
