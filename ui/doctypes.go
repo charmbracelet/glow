@@ -31,7 +31,7 @@ func (d *DocTypeSet) Add(t ...DocType) int {
 	return len(*d)
 }
 
-// Had returns whether or not the set contains the given DocTypes.
+// Contains returns whether or not the set contains the given DocTypes.
 func (d DocTypeSet) Contains(m ...DocType) bool {
 	matches := 0
 	for _, t := range m {

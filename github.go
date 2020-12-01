@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// isGitHubURL tests a string to determine if it is a well-structured GitHub URL
+// isGitHubURL tests a string to determine if it is a well-structured GitHub URL.
 func isGitHubURL(s string) (string, bool) {
 	if strings.HasPrefix(s, "github.com/") {
 		s = "https://" + s
@@ -21,7 +21,7 @@ func isGitHubURL(s string) (string, bool) {
 	return u.String(), strings.ToLower(u.Host) == "github.com"
 }
 
-// findGitHubREADME tries to find the correct README filename in a repository
+// findGitHubREADME tries to find the correct README filename in a repository.
 func findGitHubREADME(s string) (*source, error) {
 	u, err := url.ParseRequestURI(s)
 	if err != nil {
