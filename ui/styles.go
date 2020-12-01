@@ -41,12 +41,6 @@ var (
 	dullYellowFg = newFgStyle(common.NewColorPair("#9BA92F", "#6BCB94")) // renders light green on light backgrounds
 	redFg        = newFgStyle(common.Red)
 	faintRedFg   = newFgStyle(common.FaintRed)
-
-	newsTitleStyle = newStyle(
-		common.NewColorPair(common.Indigo.String(), common.Cream.String()),
-		common.NewColorPair(common.Cream.String(), common.Indigo.String()),
-		true,
-	)
 )
 
 // Returns a termenv style with foreground and background options.
