@@ -972,7 +972,7 @@ func (m stashModel) view() string {
 		if m.isFiltering() {
 			logoOrFilter = m.filterInput.View()
 		} else if m.docState == stashShowNewsDocs {
-			logoOrFilter += newsTitleStyle(" News ") + " " + newsIcon
+			logoOrFilter += normalFg(" News ")
 		}
 
 		var pagination string
