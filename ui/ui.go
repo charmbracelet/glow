@@ -557,6 +557,9 @@ func loadStash(m stashModel) tea.Cmd {
 			}
 			return stashLoadErrMsg{err}
 		}
+		if debug {
+			log.Println("loaded stash page", m.page)
+		}
 		return gotStashMsg(stash)
 	}
 }
@@ -576,6 +579,9 @@ func loadNews(m stashModel) tea.Cmd {
 				log.Println("error loading news:", err)
 			}
 			return newsLoadErrMsg{err}
+		}
+		if debug {
+			log.Println("fetched news")
 		}
 		return gotNewsMsg(news)
 	}
