@@ -19,7 +19,7 @@ var (
 	dimBrightGrayFg = newFgStyle(common.NewColorPair("#4D4D4D", "#C2B8C2"))
 
 	grayFg     = newFgStyle(common.NewColorPair("#626262", "#909090"))
-	midGrayFg  = newFgStyle(common.NewColorPair("#434343", "#BCBCBC"))
+	midGrayFg  = newFgStyle(common.NewColorPair("#4A4A4A", "#B2B2B2"))
 	darkGrayFg = newFgStyle(common.NewColorPair("#3C3C3C", "#DDDADA"))
 
 	greenFg    = newFgStyle(common.NewColorPair("#04B575", "#04B575"))
