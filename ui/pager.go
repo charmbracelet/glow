@@ -6,6 +6,9 @@ import (
 	"math"
 	"strings"
 	"time"
+	"os"
+	"os/exec"
+	"io/ioutil"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -199,6 +202,92 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 		default:
 			switch msg.String() {
+			case "e":
+				// First, determine if we can find an editor
+				editor_path, err := getEditor()
+
+				if err != nil {
+					cmd := m.showStatusMessage("No editor found!")
+					cmds = append(cmds, cmd)
+					break
+				}
+
+				// Determine if the current file is stashed or not
+				isStashed := m.currentDocument.markdownType == stashedMarkdown ||
+					m.currentDocument.markdownType == convertedMarkdown
+				
+				// Copy the contents of the document to a temporary file
+				tempFile, err := ioutil.TempFile("", "glow-edit")
+				if err != nil {
+					cmd := m.showStatusMessage("Error creating temporary file!")
+					cmds = append(cmds, cmd)
+				} else {
+					// Ensure the temporary file gets deleted
+					defer os.Remove(tempFile.Name())
+				}
+				tempFile.WriteString(m.currentDocument.Body)
+				tempFile.Close()
+
+				// Use our editor to edit the temporary file
+				cmd := exec.Command(editor_path, tempFile.Name())
+				cmd.Stdin = os.Stdin
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				err = cmd.Start()
+				if err != nil {
+					log.Println(err)
+				}
+				err = cmd.Wait()
+				if err != nil {
+					log.Println(err)
+				}
+
+				// Get the contents of the edited file
+				b, err := ioutil.ReadFile(tempFile.Name())
+				if err != nil {
+					log.Println(err)
+					break
+				}
+				editString := string(b)
+				
+				// If no edits were made, do nothing
+				if editString == m.currentDocument.Body {
+					cmd := m.showStatusMessage("No changes made!")
+					cmds = append(cmds, cmd)
+				} else {
+					// Add our edits to the current view
+					m.currentDocument.Body = editString
+					
+					// Re-render current doc
+					cmd := renderWithGlamour(m, m.currentDocument.Body)
+					cmds = append(cmds, cmd)
+
+					// Make our edits permanent remotely/locally
+					if isStashed {
+						// This method is preferable, pending a PR for charm
+						//err := m.general.cc.SetMarkdownBody(m.currentDocument.ID, editString)
+
+						// Create a new stash
+						_, err := m.general.cc.StashMarkdown(m.currentDocument.Note, editString)
+
+						if err != nil {
+							cmd := m.showStatusMessage("Couldn't update stash!")
+							cmds = append(cmds, cmd)
+						} else {
+							// Delete the current stash
+							m.general.cc.DeleteMarkdown(m.currentDocument.ID)
+							cmd := m.showStatusMessage("Updated stash!")
+							cmds = append(cmds, cmd)
+						}
+					} else {
+						err := ioutil.WriteFile(m.currentDocument.localPath, []byte(editString), 0777)
+						if err != nil {
+							cmd := m.showStatusMessage("Couldn't update local file!")
+							cmds = append(cmds, cmd)
+							log.Println(err)
+						}
+					}
+				}
 			case "q", "esc":
 				if m.state != pagerStateBrowse {
 					m.state = pagerStateBrowse
@@ -447,7 +536,7 @@ func (m pagerModel) helpView() (s string) {
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
-		"",
+		"e       open in editor",
 		memoOrStash,
 		"esc     back to files",
 		"q       quit",
@@ -546,6 +635,37 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 }
 
 // ETC
+
+// Returns an editor path, or error
+func getEditor() (string, error) {
+        var editor_path string
+        var editor_err error
+
+        editors := []string{"micro", "nano", "nvim", "vim", "vi", "gedit"}
+
+        // If $EDITOR is set, prepend it to the list of editors we'll search for
+        if os.Getenv("EDITOR") != "" {
+                editors = append([]string{os.Getenv("EDITOR")}, editors...)
+        }
+
+        // By default, the error should be that no command has been found
+        editor_err = fmt.Errorf("No editor found\n")
+
+        // Search for the editors, stopping after the first one is found
+        for i := 0; i < len(editors) && editor_path == ""; i++ {
+                // Look for the editor in $PATH
+                path, err := exec.LookPath(editors[i]);
+
+                if err == nil {
+                        // If it was found, store the path (exiting the loop)...
+                        editor_path = path
+                        // ...and set the error to nil
+                        editor_err = nil
+                }
+        }
+
+        return editor_path, editor_err
+}
 
 // Note: this runs in linear time; O(n).
 func deleteFromStringSlice(a []string, i int) []string {
