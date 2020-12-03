@@ -31,6 +31,7 @@ const (
 var (
 	stashTextInputPromptStyle styleFunc = newFgStyle(common.YellowGreen)
 	dividerDot                string    = darkGrayFg(" • ")
+	dividerBar                string    = darkGrayFg(" │ ")
 	offlineHeaderNote         string    = darkGrayFg("(Offline)")
 )
 
@@ -51,17 +52,34 @@ const (
 	stashStateShowingError
 )
 
-// Which types of documents we are showing. We use an int as the underlying
-// type both for easy equality testing, and because the default state can have
-// different types of docs depending on the user's preferences. For example,
-// if the local-only flag is passed, the default state contains only documents
-// of type local. Otherwise, it could contain stash, news, and converted types.
-type stashDocState int
+// The types of documents we are currently showing to the user.
+type stashSection int
 
 const (
-	stashShowDefaultDocs stashDocState = iota
-	stashShowNewsDocs
+	stashLocalSection stashSection = iota
+	stashStashedSection
+	stashNewsSection
 )
+
+// Returns document types for the given document state.
+func (d stashSection) docTypes() DocTypeSet {
+	return stashSections[d]
+}
+
+// Maps sections to their associated types
+var stashSections = map[stashSection]DocTypeSet{
+	stashLocalSection:   NewDocTypeSet(LocalDoc),
+	stashStashedSection: NewDocTypeSet(StashedDoc, ConvertedDoc),
+	stashNewsSection:    NewDocTypeSet(NewsDoc),
+}
+
+// All available sections; we use an array here instead of the map above
+// because order is important.
+var allSections = [...]stashSection{
+	stashLocalSection,
+	stashStashedSection,
+	stashNewsSection,
+}
 
 // The current filtering state.
 type filterState int
@@ -94,12 +112,11 @@ type stashModel struct {
 	selectionState     selectionState
 	showFullHelp       bool
 
-	// The types of documents we are showing
-	docState stashDocState
+	// Available document sections we can cycle through
+	sections []stashSection
 
-	// Maps document states to document types, i.e. the news state contains a
-	// set of type "news".
-	docStateMap map[stashDocState]DocTypeSet
+	// Index of the section we're currently looking at
+	currentSection int
 
 	// Tracks what exactly is loaded between the stash, news and local files
 	loaded DocTypeSet
@@ -146,6 +163,15 @@ func (m stashModel) stashedOnly() bool {
 
 func (m stashModel) loadingDone() bool {
 	return m.loaded.Equals(m.general.cfg.DocumentTypes.Difference(ConvertedDoc))
+}
+
+func (m stashModel) hasSection(name stashSection) bool {
+	for _, v := range m.sections {
+		if name == v {
+			return true
+		}
+	}
+	return false
 }
 
 // Returns whether or not we're online. That is, when "local-only" mode is
@@ -281,12 +307,11 @@ func (m *stashModel) replaceLocalMarkdown(localPath string, newMarkdown *markdow
 
 // Return the number of markdown documents of a given type.
 func (m stashModel) countMarkdowns(t DocType) (found int) {
-	mds := m.getVisibleMarkdowns()
-	if len(mds) == 0 {
+	if len(m.markdowns) == 0 {
 		return
 	}
-	for i := 0; i < len(mds); i++ {
-		if mds[i].markdownType == t {
+	for i := 0; i < len(m.markdowns); i++ {
+		if m.markdowns[i].markdownType == t {
 			found++
 		}
 	}
@@ -319,12 +344,12 @@ func (m stashModel) getVisibleMarkdowns() []*markdown {
 		return m.filteredMarkdowns
 	}
 
-	return m.getMarkdownByType(m.docStateMap[m.docState].AsSlice()...)
+	return m.getMarkdownByType(m.sections[m.currentSection].docTypes().AsSlice()...)
 }
 
 // Return the markdowns eligible to be filtered.
 func (m stashModel) getFilterableMarkdowns() []*markdown {
-	return m.getMarkdownByType(m.docStateMap[m.docState].AsSlice()...)
+	return m.getMarkdownByType(m.sections[m.currentSection].docTypes().AsSlice()...)
 }
 
 // Command for opening a markdown document in the pager. Note that this also
@@ -417,6 +442,19 @@ func newStashModel(general *general) stashModel {
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
 
+	var ds []stashSection
+	if general.cfg.localOnly() {
+		ds = []stashSection{stashLocalSection}
+	} else if general.cfg.stashedOnly() {
+		ds = []stashSection{stashStashedSection, stashNewsSection}
+	} else {
+		ds = []stashSection{
+			stashLocalSection,
+			stashStashedSection,
+			stashNewsSection,
+		}
+	}
+
 	m := stashModel{
 		general:            general,
 		spinner:            sp,
@@ -427,11 +465,7 @@ func newStashModel(general *general) stashModel {
 		loaded:             NewDocTypeSet(),
 		loadingFromNetwork: true,
 		filesStashing:      make(map[string]struct{}),
-		docState:           stashShowDefaultDocs,
-		docStateMap: map[stashDocState]DocTypeSet{
-			stashShowDefaultDocs: general.cfg.DocumentTypes.Difference(NewsDoc),
-			stashShowNewsDocs:    NewDocTypeSet(NewsDoc),
-		},
+		sections:           ds,
 	}
 
 	return m
@@ -586,10 +620,10 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 	// Handle keys
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "k", "ctrl+k", "up", "shift+tab":
+		case "k", "ctrl+k", "up":
 			m.moveCursorUp()
 
-		case "j", "ctrl+j", "down", "tab":
+		case "j", "ctrl+j", "down":
 			m.moveCursorDown()
 
 		// Go to the very start
@@ -607,7 +641,26 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				m.resetFiltering()
 				break
 			}
-			m.docState = stashShowDefaultDocs
+
+		case "tab":
+			if len(m.sections) == 0 {
+				break
+			}
+			m.currentSection++
+			if m.currentSection >= len(m.sections) {
+				m.currentSection = 0
+			}
+			m.setTotalPages()
+
+		case "shift+tab":
+			if len(m.sections) == 0 {
+				break
+			}
+			m.currentSection--
+			if m.currentSection < 0 {
+				m.currentSection = len(m.sections) - 1
+			}
+			m.setTotalPages()
 
 		// Open document
 		case "enter":
@@ -659,27 +712,6 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				m.noteInput.CursorEnd()
 				return textinput.Blink
 			}
-
-		// Show news
-		case "n":
-			if !m.online() || m.isFiltering() {
-				// If we're offline disable the news section
-				return nil
-			}
-			if m.docState == stashShowNewsDocs {
-				// Exit news
-				m.docState = stashShowDefaultDocs
-				m.resetFiltering()
-			} else {
-				// Show news
-				m.hideStatusMessage()
-				m.paginator.Page = 0
-				m.index = 0
-				m.docState = stashShowNewsDocs
-				m.setTotalPages()
-			}
-
-			return nil
 
 		// Stash
 		case "s":
@@ -934,20 +966,6 @@ func (m stashModel) view() string {
 			loadingIndicator = m.spinner.View()
 		}
 
-		help, helpHeight := m.helpView()
-
-		// We need to fill any empty height with newlines so the footer reaches
-		// the bottom.
-		availHeight := m.general.height -
-			stashViewTopPadding -
-			helpHeight -
-			stashViewBottomPadding
-		numBlankLines := max(0, availHeight%stashViewItemHeight)
-		blankLines := ""
-		if numBlankLines > 0 {
-			blankLines = strings.Repeat("\n", numBlankLines)
-		}
-
 		var header string
 		if m.showStatusMessage {
 			header = greenFg(m.statusMessage)
@@ -963,7 +981,7 @@ func (m stashModel) view() string {
 		// Only draw the normal header if we're not using the header area for
 		// something else (like a prompt or status message)
 		if header == "" {
-			header = m.headerView()
+			header = m.sectionView()
 		}
 
 		logoOrFilter := glowLogoView(" Glow ")
@@ -971,9 +989,21 @@ func (m stashModel) view() string {
 		// If we're filtering we replace the logo with the filter field
 		if m.isFiltering() {
 			logoOrFilter = m.filterInput.View()
-		} else if m.docState == stashShowNewsDocs {
-			logoOrFilter += normalFg(" News ")
 		}
+
+		help, helpHeight := m.helpView()
+
+		populatedView := m.populatedView()
+		populatedViewHeight := strings.Count(populatedView, "\n") + 2
+
+		// We need to fill any empty height with newlines so the footer reaches
+		// the bottom.
+		availHeight := m.general.height -
+			stashViewTopPadding -
+			populatedViewHeight -
+			helpHeight -
+			stashViewBottomPadding
+		blankLines := strings.Repeat("\n", max(0, availHeight))
 
 		var pagination string
 		if m.paginator.TotalPages > 1 {
@@ -996,7 +1026,7 @@ func (m stashModel) view() string {
 			loadingIndicator,
 			logoOrFilter,
 			header,
-			m.populatedView(),
+			populatedView,
 			blankLines,
 			pagination,
 			help,
@@ -1013,69 +1043,100 @@ func glowLogoView(text string) string {
 		String()
 }
 
-func (m stashModel) headerView() string {
-	loading := !m.loadingDone()
-	noMarkdowns := len(m.markdowns) == 0
+func (m stashModel) sectionView() string {
 
-	if m.general.authStatus == authFailed && m.stashedOnly() {
-		return common.Subtle("Can’t load stash. Are you offline?")
-	}
-
-	var maybeOffline string
-	if m.general.authStatus == authFailed {
-		maybeOffline = " " + offlineHeaderNote
-	}
-
-	// Still loading. We haven't found files, stashed items, or news yet.
-	if loading && noMarkdowns {
-		if m.stashedOnly() {
-			return common.Subtle("Loading your stash...")
+	if m.loadingDone() && len(m.markdowns) == 0 {
+		var maybeOffline string
+		if m.general.authStatus == authFailed {
+			maybeOffline = " " + offlineHeaderNote
 		}
-		return common.Subtle("Looking for stuff...") + maybeOffline
+
+		if m.stashedOnly() {
+			return common.Subtle("Can’t load stash") + maybeOffline
+		}
+		return common.Subtle("No markdown files found") + maybeOffline
 	}
 
-	localItems := m.countMarkdowns(LocalDoc)
-	stashedItems := m.countMarkdowns(StashedDoc) + m.countMarkdowns(ConvertedDoc)
-	newsItems := m.countMarkdowns(NewsDoc)
+	localCount := m.countMarkdowns(LocalDoc)
+	stashedCount := m.countMarkdowns(StashedDoc) + m.countMarkdowns(ConvertedDoc)
+	newsCount := m.countMarkdowns(NewsDoc)
 
-	// Loading's finished and all we have is news.
-	if !loading && localItems == 0 && stashedItems == 0 && newsItems == 0 {
-		if m.stashedOnly() {
-			return common.Subtle("No stashed markdown files found.") + maybeOffline
+	var sections []string
+
+	for i, v := range m.sections {
+		var s string
+
+		switch v {
+		case stashLocalSection:
+			if m.stashedOnly() {
+				continue
+			}
+			s = fmt.Sprintf("%d local", localCount)
+		case stashStashedSection:
+			if m.localOnly() {
+				continue
+			}
+			s = fmt.Sprintf("%d stashed", stashedCount)
+		case stashNewsSection:
+			if m.localOnly() {
+				continue
+			}
+			s = fmt.Sprintf("%d news", newsCount)
+		}
+
+		if m.currentSection == i && len(m.sections) > 1 {
+			s = brightGrayFg(s)
 		} else {
-			return common.Subtle("No local or stashed markdown files found.") + maybeOffline
+			s = grayFg(s)
 		}
+		sections = append(sections, s)
 	}
 
-	// There are local and/or stashed files, so display counts.
-	var s string
-	if localItems > 0 {
-		s += common.Subtle(fmt.Sprintf("%d Local", localItems))
+	s := strings.Join(sections, dividerBar)
+	if m.general.authStatus == authFailed {
+		s += dividerDot + offlineHeaderNote
 	}
-	if stashedItems > 0 {
-		var divider string
-		if localItems > 0 {
-			divider = dividerDot
-		}
-		si := common.Subtle(fmt.Sprintf("%d Stashed", stashedItems))
-		s += fmt.Sprintf("%s%s", divider, si)
-	}
-	if newsItems > 0 {
-		var divider string
-		if localItems > 0 || stashedItems > 0 {
-			divider = dividerDot
-		}
-		si := common.Subtle(fmt.Sprintf("%d News", newsItems))
 
-		s += fmt.Sprintf("%s%s", divider, si)
-	}
-	return common.Subtle(s) + maybeOffline
+	return s
 }
 
 func (m stashModel) populatedView() string {
 	var b strings.Builder
 
 	mds := m.getVisibleMarkdowns()
+
+	// Empty states
+	if len(mds) == 0 {
+		f := func(s string) {
+			b.WriteString("  " + grayFg(s))
+		}
+
+		switch m.sections[m.currentSection] {
+		case stashLocalSection:
+			if m.loadingDone() {
+				f("No local files found.")
+			} else {
+				f("Looking for local files...")
+			}
+		case stashStashedSection:
+			if m.general.authStatus == authFailed {
+				f("Can't load your stash. Are you offline?")
+			} else if m.loadingDone() {
+				f("Nothing stashed yet.")
+			} else {
+				f("Loading your stash...")
+			}
+		case stashNewsSection:
+			if m.general.authStatus == authFailed {
+				f("Can't load news. Are you offline?")
+			} else if m.loadingDone() {
+				f("No stashed files found.")
+			} else {
+				f("Loading your stash...")
+			}
+		}
+	}
+
 	if len(mds) > 0 {
 		start, end := m.paginator.GetSliceBounds(len(mds))
 		docs := mds[start:end]

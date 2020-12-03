@@ -124,8 +124,16 @@ func (m stashModel) helpView() (string, int) {
 		isStashable = md != nil && md.markdownType == LocalDoc && m.online()
 	}
 
-	if numDocs > 0 {
+	if numDocs > 0 && m.showFullHelp {
 		navHelp = []string{"enter", "open", "j/k ↑/↓", "choose"}
+	}
+
+	if len(m.sections) > 1 {
+		if m.showFullHelp {
+			navHelp = append(navHelp, "tab/shift+tab", "section")
+		} else {
+			navHelp = append(navHelp, "tab", "section")
+		}
 	}
 
 	if m.paginator.TotalPages > 1 {
@@ -143,15 +151,6 @@ func (m stashModel) helpView() (string, int) {
 		selectionHelp = []string{"x", "delete", "m", "set memo"}
 	} else if isStashable {
 		selectionHelp = []string{"s", "stash"}
-	}
-
-	// If there's no filtering happening
-	if !m.isFiltering() && m.online() {
-		if m.docState == stashShowNewsDocs {
-			sectionHelp = []string{"n", "home"}
-		} else {
-			sectionHelp = []string{"n", "news"}
-		}
 	}
 
 	// If there are errors
@@ -173,7 +172,7 @@ func (m stashModel) helpView() (string, int) {
 	if m.filterState != filtering {
 		appHelp = append(appHelp, "?", "more")
 	}
-	return m.renderHelp(filterHelp, selectionHelp, sectionHelp, appHelp)
+	return m.renderHelp(navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
 }
 
 // renderHelp returns the rendered help view and associated line height for
