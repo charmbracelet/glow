@@ -137,11 +137,11 @@ type stashModel struct {
 }
 
 func (m stashModel) localOnly() bool {
-	return m.general.cfg.DocumentTypes.Equals(NewDocTypeSet(LocalDoc))
+	return m.general.cfg.localOnly()
 }
 
 func (m stashModel) stashedOnly() bool {
-	return m.general.cfg.DocumentTypes.Equals(NewDocTypeSet(StashedDoc))
+	return m.general.cfg.stashedOnly()
 }
 
 func (m stashModel) loadingDone() bool {
