@@ -387,7 +387,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	// Note
 	var note string
 	if showStatusMessage {
-		note = "Stashed!"
+		note = m.statusMessage
 	} else {
 		note = m.currentDocument.Note
 		if len(note) == 0 {
