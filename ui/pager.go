@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"io/ioutil"
-
+	
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -221,11 +221,18 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				if err != nil {
 					cmd := m.showStatusMessage("Error creating temporary file!")
 					cmds = append(cmds, cmd)
+					break
 				} else {
 					// Ensure the temporary file gets deleted
 					defer os.Remove(tempFile.Name())
 				}
-				tempFile.WriteString(m.currentDocument.Body)
+				_, err = tempFile.WriteString(m.currentDocument.Body)
+				if err != nil {
+					cmd := m.showStatusMessage("Error writing temporary file!")
+					cmds = append(cmds, cmd)
+					tempFile.Close()
+					break
+				}
 				tempFile.Close()
 
 				// Use our editor to edit the temporary file
@@ -258,10 +265,6 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					// Add our edits to the current view
 					m.currentDocument.Body = editString
 					
-					// Re-render current doc
-					cmd := renderWithGlamour(m, m.currentDocument.Body)
-					cmds = append(cmds, cmd)
-
 					// Make our edits permanent remotely/locally
 					if isStashed {
 						// This method is preferable, pending a PR for charm
@@ -275,12 +278,17 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 							cmds = append(cmds, cmd)
 						} else {
 							// Delete the current stash
-							m.general.cc.DeleteMarkdown(m.currentDocument.ID)
-							cmd := m.showStatusMessage("Updated stash!")
-							cmds = append(cmds, cmd)
+							err := m.general.cc.DeleteMarkdown(m.currentDocument.ID)
+							if err != nil {
+								cmd := m.showStatusMessage("Error removing old stash!")
+								cmds = append(cmds, cmd)
+							} else {
+								cmd := m.showStatusMessage("Updated stash!")
+								cmds = append(cmds, cmd)
+							}
 						}
 					} else {
-						err := ioutil.WriteFile(m.currentDocument.localPath, []byte(editString), 0777)
+						err := ioutil.WriteFile(m.currentDocument.localPath, []byte(editString), 0600)
 						if err != nil {
 							cmd := m.showStatusMessage("Couldn't update local file!")
 							cmds = append(cmds, cmd)
@@ -288,6 +296,9 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 						}
 					}
 				}
+				
+				// Re-render current document
+				return m, renderWithGlamour(m, m.currentDocument.Body)
 			case "q", "esc":
 				if m.state != pagerStateBrowse {
 					m.state = pagerStateBrowse
@@ -636,12 +647,12 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 // ETC
 
-// Returns an editor path, or error
+// Returns an editor path or error.
 func getEditor() (string, error) {
         var editor_path string
         var editor_err error
 
-        editors := []string{"micro", "nano", "nvim", "vim", "vi", "gedit"}
+        editors := []string{"nvim", "nano", "vim", "vi", "gedit"}
 
         // If $EDITOR is set, prepend it to the list of editors we'll search for
         if os.Getenv("EDITOR") != "" {
