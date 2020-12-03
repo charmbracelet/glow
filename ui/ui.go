@@ -58,7 +58,7 @@ func (c Config) localOnly() bool {
 }
 
 func (c Config) stashedOnly() bool {
-	return c.DocumentTypes.Contains(StashedDoc) && !c.DocumentTypes.Contains(NewsDoc)
+	return c.DocumentTypes.Contains(StashedDoc) && !c.DocumentTypes.Contains(LocalDoc)
 }
 
 // NewProgram returns a new Tea program.
