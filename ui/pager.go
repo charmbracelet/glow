@@ -202,103 +202,34 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 		default:
 			switch msg.String() {
+			case "1":
+				m.currentDocument.Body = "Hello world"
+				cmd := m.showStatusMessage("Testing redraw + cmds")
+				cmds = append(cmds, cmd)
+				cmd = renderWithGlamour(m, m.currentDocument.Body)
+				cmds = append(cmds, cmd)
+			case "2":
+				m.currentDocument.Body = "World, hello"
+				cmd := renderWithGlamour(m, m.currentDocument.Body)
+				cmds = append(cmds, cmd)
+				cmd = m.showStatusMessage("Testing redraw + cmds")
+				cmds = append(cmds, cmd)
+			case "r":
+				cmd := m.showStatusMessage("Redrew page!")
+				cmds = append(cmds, cmd)
+				cmd = renderWithGlamour(m, m.currentDocument.Body)
+				cmds = append(cmds, cmd)
 			case "e":
-				// First, determine if we can find an editor
-				editor_path, err := getEditor()
-
-				if err != nil {
-					cmd := m.showStatusMessage("No editor found!")
+				edits, msg, err := m.editCurrentDocument()
+				if msg != "" {
+					cmd :=  m.showStatusMessage(msg)
 					cmds = append(cmds, cmd)
-					break
 				}
-
-				// Determine if the current file is stashed or not
-				isStashed := m.currentDocument.markdownType == stashedMarkdown ||
-					m.currentDocument.markdownType == convertedMarkdown
-				
-				// Copy the contents of the document to a temporary file
-				tempFile, err := ioutil.TempFile("", "glow-edit")
-				if err != nil {
-					cmd := m.showStatusMessage("Error creating temporary file!")
-					cmds = append(cmds, cmd)
-					break
-				} else {
-					// Ensure the temporary file gets deleted
-					defer os.Remove(tempFile.Name())
+				if edits != m.currentDocument.Body && err == nil {
+					m.currentDocument.Body = edits
 				}
-				_, err = tempFile.WriteString(m.currentDocument.Body)
-				if err != nil {
-					cmd := m.showStatusMessage("Error writing temporary file!")
-					cmds = append(cmds, cmd)
-					tempFile.Close()
-					break
-				}
-				tempFile.Close()
-
-				// Use our editor to edit the temporary file
-				cmd := exec.Command(editor_path, tempFile.Name())
-				cmd.Stdin = os.Stdin
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				err = cmd.Start()
-				if err != nil {
-					log.Println(err)
-				}
-				err = cmd.Wait()
-				if err != nil {
-					log.Println(err)
-				}
-
-				// Get the contents of the edited file
-				b, err := ioutil.ReadFile(tempFile.Name())
-				if err != nil {
-					log.Println(err)
-					break
-				}
-				editString := string(b)
-				
-				// If no edits were made, do nothing
-				if editString == m.currentDocument.Body {
-					cmd := m.showStatusMessage("No changes made!")
-					cmds = append(cmds, cmd)
-				} else {
-					// Add our edits to the current view
-					m.currentDocument.Body = editString
-					
-					// Make our edits permanent remotely/locally
-					if isStashed {
-						// This method is preferable, pending a PR for charm
-						//err := m.general.cc.SetMarkdownBody(m.currentDocument.ID, editString)
-
-						// Create a new stash
-						_, err := m.general.cc.StashMarkdown(m.currentDocument.Note, editString)
-
-						if err != nil {
-							cmd := m.showStatusMessage("Couldn't update stash!")
-							cmds = append(cmds, cmd)
-						} else {
-							// Delete the current stash
-							err := m.general.cc.DeleteMarkdown(m.currentDocument.ID)
-							if err != nil {
-								cmd := m.showStatusMessage("Error removing old stash!")
-								cmds = append(cmds, cmd)
-							} else {
-								cmd := m.showStatusMessage("Updated stash!")
-								cmds = append(cmds, cmd)
-							}
-						}
-					} else {
-						err := ioutil.WriteFile(m.currentDocument.localPath, []byte(editString), 0600)
-						if err != nil {
-							cmd := m.showStatusMessage("Couldn't update local file!")
-							cmds = append(cmds, cmd)
-							log.Println(err)
-						}
-					}
-				}
-				
-				// Re-render current document
-				return m, renderWithGlamour(m, m.currentDocument.Body)
+				cmd = renderWithGlamour(m, m.currentDocument.Body)
+				cmds = append(cmds, cmd)
 			case "q", "esc":
 				if m.state != pagerStateBrowse {
 					m.state = pagerStateBrowse
@@ -676,6 +607,104 @@ func getEditor() (string, error) {
         }
 
         return editor_path, editor_err
+}
+
+// Returns a file descriptor for a temporary file
+func createTemporaryCopy(content string) (*os.File, error) {
+	tempFile, err := ioutil.TempFile("", "glow-")
+	if err != nil {
+		return tempFile, err
+	}
+	
+	_, err = tempFile.WriteString(content)
+	if err != nil {
+		return tempFile, fmt.Errorf("Error writing temporary file!")
+	}
+	
+	return tempFile, nil
+}
+
+func openFileInEditor(filePath string) (error) {
+	editorPath, err := getEditor()
+	if err != nil {
+		return err
+	}
+	
+	cmd := exec.Command(editorPath, filePath)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+	err = cmd.Wait()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Returns the edits made and a message to display
+func (m pagerModel) editCurrentDocument() (string, string, error) {
+	// Copy the contents of the document to a temporary file
+	tempFile, err := createTemporaryCopy(m.currentDocument.Body)
+	if err != nil {
+		return "", "Couldn't create temporary file for editing!", err
+	}
+	tempFile.Close()
+	
+	// Open the temporary file with an editor
+	err = openFileInEditor(tempFile.Name())
+	if err.Error() == "No editor found\n" {
+		return "", "Couldn't find an editor!", err
+	} else if err != nil {
+		return "", "Couldn't open file in editor!", err
+	}
+	
+	// Get the contents of the edited file
+	b, err := ioutil.ReadFile(tempFile.Name())
+	if err != nil {
+		return "", "Error reading edits!", err
+	}
+	editString := string(b)
+
+	// If no edits were made, do nothing
+	if editString == m.currentDocument.Body {
+		return "", "No changes made!", fmt.Errorf("No changes made")
+	} else {
+		// Make our edits permanent remotely/locally
+		isStashed := m.currentDocument.markdownType == stashedMarkdown ||
+			m.currentDocument.markdownType == convertedMarkdown
+
+		if isStashed {
+			// This method is preferable, pending a PR for charm
+			//err := m.general.cc.SetMarkdownBody(m.currentDocument.ID, editString)
+
+			// Create a new stash
+			_, err := m.general.cc.StashMarkdown(m.currentDocument.Note, editString)
+
+			if err != nil {
+				return "", "Couldn't update stash!", err
+			} else {
+				// Delete the current stash
+				err := m.general.cc.DeleteMarkdown(m.currentDocument.ID)
+				if err != nil {
+					return "", "Error removing old stash!", err
+				} else {
+					return editString, "Updated stash!", nil
+				}
+			}
+		} else {
+			err := ioutil.WriteFile(m.currentDocument.localPath, []byte(editString), 0600)
+			if err != nil {
+				return "", "Couldn't update local file!", err
+			} else {
+				return editString, "Updated local file!", nil
+			}
+		}
+	}
+	return "", "Well that was weird", fmt.Errorf("Unknown error")
 }
 
 // Note: this runs in linear time; O(n).
