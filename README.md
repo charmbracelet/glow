@@ -109,7 +109,7 @@ document use a markdown source as the primary argument:
 glow README.md
 
 # Read from stdin
-glow -
+echo "[Glow](https://github.com/charmbracelet/glow)" | glow -
 
 # Fetch README from GitHub / GitLab
 glow github.com/charmbracelet/glow
