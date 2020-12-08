@@ -53,32 +53,35 @@ const (
 )
 
 // The types of documents we are currently showing to the user.
-type stashSection int
+type sectionKey int
 
 const (
-	stashLocalSection stashSection = iota
-	stashStashedSection
-	stashNewsSection
+	localSection = iota
+	stashedSection
+	newsSection
 )
 
-// Returns document types for the given document state.
-func (d stashSection) docTypes() DocTypeSet {
-	return stashSections[d]
+type section struct {
+	key       sectionKey
+	docTypes  DocTypeSet
+	paginator paginator.Model
+	cursor    int
 }
 
 // Maps sections to their associated types
-var stashSections = map[stashSection]DocTypeSet{
-	stashLocalSection:   NewDocTypeSet(LocalDoc),
-	stashStashedSection: NewDocTypeSet(StashedDoc, ConvertedDoc),
-	stashNewsSection:    NewDocTypeSet(NewsDoc),
-}
-
-// All available sections; we use an array here instead of the map above
-// because order is important.
-var allSections = [...]stashSection{
-	stashLocalSection,
-	stashStashedSection,
-	stashNewsSection,
+var sections = map[sectionKey]section{
+	localSection: {
+		key:      localSection,
+		docTypes: NewDocTypeSet(LocalDoc),
+	},
+	stashedSection: {
+		key:      stashedSection,
+		docTypes: NewDocTypeSet(StashedDoc, ConvertedDoc),
+	},
+	newsSection: {
+		key:      newsSection,
+		docTypes: NewDocTypeSet(NewsDoc),
+	},
 }
 
 // The current filtering state.
@@ -111,12 +114,16 @@ type stashModel struct {
 	filterState        filterState
 	selectionState     selectionState
 	showFullHelp       bool
+	showStatusMessage  bool
+	statusMessage      string
+	statusMessageTimer *time.Timer
 
-	// Available document sections we can cycle through
-	sections []stashSection
+	// Available document sections we can cycle through. We use a slice, rather
+	// than a map, because order is important.
+	sections []section
 
 	// Index of the section we're currently looking at
-	currentSection int
+	sectionIndex int
 
 	// Tracks what exactly is loaded between the stash, news and local files
 	loaded DocTypeSet
@@ -133,24 +140,11 @@ type stashModel struct {
 	// value portion with an empty struct.
 	filesStashing map[string]struct{}
 
-	// This is just the selected item in relation to the current page in view.
-	// To get the index of the selected item as it relates to the full set of
-	// documents we've fetched use the markdownIndex() method on this struct.
-	index int
-
-	// This handles the local pagination, which is different than the page
-	// we're fetching from on the server side
-	paginator paginator.Model
-
 	// Page we're fetching stash items from on the server, which is different
 	// from the local pagination. Generally, the server will return more items
 	// than we can display at a time so we can paginate locally without having
 	// to fetch every time.
-	page int
-
-	showStatusMessage  bool
-	statusMessage      string
-	statusMessageTimer *time.Timer
+	serverPage int
 }
 
 func (m stashModel) localOnly() bool {
@@ -165,13 +159,33 @@ func (m stashModel) loadingDone() bool {
 	return m.loaded.Equals(m.general.cfg.DocumentTypes.Difference(ConvertedDoc))
 }
 
-func (m stashModel) hasSection(name stashSection) bool {
+func (m stashModel) hasSection(key sectionKey) bool {
 	for _, v := range m.sections {
-		if name == v {
+		if key == v.key {
 			return true
 		}
 	}
 	return false
+}
+
+func (m stashModel) currentSection() *section {
+	return &m.sections[m.sectionIndex]
+}
+
+func (m stashModel) paginator() *paginator.Model {
+	return &m.currentSection().paginator
+}
+
+func (m *stashModel) setPaginator(p paginator.Model) {
+	m.currentSection().paginator = p
+}
+
+func (m stashModel) cursor() int {
+	return m.currentSection().cursor
+}
+
+func (m *stashModel) setCursor(i int) {
+	m.currentSection().cursor = i
 }
 
 // Returns whether or not we're online. That is, when "local-only" mode is
@@ -185,7 +199,7 @@ func (m *stashModel) setSize(width, height int) {
 	m.general.height = height
 
 	// Update the paginator
-	m.setTotalPages()
+	m.updatePagination()
 	// height of stash entry, including gap
 	m.noteInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.noteInput.Prompt)
 	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.filterInput.Prompt)
@@ -196,7 +210,7 @@ func (m *stashModel) resetFiltering() {
 	m.filterInput.Reset()
 	sort.Stable(markdownsByLocalFirst(m.markdowns))
 	m.filteredMarkdowns = nil
-	m.setTotalPages()
+	m.updatePagination()
 }
 
 // Is a filter currently being applied?
@@ -211,9 +225,9 @@ func (m stashModel) shouldUpdateFilter() bool {
 	return m.isFiltering() && m.selectionState != selectionSettingNote
 }
 
-// Sets the total paginator pages according to the amount of markdowns for the
-// current state.
-func (m *stashModel) setTotalPages() {
+// Update pagination according to the amount of markdowns for the current
+// state.
+func (m *stashModel) updatePagination() {
 	_, helpHeight := m.helpView()
 
 	availableHeight := m.general.height -
@@ -221,23 +235,23 @@ func (m *stashModel) setTotalPages() {
 		helpHeight -
 		stashViewBottomPadding
 
-	m.paginator.PerPage = max(1, availableHeight/stashViewItemHeight)
+	m.paginator().PerPage = max(1, availableHeight/stashViewItemHeight)
 
 	if pages := len(m.getVisibleMarkdowns()); pages < 1 {
-		m.paginator.SetTotalPages(1)
+		m.paginator().SetTotalPages(1)
 	} else {
-		m.paginator.SetTotalPages(pages)
+		m.paginator().SetTotalPages(pages)
 	}
 
 	// Make sure the page stays in bounds
-	if m.paginator.Page >= m.paginator.TotalPages-1 {
-		m.paginator.Page = max(0, m.paginator.TotalPages-1)
+	if m.paginator().Page >= m.paginator().TotalPages-1 {
+		m.paginator().Page = max(0, m.paginator().TotalPages-1)
 	}
 }
 
 // MarkdownIndex returns the index of the currently selected markdown item.
 func (m stashModel) markdownIndex() int {
-	return m.paginator.Page*m.paginator.PerPage + m.index
+	return m.paginator().Page*m.paginator().PerPage + m.cursor()
 }
 
 // Return the current selected markdown in the stash.
@@ -259,7 +273,7 @@ func (m *stashModel) addMarkdowns(mds ...*markdown) {
 		if !m.isFiltering() {
 			sort.Stable(markdownsByLocalFirst(m.markdowns))
 		}
-		m.setTotalPages()
+		m.updatePagination()
 	}
 }
 
@@ -344,12 +358,12 @@ func (m stashModel) getVisibleMarkdowns() []*markdown {
 		return m.filteredMarkdowns
 	}
 
-	return m.getMarkdownByType(m.sections[m.currentSection].docTypes().AsSlice()...)
+	return m.getMarkdownByType(m.currentSection().docTypes.AsSlice()...)
 }
 
 // Return the markdowns eligible to be filtered.
 func (m stashModel) getFilterableMarkdowns() []*markdown {
-	return m.getMarkdownByType(m.sections[m.currentSection].docTypes().AsSlice()...)
+	return m.getMarkdownByType(m.currentSection().docTypes.AsSlice()...)
 }
 
 // Command for opening a markdown document in the pager. Note that this also
@@ -375,44 +389,44 @@ func (m *stashModel) hideStatusMessage() {
 }
 
 func (m *stashModel) moveCursorUp() {
-	m.index--
-	if m.index < 0 && m.paginator.Page == 0 {
+	m.setCursor(m.cursor() - 1)
+	if m.cursor() < 0 && m.paginator().Page == 0 {
 		// Stop
-		m.index = 0
+		m.setCursor(0)
 		return
 	}
 
-	if m.index >= 0 {
+	if m.cursor() >= 0 {
 		return
 	}
 	// Go to previous page
-	m.paginator.PrevPage()
+	m.paginator().PrevPage()
 
-	m.index = m.paginator.ItemsOnPage(len(m.getVisibleMarkdowns())) - 1
+	m.setCursor(m.paginator().ItemsOnPage(len(m.getVisibleMarkdowns())) - 1)
 }
 
 func (m *stashModel) moveCursorDown() {
-	itemsOnPage := m.paginator.ItemsOnPage(len(m.getVisibleMarkdowns()))
+	itemsOnPage := m.paginator().ItemsOnPage(len(m.getVisibleMarkdowns()))
 
-	m.index++
-	if m.index < itemsOnPage {
+	m.setCursor(m.cursor() + 1)
+	if m.cursor() < itemsOnPage {
 		return
 	}
 
-	if !m.paginator.OnLastPage() {
-		m.paginator.NextPage()
-		m.index = 0
+	if !m.paginator().OnLastPage() {
+		m.paginator().NextPage()
+		m.setCursor(0)
 		return
 	}
 
 	// During filtering the cursor position can exceed the number of
 	// itemsOnPage. It's more intuitive to start the cursor at the
 	// topmost position when moving it down in this scenario.
-	if m.index > itemsOnPage {
-		m.index = 0
+	if m.cursor() > itemsOnPage {
+		m.setCursor(0)
 		return
 	}
-	m.index = itemsOnPage - 1
+	m.setCursor(itemsOnPage - 1)
 }
 
 // INIT
@@ -424,11 +438,6 @@ func newStashModel(general *general) stashModel {
 	sp.HideFor = time.Millisecond * 50
 	sp.MinimumLifetime = time.Millisecond * 180
 	sp.Start()
-
-	p := paginator.NewModel()
-	p.Type = paginator.Dots
-	p.ActiveDot = brightGrayFg("•")
-	p.InactiveDot = darkGrayFg("•")
 
 	ni := textinput.NewModel()
 	ni.Prompt = stashTextInputPromptStyle("Memo: ")
@@ -442,17 +451,31 @@ func newStashModel(general *general) stashModel {
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
 
-	var ds []stashSection
+	var s []section
 	if general.cfg.localOnly() {
-		ds = []stashSection{stashLocalSection}
-	} else if general.cfg.stashedOnly() {
-		ds = []stashSection{stashStashedSection, stashNewsSection}
-	} else {
-		ds = []stashSection{
-			stashLocalSection,
-			stashStashedSection,
-			stashNewsSection,
+		s = []section{
+			sections[localSection],
 		}
+	} else if general.cfg.stashedOnly() {
+		s = []section{
+			sections[stashedSection],
+			sections[newsSection],
+		}
+	} else {
+		s = []section{
+			sections[localSection],
+			sections[stashedSection],
+			sections[newsSection],
+		}
+	}
+
+	p := paginator.NewModel()
+	p.Type = paginator.Dots
+	p.ActiveDot = brightGrayFg("•")
+	p.InactiveDot = darkGrayFg("•")
+
+	for i := range s {
+		s[i].paginator = p
 	}
 
 	m := stashModel{
@@ -460,12 +483,11 @@ func newStashModel(general *general) stashModel {
 		spinner:            sp,
 		noteInput:          ni,
 		filterInput:        si,
-		page:               1,
-		paginator:          p,
+		serverPage:         1,
 		loaded:             NewDocTypeSet(),
 		loadingFromNetwork: true,
 		filesStashing:      make(map[string]struct{}),
-		sections:           ds,
+		sections:           s,
 	}
 
 	return m
@@ -513,7 +535,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 				m.stashFullyLoaded = true
 			} else {
 				// Load the next page
-				m.page++
+				m.serverPage++
 				cmds = append(cmds, loadStash(m))
 			}
 
@@ -628,13 +650,13 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 		// Go to the very start
 		case "home", "g":
-			m.paginator.Page = 0
-			m.index = 0
+			m.paginator().Page = 0
+			m.setCursor(0)
 
 		// Go to the very end
 		case "end", "G":
-			m.paginator.Page = m.paginator.TotalPages - 1
-			m.index = m.paginator.ItemsOnPage(pages) - 1
+			m.paginator().Page = m.paginator().TotalPages - 1
+			m.setCursor(m.paginator().ItemsOnPage(pages) - 1)
 
 		case "esc":
 			if m.isFiltering() {
@@ -646,21 +668,21 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			if len(m.sections) == 0 {
 				break
 			}
-			m.currentSection++
-			if m.currentSection >= len(m.sections) {
-				m.currentSection = 0
+			m.sectionIndex++
+			if m.sectionIndex >= len(m.sections) {
+				m.sectionIndex = 0
 			}
-			m.setTotalPages()
+			m.updatePagination()
 
 		case "shift+tab":
 			if len(m.sections) == 0 {
 				break
 			}
-			m.currentSection--
-			if m.currentSection < 0 {
-				m.currentSection = len(m.sections) - 1
+			m.sectionIndex--
+			if m.sectionIndex < 0 {
+				m.sectionIndex = len(m.sections) - 1
 			}
-			m.setTotalPages()
+			m.updatePagination()
 
 		// Open document
 		case "enter":
@@ -686,8 +708,8 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			m.filteredMarkdowns = m.getFilterableMarkdowns()
 
-			m.paginator.Page = 0
-			m.index = 0
+			m.paginator().Page = 0
+			m.setCursor(0)
 			m.filterState = filtering
 			m.filterInput.CursorEnd()
 			m.filterInput.Focus()
@@ -762,7 +784,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		// Toggle full help
 		case "?":
 			m.showFullHelp = !m.showFullHelp
-			m.setTotalPages()
+			m.updatePagination()
 
 		// Show errors
 		case "!":
@@ -776,30 +798,30 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 	// Update paginator. Pagination key handling is done here, but it could
 	// also be moved up to this level, in which case we'd use model methods
 	// like model.PageUp().
-	newPaginatorModel, cmd := m.paginator.Update(msg)
-	m.paginator = newPaginatorModel
+	newPaginatorModel, cmd := m.paginator().Update(msg)
+	m.setPaginator(newPaginatorModel)
 	cmds = append(cmds, cmd)
 
 	// Extra paginator keystrokes
 	if key, ok := msg.(tea.KeyMsg); ok {
 		switch key.String() {
 		case "b", "u":
-			m.paginator.PrevPage()
+			m.paginator().PrevPage()
 		case "f", "d":
-			m.paginator.NextPage()
+			m.paginator().NextPage()
 		}
 	}
 
 	// Keep the index in bounds when paginating
-	itemsOnPage := m.paginator.ItemsOnPage(len(m.getVisibleMarkdowns()))
-	if m.index > itemsOnPage-1 {
-		m.index = max(0, itemsOnPage-1)
+	itemsOnPage := m.paginator().ItemsOnPage(len(m.getVisibleMarkdowns()))
+	if m.cursor() > itemsOnPage-1 {
+		m.setCursor(max(0, itemsOnPage-1))
 	}
 
 	// If we're on the last page and we haven't loaded everything, get
 	// more stuff.
-	if m.paginator.OnLastPage() && !m.loadingFromNetwork && !m.stashFullyLoaded {
-		m.page++
+	if m.paginator().OnLastPage() && !m.loadingFromNetwork && !m.stashFullyLoaded {
+		m.serverPage++
 		m.loadingFromNetwork = true
 		cmds = append(cmds, loadStash(*m))
 	}
@@ -842,7 +864,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 			}
 
 			m.selectionState = selectionIdle
-			m.setTotalPages()
+			m.updatePagination()
 
 			return deleteStashedItem(m.general.cc, smd.ID)
 
@@ -912,7 +934,7 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 	}
 
 	// Update pagination
-	m.setTotalPages()
+	m.updatePagination()
 
 	return tea.Batch(cmds...)
 }
@@ -1006,14 +1028,14 @@ func (m stashModel) view() string {
 		blankLines := strings.Repeat("\n", max(0, availHeight))
 
 		var pagination string
-		if m.paginator.TotalPages > 1 {
-			pagination = m.paginator.View()
+		if m.paginator().TotalPages > 1 {
+			pagination = m.paginator().View()
 
 			// If the dot pagination is wider than the width of the window
 			// switch to the arabic paginator.
 			if ansi.PrintableRuneWidth(pagination) > m.general.width-stashViewHorizontalPadding {
-				m.paginator.Type = paginator.Arabic
-				pagination = common.Subtle(m.paginator.View())
+				m.paginator().Type = paginator.Arabic
+				pagination = common.Subtle(m.paginator().View())
 			}
 
 			// We could also look at m.stashFullyLoaded and add an indicator
@@ -1066,25 +1088,25 @@ func (m stashModel) sectionView() string {
 	for i, v := range m.sections {
 		var s string
 
-		switch v {
-		case stashLocalSection:
+		switch v.key {
+		case localSection:
 			if m.stashedOnly() {
 				continue
 			}
 			s = fmt.Sprintf("%d local", localCount)
-		case stashStashedSection:
+		case stashedSection:
 			if m.localOnly() {
 				continue
 			}
 			s = fmt.Sprintf("%d stashed", stashedCount)
-		case stashNewsSection:
+		case newsSection:
 			if m.localOnly() {
 				continue
 			}
 			s = fmt.Sprintf("%d news", newsCount)
 		}
 
-		if m.currentSection == i && len(m.sections) > 1 {
+		if m.sectionIndex == i && len(m.sections) > 1 {
 			s = brightGrayFg(s)
 		} else {
 			s = grayFg(s)
@@ -1111,14 +1133,14 @@ func (m stashModel) populatedView() string {
 			b.WriteString("  " + grayFg(s))
 		}
 
-		switch m.sections[m.currentSection] {
-		case stashLocalSection:
+		switch m.sections[m.sectionIndex].key {
+		case localSection:
 			if m.loadingDone() {
 				f("No local files found.")
 			} else {
 				f("Looking for local files...")
 			}
-		case stashStashedSection:
+		case stashedSection:
 			if m.general.authStatus == authFailed {
 				f("Can't load your stash. Are you offline?")
 			} else if m.loadingDone() {
@@ -1126,7 +1148,7 @@ func (m stashModel) populatedView() string {
 			} else {
 				f("Loading your stash...")
 			}
-		case stashNewsSection:
+		case newsSection:
 			if m.general.authStatus == authFailed {
 				f("Can't load news. Are you offline?")
 			} else if m.loadingDone() {
@@ -1138,7 +1160,7 @@ func (m stashModel) populatedView() string {
 	}
 
 	if len(mds) > 0 {
-		start, end := m.paginator.GetSliceBounds(len(mds))
+		start, end := m.paginator().GetSliceBounds(len(mds))
 		docs := mds[start:end]
 
 		for i, md := range docs {
@@ -1152,9 +1174,9 @@ func (m stashModel) populatedView() string {
 	// If there aren't enough items to fill up this page (always the last page)
 	// then we need to add some newlines to fill up the space where stash items
 	// would have been.
-	itemsOnPage := m.paginator.ItemsOnPage(len(mds))
-	if itemsOnPage < m.paginator.PerPage {
-		n := (m.paginator.PerPage - itemsOnPage) * stashViewItemHeight
+	itemsOnPage := m.paginator().ItemsOnPage(len(mds))
+	if itemsOnPage < m.paginator().PerPage {
+		n := (m.paginator().PerPage - itemsOnPage) * stashViewItemHeight
 		if len(mds) == 0 {
 			n -= stashViewItemHeight - 1
 		}

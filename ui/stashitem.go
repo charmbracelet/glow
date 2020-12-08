@@ -43,7 +43,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		title = truncate(title, truncateTo)
 	}
 
-	isSelected := index == m.index
+	isSelected := index == m.cursor()
 	isFiltering := m.filterState == filtering
 
 	// If there are multiple items being filtered we don't highlight a selected
