@@ -546,7 +546,7 @@ func loadStash(m stashModel) tea.Cmd {
 			}
 			return stashLoadErrMsg{err}
 		}
-		stash, err := m.general.cc.GetStash(m.page)
+		stash, err := m.general.cc.GetStash(m.serverPage)
 		if err != nil {
 			if debug {
 				if _, ok := err.(charm.ErrAuthFailed); ok {
@@ -558,7 +558,7 @@ func loadStash(m stashModel) tea.Cmd {
 			return stashLoadErrMsg{err}
 		}
 		if debug {
-			log.Println("loaded stash page", m.page)
+			log.Println("loaded stash page", m.serverPage)
 		}
 		return gotStashMsg(stash)
 	}

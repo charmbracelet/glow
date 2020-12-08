@@ -136,7 +136,7 @@ func (m stashModel) helpView() (string, int) {
 		}
 	}
 
-	if m.paginator.TotalPages > 1 {
+	if m.paginator().TotalPages > 1 {
 		navHelp = append(navHelp, "h/l ←/→", "page")
 	}
 
