@@ -419,7 +419,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// message and generally don't want any other effects.
 		if m.state == stateShowDocument {
 			md := markdown(msg)
-			_ = m.stash.replaceLocalMarkdown(md.localPath, &md)
+			m.stash.addMarkdowns(&md)
+
+			if m.stash.isFiltering() {
+				cmds = append(cmds, filterMarkdowns(m.stash))
+			}
+		}
+
+	case filteredMarkdownMsg:
+		if m.state == stateShowDocument {
+			newStashModel, cmd := m.stash.update(msg)
+			m.stash = newStashModel
+			cmds = append(cmds, cmd)
 		}
 	}
 
@@ -683,9 +694,9 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 
 // ETC
 
-// Convert local file path to Markdown. Note that we could be doing things
-// like checking if the file is a directory, but we trust that gitcha has
-// already done that.
+// Convert a Gitcha result to an internal representation of a markdown
+// document. Note that we could be doing things like checking if the file is
+// a directory, but we trust that gitcha has already done that.
 func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
 		markdownType: LocalDoc,

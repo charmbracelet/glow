@@ -11,6 +11,15 @@ const (
 	NewsDoc
 )
 
+func (d DocType) String() string {
+	return [...]string{
+		"local",
+		"stashed",
+		"converted",
+		"news",
+	}[d]
+}
+
 // DocTypeSet is a set (in the mathematic sense) of document types.
 type DocTypeSet map[DocType]struct{}
 
