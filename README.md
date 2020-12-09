@@ -50,6 +50,9 @@ nix-env -iA nixpkgs.glow
 # FreeBSD
 pkg install glow
 
+# Solus
+eopkg install glow
+
 # Windows (with Scoop)
 scoop install glow
 ```
