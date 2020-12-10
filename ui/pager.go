@@ -243,13 +243,21 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					break
 				}
 
+				md := m.currentDocument
+
+				_, alreadyStashed := m.general.filesStashed[md.localID]
+				if alreadyStashed {
+					cmds = append(cmds, m.showStatusMessage("Already stashed"))
+					break
+				}
+
 				// Stash a local document
-				if m.state != pagerStateStashing && m.currentDocument.markdownType == LocalDoc {
+				if m.state != pagerStateStashing && stashableDocTypes.Contains(md.markdownType) {
 					m.state = pagerStateStashing
 					m.spinner.Start()
 					cmds = append(
 						cmds,
-						stashDocument(m.general.cc, m.currentDocument),
+						stashDocument(m.general.cc, md),
 						spinner.Tick,
 					)
 				}
@@ -263,15 +271,18 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	case spinner.TickMsg:
 		if m.state == pagerStateStashing || m.spinner.Visible() {
+			// If we're still stashing, or if the spinner still needs to
+			// finish, spin it along.
 			newSpinnerModel, cmd := m.spinner.Update(msg)
 			m.spinner = newSpinnerModel
 			cmds = append(cmds, cmd)
 		} else if m.state == pagerStateStashSuccess && !m.spinner.Visible() {
+			// If the spinner's finished and we haven't told the user the
+			// stash was successful, do that.
 			m.state = pagerStateBrowse
 			m.currentDocument = *m.stashedDocument
 			m.stashedDocument = nil
-			cmd := m.showStatusMessage("Stashed!")
-			cmds = append(cmds, cmd)
+			cmds = append(cmds, m.showStatusMessage("Stashed!"))
 		}
 
 	// Glow has rendered the content
@@ -293,11 +304,14 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		// item to the stash listing.
 		m.state = pagerStateStashSuccess
 		if !m.spinner.Visible() {
+			// The spinner has finished spinning, so tell the user the stash
+			// was successful.
 			m.state = pagerStateBrowse
 			m.currentDocument = markdown(msg)
-			cmd := m.showStatusMessage("Stashed!")
-			cmds = append(cmds, cmd)
+			cmds = append(cmds, m.showStatusMessage("Stashed!"))
 		} else {
+			// The spinner is still spinning, so just take note of the newly
+			// stashed document for now.
 			md := markdown(msg)
 			m.stashedDocument = &md
 		}
@@ -306,7 +320,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		// TODO
 
 	case statusMessageTimeoutMsg:
-		// Hide the status message bar
 		m.state = pagerStateBrowse
 	}
 

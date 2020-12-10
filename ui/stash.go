@@ -18,7 +18,6 @@ import (
 	"github.com/muesli/reflow/ansi"
 	te "github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
-	"github.com/segmentio/ksuid"
 )
 
 const (
@@ -142,10 +141,6 @@ type stashModel struct {
 	// on will alter this slice so we can show what is relevant. For that
 	// reason, this field should be considered ephemeral.
 	filteredMarkdowns []*markdown
-
-	// Paths to files stashed this session. We treat this like a set, ignoring
-	// the value portion with an empty struct.
-	filesStashed map[ksuid.KSUID]struct{}
 
 	// Page we're fetching stash items from on the server, which is different
 	// from the local pagination. Generally, the server will return more items
@@ -473,7 +468,6 @@ func newStashModel(general *general) stashModel {
 		serverPage:         1,
 		loaded:             NewDocTypeSet(),
 		loadingFromNetwork: true,
-		filesStashed:       make(map[ksuid.KSUID]struct{}),
 		sections:           s,
 	}
 
@@ -560,7 +554,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		condition := !m.loadingDone() ||
 			m.loadingFromNetwork ||
 			m.viewState == stashStateLoadingDocument ||
-			len(m.filesStashed) > 0 ||
+			len(m.general.filesStashed) > 0 ||
 			m.spinner.Visible()
 
 		if condition {
@@ -733,7 +727,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			md := m.selectedMarkdown()
 
-			if _, alreadyStashed := m.filesStashed[md.localID]; alreadyStashed {
+			if _, alreadyStashed := m.general.filesStashed[md.localID]; alreadyStashed {
 				cmds = append(cmds, m.newStatusMessage("Already stashed"))
 				break
 			}
@@ -746,7 +740,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 
 			// Checks passed; perform the stash
-			m.filesStashed[md.localID] = struct{}{}
+			m.general.filesStashed[md.localID] = struct{}{}
 			cmds = append(cmds, stashDocument(m.general.cc, *md))
 
 			if m.loadingDone() && !m.spinner.Visible() {
@@ -835,7 +829,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 				}
 
 				// Remove from the things-we-stashed-this-session set
-				delete(m.filesStashed, md.localID)
+				delete(m.general.filesStashed, md.localID)
 
 				// Delete optimistically and remove the stashed item before
 				// we've received a success response.
@@ -1201,7 +1195,7 @@ func (m stashModel) populatedView() string {
 // loadRemoteMarkdown is a command for loading markdown from the server.
 func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 	return func() tea.Msg {
-		md, err := loadMarkdownFromCharm(cc, md.ID, md.markdownType)
+		newMD, err := loadMarkdownFromCharm(cc, md.ID, md.markdownType)
 		if err != nil {
 			if debug {
 				log.Printf("error loading %s markdown (ID %d, Note: '%s'): %v", md.markdownType, md.ID, md.Note, err)
@@ -1212,7 +1206,8 @@ func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 				note: md.Note,
 			}
 		}
-		return fetchedMarkdownMsg(md)
+		newMD.localID = md.localID
+		return fetchedMarkdownMsg(newMD)
 	}
 }
 
