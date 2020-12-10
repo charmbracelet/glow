@@ -19,6 +19,7 @@ import (
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
+	"github.com/segmentio/ksuid"
 )
 
 const (
@@ -157,6 +158,10 @@ type general struct {
 	authStatus authStatus
 	width      int
 	height     int
+
+	// Local IDs of files stashed this session. We treat this like a set,
+	// ignoring the value portion with an empty struct.
+	filesStashed map[ksuid.KSUID]struct{}
 }
 
 type model struct {
@@ -207,8 +212,9 @@ func newModel(cfg Config) tea.Model {
 	}
 
 	general := general{
-		cfg:        cfg,
-		authStatus: authConnecting,
+		cfg:          cfg,
+		authStatus:   authConnecting,
+		filesStashed: make(map[ksuid.KSUID]struct{}),
 	}
 
 	return model{
@@ -422,6 +428,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.state == stateShowDocument {
 			md := markdown(msg)
 			m.stash.addMarkdowns(&md)
+			m.general.filesStashed[msg.localID] = struct{}{}
 
 			if m.stash.isFiltering() {
 				cmds = append(cmds, filterMarkdowns(m.stash))
