@@ -18,6 +18,7 @@ import (
 	"github.com/muesli/reflow/ansi"
 	te "github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
+	"github.com/segmentio/ksuid"
 )
 
 const (
@@ -37,9 +38,15 @@ var (
 
 // MSG
 
-type fetchedMarkdownMsg *markdown
 type deletedStashedItemMsg int
 type filteredMarkdownMsg []*markdown
+type fetchedMarkdownMsg *markdown
+
+type markdownFetchFailedMsg struct {
+	err  error
+	id   int
+	note string
+}
 
 // MODEL
 
@@ -138,7 +145,7 @@ type stashModel struct {
 
 	// Paths to files stashed this session. We treat this like a set, ignoring
 	// the value portion with an empty struct.
-	filesStashed map[string]struct{}
+	filesStashed map[ksuid.KSUID]struct{}
 
 	// Page we're fetching stash items from on the server, which is different
 	// from the local pagination. Generally, the server will return more items
@@ -268,6 +275,10 @@ func (m stashModel) selectedMarkdown() *markdown {
 // Adds markdown documents to the model.
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	if len(mds) > 0 {
+		for _, md := range mds {
+			md.generateLocalID()
+		}
+
 		m.markdowns = append(m.markdowns, mds...)
 		if !m.isFiltering() {
 			sort.Stable(markdownsByLocalFirst(m.markdowns))
@@ -340,7 +351,7 @@ func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 	if md.markdownType == LocalDoc {
 		cmd = loadLocalMarkdown(md)
 	} else {
-		cmd = loadRemoteMarkdown(m.general.cc, md.ID, md.markdownType)
+		cmd = loadRemoteMarkdown(m.general.cc, md)
 	}
 
 	return tea.Batch(cmd, spinner.Tick)
@@ -462,7 +473,7 @@ func newStashModel(general *general) stashModel {
 		serverPage:         1,
 		loaded:             NewDocTypeSet(),
 		loadingFromNetwork: true,
-		filesStashed:       make(map[string]struct{}),
+		filesStashed:       make(map[ksuid.KSUID]struct{}),
 		sections:           s,
 	}
 
@@ -532,6 +543,14 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		}
 
 		m.addMarkdowns(docs...)
+
+	case markdownFetchFailedMsg:
+		s := "Couldn't load markdown"
+		if msg.note != "" {
+			s += ": " + msg.note
+		}
+		cmd := m.newStatusMessage(s)
+		return m, cmd
 
 	case filteredMarkdownMsg:
 		m.filteredMarkdowns = msg
@@ -714,23 +733,20 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			md := m.selectedMarkdown()
 
-			if _, alreadyStashed := m.filesStashed[md.localPath]; alreadyStashed {
+			if _, alreadyStashed := m.filesStashed[md.localID]; alreadyStashed {
 				cmds = append(cmds, m.newStatusMessage("Already stashed"))
 				break
 			}
 
-			isLocalMarkdown := md.markdownType == LocalDoc
-			markdownPathMissing := md.localPath == ""
-
-			if !isLocalMarkdown || markdownPathMissing {
-				if debug && isLocalMarkdown && markdownPathMissing {
-					log.Printf("refusing to stash markdown; local path is empty: %#v", md)
+			if !stashableDocTypes.Contains(md.markdownType) || md.localID.IsNil() {
+				if debug && md.localID.IsNil() {
+					log.Printf("refusing to stash markdown; local ID path is nil: %#v", md)
 				}
 				break
 			}
 
 			// Checks passed; perform the stash
-			m.filesStashed[md.localPath] = struct{}{}
+			m.filesStashed[md.localID] = struct{}{}
 			cmds = append(cmds, stashDocument(m.general.cc, *md))
 
 			if m.loadingDone() && !m.spinner.Visible() {
@@ -807,7 +823,6 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
-		// Confirm deletion
 		case "y":
 			if m.selectionState != selectionPromptingDelete {
 				break
@@ -819,10 +834,8 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 					continue
 				}
 
-				if md.markdownType == ConvertedDoc {
-					// Remove from the things-we-stashed-this-session set
-					delete(m.filesStashed, md.localPath)
-				}
+				// Remove from the things-we-stashed-this-session set
+				delete(m.filesStashed, md.localID)
 
 				// Delete optimistically and remove the stashed item before
 				// we've received a success response.
@@ -976,7 +989,8 @@ func (m stashModel) view() string {
 		// Rules for the logo, filter and status message.
 		var logoOrFilter string
 		if m.showStatusMessage {
-			logoOrFilter = greenFg(m.statusMessage)
+			const gutter = 3
+			logoOrFilter = greenFg(truncate(m.statusMessage, m.general.width-gutter))
 		} else if m.isFiltering() {
 			logoOrFilter = m.filterInput.View()
 		} else {
@@ -1184,31 +1198,47 @@ func (m stashModel) populatedView() string {
 
 // COMMANDS
 
-func loadRemoteMarkdown(cc *charm.Client, id int, t DocType) tea.Cmd {
+// loadRemoteMarkdown is a command for loading markdown from the server.
+func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 	return func() tea.Msg {
-		var (
-			md  *charm.Markdown
-			err error
-		)
-
-		if t == StashedDoc || t == ConvertedDoc {
-			md, err = cc.GetStashMarkdown(id)
-		} else {
-			md, err = cc.GetNewsMarkdown(id)
-		}
-
+		md, err := loadMarkdownFromCharm(cc, md.ID, md.markdownType)
 		if err != nil {
 			if debug {
-				log.Println("error loading remote markdown:", err)
+				log.Printf("error loading %s markdown (ID %d, Note: '%s'): %v", md.markdownType, md.ID, md.Note, err)
 			}
-			return errMsg{err}
+			return markdownFetchFailedMsg{
+				err:  err,
+				id:   md.ID,
+				note: md.Note,
+			}
 		}
-
-		return fetchedMarkdownMsg(&markdown{
-			markdownType: t,
-			Markdown:     *md,
-		})
+		return fetchedMarkdownMsg(md)
 	}
+}
+
+// loadMarkdownFromCharm performs the actual I/O for loading markdown from the
+// sever.
+func loadMarkdownFromCharm(cc *charm.Client, id int, t DocType) (*markdown, error) {
+	var md *charm.Markdown
+	var err error
+
+	switch t {
+	case StashedDoc, ConvertedDoc:
+		md, err = cc.GetStashMarkdown(id)
+	case NewsDoc:
+		md, err = cc.GetNewsMarkdown(id)
+	default:
+		err = fmt.Errorf("unknown markdown type: %s", t)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &markdown{
+		markdownType: t,
+		Markdown:     *md,
+	}, nil
 }
 
 func loadLocalMarkdown(md *markdown) tea.Cmd {
@@ -1287,7 +1317,7 @@ func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error
 				index = i
 			}
 		default:
-			return nil, fmt.Errorf("%s documents cannot be deleted", target.markdownType.String())
+			return nil, fmt.Errorf("%s documents cannot be deleted", target.markdownType)
 		}
 	}
 

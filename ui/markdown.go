@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/charm"
 	"github.com/dustin/go-humanize"
+	"github.com/segmentio/ksuid"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -17,6 +18,11 @@ import (
 // markdown wraps charm.Markdown.
 type markdown struct {
 	markdownType DocType
+
+	// Local identifier. This allows us to precisely determine the stashed
+	// state of a markdown, regardless of whether it exists locally or on the
+	// network.
+	localID ksuid.KSUID
 
 	// Full path of a local markdown file. Only relevant to local documents and
 	// those that have been stashed in this session.
@@ -28,6 +34,12 @@ type markdown struct {
 	filterValue string
 
 	charm.Markdown
+}
+
+func (m *markdown) generateLocalID() {
+	if m.localID.IsNil() {
+		m.localID = ksuid.New()
+	}
 }
 
 // Generate the value we're doing to filter against.
