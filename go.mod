@@ -19,6 +19,7 @@ require (
 	github.com/muesli/reflow v0.2.0
 	github.com/muesli/termenv v0.7.4
 	github.com/sahilm/fuzzy v0.1.0
+	github.com/segmentio/ksuid v1.0.3
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897

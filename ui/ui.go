@@ -30,6 +30,8 @@ var (
 	config            Config
 	glowLogoTextColor = common.Color("#ECFD65")
 	debug             = false // true if we're logging to a file, in which case we'll log more stuff
+
+	stashableDocTypes = NewDocTypeSet(LocalDoc, NewsDoc)
 )
 
 // Config contains TUI-specific configuration.
@@ -649,26 +651,40 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		}
 
 		// Is the document missing a body? If so, it likely means it needs to
-		// be loaded. If the document body is really empty then we'll still
-		// stash it.
+		// be loaded. But...if it turnsout the document body really is empty
+		// then we'll stash it anyway.
 		if len(md.Body) == 0 {
-			data, err := ioutil.ReadFile(md.localPath)
-			if err != nil {
-				if debug {
-					log.Println("error loading doucument body for stashing:", err)
+			switch md.markdownType {
+
+			case LocalDoc:
+				data, err := ioutil.ReadFile(md.localPath)
+				if err != nil {
+					if debug {
+						log.Println("error loading document body for stashing:", err)
+					}
+					return stashErrMsg{err}
 				}
-				return stashErrMsg{err}
+				md.Body = string(data)
+
+			case NewsDoc:
+				newMD, err := loadMarkdownFromCharm(cc, md.ID, md.markdownType)
+				if err != nil {
+					return stashErrMsg{err}
+				}
+				md.Body = newMD.Body
+
+			default:
+				if debug {
+					log.Printf("user is attempting to stash an unsupported markdown type: %s", md.markdownType)
+				}
 			}
-			md.Body = string(data)
 		}
 
-		// Turn local markdown into a newly stashed (converted) markdown
-		md.markdownType = ConvertedDoc
-		md.CreatedAt = time.Now()
-
 		// Set the note as the filename without the extension
-		p := md.localPath
-		md.Note = strings.Replace(path.Base(p), path.Ext(p), "", 1)
+		if md.markdownType == LocalDoc {
+			p := md.localPath
+			md.Note = strings.Replace(path.Base(p), path.Ext(p), "", 1)
+		}
 
 		newMd, err := cc.StashMarkdown(md.Note, md.Body)
 		if err != nil {
@@ -678,9 +694,15 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			return stashErrMsg{err}
 		}
 
-		// We really just need to know the ID so we can operate on this newly
-		// stashed markdown.
+		// The server sends the whole stashed document back, but we really just
+		// need to know the ID so we can operate on this newly stashed
+		// markdown.
 		md.ID = newMd.ID
+
+		// Turn the markdown into a newly stashed (converted) markdown
+		md.markdownType = ConvertedDoc
+		md.CreatedAt = time.Now()
+
 		return stashSuccessMsg(md)
 	}
 }
@@ -729,6 +751,9 @@ func indent(s string, n int) string {
 }
 
 func truncate(str string, num int) string {
+	if num < 1 {
+		return str
+	}
 	return runewidth.Truncate(str, num, "…")
 }
 
