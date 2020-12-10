@@ -759,7 +759,12 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				break
 			}
 
-			t := m.selectedMarkdown().markdownType
+			md := m.selectedMarkdown()
+			if md == nil {
+				break
+			}
+
+			t := md.markdownType
 			if t == StashedDoc || t == ConvertedDoc {
 				m.selectionState = selectionPromptingDelete
 			}
