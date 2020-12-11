@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/charm/ui/common"
+	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/muesli/reflow/ansi"
 )
 
@@ -195,14 +195,14 @@ func (m stashModel) miniHelpView(entries ...string) string {
 	}
 
 	var (
-		truncationChar  = common.Subtle("…")
+		truncationChar  = lib.Subtle("…")
 		truncationWidth = ansi.PrintableRuneWidth(truncationChar)
 	)
 
 	var (
 		next       string
 		leftGutter = "  "
-		maxWidth   = m.general.width -
+		maxWidth   = m.common.width -
 			stashViewHorizontalPadding -
 			truncationWidth -
 			ansi.PrintableRuneWidth(leftGutter)

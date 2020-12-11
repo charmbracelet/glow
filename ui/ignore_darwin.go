@@ -6,8 +6,8 @@ import "path/filepath"
 
 func ignorePatterns(m model) []string {
 	return []string{
-		filepath.Join(m.general.cfg.HomeDir, "Library"),
-		m.general.cfg.Gopath,
+		filepath.Join(m.common.cfg.HomeDir, "Library"),
+		m.common.cfg.Gopath,
 		"node_modules",
 		".*",
 	}
