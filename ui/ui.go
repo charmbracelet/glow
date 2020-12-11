@@ -78,6 +78,9 @@ func NewProgram(cfg Config) *tea.Program {
 }
 
 type errMsg struct{ err error }
+
+func (e errMsg) Error() string { return e.err.Error() }
+
 type newCharmClientMsg *charm.Client
 type sshAuthErrMsg struct{}
 type keygenFailedMsg struct{ err error }
@@ -98,17 +101,6 @@ type stashFailMsg struct {
 	err      error
 	markdown markdown
 }
-
-//type stashErrMsg struct{ err error }
-
-func (e errMsg) Error() string          { return e.err.Error() }
-func (e errMsg) Unwrap() error          { return e.err }
-func (k keygenFailedMsg) Error() string { return k.err.Error() }
-func (k keygenFailedMsg) Unwrap() error { return k.err }
-func (s stashLoadErrMsg) Error() string { return s.err.Error() }
-func (s stashLoadErrMsg) Unwrap() error { return s.err }
-func (s newsLoadErrMsg) Error() string  { return s.err.Error() }
-func (s newsLoadErrMsg) Unwrap() error  { return s.err }
 
 // Which part of the application something appies to. Occasionally used as an
 // argument to commands and messages.
