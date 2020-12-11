@@ -169,6 +169,14 @@ type general struct {
 	// Local IDs of files stashed this session. We treat this like a set,
 	// ignoring the value portion with an empty struct.
 	filesStashed map[ksuid.KSUID]struct{}
+
+	// Files currently being stashed. We remove files from this set once
+	// a stash operation has either succeeded or failed.
+	filesStashing map[ksuid.KSUID]struct{}
+}
+
+func (g general) isStashing() bool {
+	return len(g.filesStashing) > 0
 }
 
 type model struct {
@@ -199,7 +207,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 		batch = append(batch, tea.ClearScrollArea)
 	}
 
-	if !m.stash.loadingDone() || m.stash.loadingFromNetwork {
+	if !m.stash.loadingDone() {
 		batch = append(batch, spinner.Tick)
 	}
 	return batch
@@ -219,9 +227,10 @@ func newModel(cfg Config) tea.Model {
 	}
 
 	general := general{
-		cfg:          cfg,
-		authStatus:   authConnecting,
-		filesStashed: make(map[ksuid.KSUID]struct{}),
+		cfg:           cfg,
+		authStatus:    authConnecting,
+		filesStashed:  make(map[ksuid.KSUID]struct{}),
+		filesStashing: make(map[ksuid.KSUID]struct{}),
 	}
 
 	return model{
@@ -362,7 +371,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// Even though it failed, news/stash loading is finished
 			m.stash.loaded.Add(StashedDoc, NewsDoc)
-			m.stash.loadingFromNetwork = false
 		}
 
 	case keygenFailedMsg:
@@ -377,7 +385,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Even though it failed, news/stash loading is finished
 		m.stash.loaded.Add(StashedDoc, NewsDoc)
-		m.stash.loadingFromNetwork = false
 
 	case keygenSuccessMsg:
 		// The keygen's done, so let's try initializing the charm client again
@@ -429,22 +436,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case stashSuccessMsg:
-		// Something was stashed outside the file listing view. Update the
-		// stash listing but don't run an actual update on the stash since we
-		// don't want to trigger the status message and generally don't want
-		// any other effects.
-		if m.state == stateShowDocument {
-			md := markdown(msg)
-			m.stash.addMarkdowns(&md)
-			m.general.filesStashed[msg.localID] = struct{}{}
+		// Common handling that should happen regardless of application state
+		md := markdown(msg)
+		m.stash.addMarkdowns(&md)
+		m.general.filesStashed[msg.localID] = struct{}{}
+		delete(m.general.filesStashing, md.localID)
 
-			if m.stash.isFiltering() {
-				cmds = append(cmds, filterMarkdowns(m.stash))
-			}
+		if m.stash.isFiltering() {
+			cmds = append(cmds, filterMarkdowns(m.stash))
 		}
 
 	case stashFailMsg:
+		// Common handling that should happen regardless of application state
 		delete(m.general.filesStashed, msg.markdown.localID)
+		delete(m.general.filesStashing, msg.markdown.localID)
 
 	case filteredMarkdownMsg:
 		if m.state == stateShowDocument {
