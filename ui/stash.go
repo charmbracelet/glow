@@ -572,7 +572,6 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 			}
 		}
 
-	// Something was stashed. Add it to the stash listing.
 	case stashSuccessMsg:
 		md := markdown(msg)
 		m.addMarkdowns(&md)
@@ -581,6 +580,9 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 			cmds = append(cmds, filterMarkdowns(m))
 		}
 		cmds = append(cmds, m.newStatusMessage("Stashed!"))
+
+	case stashFailMsg:
+		cmds = append(cmds, m.newStatusMessage("Couldn’t stash :("))
 
 	case statusMessageTimeoutMsg:
 		if applicationContext(msg) == stashContext {
@@ -726,6 +728,10 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 
 			md := m.selectedMarkdown()
+
+			if !stashableDocTypes.Contains(md.markdownType) {
+				break
+			}
 
 			if _, alreadyStashed := m.general.filesStashed[md.localID]; alreadyStashed {
 				cmds = append(cmds, m.newStatusMessage("Already stashed"))

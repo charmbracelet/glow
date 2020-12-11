@@ -49,10 +49,6 @@ var (
 
 type contentRenderedMsg string
 type noteSavedMsg *charm.Markdown
-type stashSuccessMsg markdown
-type stashErrMsg struct{ err error }
-
-func (s stashErrMsg) Error() string { return s.err.Error() }
 
 type pagerState int
 
@@ -316,8 +312,8 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			m.stashedDocument = &md
 		}
 
-	case stashErrMsg:
-		// TODO
+	case stashFailMsg:
+		delete(m.general.filesStashed, msg.markdown.localID)
 
 	case statusMessageTimeoutMsg:
 		m.state = pagerStateBrowse
