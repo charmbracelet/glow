@@ -49,7 +49,7 @@ type markdownFetchFailedMsg struct {
 
 // MODEL
 
-// High-level state of the application.
+// stashViewState is the high-level state of the file listing.
 type stashViewState int
 
 const (
@@ -67,6 +67,8 @@ const (
 	newsSection
 )
 
+// section contains definitions and state information for displaying a tab and
+// its contents in the file listing view.
 type section struct {
 	key       sectionKey
 	docTypes  DocTypeSet
@@ -74,7 +76,7 @@ type section struct {
 	cursor    int
 }
 
-// Maps sections to their associated types
+// map sections to their associated types.
 var sections = map[sectionKey]section{
 	localSection: {
 		key:      localSection,
@@ -90,7 +92,7 @@ var sections = map[sectionKey]section{
 	},
 }
 
-// The current filtering state.
+// filterState is the current filtering state in the file listing.
 type filterState int
 
 const (
@@ -99,7 +101,7 @@ const (
 	filterApplied                    // a filter is applied and user is not editing filter
 )
 
-// The state of the currently selected document.
+// selectionState is the state of the currently selected document.
 type selectionState int
 
 const (
