@@ -658,7 +658,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 				md.Body = string(data)
 
 			case NewsDoc:
-				newMD, err := loadMarkdownFromCharm(cc, md.ID, md.markdownType)
+				newMD, err := fetchMarkdown(cc, md.ID, md.markdownType)
 				if err != nil {
 					return stashFailMsg{err, md}
 				}
