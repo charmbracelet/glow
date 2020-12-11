@@ -93,6 +93,13 @@ type stashLoadErrMsg struct{ err error }
 type gotNewsMsg []*charm.Markdown
 type statusMessageTimeoutMsg applicationContext
 type newsLoadErrMsg struct{ err error }
+type stashSuccessMsg markdown
+type stashFailMsg struct {
+	err      error
+	markdown markdown
+}
+
+//type stashErrMsg struct{ err error }
 
 func (e errMsg) Error() string          { return e.err.Error() }
 func (e errMsg) Unwrap() error          { return e.err }
@@ -422,9 +429,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case stashSuccessMsg:
-		// Something was stashed. Update the stash listing but don't run an
-		// actual update on the stash since we don't want to trigger the status
-		// message and generally don't want any other effects.
+		// Something was stashed outside the file listing view. Update the
+		// stash listing but don't run an actual update on the stash since we
+		// don't want to trigger the status message and generally don't want
+		// any other effects.
 		if m.state == stateShowDocument {
 			md := markdown(msg)
 			m.stash.addMarkdowns(&md)
@@ -434,6 +442,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, filterMarkdowns(m.stash))
 			}
 		}
+
+	case stashFailMsg:
+		delete(m.general.filesStashed, msg.markdown.localID)
 
 	case filteredMarkdownMsg:
 		if m.state == stateShowDocument {
@@ -653,7 +664,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 				if debug {
 					log.Println("error stashing document:", err)
 				}
-				return stashErrMsg{err}
+				return stashFailMsg{err, md}
 			}
 		}
 
@@ -669,21 +680,23 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 					if debug {
 						log.Println("error loading document body for stashing:", err)
 					}
-					return stashErrMsg{err}
+					return stashFailMsg{err, md}
 				}
 				md.Body = string(data)
 
 			case NewsDoc:
 				newMD, err := loadMarkdownFromCharm(cc, md.ID, md.markdownType)
 				if err != nil {
-					return stashErrMsg{err}
+					return stashFailMsg{err, md}
 				}
 				md.Body = newMD.Body
 
 			default:
+				err := fmt.Errorf("user is attempting to stash an unsupported markdown type: %s", md.markdownType)
 				if debug {
-					log.Printf("user is attempting to stash an unsupported markdown type: %s", md.markdownType)
+					log.Println(err)
 				}
+				return stashFailMsg{err, md}
 			}
 		}
 
@@ -698,7 +711,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			if debug {
 				log.Println("error stashing document:", err)
 			}
-			return stashErrMsg{err}
+			return stashFailMsg{err, md}
 		}
 
 		// The server sends the whole stashed document back, but we really just
