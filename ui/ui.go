@@ -30,39 +30,13 @@ const (
 var (
 	config            Config
 	glowLogoTextColor = common.Color("#ECFD65")
-	debug             = false // true if we're logging to a file, in which case we'll log more stuff
 
+	// True if we're logging to a file, in which case we'll log more stuff.
+	debug = false
+
+	// Types of documents we allow the user to stash.
 	stashableDocTypes = NewDocTypeSet(LocalDoc, NewsDoc)
 )
-
-// Config contains TUI-specific configuration.
-type Config struct {
-	ShowAllFiles    bool
-	Gopath          string `env:"GOPATH"`
-	HomeDir         string `env:"HOME"`
-	GlamourMaxWidth uint
-	GlamourStyle    string
-
-	// Which document types shall we show? We work though this with bitmasking.
-	DocumentTypes DocTypeSet
-
-	// For debugging the UI
-	Logfile              string `env:"GLOW_LOGFILE"`
-	HighPerformancePager bool   `env:"GLOW_HIGH_PERFORMANCE_PAGER" default:"true"`
-	GlamourEnabled       bool   `env:"GLOW_ENABLE_GLAMOUR" default:"true"`
-}
-
-func (c Config) showLocalFiles() bool {
-	return c.DocumentTypes.Contains(LocalDoc)
-}
-
-func (c Config) localOnly() bool {
-	return c.DocumentTypes.Equals(NewDocTypeSet(LocalDoc))
-}
-
-func (c Config) stashedOnly() bool {
-	return c.DocumentTypes.Contains(StashedDoc) && !c.DocumentTypes.Contains(LocalDoc)
-}
 
 // NewProgram returns a new Tea program.
 func NewProgram(cfg Config) *tea.Program {
@@ -102,8 +76,8 @@ type stashFailMsg struct {
 	markdown markdown
 }
 
-// Which part of the application something appies to. Occasionally used as an
-// argument to commands and messages.
+// applicationContext indicates the area of the application something appies
+// to. Occasionally used as an argument to commands and messages.
 type applicationContext int
 
 const (
@@ -111,6 +85,7 @@ const (
 	pagerContext
 )
 
+// state is the top-level application state.
 type state int
 
 const (
@@ -119,9 +94,9 @@ const (
 )
 
 func (s state) String() string {
-	return [...]string{
-		"showing stash",
-		"showing document",
+	return map[state]string{
+		stateShowStash:    "showing file listing",
+		stateShowDocument: "showing document",
 	}[s]
 }
 
