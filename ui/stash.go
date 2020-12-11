@@ -1194,7 +1194,7 @@ func (m stashModel) populatedView() string {
 // loadRemoteMarkdown is a command for loading markdown from the server.
 func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 	return func() tea.Msg {
-		newMD, err := loadMarkdownFromCharm(cc, md.ID, md.markdownType)
+		newMD, err := fetchMarkdown(cc, md.ID, md.markdownType)
 		if err != nil {
 			if debug {
 				log.Printf("error loading %s markdown (ID %d, Note: '%s'): %v", md.markdownType, md.ID, md.Note, err)
@@ -1208,31 +1208,6 @@ func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 		newMD.localID = md.localID
 		return fetchedMarkdownMsg(newMD)
 	}
-}
-
-// loadMarkdownFromCharm performs the actual I/O for loading markdown from the
-// sever.
-func loadMarkdownFromCharm(cc *charm.Client, id int, t DocType) (*markdown, error) {
-	var md *charm.Markdown
-	var err error
-
-	switch t {
-	case StashedDoc, ConvertedDoc:
-		md, err = cc.GetStashMarkdown(id)
-	case NewsDoc:
-		md, err = cc.GetNewsMarkdown(id)
-	default:
-		err = fmt.Errorf("unknown markdown type: %s", t)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &markdown{
-		markdownType: t,
-		Markdown:     *md,
-	}, nil
 }
 
 func loadLocalMarkdown(md *markdown) tea.Cmd {
@@ -1295,6 +1270,30 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 }
 
 // ETC
+
+// fetchMarkdown performs the actual I/O for loading markdown from the sever.
+func fetchMarkdown(cc *charm.Client, id int, t DocType) (*markdown, error) {
+	var md *charm.Markdown
+	var err error
+
+	switch t {
+	case StashedDoc, ConvertedDoc:
+		md, err = cc.GetStashMarkdown(id)
+	case NewsDoc:
+		md, err = cc.GetNewsMarkdown(id)
+	default:
+		err = fmt.Errorf("unknown markdown type: %s", t)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &markdown{
+		markdownType: t,
+		Markdown:     *md,
+	}, nil
+}
 
 // Delete a markdown from a slice of markdowns.
 func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error) {
