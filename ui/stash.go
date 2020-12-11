@@ -115,7 +115,6 @@ type stashModel struct {
 	noteInput          textinput.Model
 	filterInput        textinput.Model
 	stashFullyLoaded   bool // have we loaded all available stashed documents from the server?
-	loadingFromNetwork bool // are we currently loading something from the network?
 	viewState          stashViewState
 	filterState        filterState
 	selectionState     selectionState
@@ -461,14 +460,13 @@ func newStashModel(general *general) stashModel {
 	}
 
 	m := stashModel{
-		general:            general,
-		spinner:            sp,
-		noteInput:          ni,
-		filterInput:        si,
-		serverPage:         1,
-		loaded:             NewDocTypeSet(),
-		loadingFromNetwork: true,
-		sections:           s,
+		general:     general,
+		spinner:     sp,
+		noteInput:   ni,
+		filterInput: si,
+		serverPage:  1,
+		loaded:      NewDocTypeSet(),
+		sections:    s,
 	}
 
 	return m
@@ -487,7 +485,6 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		m.err = msg.err
 		m.loaded.Add(StashedDoc) // still done, albeit unsuccessfully
 		m.stashFullyLoaded = true
-		m.loadingFromNetwork = false
 
 	case newsLoadErrMsg:
 		m.err = msg.err
@@ -507,7 +504,6 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		switch msg := msg.(type) {
 		case gotStashMsg:
 			m.loaded.Add(StashedDoc)
-			m.loadingFromNetwork = false
 			docs = wrapMarkdowns(StashedDoc, msg)
 
 			if len(msg) == 0 {
@@ -551,13 +547,12 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		return m, nil
 
 	case spinner.TickMsg:
-		condition := !m.loadingDone() ||
-			m.loadingFromNetwork ||
-			m.viewState == stashStateLoadingDocument ||
-			len(m.general.filesStashed) > 0 ||
-			m.spinner.Visible()
+		loading := !m.loadingDone()
+		stashing := m.general.isStashing()
+		openingDocument := m.viewState == stashStateLoadingDocument
+		spinnerVisible := m.spinner.Visible()
 
-		if condition {
+		if loading || stashing || openingDocument || spinnerVisible {
 			newSpinnerModel, cmd := m.spinner.Update(msg)
 			m.spinner = newSpinnerModel
 			cmds = append(cmds, cmd)
@@ -572,15 +567,13 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 			}
 		}
 
+	// Note: mechanical stuff related to stash success is handled in the parent
+	// update function.
 	case stashSuccessMsg:
-		md := markdown(msg)
-		m.addMarkdowns(&md)
-
-		if m.isFiltering() {
-			cmds = append(cmds, filterMarkdowns(m))
-		}
 		cmds = append(cmds, m.newStatusMessage("Stashed!"))
 
+	// Note: mechanical stuff related to stash failure is handled in the parent
+	// update function.
 	case stashFailMsg:
 		cmds = append(cmds, m.newStatusMessage("Couldn’t stash :("))
 
@@ -747,6 +740,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			// Checks passed; perform the stash
 			m.general.filesStashed[md.localID] = struct{}{}
+			m.general.filesStashing[md.localID] = struct{}{}
 			cmds = append(cmds, stashDocument(m.general.cc, *md))
 
 			if m.loadingDone() && !m.spinner.Visible() {
@@ -810,14 +804,6 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 	itemsOnPage := m.paginator().ItemsOnPage(len(m.getVisibleMarkdowns()))
 	if m.cursor() > itemsOnPage-1 {
 		m.setCursor(max(0, itemsOnPage-1))
-	}
-
-	// If we're on the last page and we haven't loaded everything, get
-	// more stuff.
-	if m.paginator().OnLastPage() && !m.loadingFromNetwork && !m.stashFullyLoaded {
-		m.serverPage++
-		m.loadingFromNetwork = true
-		cmds = append(cmds, loadStash(*m))
 	}
 
 	return tea.Batch(cmds...)
@@ -973,7 +959,7 @@ func (m stashModel) view() string {
 	case stashStateReady:
 
 		loadingIndicator := " "
-		if !m.localOnly() && (!m.loadingDone() || m.loadingFromNetwork || m.spinner.Visible()) {
+		if !m.localOnly() && (!m.loadingDone() || m.spinner.Visible()) {
 			loadingIndicator = m.spinner.View()
 		}
 
