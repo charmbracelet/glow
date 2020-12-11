@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/charmbracelet/charm/ui/common"
+	lib "github.com/charmbracelet/charm/ui/common"
 	rw "github.com/mattn/go-runewidth"
 	"github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
@@ -19,7 +19,7 @@ const (
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	var (
-		truncateTo = m.general.width - stashViewHorizontalPadding*2
+		truncateTo = m.common.width - stashViewHorizontalPadding*2
 		gutter     string
 		title      = md.Note
 		date       = md.relativeTime()
@@ -70,7 +70,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			gutter = dullFuchsiaFg(verticalLine)
 			icon = dullFuchsiaFg(icon)
 			if m.filterState == filterApplied || singleFilteredItem {
-				s := termenv.Style{}.Foreground(common.Fuschia.Color())
+				s := termenv.Style{}.Foreground(lib.Fuschia.Color())
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 			} else {
 				title = fuchsiaFg(title)
@@ -87,7 +87,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 				title = dimIndigoFg(title)
 				date = dimSubtleIndigoFg(date)
 			} else {
-				s := termenv.Style{}.Foreground(common.Indigo.Color())
+				s := termenv.Style{}.Foreground(lib.Indigo.Color())
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 				date = subtleIndigoFg(date)
 			}
@@ -105,7 +105,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			if title == noMemoTitle {
 				title = brightGrayFg(title)
 			} else {
-				s := termenv.Style{}.Foreground(common.NewColorPair("#dddddd", "#1a1a1a").Color())
+				s := termenv.Style{}.Foreground(lib.NewColorPair("#dddddd", "#1a1a1a").Color())
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 			}
 			gutter = " "

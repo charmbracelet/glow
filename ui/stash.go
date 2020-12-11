@@ -14,7 +14,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
-	"github.com/charmbracelet/charm/ui/common"
+	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/muesli/reflow/ansi"
 	te "github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	stashTextInputPromptStyle styleFunc = newFgStyle(common.YellowGreen)
+	stashTextInputPromptStyle styleFunc = newFgStyle(lib.YellowGreen)
 	dividerDot                string    = darkGrayFg(" • ")
 	dividerBar                string    = darkGrayFg(" │ ")
 	offlineHeaderNote         string    = darkGrayFg("(Offline)")
@@ -109,7 +109,7 @@ const (
 )
 
 type stashModel struct {
-	general            *general
+	common             *commonModel
 	err                error
 	spinner            spinner.Model
 	noteInput          textinput.Model
@@ -149,15 +149,15 @@ type stashModel struct {
 }
 
 func (m stashModel) localOnly() bool {
-	return m.general.cfg.localOnly()
+	return m.common.cfg.localOnly()
 }
 
 func (m stashModel) stashedOnly() bool {
-	return m.general.cfg.stashedOnly()
+	return m.common.cfg.stashedOnly()
 }
 
 func (m stashModel) loadingDone() bool {
-	return m.loaded.Equals(m.general.cfg.DocumentTypes.Difference(ConvertedDoc))
+	return m.loaded.Equals(m.common.cfg.DocumentTypes.Difference(ConvertedDoc))
 }
 
 func (m stashModel) hasSection(key sectionKey) bool {
@@ -192,12 +192,12 @@ func (m *stashModel) setCursor(i int) {
 // Returns whether or not we're online. That is, when "local-only" mode is
 // disabled and we've authenticated successfully.
 func (m stashModel) online() bool {
-	return !m.localOnly() && m.general.authStatus == authOK
+	return !m.localOnly() && m.common.authStatus == authOK
 }
 
 func (m *stashModel) setSize(width, height int) {
-	m.general.width = width
-	m.general.height = height
+	m.common.width = width
+	m.common.height = height
 
 	m.noteInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.noteInput.Prompt)
 	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.filterInput.Prompt)
@@ -230,7 +230,7 @@ func (m stashModel) shouldUpdateFilter() bool {
 func (m *stashModel) updatePagination() {
 	_, helpHeight := m.helpView()
 
-	availableHeight := m.general.height -
+	availableHeight := m.common.height -
 		stashViewTopPadding -
 		helpHeight -
 		stashViewBottomPadding
@@ -345,7 +345,7 @@ func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 	if md.markdownType == LocalDoc {
 		cmd = loadLocalMarkdown(md)
 	} else {
-		cmd = loadRemoteMarkdown(m.general.cc, md)
+		cmd = loadRemoteMarkdown(m.common.cc, md)
 	}
 
 	return tea.Batch(cmd, spinner.Tick)
@@ -412,32 +412,32 @@ func (m *stashModel) moveCursorDown() {
 
 // INIT
 
-func newStashModel(general *general) stashModel {
+func newStashModel(common *commonModel) stashModel {
 	sp := spinner.NewModel()
 	sp.Spinner = spinner.Line
-	sp.ForegroundColor = common.SpinnerColor.String()
+	sp.ForegroundColor = lib.SpinnerColor.String()
 	sp.HideFor = time.Millisecond * 50
 	sp.MinimumLifetime = time.Millisecond * 180
 	sp.Start()
 
 	ni := textinput.NewModel()
 	ni.Prompt = stashTextInputPromptStyle("Memo: ")
-	ni.CursorColor = common.Fuschia.String()
+	ni.CursorColor = lib.Fuschia.String()
 	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
 	si := textinput.NewModel()
 	si.Prompt = stashTextInputPromptStyle("Filter: ")
-	si.CursorColor = common.Fuschia.String()
+	si.CursorColor = lib.Fuschia.String()
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
 
 	var s []section
-	if general.cfg.localOnly() {
+	if common.cfg.localOnly() {
 		s = []section{
 			sections[localSection],
 		}
-	} else if general.cfg.stashedOnly() {
+	} else if common.cfg.stashedOnly() {
 		s = []section{
 			sections[stashedSection],
 			sections[newsSection],
@@ -460,7 +460,7 @@ func newStashModel(general *general) stashModel {
 	}
 
 	m := stashModel{
-		general:     general,
+		common:      common,
 		spinner:     sp,
 		noteInput:   ni,
 		filterInput: si,
@@ -548,7 +548,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 
 	case spinner.TickMsg:
 		loading := !m.loadingDone()
-		stashing := m.general.isStashing()
+		stashing := m.common.isStashing()
 		openingDocument := m.viewState == stashStateLoadingDocument
 		spinnerVisible := m.spinner.Visible()
 
@@ -726,7 +726,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				break
 			}
 
-			if _, alreadyStashed := m.general.filesStashed[md.localID]; alreadyStashed {
+			if _, alreadyStashed := m.common.filesStashed[md.localID]; alreadyStashed {
 				cmds = append(cmds, m.newStatusMessage("Already stashed"))
 				break
 			}
@@ -739,9 +739,9 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 
 			// Checks passed; perform the stash
-			m.general.filesStashed[md.localID] = struct{}{}
-			m.general.filesStashing[md.localID] = struct{}{}
-			cmds = append(cmds, stashDocument(m.general.cc, *md))
+			m.common.filesStashed[md.localID] = struct{}{}
+			m.common.filesStashing[md.localID] = struct{}{}
+			cmds = append(cmds, stashDocument(m.common.cc, *md))
 
 			if m.loadingDone() && !m.spinner.Visible() {
 				m.spinner.Start()
@@ -826,7 +826,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 				}
 
 				// Remove from the things-we-stashed-this-session set
-				delete(m.general.filesStashed, md.localID)
+				delete(m.common.filesStashed, md.localID)
 
 				// Delete optimistically and remove the stashed item before
 				// we've received a success response.
@@ -841,7 +841,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 			m.selectionState = selectionIdle
 			m.updatePagination()
 
-			return deleteStashedItem(m.general.cc, smd.ID)
+			return deleteStashedItem(m.common.cc, smd.ID)
 
 		default:
 			// Any other keys cancels deletion
@@ -927,7 +927,7 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 			// Set new note
 			md := m.selectedMarkdown()
 			newNote := m.noteInput.Value()
-			cmd := saveDocumentNote(m.general.cc, md.ID, newNote)
+			cmd := saveDocumentNote(m.common.cc, md.ID, newNote)
 			md.Note = newNote
 			m.noteInput.Reset()
 			m.selectionState = selectionIdle
@@ -981,7 +981,7 @@ func (m stashModel) view() string {
 		var logoOrFilter string
 		if m.showStatusMessage {
 			const gutter = 3
-			logoOrFilter = greenFg(truncate(m.statusMessage, m.general.width-gutter))
+			logoOrFilter = greenFg(truncate(m.statusMessage, m.common.width-gutter))
 		} else if m.isFiltering() {
 			logoOrFilter = m.filterInput.View()
 		} else {
@@ -995,7 +995,7 @@ func (m stashModel) view() string {
 
 		// We need to fill any empty height with newlines so the footer reaches
 		// the bottom.
-		availHeight := m.general.height -
+		availHeight := m.common.height -
 			stashViewTopPadding -
 			populatedViewHeight -
 			helpHeight -
@@ -1008,9 +1008,9 @@ func (m stashModel) view() string {
 
 			// If the dot pagination is wider than the width of the window
 			// switch to the arabic paginator.
-			if ansi.PrintableRuneWidth(pagination) > m.general.width-stashViewHorizontalPadding {
+			if ansi.PrintableRuneWidth(pagination) > m.common.width-stashViewHorizontalPadding {
 				m.paginator().Type = paginator.Arabic
-				pagination = common.Subtle(m.paginator().View())
+				pagination = lib.Subtle(m.paginator().View())
 			}
 
 			// We could also look at m.stashFullyLoaded and add an indicator
@@ -1036,7 +1036,7 @@ func glowLogoView(text string) string {
 	return te.String(text).
 		Bold().
 		Foreground(glowLogoTextColor).
-		Background(common.Fuschia.Color()).
+		Background(lib.Fuschia.Color()).
 		String()
 }
 
@@ -1069,14 +1069,14 @@ func (m stashModel) headerView() string {
 
 	if m.loadingDone() && len(m.markdowns) == 0 {
 		var maybeOffline string
-		if m.general.authStatus == authFailed {
+		if m.common.authStatus == authFailed {
 			maybeOffline = " " + offlineHeaderNote
 		}
 
 		if m.stashedOnly() {
-			return common.Subtle("Can’t load stash") + maybeOffline
+			return lib.Subtle("Can’t load stash") + maybeOffline
 		}
-		return common.Subtle("No markdown files found") + maybeOffline
+		return lib.Subtle("No markdown files found") + maybeOffline
 	}
 
 	// Tabs
@@ -1110,7 +1110,7 @@ func (m stashModel) headerView() string {
 	}
 
 	s := strings.Join(sections, dividerBar)
-	if m.general.authStatus == authFailed {
+	if m.common.authStatus == authFailed {
 		s += dividerDot + offlineHeaderNote
 	}
 
@@ -1140,7 +1140,7 @@ func (m stashModel) populatedView() string {
 				f("Looking for local files...")
 			}
 		case stashedSection:
-			if m.general.authStatus == authFailed {
+			if m.common.authStatus == authFailed {
 				f("Can't load your stash. Are you offline?")
 			} else if m.loadingDone() {
 				f("Nothing stashed yet.")
@@ -1148,7 +1148,7 @@ func (m stashModel) populatedView() string {
 				f("Loading your stash...")
 			}
 		case newsSection:
-			if m.general.authStatus == authFailed {
+			if m.common.authStatus == authFailed {
 				f("Can't load news. Are you offline?")
 			} else if m.loadingDone() {
 				f("No stashed files found.")
