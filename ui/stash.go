@@ -26,6 +26,7 @@ const (
 	stashViewTopPadding        = 5 // logo, status bar, gaps
 	stashViewBottomPadding     = 3 // pagination and gaps, but not help
 	stashViewHorizontalPadding = 6
+	stashedStatusMessage       = "Stashed!"
 )
 
 var (
@@ -111,19 +112,20 @@ const (
 )
 
 type stashModel struct {
-	common             *commonModel
-	err                error
-	spinner            spinner.Model
-	noteInput          textinput.Model
-	filterInput        textinput.Model
-	stashFullyLoaded   bool // have we loaded all available stashed documents from the server?
-	viewState          stashViewState
-	filterState        filterState
-	selectionState     selectionState
-	showFullHelp       bool
-	showStatusMessage  bool
-	statusMessage      string
-	statusMessageTimer *time.Timer
+	common                   *commonModel
+	err                      error
+	spinner                  spinner.Model
+	noteInput                textinput.Model
+	filterInput              textinput.Model
+	stashFullyLoaded         bool // have we loaded all available stashed documents from the server?
+	viewState                stashViewState
+	filterState              filterState
+	selectionState           selectionState
+	showFullHelp             bool
+	showStatusMessage        bool
+	statusMessage            string
+	statusMessageTimer       *time.Timer
+	stashStatusMessageQueued bool
 
 	// Available document sections we can cycle through. We use a slice, rather
 	// than a map, because order is important.
@@ -419,7 +421,7 @@ func newStashModel(common *commonModel) stashModel {
 	sp.Spinner = spinner.Line
 	sp.ForegroundColor = lib.SpinnerColor.String()
 	sp.HideFor = time.Millisecond * 50
-	sp.MinimumLifetime = time.Millisecond * 180
+	sp.MinimumLifetime = time.Millisecond * 250
 	sp.Start()
 
 	ni := textinput.NewModel()
@@ -558,6 +560,13 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 			newSpinnerModel, cmd := m.spinner.Update(msg)
 			m.spinner = newSpinnerModel
 			cmds = append(cmds, cmd)
+		} else if !stashing && !spinnerVisible && m.stashStatusMessageQueued {
+			m.stashStatusMessageQueued = false
+			cmds = append(cmds, m.newStatusMessage(stashedStatusMessage))
+		}
+
+		if spinnerVisible && m.showStatusMessage {
+			m.hideStatusMessage()
 		}
 
 	// A note was set on a document. This may have happened in the pager so
@@ -572,7 +581,14 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	// Note: mechanical stuff related to stash success is handled in the parent
 	// update function.
 	case stashSuccessMsg:
-		cmds = append(cmds, m.newStatusMessage("Stashed!"))
+		m.spinner.Finish()
+		if m.spinner.Visible() {
+			// We want to show the 'stashed!' status message, but need to wait
+			// until the spinner goes away first.
+			m.stashStatusMessageQueued = true
+		} else {
+			cmds = append(cmds, m.newStatusMessage(stashedStatusMessage))
+		}
 
 	// Note: mechanical stuff related to stash failure is handled in the parent
 	// update function.
@@ -961,7 +977,7 @@ func (m stashModel) view() string {
 	case stashStateReady:
 
 		loadingIndicator := " "
-		if !m.localOnly() && (!m.loadingDone() || m.spinner.Visible()) {
+		if !m.loadingDone() || m.spinner.Visible() {
 			loadingIndicator = m.spinner.View()
 		}
 
