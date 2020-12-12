@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/alecthomas/chroma v0.8.0 // indirect
-	github.com/charmbracelet/bubbles v0.7.5
+	github.com/charmbracelet/bubbles v0.7.6-0.20201212003737-11f56f9b6b3f
 	github.com/charmbracelet/bubbletea v0.12.2
 	github.com/charmbracelet/charm v0.8.2
 	github.com/charmbracelet/glamour v0.2.1-0.20200829234023-6c0e29c4dae5
