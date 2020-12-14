@@ -1034,8 +1034,7 @@ func (m stashModel) view() string {
 		// Rules for the logo, filter and status message.
 		var logoOrFilter string
 		if m.showStatusMessage {
-			const gutter = 3
-			logoOrFilter = m.statusMessage.String() // TODO: auto-truncate
+			logoOrFilter = m.statusMessage.String()
 		} else if m.isFiltering() {
 			logoOrFilter = m.filterInput.View()
 		} else {

@@ -16,6 +16,7 @@ import (
 	"github.com/charmbracelet/glamour"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
+	"github.com/muesli/reflow/truncate"
 	te "github.com/muesli/termenv"
 )
 
@@ -403,13 +404,13 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 			note = "(No memo)"
 		}
 	}
-	note = truncate(" "+note+" ", max(0,
+	note = truncate.StringWithTail(" "+note+" ", uint(max(0,
 		m.common.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(statusIndicator)-
 			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
-	))
+	)), ellipsis)
 	if showStatusMessage {
 		note = statusBarMessageStyle(note)
 	} else {
