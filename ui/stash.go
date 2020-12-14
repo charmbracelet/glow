@@ -16,6 +16,7 @@ import (
 	"github.com/charmbracelet/charm"
 	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/muesli/reflow/ansi"
+	"github.com/muesli/reflow/truncate"
 	te "github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
 )
@@ -1032,14 +1033,18 @@ func (m stashModel) view() string {
 		}
 
 		// Rules for the logo, filter and status message.
-		var logoOrFilter string
-		if m.showStatusMessage {
-			logoOrFilter = m.statusMessage.String()
+		logoOrFilter := " "
+		if m.showStatusMessage && m.isFiltering() {
+			logoOrFilter += m.statusMessage.String()
 		} else if m.isFiltering() {
-			logoOrFilter = m.filterInput.View()
+			logoOrFilter += m.filterInput.View()
 		} else {
-			logoOrFilter = glowLogoView(" Glow ")
+			logoOrFilter += glowLogoView(" Glow ")
+			if m.showStatusMessage {
+				logoOrFilter += "  " + m.statusMessage.String()
+			}
 		}
+		logoOrFilter = truncate.StringWithTail(logoOrFilter, uint(m.common.width), ellipsis)
 
 		help, helpHeight := m.helpView()
 
@@ -1072,7 +1077,7 @@ func (m stashModel) view() string {
 		}
 
 		s += fmt.Sprintf(
-			"%s %s\n\n  %s\n\n%s\n\n%s  %s\n\n%s",
+			"%s%s\n\n  %s\n\n%s\n\n%s  %s\n\n%s",
 			loadingIndicator,
 			logoOrFilter,
 			header,
