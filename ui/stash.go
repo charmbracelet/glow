@@ -26,7 +26,11 @@ const (
 	stashViewTopPadding        = 5 // logo, status bar, gaps
 	stashViewBottomPadding     = 3 // pagination and gaps, but not help
 	stashViewHorizontalPadding = 6
-	stashedStatusMessage       = "Stashed!"
+)
+
+var (
+	stashedStatusMessage        = statusMessage{normalStatusMessage, "Stashed!"}
+	alreadyStashedStatusMessage = statusMessage{subtleStatusMessage, "Already stashed"}
 )
 
 var (
@@ -111,6 +115,32 @@ const (
 	selectionPromptingDelete
 )
 
+// statusMessageType adds some context to the status message being sent.
+type statusMessageType int
+
+// Types of status messages.
+const (
+	normalStatusMessage statusMessageType = iota
+	subtleStatusMessage
+)
+
+// statusMessage is an ephemeral note displayed in the UI.
+type statusMessage struct {
+	status  statusMessageType
+	message string
+}
+
+// String returns a styled version of the status message appropriate for the
+// given context.
+func (s statusMessage) String() string {
+	switch s.status {
+	case subtleStatusMessage:
+		return dimGreenFg(s.message)
+	default:
+		return greenFg(s.message)
+	}
+}
+
 type stashModel struct {
 	common                   *commonModel
 	err                      error
@@ -123,7 +153,7 @@ type stashModel struct {
 	selectionState           selectionState
 	showFullHelp             bool
 	showStatusMessage        bool
-	statusMessage            string
+	statusMessage            statusMessage
 	statusMessageTimer       *time.Timer
 	stashStatusMessageQueued bool
 
@@ -355,9 +385,9 @@ func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 	return tea.Batch(cmd, spinner.Tick)
 }
 
-func (m *stashModel) newStatusMessage(s string) tea.Cmd {
+func (m *stashModel) newStatusMessage(sm statusMessage) tea.Cmd {
 	m.showStatusMessage = true
-	m.statusMessage = s
+	m.statusMessage = sm
 	if m.statusMessageTimer != nil {
 		m.statusMessageTimer.Stop()
 	}
@@ -367,7 +397,7 @@ func (m *stashModel) newStatusMessage(s string) tea.Cmd {
 
 func (m *stashModel) hideStatusMessage() {
 	m.showStatusMessage = false
-	m.statusMessage = ""
+	m.statusMessage = statusMessage{}
 	if m.statusMessageTimer != nil {
 		m.statusMessageTimer.Stop()
 	}
@@ -543,7 +573,10 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		if msg.note != "" {
 			s += ": " + msg.note
 		}
-		cmd := m.newStatusMessage(s)
+		cmd := m.newStatusMessage(statusMessage{
+			status:  normalStatusMessage,
+			message: s,
+		})
 		return m, cmd
 
 	case filteredMarkdownMsg:
@@ -593,7 +626,10 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	// Note: mechanical stuff related to stash failure is handled in the parent
 	// update function.
 	case stashFailMsg:
-		cmds = append(cmds, m.newStatusMessage("Couldn’t stash :("))
+		cmds = append(cmds, m.newStatusMessage(statusMessage{
+			status:  normalStatusMessage,
+			message: "Couldn’t stash :(",
+		}))
 
 	case statusMessageTimeoutMsg:
 		if applicationContext(msg) == stashContext {
@@ -745,7 +781,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 
 			if _, alreadyStashed := m.common.filesStashed[md.localID]; alreadyStashed {
-				cmds = append(cmds, m.newStatusMessage("Already stashed"))
+				cmds = append(cmds, m.newStatusMessage(alreadyStashedStatusMessage))
 				break
 			}
 
@@ -999,7 +1035,7 @@ func (m stashModel) view() string {
 		var logoOrFilter string
 		if m.showStatusMessage {
 			const gutter = 3
-			logoOrFilter = greenFg(truncate(m.statusMessage, m.common.width-gutter))
+			logoOrFilter = m.statusMessage.String() // TODO: auto-truncate
 		} else if m.isFiltering() {
 			logoOrFilter = m.filterInput.View()
 		} else {
