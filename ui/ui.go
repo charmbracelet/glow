@@ -17,7 +17,6 @@ import (
 	"github.com/charmbracelet/charm/ui/common"
 	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glow/utils"
-	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
 	"github.com/segmentio/ksuid"
@@ -26,6 +25,7 @@ import (
 const (
 	noteCharacterLimit   = 256             // should match server
 	statusMessageTimeout = time.Second * 2 // how long to show status messages like "stashed!"
+	ellipsis             = "…"
 )
 
 var (
@@ -741,13 +741,6 @@ func indent(s string, n int) string {
 		fmt.Fprintf(&b, "%s%s\n", i, v)
 	}
 	return b.String()
-}
-
-func truncate(str string, num int) string {
-	if num < 1 {
-		return str
-	}
-	return runewidth.Truncate(str, num, "…")
 }
 
 func min(a, b int) int {

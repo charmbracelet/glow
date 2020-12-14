@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	lib "github.com/charmbracelet/charm/ui/common"
-	rw "github.com/mattn/go-runewidth"
+	"github.com/muesli/reflow/ansi"
+	"github.com/muesli/reflow/truncate"
 	"github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
 )
@@ -19,7 +20,7 @@ const (
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	var (
-		truncateTo = m.common.width - stashViewHorizontalPadding*2
+		truncateTo = uint(m.common.width - stashViewHorizontalPadding*2)
 		gutter     string
 		title      = md.Note
 		date       = md.relativeTime()
@@ -31,16 +32,16 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		if title == "" {
 			title = "News"
 		} else {
-			title = truncate(title, truncateTo)
+			title = truncate.StringWithTail(title, truncateTo, ellipsis)
 		}
 	case StashedDoc, ConvertedDoc:
 		icon = fileListingStashIcon
 		if title == "" {
 			title = noMemoTitle
 		}
-		title = truncate(title, truncateTo-rw.StringWidth(icon))
+		title = truncate.StringWithTail(title, truncateTo-uint(ansi.PrintableRuneWidth(icon)), ellipsis)
 	default:
-		title = truncate(title, truncateTo)
+		title = truncate.StringWithTail(title, truncateTo, ellipsis)
 	}
 
 	isSelected := index == m.cursor()
