@@ -420,8 +420,8 @@ func newStashModel(common *commonModel) stashModel {
 	sp := spinner.NewModel()
 	sp.Spinner = spinner.Line
 	sp.ForegroundColor = lib.SpinnerColor.String()
-	sp.HideFor = time.Millisecond * 50
-	sp.MinimumLifetime = time.Millisecond * 250
+	sp.HideFor = time.Millisecond * 100
+	sp.MinimumLifetime = time.Millisecond * 180
 	sp.Start()
 
 	ni := textinput.NewModel()
