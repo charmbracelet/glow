@@ -19,10 +19,16 @@ import (
 type markdown struct {
 	markdownType DocType
 
-	// Local identifier. This allows us to precisely determine the stashed
-	// state of a markdown, regardless of whether it exists locally or on the
-	// network.
-	localID ksuid.KSUID
+	// Stash identifier. This exists so we can keep track of documents stashed
+	// in-session as they relate to their original, non-stashed counterparts.
+	// All documents have a stashID, however when a document is stashed that
+	// document inherits the stashID of the original.
+	stashID ksuid.KSUID
+
+	// Unique identifier. Unlike the stash identifier, this value should always
+	// be unique so we can confidently find it an operate on it (versus stashID,
+	// which could match both an original or stashed document).
+	uniqueID ksuid.KSUID
 
 	// Full path of a local markdown file. Only relevant to local documents and
 	// those that have been stashed in this session.
@@ -36,10 +42,11 @@ type markdown struct {
 	charm.Markdown
 }
 
-func (m *markdown) generateLocalID() {
-	if m.localID.IsNil() {
-		m.localID = ksuid.New()
+func (m *markdown) generateIDs() {
+	if m.stashID.IsNil() {
+		m.stashID = ksuid.New()
 	}
+	m.uniqueID = ksuid.New()
 }
 
 // Generate the value we're doing to filter against.
@@ -55,9 +62,9 @@ func (m *markdown) buildFilterValue() {
 	m.filterValue = note
 }
 
-// sortAsLocal returns whether or not this markdown should be sorted as though
+// shouldSortAsLocal returns whether or not this markdown should be sorted as though
 // it's a local markdown document.
-func (m markdown) sortAsLocal() bool {
+func (m markdown) shouldSortAsLocal() bool {
 	return m.markdownType == LocalDoc || m.markdownType == ConvertedDoc
 }
 
@@ -67,8 +74,8 @@ type markdownsByLocalFirst []*markdown
 func (m markdownsByLocalFirst) Len() int      { return len(m) }
 func (m markdownsByLocalFirst) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m markdownsByLocalFirst) Less(i, j int) bool {
-	iIsLocal := m[i].sortAsLocal()
-	jIsLocal := m[j].sortAsLocal()
+	iIsLocal := m[i].shouldSortAsLocal()
+	jIsLocal := m[j].shouldSortAsLocal()
 
 	// Local files (and files that used to be local) come first
 	if iIsLocal && !jIsLocal {
@@ -89,10 +96,10 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 		return m[i].CreatedAt.After(m[j].CreatedAt)
 	}
 
-	// If the timestamps also match, sort by local ID.
-	localIDs := []ksuid.KSUID{m[i].localID, m[j].localID}
-	ksuid.Sort(localIDs)
-	return localIDs[0] == m[i].localID
+	// If the times also match, sort by unqiue ID.
+	ids := []ksuid.KSUID{m[i].uniqueID, m[j].uniqueID}
+	ksuid.Sort(ids)
+	return ids[0] == m[i].uniqueID
 }
 
 func (m markdown) relativeTime() string {

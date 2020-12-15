@@ -249,7 +249,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case stateShowStash:
 
 				// Q quits if we're filtering, but we still send esc though.
-				if m.stash.isFiltering() {
+				if m.stash.filterApplied() {
 					if msg.String() == "q" {
 						return m, tea.Quit
 					}
@@ -395,7 +395,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case foundLocalFileMsg:
 		newMd := localFileToMarkdown(m.common.cwd, gitcha.SearchResult(msg))
 		m.stash.addMarkdowns(newMd)
-		if m.stash.isFiltering() {
+		if m.stash.filterApplied() {
 			newMd.buildFilterValue()
 		}
 		if m.stash.shouldUpdateFilter() {
@@ -407,17 +407,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Common handling that should happen regardless of application state
 		md := markdown(msg)
 		m.stash.addMarkdowns(&md)
-		m.common.filesStashed[msg.localID] = struct{}{}
-		delete(m.common.filesStashing, md.localID)
+		m.common.filesStashed[msg.stashID] = struct{}{}
+		delete(m.common.filesStashing, md.stashID)
 
-		if m.stash.isFiltering() {
+		if m.stash.filterApplied() {
 			cmds = append(cmds, filterMarkdowns(m.stash))
 		}
 
 	case stashFailMsg:
 		// Common handling that should happen regardless of application state
-		delete(m.common.filesStashed, msg.markdown.localID)
-		delete(m.common.filesStashing, msg.markdown.localID)
+		delete(m.common.filesStashed, msg.markdown.stashID)
+		delete(m.common.filesStashing, msg.markdown.stashID)
 
 	case filteredMarkdownMsg:
 		if m.state == stateShowDocument {
