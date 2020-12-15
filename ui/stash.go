@@ -462,7 +462,7 @@ func newStashModel(common *commonModel) stashModel {
 	ni.Focus()
 
 	si := textinput.NewModel()
-	si.Prompt = stashTextInputPromptStyle("Filter: ")
+	si.Prompt = stashTextInputPromptStyle("Find: ")
 	si.CursorColor = lib.Fuschia.String()
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
