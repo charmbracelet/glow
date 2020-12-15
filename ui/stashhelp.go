@@ -142,9 +142,9 @@ func (m stashModel) helpView() (string, int) {
 
 	// If we're browsing a filtered set
 	if m.filterState == filterApplied {
-		filterHelp = []string{"/", "edit filter", "esc", "clear filter"}
+		filterHelp = []string{"/", "edit search", "esc", "clear search"}
 	} else {
-		filterHelp = []string{"/", "filter"}
+		filterHelp = []string{"/", "find"}
 	}
 
 	if isStashed {
