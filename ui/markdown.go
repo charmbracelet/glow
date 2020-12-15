@@ -89,8 +89,10 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 		return m[i].CreatedAt.After(m[j].CreatedAt)
 	}
 
-	// If the timestamps also match, sort by ID.
-	return m[i].ID > m[j].ID
+	// If the timestamps also match, sort by local ID.
+	localIDs := []ksuid.KSUID{m[i].localID, m[j].localID}
+	ksuid.Sort(localIDs)
+	return localIDs[0] == m[i].localID
 }
 
 func (m markdown) relativeTime() string {
