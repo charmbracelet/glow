@@ -383,8 +383,16 @@ func (m stashModel) getVisibleMarkdowns() []*markdown {
 }
 
 // Return the markdowns eligible to be filtered.
-func (m stashModel) getFilterableMarkdowns() []*markdown {
-	return m.getMarkdownByType(LocalDoc, ConvertedDoc, StashedDoc)
+func (m stashModel) getFilterableMarkdowns() (agg []*markdown) {
+	mds := m.getMarkdownByType(LocalDoc, ConvertedDoc, StashedDoc)
+
+	// Copy values
+	for _, v := range mds {
+		p := *v
+		agg = append(agg, &p)
+	}
+
+	return
 }
 
 // Command for opening a markdown document in the pager. Note that this also
@@ -794,16 +802,19 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			md := m.selectedMarkdown()
 
+			// Is this a document we're allowed to stash?
 			if !stashableDocTypes.Contains(md.markdownType) {
 				break
 			}
 
+			// Was this document already stashed?
 			if _, alreadyStashed := m.common.filesStashed[md.stashID]; alreadyStashed {
 				cmds = append(cmds, m.newStatusMessage(alreadyStashedStatusMessage))
 				break
 			}
 
-			if !stashableDocTypes.Contains(md.markdownType) || md.stashID.IsNil() {
+			// Is the document missing a stash ID?
+			if md.stashID.IsNil() {
 				if debug && md.stashID.IsNil() {
 					log.Printf("refusing to stash markdown; local ID path is nil: %#v", md)
 				}
@@ -814,6 +825,16 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.common.filesStashed[md.stashID] = struct{}{}
 			m.common.filesStashing[md.stashID] = struct{}{}
 			cmds = append(cmds, stashDocument(m.common.cc, *md))
+
+			// If we're stashing a filtered item, optimistically convert the
+			// filtered item into a stashed item.
+			if m.filterApplied() {
+				for _, v := range m.filteredMarkdowns {
+					if v.uniqueID == md.uniqueID {
+						convertMarkdownToStashed(v)
+					}
+				}
+			}
 
 			if m.loadingDone() && !m.spinner.Visible() {
 				m.spinner.Start()
@@ -892,8 +913,9 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 			}
 
 			smd := m.selectedMarkdown()
+
 			for i, md := range m.markdowns {
-				if md != smd {
+				if md.uniqueID != smd.uniqueID {
 					continue
 				}
 
@@ -902,12 +924,26 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 
 				// Delete optimistically and remove the stashed item before
 				// we've received a success response.
-				if m.filterApplied() {
-					mds, _ := deleteMarkdown(m.filteredMarkdowns, m.markdowns[i])
-					m.filteredMarkdowns = mds
+				mds, err := deleteMarkdown(m.markdowns, m.markdowns[i])
+				if err == nil {
+					m.markdowns = mds
 				}
-				mds, _ := deleteMarkdown(m.markdowns, m.markdowns[i])
-				m.markdowns = mds
+
+				break
+			}
+
+			// Also optimistically delete from filtered markdowns
+			if m.filterApplied() {
+				for i, md := range m.filteredMarkdowns {
+					if md.uniqueID != smd.uniqueID {
+						continue
+					}
+					mds, err := deleteMarkdown(m.filteredMarkdowns, m.filteredMarkdowns[i])
+					if err == nil {
+						m.filteredMarkdowns = mds
+					}
+					break
+				}
 			}
 
 			m.selectionState = selectionIdle
@@ -1008,6 +1044,20 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 		case "enter":
 			// Set new note
 			md := m.selectedMarkdown()
+
+			// If the user is issuing a rename on a newly stashed item in a
+			// filtered listing, there's a small chance the user could try and
+			// set a note before the stash is complete.
+			if md.ID == 0 {
+				if debug {
+					log.Printf("user attempted to rename, but markdown ID is 0: %v", md)
+				}
+				return m.newStatusMessage(statusMessage{
+					status:  subtleStatusMessage,
+					message: "Too fast. Try again in a sec.",
+				})
+			}
+
 			newNote := m.noteInput.Value()
 			cmd := saveDocumentNote(m.common.cc, md.ID, newNote)
 			md.Note = newNote
@@ -1384,7 +1434,11 @@ func fetchMarkdown(cc *charm.Client, id int, t DocType) (*markdown, error) {
 func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error) {
 	index := -1
 
-	for i, v := range markdowns {
+	// Operate on a copy to avoid any pointer weirdness
+	mds := make([]*markdown, len(markdowns))
+	copy(mds, markdowns)
+
+	for i, v := range mds {
 		if v.uniqueID == target.uniqueID {
 			index = i
 			break
@@ -1399,5 +1453,5 @@ func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error
 		return nil, err
 	}
 
-	return append(markdowns[:index], markdowns[index+1:]...), nil
+	return append(mds[:index], mds[index+1:]...), nil
 }
