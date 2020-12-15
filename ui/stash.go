@@ -898,8 +898,8 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 
 			return deleteStashedItem(m.common.cc, smd.ID)
 
+		// Any other key cancels deletion
 		default:
-			// Any other keys cancels deletion
 			m.selectionState = selectionIdle
 		}
 	}
@@ -1356,17 +1356,9 @@ func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error
 	index := -1
 
 	for i, v := range markdowns {
-		switch target.markdownType {
-		case ConvertedDoc:
-			if v.markdownType == ConvertedDoc && v.localPath == target.localPath {
-				index = i
-			}
-		case StashedDoc:
-			if v.ID == target.ID {
-				index = i
-			}
-		default:
-			return nil, fmt.Errorf("%s documents cannot be deleted", target.markdownType)
+		if v.localID == target.localID {
+			index = i
+			break
 		}
 	}
 
