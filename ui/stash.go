@@ -71,6 +71,7 @@ const (
 	localSection = iota
 	stashedSection
 	newsSection
+	filterSection
 )
 
 // section contains definitions and state information for displaying a tab and
@@ -85,16 +86,24 @@ type section struct {
 // map sections to their associated types.
 var sections = map[sectionKey]section{
 	localSection: {
-		key:      localSection,
-		docTypes: NewDocTypeSet(LocalDoc),
+		key:       localSection,
+		docTypes:  NewDocTypeSet(LocalDoc),
+		paginator: newStashPaginator(),
 	},
 	stashedSection: {
-		key:      stashedSection,
-		docTypes: NewDocTypeSet(StashedDoc, ConvertedDoc),
+		key:       stashedSection,
+		docTypes:  NewDocTypeSet(StashedDoc, ConvertedDoc),
+		paginator: newStashPaginator(),
 	},
 	newsSection: {
-		key:      newsSection,
-		docTypes: NewDocTypeSet(NewsDoc),
+		key:       newsSection,
+		docTypes:  NewDocTypeSet(NewsDoc),
+		paginator: newStashPaginator(),
+	},
+	filterSection: {
+		key:       filterSection,
+		docTypes:  DocTypeSet{},
+		paginator: newStashPaginator(),
 	},
 }
 
@@ -246,10 +255,17 @@ func (m *stashModel) resetFiltering() {
 	sort.Stable(markdownsByLocalFirst(m.markdowns))
 	m.filteredMarkdowns = nil
 	m.updatePagination()
+
+	if m.sections[len(m.sections)-1].key == filterSection {
+		m.sections = m.sections[:len(m.sections)-1]
+	}
+	if m.sectionIndex > len(m.sections)-1 {
+		m.sectionIndex = 0
+	}
 }
 
 // Is a filter currently being applied?
-func (m stashModel) isFiltering() bool {
+func (m stashModel) filterApplied() bool {
 	return m.filterState != unfiltered
 }
 
@@ -257,7 +273,7 @@ func (m stashModel) isFiltering() bool {
 func (m stashModel) shouldUpdateFilter() bool {
 	// If we're in the middle of setting a note don't update the filter so that
 	// the focus won't jump around.
-	return m.isFiltering() && m.selectionState != selectionSettingNote
+	return m.filterApplied() && m.selectionState != selectionSettingNote
 }
 
 // Update pagination according to the amount of markdowns for the current
@@ -305,11 +321,11 @@ func (m stashModel) selectedMarkdown() *markdown {
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	if len(mds) > 0 {
 		for _, md := range mds {
-			md.generateLocalID()
+			md.generateIDs()
 		}
 
 		m.markdowns = append(m.markdowns, mds...)
-		if !m.isFiltering() {
+		if !m.filterApplied() {
 			sort.Stable(markdownsByLocalFirst(m.markdowns))
 		}
 		m.updatePagination()
@@ -323,7 +339,7 @@ func (m stashModel) countMarkdowns(t DocType) (found int) {
 	}
 
 	var mds []*markdown
-	if m.isFiltering() {
+	if m.filterState == filtering {
 		mds = m.getVisibleMarkdowns()
 	} else {
 		mds = m.markdowns
@@ -359,7 +375,7 @@ func (m stashModel) getMarkdownByType(types ...DocType) []*markdown {
 
 // Returns the markdowns that should be currently shown.
 func (m stashModel) getVisibleMarkdowns() []*markdown {
-	if m.isFiltering() {
+	if m.filterState == filtering || m.currentSection().key == filterSection {
 		return m.filteredMarkdowns
 	}
 
@@ -485,15 +501,6 @@ func newStashModel(common *commonModel) stashModel {
 		}
 	}
 
-	p := paginator.NewModel()
-	p.Type = paginator.Dots
-	p.ActiveDot = brightGrayFg("•")
-	p.InactiveDot = darkGrayFg("•")
-
-	for i := range s {
-		s[i].paginator = p
-	}
-
 	m := stashModel{
 		common:      common,
 		spinner:     sp,
@@ -505,6 +512,14 @@ func newStashModel(common *commonModel) stashModel {
 	}
 
 	return m
+}
+
+func newStashPaginator() paginator.Model {
+	p := paginator.NewModel()
+	p.Type = paginator.Dots
+	p.ActiveDot = brightGrayFg("•")
+	p.InactiveDot = darkGrayFg("•")
+	return p
 }
 
 // UPDATE
@@ -558,7 +573,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 
 		// If we're filtering build filter indexes immediately so any
 		// matching results will show up in the filter.
-		if m.isFiltering() {
+		if m.filterApplied() {
 			for _, md := range docs {
 				md.buildFilterValue()
 			}
@@ -692,14 +707,15 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.paginator().Page = m.paginator().TotalPages - 1
 			m.setCursor(m.paginator().ItemsOnPage(numDocs) - 1)
 
+		// Clear filter (if applicable)
 		case "esc":
-			if m.isFiltering() {
+			if m.filterApplied() {
 				m.resetFiltering()
-				break
 			}
 
+		// Next section
 		case "tab":
-			if len(m.sections) == 0 || m.isFiltering() {
+			if len(m.sections) == 0 || m.filterState == filtering {
 				break
 			}
 			m.sectionIndex++
@@ -708,8 +724,9 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 			m.updatePagination()
 
+		// Previous section
 		case "shift+tab":
-			if len(m.sections) == 0 {
+			if len(m.sections) == 0 || m.filterState == filtering {
 				break
 			}
 			m.sectionIndex--
@@ -781,21 +798,21 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				break
 			}
 
-			if _, alreadyStashed := m.common.filesStashed[md.localID]; alreadyStashed {
+			if _, alreadyStashed := m.common.filesStashed[md.stashID]; alreadyStashed {
 				cmds = append(cmds, m.newStatusMessage(alreadyStashedStatusMessage))
 				break
 			}
 
-			if !stashableDocTypes.Contains(md.markdownType) || md.localID.IsNil() {
-				if debug && md.localID.IsNil() {
+			if !stashableDocTypes.Contains(md.markdownType) || md.stashID.IsNil() {
+				if debug && md.stashID.IsNil() {
 					log.Printf("refusing to stash markdown; local ID path is nil: %#v", md)
 				}
 				break
 			}
 
 			// Checks passed; perform the stash
-			m.common.filesStashed[md.localID] = struct{}{}
-			m.common.filesStashing[md.localID] = struct{}{}
+			m.common.filesStashed[md.stashID] = struct{}{}
+			m.common.filesStashing[md.stashID] = struct{}{}
 			cmds = append(cmds, stashDocument(m.common.cc, *md))
 
 			if m.loadingDone() && !m.spinner.Visible() {
@@ -881,11 +898,11 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 				}
 
 				// Remove from the things-we-stashed-this-session set
-				delete(m.common.filesStashed, md.localID)
+				delete(m.common.filesStashed, md.stashID)
 
 				// Delete optimistically and remove the stashed item before
 				// we've received a success response.
-				if m.isFiltering() {
+				if m.filterApplied() {
 					mds, _ := deleteMarkdown(m.filteredMarkdowns, m.markdowns[i])
 					m.filteredMarkdowns = mds
 				}
@@ -895,6 +912,10 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 
 			m.selectionState = selectionIdle
 			m.updatePagination()
+
+			if len(m.filteredMarkdowns) == 0 {
+				m.resetFiltering()
+			}
 
 			return deleteStashedItem(m.common.cc, smd.ID)
 
@@ -941,6 +962,12 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 				cmds = append(cmds, m.openMarkdown(h[0]))
 				break
 			}
+
+			// Add new section if it's not present
+			if m.sections[len(m.sections)-1].key != filterSection {
+				m.sections = append(m.sections, sections[filterSection])
+			}
+			m.sectionIndex = len(m.sections) - 1
 
 			m.filterInput.Blur()
 
@@ -1034,9 +1061,9 @@ func (m stashModel) view() string {
 
 		// Rules for the logo, filter and status message.
 		logoOrFilter := " "
-		if m.showStatusMessage && m.isFiltering() {
+		if m.showStatusMessage && m.filterState == filtering {
 			logoOrFilter += m.statusMessage.String()
-		} else if m.isFiltering() {
+		} else if m.filterState == filtering {
 			logoOrFilter += m.filterInput.View()
 		} else {
 			logoOrFilter += glowLogoView(" Glow ")
@@ -1106,7 +1133,7 @@ func (m stashModel) headerView() string {
 	var sections []string
 
 	// Filter results
-	if m.isFiltering() {
+	if m.filterState == filtering {
 		if localCount+stashedCount+newsCount == 0 {
 			return grayFg("Nothing found.")
 		} else {
@@ -1157,6 +1184,8 @@ func (m stashModel) headerView() string {
 				continue
 			}
 			s = fmt.Sprintf("%d news", newsCount)
+		case filterSection:
+			s = fmt.Sprintf("%d “%s”", len(m.filteredMarkdowns), m.filterInput.Value())
 		}
 
 		if m.sectionIndex == i && len(m.sections) > 1 {
@@ -1178,7 +1207,7 @@ func (m stashModel) headerView() string {
 func (m stashModel) populatedView() string {
 	mds := m.getVisibleMarkdowns()
 
-	if len(mds) == 0 && m.isFiltering() {
+	if len(mds) == 0 && m.filterApplied() {
 		return ""
 	}
 
@@ -1261,7 +1290,7 @@ func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 				note: md.Note,
 			}
 		}
-		newMD.localID = md.localID
+		newMD.stashID = md.stashID
 		return fetchedMarkdownMsg(newMD)
 	}
 }
@@ -1302,7 +1331,7 @@ func deleteStashedItem(cc *charm.Client, id int) tea.Cmd {
 
 func filterMarkdowns(m stashModel) tea.Cmd {
 	return func() tea.Msg {
-		if m.filterInput.Value() == "" || !m.isFiltering() {
+		if m.filterInput.Value() == "" || !m.filterApplied() {
 			return filteredMarkdownMsg(m.getFilterableMarkdowns()) // return everything
 		}
 
@@ -1356,7 +1385,7 @@ func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error
 	index := -1
 
 	for i, v := range markdowns {
-		if v.localID == target.localID {
+		if v.uniqueID == target.uniqueID {
 			index = i
 			break
 		}

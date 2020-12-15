@@ -242,7 +242,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 				md := m.currentDocument
 
-				_, alreadyStashed := m.common.filesStashed[md.localID]
+				_, alreadyStashed := m.common.filesStashed[md.stashID]
 				if alreadyStashed {
 					cmds = append(cmds, m.showStatusMessage("Already stashed"))
 					break
@@ -314,7 +314,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		}
 
 	case stashFailMsg:
-		delete(m.common.filesStashed, msg.markdown.localID)
+		delete(m.common.filesStashed, msg.markdown.stashID)
 
 	case statusMessageTimeoutMsg:
 		m.state = pagerStateBrowse
