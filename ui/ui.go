@@ -411,7 +411,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		delete(m.common.filesStashing, md.stashID)
 
 		if m.stash.filterApplied() {
-			cmds = append(cmds, filterMarkdowns(m.stash))
+			for _, v := range m.stash.filteredMarkdowns {
+				if v.stashID == msg.stashID && v.markdownType == ConvertedDoc {
+					// Add the server-side ID we got back so we can do things
+					// like rename and stash it.
+					v.ID = msg.ID
+
+					// Keep the unique ID in sync so we can do things like
+					// delete. Note that the markdown received a new unique ID
+					// when it was added to the file listing in
+					// stash.addMarkdowns.
+					v.uniqueID = md.uniqueID
+					break
+				}
+			}
 		}
 
 	case stashFailMsg:
@@ -673,11 +686,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			}
 		}
 
-		// Set the note as the filename without the extension
-		if md.markdownType == LocalDoc {
-			p := md.localPath
-			md.Note = strings.Replace(path.Base(p), path.Ext(p), "", 1)
-		}
+		convertMarkdownToStashed(&md)
 
 		newMd, err := cc.StashMarkdown(md.Note, md.Body)
 		if err != nil {
@@ -691,10 +700,6 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		// need to know the ID so we can operate on this newly stashed
 		// markdown.
 		md.ID = newMd.ID
-
-		// Turn the markdown into a newly stashed (converted) markdown
-		md.markdownType = ConvertedDoc
-		md.CreatedAt = time.Now()
 
 		return stashSuccessMsg(md)
 	}
@@ -723,6 +728,18 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	}
 
 	return md
+}
+
+// convertMarkdownToStashed performs some adjustments on the given markdown to
+// that occur as part of stashing.
+func convertMarkdownToStashed(md *markdown) {
+	// Set the note as the filename without the extension
+	if md.markdownType == LocalDoc {
+		md.Note = strings.Replace(path.Base(md.localPath), path.Ext(md.localPath), "", 1)
+	}
+
+	md.markdownType = ConvertedDoc
+	md.CreatedAt = time.Now()
 }
 
 func stripAbsolutePath(fullPath, cwd string) string {
