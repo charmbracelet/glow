@@ -213,23 +213,6 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 		default:
 			switch msg.String() {
-			case "1":
-				m.currentDocument.Body = "Hello world"
-				cmd := m.showStatusMessage("Testing redraw + cmds")
-				cmds = append(cmds, cmd)
-				cmd = renderWithGlamour(m, m.currentDocument.Body)
-				cmds = append(cmds, cmd)
-			case "2":
-				m.currentDocument.Body = "World, hello"
-				cmd := renderWithGlamour(m, m.currentDocument.Body)
-				cmds = append(cmds, cmd)
-				cmd = m.showStatusMessage("Testing redraw + cmds")
-				cmds = append(cmds, cmd)
-			case "r":
-				cmd := m.showStatusMessage("Redrew page!")
-				cmds = append(cmds, cmd)
-				cmd = renderWithGlamour(m, m.currentDocument.Body)
-				cmds = append(cmds, cmd)
 			case "e":
 				editedDocument, err := m.editCurrentDocument()
 
