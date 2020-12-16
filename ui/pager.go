@@ -55,10 +55,6 @@ type noteSavedMsg *charm.Markdown
 type stashSuccessMsg markdown
 type stashErrMsg struct{ err error }
 
-type editorErrMsg struct{
-	err           error
-	statusMessage string
-}
 type editorContent struct {
 	content       string
 	isUpdated     bool
@@ -66,7 +62,6 @@ type editorContent struct {
 }
 
 func (s stashErrMsg) Error() string { return s.err.Error() }
-func (s editorErrMsg) Error() string { return s.err.Error() }
 
 type pagerState int
 
@@ -578,7 +573,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 // ETC
 
-// Returns a file descriptor for a temporary file
+// Returns a file descriptor for a temporary file.
 func createTemporaryCopy(content string) (*os.File, error) {
 	tempFile, err := ioutil.TempFile("", "glow-")
 	if err != nil {
@@ -614,7 +609,7 @@ func openFileInEditor(filePath string) (error) {
 	return nil
 }
 
-// Returns the edits made and a message to display
+// Returns the edits made and a message to display.
 func (m pagerModel) editCurrentDocument() (editorContent, error) {
 	editedDocument := editorContent{
 		content:       "",
@@ -624,11 +619,11 @@ func (m pagerModel) editCurrentDocument() (editorContent, error) {
 
 	// Copy the contents of the document to a temporary file
 	tempFile, err := createTemporaryCopy(m.currentDocument.Body)
-	defer tempFile.Close()
 	if err != nil {
 		editedDocument.statusMessage = "Error opening temporary file!"
 		return editedDocument, err
 	}
+	defer tempFile.Close()
 	
 	// Open the temporary file with an editor
 	err = openFileInEditor(tempFile.Name())
