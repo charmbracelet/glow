@@ -656,12 +656,13 @@ func (m pagerModel) editCurrentDocument() (string, string, error) {
 	
 	// Open the temporary file with an editor
 	err = openFileInEditor(tempFile.Name())
-	if err.Error() == "No editor found\n" {
-		return "", "Couldn't find an editor!", err
-	} else if err != nil {
+	if err != nil {
+		if err.Error() == "No editor found\n" {
+			return "", "Couldn't find an editor!", err
+		}
 		return "", "Couldn't open file in editor!", err
 	}
-	
+
 	// Get the contents of the edited file
 	b, err := ioutil.ReadFile(tempFile.Name())
 	if err != nil {
