@@ -346,7 +346,7 @@ func (m stashModel) countMarkdowns(t DocType) (found int) {
 	}
 
 	for i := 0; i < len(mds); i++ {
-		if mds[i].markdownType == t {
+		if mds[i].docType == t {
 			found++
 		}
 	}
@@ -363,7 +363,7 @@ func (m stashModel) getMarkdownByType(types ...DocType) []*markdown {
 
 	for _, t := range types {
 		for _, md := range m.markdowns {
-			if md.markdownType == t {
+			if md.docType == t {
 				agg = append(agg, md)
 			}
 		}
@@ -401,7 +401,7 @@ func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 	var cmd tea.Cmd
 	m.viewState = stashStateLoadingDocument
 
-	if md.markdownType == LocalDoc {
+	if md.docType == LocalDoc {
 		cmd = loadLocalMarkdown(md)
 	} else {
 		cmd = loadRemoteMarkdown(m.common.cc, md)
@@ -783,7 +783,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 
 			md := m.selectedMarkdown()
-			isUserMarkdown := md.markdownType == StashedDoc || md.markdownType == ConvertedDoc
+			isUserMarkdown := md.docType == StashedDoc || md.docType == ConvertedDoc
 			isSettingNote := m.selectionState == selectionSettingNote
 			isPromptingDelete := m.selectionState == selectionPromptingDelete
 
@@ -803,7 +803,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			md := m.selectedMarkdown()
 
 			// Is this a document we're allowed to stash?
-			if !stashableDocTypes.Contains(md.markdownType) {
+			if !stashableDocTypes.Contains(md.docType) {
 				break
 			}
 
@@ -857,7 +857,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				break
 			}
 
-			t := md.markdownType
+			t := md.docType
 			if t == StashedDoc || t == ConvertedDoc {
 				m.selectionState = selectionPromptingDelete
 			}
@@ -914,7 +914,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 
 			smd := m.selectedMarkdown()
 
-			for i, md := range m.markdowns {
+			for _, md := range m.markdowns {
 				if md.uniqueID != smd.uniqueID {
 					continue
 				}
@@ -924,7 +924,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 
 				// Delete optimistically and remove the stashed item before
 				// we've received a success response.
-				mds, err := deleteMarkdown(m.markdowns, m.markdowns[i])
+				mds, err := deleteMarkdown(m.markdowns, md)
 				if err == nil {
 					m.markdowns = mds
 				}
@@ -934,14 +934,29 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 
 			// Also optimistically delete from filtered markdowns
 			if m.filterApplied() {
-				for i, md := range m.filteredMarkdowns {
+				for _, md := range m.filteredMarkdowns {
 					if md.uniqueID != smd.uniqueID {
 						continue
 					}
-					mds, err := deleteMarkdown(m.filteredMarkdowns, m.filteredMarkdowns[i])
-					if err == nil {
-						m.filteredMarkdowns = mds
+
+					switch md.docType {
+
+					// If the document was stashed in this session, convert it
+					// back to "local" document
+					case ConvertedDoc:
+						md.docType = LocalDoc
+						md.Note = stripAbsolutePath(md.localPath, m.common.cwd)
+						md.CreatedAt = md.localModTime
+
+					// Otherwise, remove the document from the listing
+					default:
+						mds, err := deleteMarkdown(m.filteredMarkdowns, md)
+						if err == nil {
+							m.filteredMarkdowns = mds
+						}
+
 					}
+
 					break
 				}
 			}
@@ -1329,10 +1344,10 @@ func (m stashModel) populatedView() string {
 // loadRemoteMarkdown is a command for loading markdown from the server.
 func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 	return func() tea.Msg {
-		newMD, err := fetchMarkdown(cc, md.ID, md.markdownType)
+		newMD, err := fetchMarkdown(cc, md.ID, md.docType)
 		if err != nil {
 			if debug {
-				log.Printf("error loading %s markdown (ID %d, Note: '%s'): %v", md.markdownType, md.ID, md.Note, err)
+				log.Printf("error loading %s markdown (ID %d, Note: '%s'): %v", md.docType, md.ID, md.Note, err)
 			}
 			return markdownFetchFailedMsg{
 				err:  err,
@@ -1347,7 +1362,7 @@ func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 
 func loadLocalMarkdown(md *markdown) tea.Cmd {
 	return func() tea.Msg {
-		if md.markdownType != LocalDoc {
+		if md.docType != LocalDoc {
 			return errMsg{errors.New("could not load local file: not a local file")}
 		}
 		if md.localPath == "" {
@@ -1425,8 +1440,8 @@ func fetchMarkdown(cc *charm.Client, id int, t DocType) (*markdown, error) {
 	}
 
 	return &markdown{
-		markdownType: t,
-		Markdown:     *md,
+		docType:  t,
+		Markdown: *md,
 	}, nil
 }
 

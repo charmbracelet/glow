@@ -412,7 +412,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.stash.filterApplied() {
 			for _, v := range m.stash.filteredMarkdowns {
-				if v.stashID == msg.stashID && v.markdownType == ConvertedDoc {
+				if v.stashID == msg.stashID && v.docType == ConvertedDoc {
 					// Add the server-side ID we got back so we can do things
 					// like rename and stash it.
 					v.ID = msg.ID
@@ -658,7 +658,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		// be loaded. But...if it turnsout the document body really is empty
 		// then we'll stash it anyway.
 		if len(md.Body) == 0 {
-			switch md.markdownType {
+			switch md.docType {
 
 			case LocalDoc:
 				data, err := ioutil.ReadFile(md.localPath)
@@ -671,14 +671,14 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 				md.Body = string(data)
 
 			case NewsDoc:
-				newMD, err := fetchMarkdown(cc, md.ID, md.markdownType)
+				newMD, err := fetchMarkdown(cc, md.ID, md.docType)
 				if err != nil {
 					return stashFailMsg{err, md}
 				}
 				md.Body = newMD.Body
 
 			default:
-				err := fmt.Errorf("user is attempting to stash an unsupported markdown type: %s", md.markdownType)
+				err := fmt.Errorf("user is attempting to stash an unsupported markdown type: %s", md.docType)
 				if debug {
 					log.Println(err)
 				}
@@ -719,8 +719,9 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 // a directory, but we trust that gitcha has already done that.
 func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
-		markdownType: LocalDoc,
+		docType:      LocalDoc,
 		localPath:    res.Path,
+		localModTime: res.Info.ModTime(),
 		Markdown: charm.Markdown{
 			Note:      stripAbsolutePath(res.Path, cwd),
 			CreatedAt: res.Info.ModTime(),
@@ -734,11 +735,11 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 // that occur as part of stashing.
 func convertMarkdownToStashed(md *markdown) {
 	// Set the note as the filename without the extension
-	if md.markdownType == LocalDoc {
+	if md.docType == LocalDoc {
 		md.Note = strings.Replace(path.Base(md.localPath), path.Ext(md.localPath), "", 1)
 	}
 
-	md.markdownType = ConvertedDoc
+	md.docType = ConvertedDoc
 	md.CreatedAt = time.Now()
 }
 
