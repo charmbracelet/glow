@@ -120,8 +120,8 @@ func (m stashModel) helpView() (string, int) {
 
 	if numDocs > 0 {
 		md := m.selectedMarkdown()
-		isStashed = md != nil && md.markdownType == StashedDoc
-		isStashable = md != nil && md.markdownType == LocalDoc && m.online()
+		isStashed = md != nil && md.docType == StashedDoc
+		isStashable = md != nil && md.docType == LocalDoc && m.online()
 	}
 
 	if numDocs > 0 && m.showFullHelp {

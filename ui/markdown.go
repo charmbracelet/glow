@@ -17,7 +17,7 @@ import (
 
 // markdown wraps charm.Markdown.
 type markdown struct {
-	markdownType DocType
+	docType DocType
 
 	// Stash identifier. This exists so we can keep track of documents stashed
 	// in-session as they relate to their original, non-stashed counterparts.
@@ -33,6 +33,11 @@ type markdown struct {
 	// Full path of a local markdown file. Only relevant to local documents and
 	// those that have been stashed in this session.
 	localPath string
+
+	// Modified time of the local file. This will also be stored in
+	// Markdown.CreatedAt, however we also retain it here incase we need to
+	// convert this document back to a local document after it's been stashed.
+	localModTime time.Time
 
 	// Value we filter against. This exists so that we can maintain positions
 	// of filtered items if notes are edited while a filter is active. This
@@ -65,7 +70,7 @@ func (m *markdown) buildFilterValue() {
 // shouldSortAsLocal returns whether or not this markdown should be sorted as though
 // it's a local markdown document.
 func (m markdown) shouldSortAsLocal() bool {
-	return m.markdownType == LocalDoc || m.markdownType == ConvertedDoc
+	return m.docType == LocalDoc || m.docType == ConvertedDoc
 }
 
 // Sort documents with local files first, then by date.
@@ -120,8 +125,8 @@ func normalize(in string) (string, error) {
 func wrapMarkdowns(t DocType, md []*charm.Markdown) (m []*markdown) {
 	for _, v := range md {
 		m = append(m, &markdown{
-			markdownType: t,
-			Markdown:     *v,
+			docType:  t,
+			Markdown: *v,
 		})
 	}
 	return m

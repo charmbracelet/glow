@@ -27,7 +27,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		icon       = ""
 	)
 
-	switch md.markdownType {
+	switch md.docType {
 	case NewsDoc:
 		if title == "" {
 			title = "News"
@@ -81,7 +81,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	} else {
 		// Regular (non-selected) items
 
-		if md.markdownType == NewsDoc {
+		if md.docType == NewsDoc {
 			gutter = " "
 
 			if isFiltering && m.filterInput.Value() == "" {
