@@ -5,7 +5,8 @@ type DocType int
 
 // Available document types.
 const (
-	LocalDoc DocType = iota
+	NoDocType DocType = iota
+	LocalDoc
 	StashedDoc
 	ConvertedDoc
 	NewsDoc
@@ -13,6 +14,7 @@ const (
 
 func (d DocType) String() string {
 	return [...]string{
+		"none",
 		"local",
 		"stashed",
 		"converted",

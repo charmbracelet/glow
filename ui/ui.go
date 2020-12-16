@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -686,7 +685,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			}
 		}
 
-		convertMarkdownToStashed(&md)
+		md.convertToStashed()
 
 		newMd, err := cc.StashMarkdown(md.Note, md.Body)
 		if err != nil {
@@ -719,9 +718,8 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 // a directory, but we trust that gitcha has already done that.
 func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
-		docType:      LocalDoc,
-		localPath:    res.Path,
-		localModTime: res.Info.ModTime(),
+		docType:   LocalDoc,
+		localPath: res.Path,
 		Markdown: charm.Markdown{
 			Note:      stripAbsolutePath(res.Path, cwd),
 			CreatedAt: res.Info.ModTime(),
@@ -729,18 +727,6 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	}
 
 	return md
-}
-
-// convertMarkdownToStashed performs some adjustments on the given markdown to
-// that occur as part of stashing.
-func convertMarkdownToStashed(md *markdown) {
-	// Set the note as the filename without the extension
-	if md.docType == LocalDoc {
-		md.Note = strings.Replace(path.Base(md.localPath), path.Ext(md.localPath), "", 1)
-	}
-
-	md.docType = ConvertedDoc
-	md.CreatedAt = time.Now()
 }
 
 func stripAbsolutePath(fullPath, cwd string) string {
