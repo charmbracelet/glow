@@ -595,37 +595,6 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 // ETC
 
-// Returns an editor path or error.
-func getEditor() (string, error) {
-        var editor_path string
-        var editor_err error
-
-        editors := []string{"nvim", "nano", "vim", "vi", "gedit"}
-
-        // If $EDITOR is set, prepend it to the list of editors we'll search for
-        if os.Getenv("EDITOR") != "" {
-                editors = append([]string{os.Getenv("EDITOR")}, editors...)
-        }
-
-        // By default, the error should be that no command has been found
-        editor_err = fmt.Errorf("No editor found")
-
-        // Search for the editors, stopping after the first one is found
-        for i := 0; i < len(editors) && editor_path == ""; i++ {
-                // Look for the editor in $PATH
-                path, err := exec.LookPath(editors[i]);
-
-                if err == nil {
-                        // If it was found, store the path (exiting the loop)...
-                        editor_path = path
-                        // ...and set the error to nil
-                        editor_err = nil
-                }
-        }
-
-        return editor_path, editor_err
-}
-
 // Returns a file descriptor for a temporary file
 func createTemporaryCopy(content string) (*os.File, error) {
 	tempFile, err := ioutil.TempFile("", "glow-")
@@ -642,16 +611,16 @@ func createTemporaryCopy(content string) (*os.File, error) {
 }
 
 func openFileInEditor(filePath string) (error) {
-	editorPath, err := getEditor()
-	if err != nil {
-		return err
+	editorPath := os.Getenv("EDITOR")
+	if editorPath == "" {
+		return fmt.Errorf("EDITOR not set")
 	}
 	
 	cmd := exec.Command(editorPath, filePath)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		return err
 	}
