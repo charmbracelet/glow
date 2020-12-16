@@ -249,11 +249,27 @@ func (m *stashModel) setSize(width, height int) {
 	m.updatePagination()
 }
 
+// bakeConvertedDocs turns converted documents into stashed ones. Essentially,
+// we're discarding the fact that they were ever converted so we can stop
+// treating them like converted documents.
+func (m *stashModel) bakeConvertedDocs() {
+	for _, md := range m.markdowns {
+		if md.docType == ConvertedDoc {
+			md.docType = StashedDoc
+		}
+	}
+}
+
 func (m *stashModel) resetFiltering() {
 	m.filterState = unfiltered
 	m.filterInput.Reset()
-	sort.Stable(markdownsByLocalFirst(m.markdowns))
 	m.filteredMarkdowns = nil
+
+	// Turn converted markdowns into stashed ones so that the next time we
+	// filter we get both local and stashed results.
+	m.bakeConvertedDocs()
+
+	sort.Stable(markdownsByLocalFirst(m.markdowns))
 	m.updatePagination()
 
 	if m.sections[len(m.sections)-1].key == filterSection {
@@ -759,6 +775,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		// Filter your notes
 		case "/":
 			m.hideStatusMessage()
+			m.bakeConvertedDocs()
 
 			// Build values we'll filter against
 			for _, md := range m.markdowns {
