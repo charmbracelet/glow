@@ -55,7 +55,18 @@ type noteSavedMsg *charm.Markdown
 type stashSuccessMsg markdown
 type stashErrMsg struct{ err error }
 
+type editorErrMsg struct{
+	err           error
+	statusMessage string
+}
+type editorContent struct {
+	content       string
+	isUpdated     bool
+	statusMessage string
+}
+
 func (s stashErrMsg) Error() string { return s.err.Error() }
+func (s editorErrMsg) Error() string { return s.err.Error() }
 
 type pagerState int
 
@@ -220,16 +231,22 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				cmd = renderWithGlamour(m, m.currentDocument.Body)
 				cmds = append(cmds, cmd)
 			case "e":
-				edits, msg, err := m.editCurrentDocument()
-				if msg != "" {
-					cmd :=  m.showStatusMessage(msg)
+				editedDocument, err := m.editCurrentDocument()
+
+				if err != nil && debug {
+					log.Println("error editing '" + m.currentDocument.Note + "':", err.Error())
+				}
+
+				if editedDocument.statusMessage != "" {
+					cmd :=  m.showStatusMessage(editedDocument.statusMessage)
 					cmds = append(cmds, cmd)
 				}
-				if edits != m.currentDocument.Body && err == nil {
-					m.currentDocument.Body = edits
+
+				if editedDocument.isUpdated {
+					m.currentDocument.Body = editedDocument.content
+					cmd = renderWithGlamour(m, m.currentDocument.Body)
+					cmds = append(cmds, cmd)
 				}
-				cmd = renderWithGlamour(m, m.currentDocument.Body)
-				cmds = append(cmds, cmd)
 			case "q", "esc":
 				if m.state != pagerStateBrowse {
 					m.state = pagerStateBrowse
@@ -591,7 +608,7 @@ func getEditor() (string, error) {
         }
 
         // By default, the error should be that no command has been found
-        editor_err = fmt.Errorf("No editor found\n")
+        editor_err = fmt.Errorf("No editor found")
 
         // Search for the editors, stopping after the first one is found
         for i := 0; i < len(editors) && editor_path == ""; i++ {
@@ -646,66 +663,91 @@ func openFileInEditor(filePath string) (error) {
 }
 
 // Returns the edits made and a message to display
-func (m pagerModel) editCurrentDocument() (string, string, error) {
+func (m pagerModel) editCurrentDocument() (editorContent, error) {
+	editedDocument := editorContent{
+		content:       "",
+		isUpdated:     false,
+		statusMessage: "",
+	}
+
 	// Copy the contents of the document to a temporary file
 	tempFile, err := createTemporaryCopy(m.currentDocument.Body)
+	defer tempFile.Close()
 	if err != nil {
-		return "", "Couldn't create temporary file for editing!", err
+		editedDocument.statusMessage = "Error opening temporary file!"
+		return editedDocument, err
 	}
-	tempFile.Close()
 	
 	// Open the temporary file with an editor
 	err = openFileInEditor(tempFile.Name())
 	if err != nil {
-		if err.Error() == "No editor found\n" {
-			return "", "Couldn't find an editor!", err
+		if err.Error() == "No editor found!" {
+			editedDocument.statusMessage = err.Error()
+		} else {
+			editedDocument.statusMessage = "Couldn't open file in editor!"
 		}
-		return "", "Couldn't open file in editor!", err
+		return editedDocument, err
 	}
 
 	// Get the contents of the edited file
 	b, err := ioutil.ReadFile(tempFile.Name())
 	if err != nil {
-		return "", "Error reading edits!", err
+		editedDocument.statusMessage = "Error reading edits!"
+		return editedDocument, err
 	}
 	editString := string(b)
 
-	// If no edits were made, do nothing
 	if editString == m.currentDocument.Body {
-		return "", "No changes made!", fmt.Errorf("No changes made")
+		// No changes made
+		editedDocument.statusMessage = "No changes made!"
+		return editedDocument, nil
 	} else {
 		// Make our edits permanent remotely/locally
 		isStashed := m.currentDocument.markdownType == stashedMarkdown ||
 			m.currentDocument.markdownType == convertedMarkdown
 
 		if isStashed {
-			// This method is preferable, pending a PR for charm
-			//err := m.general.cc.SetMarkdownBody(m.currentDocument.ID, editString)
+			// // This method is preferable, pending a PR for charm
+			// err := m.general.cc.SetMarkdownBody(m.currentDocument.ID, editString)
 
+			// if err != nil {
+			// 	return "", "Error updating stash!", err
+			// } else {
+			// 	return editString, "Updated stash!", nil
+			// }
+			
 			// Create a new stash
 			_, err := m.general.cc.StashMarkdown(m.currentDocument.Note, editString)
 
 			if err != nil {
-				return "", "Couldn't update stash!", err
+				editedDocument.statusMessage = "Error creating new stash!"
+				return editedDocument, err
 			} else {
 				// Delete the current stash
 				err := m.general.cc.DeleteMarkdown(m.currentDocument.ID)
 				if err != nil {
-					return "", "Error removing old stash!", err
+					editedDocument.statusMessage = "Error removing old stash!"
+					return editedDocument, err
 				} else {
-					return editString, "Updated stash!", nil
+					editedDocument.isUpdated = true
+					editedDocument.content = editString
+					editedDocument.statusMessage = "Updated stash!"
+					return editedDocument, nil
 				}
 			}
 		} else {
 			err := ioutil.WriteFile(m.currentDocument.localPath, []byte(editString), 0600)
 			if err != nil {
-				return "", "Couldn't update local file!", err
+				editedDocument.statusMessage = "Couldn't write edits to file!"
+				return editedDocument, err
 			} else {
-				return editString, "Updated local file!", nil
+				editedDocument.isUpdated = true
+				editedDocument.content = editString
+				editedDocument.statusMessage = "Updated local file!"
+				return editedDocument, nil
 			}
 		}
 	}
-	return "", "Well that was weird", fmt.Errorf("Unknown error")
 }
 
 // Note: this runs in linear time; O(n).
