@@ -3,6 +3,7 @@ package ui
 import (
 	"log"
 	"math"
+	"path"
 	"strings"
 	"time"
 	"unicode"
@@ -30,14 +31,15 @@ type markdown struct {
 	// which could match both an original or stashed document).
 	uniqueID ksuid.KSUID
 
+	// Some of the document's original values before this document was stashed.
+	// These are irrelevant if this document was not stashed in this session.
+	originalDocType   DocType
+	originalTimestamp time.Time
+	originalNote      string
+
 	// Full path of a local markdown file. Only relevant to local documents and
 	// those that have been stashed in this session.
 	localPath string
-
-	// Modified time of the local file. This will also be stored in
-	// Markdown.CreatedAt, however we also retain it here incase we need to
-	// convert this document back to a local document after it's been stashed.
-	localModTime time.Time
 
 	// Value we filter against. This exists so that we can maintain positions
 	// of filtered items if notes are edited while a filter is active. This
@@ -52,6 +54,37 @@ func (m *markdown) generateIDs() {
 		m.stashID = ksuid.New()
 	}
 	m.uniqueID = ksuid.New()
+}
+
+// convertToStashed converts this document into its stashed state.
+func (m *markdown) convertToStashed() {
+	if m.docType == ConvertedDoc {
+		if debug {
+			log.Println("not converting already converted document:", m)
+		}
+		return
+	}
+
+	m.originalDocType = m.docType
+	m.originalTimestamp = m.CreatedAt
+	m.originalNote = m.Note
+
+	if m.docType == LocalDoc {
+		m.Note = strings.Replace(path.Base(m.localPath), path.Ext(m.localPath), "", 1)
+	}
+	m.CreatedAt = time.Now()
+	m.docType = ConvertedDoc
+}
+
+// revert reverts this document from its stashed state.
+func (m *markdown) revertFromStashed() {
+	if m.docType != ConvertedDoc {
+		log.Printf("not reverting document of type %s: %v", m.docType, m)
+	}
+
+	m.docType = m.originalDocType
+	m.CreatedAt = m.originalTimestamp
+	m.Note = m.originalNote
 }
 
 // Generate the value we're doing to filter against.

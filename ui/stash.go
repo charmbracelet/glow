@@ -831,7 +831,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			if m.filterApplied() {
 				for _, v := range m.filteredMarkdowns {
 					if v.uniqueID == md.uniqueID {
-						convertMarkdownToStashed(v)
+						v.convertToStashed()
 					}
 				}
 			}
@@ -941,12 +941,16 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 
 					switch md.docType {
 
-					// If the document was stashed in this session, convert it
-					// back to "local" document
 					case ConvertedDoc:
-						md.docType = LocalDoc
-						md.Note = stripAbsolutePath(md.localPath, m.common.cwd)
-						md.CreatedAt = md.localModTime
+						// If the document was stashed in this session, convert it
+						// back to it's original document type
+						if md.originalDocType == LocalDoc {
+							md.revertFromStashed()
+							break
+						}
+
+						// Other documents fall through and delete as normal
+						fallthrough
 
 					// Otherwise, remove the document from the listing
 					default:
