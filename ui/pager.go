@@ -680,9 +680,13 @@ func (m pagerModel) editCurrentDocument() (editorContent, error) {
 			// err := m.general.cc.SetMarkdownBody(m.currentDocument.ID, editString)
 
 			// if err != nil {
-			// 	return "", "Error updating stash!", err
+			//  editedDocument.statusMessage = "Error updating stash!"
+			//  return editedDocument, err
 			// } else {
-			// 	return editString, "Updated stash!", nil
+			//  editedDocument.isUpdated = true
+			//  editedDocument.content = editString
+			//  editedDocument.statusMessage = "Updated stash!"
+			//  return editedDocument, nil
 			// }
 			
 			// Create a new stash
