@@ -1272,10 +1272,6 @@ func (m stashModel) headerView() string {
 func (m stashModel) populatedView() string {
 	mds := m.getVisibleMarkdowns()
 
-	if len(mds) == 0 && m.filterApplied() {
-		return ""
-	}
-
 	var b strings.Builder
 
 	// Empty states
@@ -1307,6 +1303,8 @@ func (m stashModel) populatedView() string {
 			} else {
 				f("Loading your stash...")
 			}
+		case filterSection:
+			return ""
 		}
 	}
 
