@@ -135,12 +135,22 @@ func sourceFromArg(arg string) (*source, error) {
 	return &source{r, u}, err
 }
 
-func validateOptions(cmd *cobra.Command) {
+func validateOptions(cmd *cobra.Command) error {
 	// grab config values from Viper
-	style = viper.GetString("style")
 	width = viper.GetUint("width")
 	localOnly = viper.GetBool("local")
 	mouse = viper.GetBool("mouse")
+
+	// validate the glamour style
+	style = viper.GetString("style")
+	if style != "auto" && glamour.DefaultStyles[style] == nil {
+		style = utils.ExpandPath(style)
+		if _, err := os.Stat(style); os.IsNotExist(err) {
+			return fmt.Errorf("Specified style does not exist: %s", style)
+		} else if err != nil {
+			return err
+		}
+	}
 
 	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
 	// We want to use a special no-TTY style, when stdout is not a terminal
@@ -163,11 +173,14 @@ func validateOptions(cmd *cobra.Command) {
 	if width == 0 {
 		width = 80
 	}
+	return nil
 }
 
 func execute(cmd *cobra.Command, args []string) error {
 	initConfig()
-	validateOptions(cmd)
+	if err := validateOptions(cmd); err != nil {
+		return err
+	}
 
 	if len(args) == 0 {
 		return executeArg(cmd, "", os.Stdout)
