@@ -385,7 +385,7 @@ func (m stashModel) getMarkdownByType(types ...DocType) []*markdown {
 		}
 	}
 
-	sort.Sort(markdownsByLocalFirst(agg))
+	sort.Stable(markdownsByLocalFirst(agg))
 	return agg
 }
 
