@@ -738,7 +738,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 
 		// Next section
-		case "tab":
+		case "tab", "L":
 			if len(m.sections) == 0 || m.filterState == filtering {
 				break
 			}
@@ -749,7 +749,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.updatePagination()
 
 		// Previous section
-		case "shift+tab":
+		case "shift+tab", "H":
 			if len(m.sections) == 0 || m.filterState == filtering {
 				break
 			}
