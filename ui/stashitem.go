@@ -70,7 +70,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		default:
 			gutter = dullFuchsiaFg(verticalLine)
 			icon = dullFuchsiaFg(icon)
-			if m.filterState == filterApplied || singleFilteredItem {
+			if m.currentSection().key == filterSection && m.filterState == filterApplied || singleFilteredItem {
 				s := termenv.Style{}.Foreground(lib.Fuschia.Color())
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 			} else {
