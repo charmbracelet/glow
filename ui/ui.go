@@ -137,6 +137,9 @@ type commonModel struct {
 	// ignoring the value portion with an empty struct.
 	filesStashed map[ksuid.KSUID]struct{}
 
+	// ID of the most recently stashed markdown
+	latestFileStashed ksuid.KSUID
+
 	// Files currently being stashed. We remove files from this set once
 	// a stash operation has either succeeded or failed.
 	filesStashing map[ksuid.KSUID]struct{}
@@ -407,6 +410,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		md := markdown(msg)
 		m.stash.addMarkdowns(&md)
 		m.common.filesStashed[msg.stashID] = struct{}{}
+		m.common.latestFileStashed = msg.stashID
 		delete(m.common.filesStashing, md.stashID)
 
 		if m.stash.filterApplied() {
