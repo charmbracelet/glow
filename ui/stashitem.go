@@ -68,20 +68,34 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			title = m.noteInput.View()
 			date = dullYellowFg(date)
 		default:
-			gutter = dullFuchsiaFg(verticalLine)
-			icon = dullFuchsiaFg(icon)
-			if m.currentSection().key == filterSection && m.filterState == filterApplied || singleFilteredItem {
-				s := termenv.Style{}.Foreground(lib.Fuschia.Color())
-				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
+			if m.common.latestFileStashed == md.stashID &&
+				m.statusMessage == stashedStatusMessage {
+				gutter = greenFg(verticalLine)
+				icon = dimGreenFg(icon)
+				title = greenFg(title)
+				date = dimGreenFg(date)
 			} else {
-				title = fuchsiaFg(title)
+				gutter = dullFuchsiaFg(verticalLine)
+				icon = dullFuchsiaFg(icon)
+				if m.currentSection().key == filterSection && m.filterState == filterApplied || singleFilteredItem {
+					s := termenv.Style{}.Foreground(lib.Fuschia.Color())
+					title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
+				} else {
+					title = fuchsiaFg(title)
+				}
+				date = dullFuchsiaFg(date)
 			}
-			date = dullFuchsiaFg(date)
 		}
 	} else {
 		// Regular (non-selected) items
 
-		if md.docType == NewsDoc {
+		if m.common.latestFileStashed == md.stashID &&
+			m.statusMessage == stashedStatusMessage {
+			gutter = " "
+			icon = dimGreenFg(icon)
+			title = greenFg(title)
+			date = dimGreenFg(date)
+		} else if md.docType == NewsDoc {
 			gutter = " "
 
 			if isFiltering && m.filterInput.Value() == "" {
