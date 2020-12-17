@@ -22,8 +22,9 @@ var (
 	midGrayFg  = newFgStyle(lib.NewColorPair("#4A4A4A", "#B2B2B2"))
 	darkGrayFg = newFgStyle(lib.NewColorPair("#3C3C3C", "#DDDADA"))
 
-	greenFg    = newFgStyle(lib.NewColorPair("#04B575", "#04B575"))
-	dimGreenFg = newFgStyle(lib.NewColorPair("#0B5137", "#72D2B0"))
+	greenFg        = newFgStyle(lib.NewColorPair("#04B575", "#04B575"))
+	semiDimGreenFg = newFgStyle(lib.NewColorPair("#036B46", "#35D79C"))
+	dimGreenFg     = newFgStyle(lib.NewColorPair("#0B5137", "#72D2B0"))
 
 	fuchsiaFg    = newFgStyle(lib.Fuschia)
 	dimFuchsiaFg = newFgStyle(lib.NewColorPair("#99519E", "#F1A8FF"))

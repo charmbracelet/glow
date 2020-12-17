@@ -46,7 +46,7 @@ func (h helpColumn) render(height int) (rows []string) {
 			switch k {
 			case "s":
 				k = greenFg(k)
-				v = dimGreenFg(v)
+				v = semiDimGreenFg(v)
 			default:
 				k = grayFg(k)
 				v = midGrayFg(v)
@@ -216,7 +216,7 @@ func (m stashModel) miniHelpView(entries ...string) string {
 		switch k {
 		case "s":
 			k = greenFg(k)
-			v = dimGreenFg(v)
+			v = semiDimGreenFg(v)
 		default:
 			k = grayFg(k)
 			v = midGrayFg(v)
