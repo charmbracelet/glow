@@ -46,13 +46,11 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 	isSelected := index == m.cursor()
 	isFiltering := m.filterState == filtering
+	singleFilteredItem := isFiltering && len(m.getVisibleMarkdowns()) == 1
 
-	// If there are multiple items being filtered we don't highlight a selected
+	// If there are multiple items being filtered don't highlight a selected
 	// item in the results. If we've filtered down to one item, however,
 	// highlight that first item since pressing return will open it.
-	singleFilteredItem :=
-		isFiltering && len(m.getVisibleMarkdowns()) == 1
-
 	if isSelected && !isFiltering || singleFilteredItem {
 		// Selected item
 
@@ -73,11 +71,12 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 				gutter = greenFg(verticalLine)
 				icon = dimGreenFg(icon)
 				title = greenFg(title)
-				date = dimGreenFg(date)
+				date = semiDimGreenFg(date)
 			} else {
 				gutter = dullFuchsiaFg(verticalLine)
 				icon = dullFuchsiaFg(icon)
-				if m.currentSection().key == filterSection && m.filterState == filterApplied || singleFilteredItem {
+				if m.currentSection().key == filterSection &&
+					m.filterState == filterApplied || singleFilteredItem {
 					s := termenv.Style{}.Foreground(lib.Fuschia.Color())
 					title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 				} else {
@@ -89,15 +88,14 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	} else {
 		// Regular (non-selected) items
 
+		gutter = " "
+
 		if m.common.latestFileStashed == md.stashID &&
 			m.statusMessage == stashedStatusMessage {
-			gutter = " "
 			icon = dimGreenFg(icon)
 			title = greenFg(title)
-			date = dimGreenFg(date)
+			date = semiDimGreenFg(date)
 		} else if md.docType == NewsDoc {
-			gutter = " "
-
 			if isFiltering && m.filterInput.Value() == "" {
 				title = dimIndigoFg(title)
 				date = dimSubtleIndigoFg(date)
@@ -113,7 +111,6 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			} else {
 				title = dimNormalFg(title)
 			}
-			gutter = " "
 			date = dimBrightGrayFg(date)
 		} else {
 			icon = greenFg(icon)
@@ -123,7 +120,6 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 				s := termenv.Style{}.Foreground(lib.NewColorPair("#dddddd", "#1a1a1a").Color())
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
 			}
-			gutter = " "
 			date = brightGrayFg(date)
 		}
 	}
