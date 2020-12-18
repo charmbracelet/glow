@@ -654,6 +654,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	// Note: mechanical stuff related to stash failure is handled in the parent
 	// update function.
 	case stashFailMsg:
+		m.err = msg.err
 		cmds = append(cmds, m.newStatusMessage(statusMessage{
 			status:  errorStatusMessage,
 			message: fmt.Sprintf("Couldn’t stash ‘%s’", msg.markdown.Note),
