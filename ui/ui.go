@@ -410,7 +410,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		md := markdown(msg)
 		m.stash.addMarkdowns(&md)
 		m.common.filesStashed[msg.stashID] = struct{}{}
-		m.common.latestFileStashed = msg.stashID
 		delete(m.common.filesStashing, md.stashID)
 
 		if m.stash.filterApplied() {
