@@ -132,6 +132,7 @@ type statusMessageType int
 const (
 	normalStatusMessage statusMessageType = iota
 	subtleStatusMessage
+	errorStatusMessage
 )
 
 // statusMessage is an ephemeral note displayed in the UI.
@@ -146,6 +147,8 @@ func (s statusMessage) String() string {
 	switch s.status {
 	case subtleStatusMessage:
 		return dimGreenFg(s.message)
+	case errorStatusMessage:
+		return redFg(s.message)
 	default:
 		return greenFg(s.message)
 	}
@@ -652,8 +655,8 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	// update function.
 	case stashFailMsg:
 		cmds = append(cmds, m.newStatusMessage(statusMessage{
-			status:  normalStatusMessage,
-			message: "Couldn’t stash :(",
+			status:  errorStatusMessage,
+			message: fmt.Sprintf("Couldn’t stash ‘%s’", msg.markdown.Note),
 		}))
 
 	case statusMessageTimeoutMsg:
@@ -1151,7 +1154,7 @@ func (m stashModel) view() string {
 				logoOrFilter += "  " + m.statusMessage.String()
 			}
 		}
-		logoOrFilter = truncate.StringWithTail(logoOrFilter, uint(m.common.width), ellipsis)
+		logoOrFilter = truncate.StringWithTail(logoOrFilter, uint(m.common.width-1), ellipsis)
 
 		help, helpHeight := m.helpView()
 
