@@ -655,7 +655,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		}
 
 		// Is the document missing a body? If so, it likely means it needs to
-		// be loaded. But...if it turnsout the document body really is empty
+		// be loaded. But...if it turns out the document body really is empty
 		// then we'll stash it anyway.
 		if len(md.Body) == 0 {
 			switch md.docType {
@@ -673,6 +673,9 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			case NewsDoc:
 				newMD, err := fetchMarkdown(cc, md.ID, md.docType)
 				if err != nil {
+					if debug {
+						log.Println(err)
+					}
 					return stashFailMsg{err, md}
 				}
 				md.Body = newMD.Body
@@ -686,8 +689,6 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			}
 		}
 
-		md.convertToStashed()
-
 		newMd, err := cc.StashMarkdown(md.Note, md.Body)
 		if err != nil {
 			if debug {
@@ -695,6 +696,8 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			}
 			return stashFailMsg{err, md}
 		}
+
+		md.convertToStashed()
 
 		// The server sends the whole stashed document back, but we really just
 		// need to know the ID so we can operate on this newly stashed
