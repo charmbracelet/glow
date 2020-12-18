@@ -408,6 +408,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			md := markdown(msg)
 			_ = m.stash.replaceLocalMarkdown(md.localPath, &md)
 		}
+
+	// Update the stash ID after editing a document
+	case contentEdited:
+		if msg.updatedStash {
+			for i := range m.stash.markdowns {
+				if m.stash.markdowns[i].ID == msg.oldID {
+					m.stash.markdowns[i].ID = msg.newID
+					m.stash.markdowns[i].CreatedAt = time.Now()
+				}
+			}
+		}
 	}
 
 	// Process children
