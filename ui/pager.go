@@ -57,6 +57,7 @@ type stashErrMsg struct{ err error }
 
 type editorContent struct {
 	content       string
+	ID            int
 	isUpdated     bool
 	statusMessage string
 }
@@ -221,7 +222,9 @@ func (m pagerModel) Update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 
 				if editedDocument.isUpdated {
+					// Update the current document
 					m.currentDocument.Body = editedDocument.content
+					m.currentDocument.ID = editedDocument.ID
 					cmd = renderWithGlamour(m, m.currentDocument.Body)
 					cmds = append(cmds, cmd)
 				}
@@ -668,7 +671,7 @@ func (m pagerModel) editCurrentDocument() (editorContent, error) {
 			// }
 			
 			// Create a new stash
-			_, err := m.general.cc.StashMarkdown(m.currentDocument.Note, editString)
+			newStash, err := m.general.cc.StashMarkdown(m.currentDocument.Note, editString)
 
 			if err != nil {
 				editedDocument.statusMessage = "Error creating new stash!"
@@ -682,6 +685,7 @@ func (m pagerModel) editCurrentDocument() (editorContent, error) {
 				} else {
 					editedDocument.isUpdated = true
 					editedDocument.content = editString
+					editedDocument.ID = newStash.ID
 					editedDocument.statusMessage = "Updated stash!"
 					return editedDocument, nil
 				}
