@@ -647,13 +647,11 @@ func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 	return func() tea.Msg {
 		if cc == nil {
-			return func() tea.Msg {
-				err := errors.New("can't stash; no charm client")
-				if debug {
-					log.Println("error stashing document:", err)
-				}
-				return stashFailMsg{err, md}
+			err := errors.New("can't stash; no charm client")
+			if debug {
+				log.Println("error stashing document:", err)
 			}
+			return stashFailMsg{err, md}
 		}
 
 		// Is the document missing a body? If so, it likely means it needs to
