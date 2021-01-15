@@ -43,12 +43,14 @@ github.com/calmh/randomart v1.1.0 h1:evl+iwc10LXtHdMZhzLxmsCQVmWnkXs44SbC6Uk0Il8
 github.com/calmh/randomart v1.1.0/go.mod h1:DQUbPVyP+7PAs21w/AnfMKG5NioxS3TbZ2F9MSK/jFM=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/charmbracelet/bubbles v0.6.0/go.mod h1:MxySU+YRGbAhZQJavZlW2os+fIeOW69MI3iXqA+2/WA=
-github.com/charmbracelet/bubbles v0.7.6-0.20201212003737-11f56f9b6b3f h1:6g/MQxdygWh8Ga0c5uR1Z8uz5wa3uaQjW0Hive/XBWw=
-github.com/charmbracelet/bubbles v0.7.6-0.20201212003737-11f56f9b6b3f/go.mod h1:0D4XRYK0tjo8JMvflz1obpVcOikNZSG46SFauoZj22s=
+github.com/charmbracelet/bubbles v0.7.6 h1:SCAp4ZEUf2tBNEsufo+Xxxu2dvbFhYSDPrX45toQZrM=
+github.com/charmbracelet/bubbles v0.7.6/go.mod h1:0D4XRYK0tjo8JMvflz1obpVcOikNZSG46SFauoZj22s=
 github.com/charmbracelet/bubbletea v0.10.3/go.mod h1:fB1bVmlaXBYYv4G0jtuGSP/m8V2sMM97pq7QqQnubWI=
 github.com/charmbracelet/bubbletea v0.10.5/go.mod h1:Nay5oWkkSZvc6E/be+W3nDFXAsVytNUNKV9jbXcuae0=
 github.com/charmbracelet/bubbletea v0.12.2 h1:y9Yo2Pv8tcm3mAJsWONGsmHhzrbNxJVxpVtemikxE9A=
 github.com/charmbracelet/bubbletea v0.12.2/go.mod h1:3gZkYELUOiEUOp0bTInkxguucy/xRbGSOcbMs1geLxg=
+github.com/charmbracelet/bubbletea v0.12.4 h1:2cfryCnDOe7SvQF/Dj99irXKpFlfoPgQjEDdvP1pLpk=
+github.com/charmbracelet/bubbletea v0.12.4/go.mod h1:tp9tr9Dadh0PLhgiwchE5zZJXm5543JYjHG9oY+5qSg=
 github.com/charmbracelet/charm v0.8.2 h1:sYJhP7YopJUvjWE8VKlNrcAHAaRZsEgKn8z2FoIhHOI=
 github.com/charmbracelet/charm v0.8.2/go.mod h1:xi3evUxj8hw+dMApaXRczb2SiEzrn8a3NYobj0off+c=
 github.com/charmbracelet/glamour v0.2.1-0.20200829234023-6c0e29c4dae5 h1:XgXVfMdJTNTq/ajMvwiB1OW3Tg/TXHtM3tYr/vYF76w=
@@ -173,6 +175,8 @@ github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Ky
 github.com/mattn/go-runewidth v0.0.7/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
 github.com/mattn/go-runewidth v0.0.9 h1:Lm995f3rfxdpd6TSmuVCHVb/QhupuXlYr8sCI/QdE+0=
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
+github.com/mattn/go-runewidth v0.0.10 h1:CoZ3S2P7pvtP45xOtBw+/mDL2z0RKI576gSkzRRpdGg=
+github.com/mattn/go-runewidth v0.0.10/go.mod h1:RAqKPSqVFrSLVXbA8x7dzmKdmGzieGRCM46jaSJTDAk=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/meowgorithm/babyenv v1.2.1/go.mod h1:lwNX+J6AGBFqNrMZ2PTLkM6SO+W4X8DOg9zBDO4j3Ig=
 github.com/meowgorithm/babyenv v1.3.0 h1:klb7ugoZt0/Xlqkd5kLxM7eLZX8waiwxHZWW5nfEZ0Q=
@@ -202,8 +206,8 @@ github.com/muesli/go-app-paths v0.2.1/go.mod h1:SxS3Umca63pcFcLtbjVb+J0oD7cl4ixQ
 github.com/muesli/reflow v0.1.0/go.mod h1:I9bWAt7QTg/que/qmUCJBGlj7wEq8OAFBjPNjc6xK4I=
 github.com/muesli/reflow v0.2.0 h1:2o0UBJPHHH4fa2GCXU4Rg4DwOtWPMekCeyc5EWbAQp0=
 github.com/muesli/reflow v0.2.0/go.mod h1:qT22vjVmM9MIUeLgsVYe/Ye7eZlbv9dZjL3dVhUqLX8=
-github.com/muesli/reflow v0.2.1-0.20201126184510-3bcb929042f2 h1:+cpkcmASpeBn4qXz2tU+x+njyKe91NoHXqrJdhoDnZo=
-github.com/muesli/reflow v0.2.1-0.20201126184510-3bcb929042f2/go.mod h1:qT22vjVmM9MIUeLgsVYe/Ye7eZlbv9dZjL3dVhUqLX8=
+github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68 h1:y1p/ycavWjGT9FnmSjdbWUlLGvcxrY0Rw3ATltrxOhk=
+github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68/go.mod h1:Xk+z4oIWdQqJzsxyjgl3P22oYZnHdZ8FFTHAQQt5BMQ=
 github.com/muesli/sasquatch v0.0.0-20200811221207-66979d92330a h1:Hw/15RYEOUD6T9UCRkUmNBa33kJkH33Fui6hE4sRLKU=
 github.com/muesli/sasquatch v0.0.0-20200811221207-66979d92330a/go.mod h1:+XG0ne5zXWBTSbbe7Z3/RWxaT8PZY6zaZ1dX6KjprYY=
 github.com/muesli/termenv v0.7.0/go.mod h1:SohX91w6swWA4AYU+QmPx+aSgXhWO0juiyID9UZmbpA=
@@ -235,6 +239,9 @@ github.com/prometheus/common v0.4.0/go.mod h1:TNfzLD0ON7rHzMJeJkieUDPYmFC7Snx/y8
 github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d/go.mod h1:c3At6R/oaqEKCNdg8wHV1ftS6bRYblBhIjjI8uT2IGk=
 github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084/go.mod h1:TjEm7ze935MbeOT/UhFTIMYKhuLP4wbCsTZCD3I8kEA=
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
+github.com/rivo/uniseg v0.1.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
+github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
+github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
@@ -303,6 +310,8 @@ golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0/go.mod h1:LzIPMQfyMNhhGPh
 golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 h1:pLI5jrR7OSLijeIDcmRxNmw2api+jEfxLoykJVice/E=
 golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
+golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad h1:DN0cp81fZ3njFcrLCytUHRSUkqBjfTo4Tx9RJTWs0EY=
+golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad/go.mod h1:jdWPYTVW3xRLrWPugEBEK3UY2ZEsg3UU495nc5E+M+I=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190306152737-a1d7652674e8/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190510132918-efd6b22b2522/go.mod h1:ZjyILWgesfNpC6sMxTJOJm9Kp84zZh5NQWvqDGG3Qr8=
@@ -359,6 +368,7 @@ golang.org/x/sys v0.0.0-20190502145724-3ef323f4f1fd/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20190507160741-ecd444e8653b/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190606165138-5da285871e9c/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200116001909-b77594299b42/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
@@ -370,6 +380,13 @@ golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201020230747-6e5568b54d1a h1:e3IU37lwO4aq3uoRKINC7JikojFmE5gO7xhfxs8VC34=
 golang.org/x/sys v0.0.0-20201020230747-6e5568b54d1a/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78 h1:nVuTkr9L6Bq62qpUqKo/RnZCFfzDBL0bYo6w9OJUqZY=
+golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/term v0.0.0-20201117132131-f5c789dd3221 h1:/ZHdbVpdR/jk3g30/d4yUL0JU9kksj8+F/bnQUVLGDM=
+golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
+golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf h1:MZ2shdL+ZM/XzY3ZGOnh4Nlpnxz5GSOhOmtHo3iPU6M=
+golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2 h1:tW2bmiBqwgJj/UpqtC8EpXEZVYOwU0yG4iWbprSVAcs=
