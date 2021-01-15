@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -493,12 +494,31 @@ func errorView(err error, fatal bool) string {
 
 func findLocalFiles(m model) tea.Cmd {
 	return func() tea.Msg {
-		cwd, err := os.Getwd()
+		var (
+			cwd = m.common.cfg.WorkingDirectory
+			err error
+		)
+
+		if cwd == "" {
+			cwd, err = os.Getwd()
+		} else {
+			var info os.FileInfo
+			info, err = os.Stat(cwd)
+			if err == nil && info.IsDir() {
+				cwd, err = filepath.Abs(cwd)
+			}
+		}
+
+		// Note that this is one error check for both cases above
 		if err != nil {
 			if debug {
 				log.Println("error finding local files:", err)
 			}
 			return errMsg{err}
+		}
+
+		if debug {
+			log.Println("local directory is:", cwd)
 		}
 
 		var ignore []string
