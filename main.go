@@ -39,7 +39,7 @@ var (
 	mouse        bool
 
 	rootCmd = &cobra.Command{
-		Use:              "glow SOURCE",
+		Use:              "glow [SOURCE|DIR]",
 		Short:            "Render markdown on the CLI, with pizzazz!",
 		Long:             formatBlock(fmt.Sprintf("\nRender markdown on the CLI, %s!", common.Keyword("with pizzazz"))),
 		SilenceErrors:    false,
@@ -182,24 +182,38 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if len(args) == 0 {
-		return executeArg(cmd, "", os.Stdout)
-	}
+	switch len(args) {
 
-	for _, arg := range args {
-		if err := executeArg(cmd, arg, os.Stdout); err != nil {
-			return err
+	// TUI running on cwd
+	case 0:
+		return runTUI("", false)
+
+	// TUI with possible dir argument
+	case 1:
+		// Validate that the argument is a directory. If it's not treat it as
+		// an argument to the non-TUI version of Glow (via fallthrough).
+		info, err := os.Stat(args[0])
+		if err == nil && info.IsDir() {
+			p, err := filepath.Abs(args[0])
+			if err == nil {
+				return runTUI(p, false)
+			}
+		}
+		fallthrough
+
+	// CLI
+	default:
+		for _, arg := range args {
+			if err := executeArg(cmd, arg, os.Stdout); err != nil {
+				return err
+			}
 		}
 	}
+
 	return nil
 }
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
-	// Only run TUI if there are no arguments (excluding flags)
-	if arg == "" {
-		return runTUI(false)
-	}
-
 	// create an io.Reader from the markdown source in cli-args
 	src, err := sourceFromArg(arg)
 	if err != nil {
@@ -273,7 +287,7 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	return nil
 }
 
-func runTUI(stashedOnly bool) error {
+func runTUI(workingDirectory string, stashedOnly bool) error {
 	// Read environment to get debugging stuff
 	var cfg ui.Config
 	if err := babyenv.Parse(&cfg); err != nil {
@@ -289,6 +303,7 @@ func runTUI(stashedOnly bool) error {
 		defer f.Close()
 	}
 
+	cfg.WorkingDirectory = workingDirectory
 	cfg.DocumentTypes = ui.NewDocTypeSet()
 	cfg.ShowAllFiles = showAllFiles
 	cfg.GlamourMaxWidth = width

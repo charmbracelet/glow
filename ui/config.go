@@ -8,6 +8,9 @@ type Config struct {
 	GlamourMaxWidth uint
 	GlamourStyle    string
 
+	// Which directory should we start from?
+	WorkingDirectory string
+
 	// Which document types shall we show?
 	DocumentTypes DocTypeSet
 
