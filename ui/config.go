@@ -8,7 +8,7 @@ type Config struct {
 	GlamourMaxWidth uint
 	GlamourStyle    string
 
-	// Which document types shall we show? We work though this with bitmasking.
+	// Which document types shall we show?
 	DocumentTypes DocTypeSet
 
 	// For debugging the UI
