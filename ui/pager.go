@@ -345,7 +345,7 @@ func (m pagerModel) View() string {
 	}
 
 	if m.showHelp {
-		fmt.Fprint(&b, m.helpView())
+		fmt.Fprint(&b, "\n"+m.helpView())
 	}
 
 	return b.String()
