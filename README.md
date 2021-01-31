@@ -89,16 +89,6 @@ Glow works with the Charm Cloud to allow you to store any markdown files in
 your own private collection. You can stash a local document from the Glow TUI by
 pressing `s`.
 
-You can also stash from the CLI:
-
-```bash
-glow stash README.md
-```
-
-Then, when you run `glow` without arguments will you can browse through your
-stashed documents. This is a great way to keep track of things that you need to
-reference often.
-
 Stashing is private, its contents will not be exposed publicly, and it's
 encrypted end-to-end. More on encryption below.
 
