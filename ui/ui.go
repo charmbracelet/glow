@@ -32,6 +32,10 @@ var (
 	config            Config
 	glowLogoTextColor = lib.Color("#ECFD65")
 
+	markdownExtensions = []string{
+		"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown",
+	}
+
 	// True if we're logging to a file, in which case we'll log more stuff.
 	debug = false
 
@@ -526,7 +530,7 @@ func findLocalFiles(m model) tea.Cmd {
 			ignore = ignorePatterns(m)
 		}
 
-		ch, err := gitcha.FindFilesExcept(cwd, []string{"*.md"}, ignore)
+		ch, err := gitcha.FindFilesExcept(cwd, markdownExtensions, ignore)
 		if err != nil {
 			if debug {
 				log.Println("error finding local files:", err)
