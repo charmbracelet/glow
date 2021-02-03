@@ -140,6 +140,7 @@ func validateOptions(cmd *cobra.Command) error {
 	width = viper.GetUint("width")
 	localOnly = viper.GetBool("local")
 	mouse = viper.GetBool("mouse")
+	pager = viper.GetBool("pager")
 
 	// validate the glamour style
 	style = viper.GetString("style")
@@ -270,13 +271,13 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	}
 
 	// display
-	if cmd.Flags().Changed("pager") {
-		pager := os.Getenv("PAGER")
-		if pager == "" {
-			pager = "less -r"
+	if pager || cmd.Flags().Changed("pager") {
+		pagerCmd := os.Getenv("PAGER")
+		if pagerCmd == "" {
+			pagerCmd = "less -r"
 		}
 
-		pa := strings.Split(pager, " ")
+		pa := strings.Split(pagerCmd, " ")
 		c := exec.Command(pa[0], pa[1:]...)
 		c.Stdin = strings.NewReader(content)
 		c.Stdout = os.Stdout
