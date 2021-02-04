@@ -16,6 +16,10 @@ const defaultConfig = `# style name or JSON path (default "auto")
 style: "auto"
 # show local files only; no network (TUI-mode only)
 local: false
+# mouse support (TUI-mode only)
+mouse: false
+# use pager to display markdown
+pager: false
 # word-wrap at width
 width: 80`
 

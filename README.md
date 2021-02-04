@@ -176,6 +176,10 @@ Here's an example config:
 style: "light"
 # show local files only; no network (TUI-mode only)
 local: true
+# mouse support (TUI-mode only)
+mouse: true
+# use pager to display markdown
+pager: true
 # word-wrap at width
 width: 80
 ```
