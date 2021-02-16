@@ -55,6 +55,9 @@ eopkg install glow
 
 # Windows (with Scoop)
 scoop install glow
+
+# Android (with termux)
+pkg install glow
 ```
 
 Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
