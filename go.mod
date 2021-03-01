@@ -15,7 +15,7 @@ require (
 	github.com/meowgorithm/babyenv v1.3.0
 	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/muesli/gitcha v0.1.2-0.20200908172931-5aa4fdccf2f6
+	github.com/muesli/gitcha v0.2.0
 	github.com/muesli/go-app-paths v0.2.1
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68
 	github.com/muesli/termenv v0.7.4
