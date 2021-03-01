@@ -48,8 +48,8 @@ github.com/charmbracelet/bubbles v0.7.6/go.mod h1:0D4XRYK0tjo8JMvflz1obpVcOikNZS
 github.com/charmbracelet/bubbletea v0.10.3/go.mod h1:fB1bVmlaXBYYv4G0jtuGSP/m8V2sMM97pq7QqQnubWI=
 github.com/charmbracelet/bubbletea v0.10.5/go.mod h1:Nay5oWkkSZvc6E/be+W3nDFXAsVytNUNKV9jbXcuae0=
 github.com/charmbracelet/bubbletea v0.12.2/go.mod h1:3gZkYELUOiEUOp0bTInkxguucy/xRbGSOcbMs1geLxg=
-github.com/charmbracelet/bubbletea v0.12.4 h1:2cfryCnDOe7SvQF/Dj99irXKpFlfoPgQjEDdvP1pLpk=
-github.com/charmbracelet/bubbletea v0.12.4/go.mod h1:tp9tr9Dadh0PLhgiwchE5zZJXm5543JYjHG9oY+5qSg=
+github.com/charmbracelet/bubbletea v0.12.6-0.20210301230553-cd676fab5a41 h1:JmQR0xSwM87HIe63/qBu5KfyDiEOXSdMfVBF6EtBo/s=
+github.com/charmbracelet/bubbletea v0.12.6-0.20210301230553-cd676fab5a41/go.mod h1:tp9tr9Dadh0PLhgiwchE5zZJXm5543JYjHG9oY+5qSg=
 github.com/charmbracelet/charm v0.8.2 h1:sYJhP7YopJUvjWE8VKlNrcAHAaRZsEgKn8z2FoIhHOI=
 github.com/charmbracelet/charm v0.8.2/go.mod h1:xi3evUxj8hw+dMApaXRczb2SiEzrn8a3NYobj0off+c=
 github.com/charmbracelet/glamour v0.2.1-0.20200829234023-6c0e29c4dae5 h1:XgXVfMdJTNTq/ajMvwiB1OW3Tg/TXHtM3tYr/vYF76w=
