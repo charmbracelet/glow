@@ -64,6 +64,14 @@ const (
 	stashStateShowingError
 )
 
+func (s stashViewState) String() string {
+	return map[stashViewState]string{
+		stashStateReady:           "ready",
+		stashStateLoadingDocument: "loading document",
+		stashStateShowingError:    "showing error",
+	}[s]
+}
+
 // The types of documents we are currently showing to the user.
 type sectionKey int
 
@@ -73,6 +81,15 @@ const (
 	newsSection
 	filterSection
 )
+
+func (s sectionKey) String() string {
+	return map[sectionKey]string{
+		localSection:   "local",
+		stashedSection: "stashed",
+		newsSection:    "news",
+		filterSection:  "filtered",
+	}[s]
+}
 
 // section contains definitions and state information for displaying a tab and
 // its contents in the file listing view.
@@ -116,6 +133,14 @@ const (
 	filterApplied                    // a filter is applied and user is not editing filter
 )
 
+func (f filterState) String() string {
+	return map[filterState]string{
+		unfiltered:    "unfiltered",
+		filtering:     "filtering",
+		filterApplied: "filter applied",
+	}[f]
+}
+
 // selectionState is the state of the currently selected document.
 type selectionState int
 
@@ -124,6 +149,14 @@ const (
 	selectionSettingNote
 	selectionPromptingDelete
 )
+
+func (s selectionState) String() string {
+	return map[selectionState]string{
+		selectionIdle:            "idle",
+		selectionSettingNote:     "setting note",
+		selectionPromptingDelete: "prompting for deletion",
+	}[s]
+}
 
 // statusMessageType adds some context to the status message being sent.
 type statusMessageType int
@@ -134,6 +167,14 @@ const (
 	subtleStatusMessage
 	errorStatusMessage
 )
+
+func (s statusMessageType) String() string {
+	return map[statusMessageType]string{
+		normalStatusMessage: "normal",
+		subtleStatusMessage: "subtle",
+		errorStatusMessage:  "error",
+	}[s]
+}
 
 // statusMessage is an ephemeral note displayed in the UI.
 type statusMessage struct {
