@@ -1224,10 +1224,19 @@ func (m stashModel) view() string {
 			pagination = m.paginator().View()
 
 			// If the dot pagination is wider than the width of the window
-			// switch to the arabic paginator.
+			// use the arabic paginator.
 			if ansi.PrintableRuneWidth(pagination) > m.common.width-stashViewHorizontalPadding {
-				m.paginator().Type = paginator.Arabic
-				pagination = lib.Subtle(m.paginator().View())
+				// Copy the paginator since m.paginator() returns a pointer to
+				// the active paginator and we don't want to mutate it. In
+				// normal cases, where the paginator is not a pointer, we could
+				// safely change the model parameters for rendering here as the
+				// current model is discarded after reuturning from a View().
+				// One could argue, in fact, that using pointers in
+				// a functional framework is an antipattern and our use of
+				// pointers in our model should be refactored away.
+				var p paginator.Model = *(m.paginator())
+				p.Type = paginator.Arabic
+				pagination = lib.Subtle(p.View())
 			}
 
 			// We could also look at m.stashFullyLoaded and add an indicator
