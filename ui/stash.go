@@ -313,14 +313,21 @@ func (m *stashModel) resetFiltering() {
 	m.bakeConvertedDocs()
 
 	sort.Stable(markdownsByLocalFirst(m.markdowns))
-	m.updatePagination()
 
+	// If the filtered section is present (it's always at the end) slice it out
+	// of the sections slice to remove it from the UI.
 	if m.sections[len(m.sections)-1].key == filterSection {
 		m.sections = m.sections[:len(m.sections)-1]
 	}
+
+	// If the current section is out of bounds (it would be if we cut down the
+	// slice above) then return to the first section.
 	if m.sectionIndex > len(m.sections)-1 {
 		m.sectionIndex = 0
 	}
+
+	// Update pagination after we've switched sections.
+	m.updatePagination()
 }
 
 // Is a filter currently being applied?
