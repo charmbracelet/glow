@@ -254,6 +254,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Send q/esc through to stash
 			switch m.state {
 			case stateShowStash:
+				// pass through all keys if we're editing the filter
+				if m.stash.filterState == filtering {
+					m.stash, cmd = m.stash.update(msg)
+					return m, cmd
+				}
 
 				// Q quits if we're filtering, but we still send esc though.
 				if m.stash.filterApplied() {
@@ -267,7 +272,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Send q/esc through in these cases
 				switch m.stash.viewState {
 				case stashStateReady:
-
 					// Q also quits glow when displaying only newsitems. Esc
 					// still passes through.
 					if msg.String() == "q" {
