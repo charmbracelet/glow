@@ -248,40 +248,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "esc":
+		case "esc":
+			if m.state == stateShowDocument {
+				batch := m.unloadDocument()
+				return m, tea.Batch(batch...)
+			}
+
+		case "q":
 			var cmd tea.Cmd
 
-			// Send q/esc through to stash
 			switch m.state {
 			case stateShowStash:
 				// pass through all keys if we're editing the filter
-				if m.stash.filterState == filtering {
-					m.stash, cmd = m.stash.update(msg)
-					return m, cmd
-				}
-
-				// Q quits if we're filtering, but we still send esc though.
-				if m.stash.filterApplied() {
-					if msg.String() == "q" {
-						return m, tea.Quit
-					}
-					m.stash, cmd = m.stash.update(msg)
-					return m, cmd
-				}
-
-				// Send q/esc through in these cases
-				switch m.stash.viewState {
-				case stashStateReady:
-					// Q also quits glow when displaying only newsitems. Esc
-					// still passes through.
-					if msg.String() == "q" {
-						return m, tea.Quit
-					}
-
-					m.stash, cmd = m.stash.update(msg)
-					return m, cmd
-
-				case stashStateShowingError:
+				if m.stash.filterState == filtering || m.stash.selectionState == selectionSettingNote {
 					m.stash, cmd = m.stash.update(msg)
 					return m, cmd
 				}
@@ -296,18 +275,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.pager = newPagerModel
 					batch = append(batch, cmd)
 					return m, tea.Batch(batch...)
-
-				// Otherwise let the user exit the view or application as
-				// normal.
-				default:
-					switch msg.String() {
-					case "q":
-						return m, tea.Quit
-					case "esc":
-						var batch []tea.Cmd
-						batch = m.unloadDocument()
-						return m, tea.Batch(batch...)
-					}
 				}
 			}
 
