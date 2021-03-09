@@ -20,9 +20,12 @@ jobs:
           go-version: ~1.16
       -
         name: Set up Snapcraft
+        env:
+          SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
         run: |
           sudo apt-get update
           sudo apt-get -yq --no-install-suggests --no-install-recommends install snapcraft
+          snapcraft login --with <(echo "$SNAPCRAFT_LOGIN")
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
