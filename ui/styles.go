@@ -42,6 +42,10 @@ var (
 	dullYellowFg = newFgStyle(lib.NewColorPair("#9BA92F", "#6BCB94")) // renders light green on light backgrounds
 	redFg        = newFgStyle(lib.Red)
 	faintRedFg   = newFgStyle(lib.FaintRed)
+
+	// Ultimately, we should transition to named styles
+	tabColor         = newFgStyle(lib.NewColorPair("#626262", "#909090"))
+	selectedTabColor = newFgStyle(lib.NewColorPair("#979797", "#332F33"))
 )
 
 // Returns a termenv style with foreground and background options.

@@ -1289,9 +1289,9 @@ func (m stashModel) headerView() string {
 		}
 
 		if m.sectionIndex == i && len(m.sections) > 1 {
-			s = brightGrayFg(s)
+			s = selectedTabColor(s)
 		} else {
-			s = grayFg(s)
+			s = tabColor(s)
 		}
 		sections = append(sections, s)
 	}
