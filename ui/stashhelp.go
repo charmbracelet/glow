@@ -16,7 +16,7 @@ type helpEntry struct{ key, val string }
 type helpColumn []helpEntry
 
 // newHelpColumn creates a help column from pairs of string arguments
-// represeting keys and values. If the arguements are not even (and therein
+// represeting keys and values. If the arguments are not even (and therein
 // not every key has a matching value) the function will panic.
 func newHelpColumn(pairs ...string) (h helpColumn) {
 	if len(pairs)%2 != 0 {
