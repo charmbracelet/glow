@@ -1236,13 +1236,12 @@ func (m stashModel) headerView() string {
 	if m.filterState == filtering {
 		if localCount+stashedCount+newsCount == 0 {
 			return grayFg("Nothing found.")
-		} else {
-			if localCount > 0 {
-				sections = append(sections, fmt.Sprintf("%d local", localCount))
-			}
-			if stashedCount > 0 {
-				sections = append(sections, fmt.Sprintf("%d stashed", stashedCount))
-			}
+		}
+		if localCount > 0 {
+			sections = append(sections, fmt.Sprintf("%d local", localCount))
+		}
+		if stashedCount > 0 {
+			sections = append(sections, fmt.Sprintf("%d stashed", stashedCount))
 		}
 
 		for i := range sections {
