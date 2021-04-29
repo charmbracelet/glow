@@ -16,7 +16,7 @@ import (
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm/ui/common"
@@ -153,7 +153,7 @@ func validateOptions(cmd *cobra.Command) error {
 		}
 	}
 
-	isTerminal := terminal.IsTerminal(int(os.Stdout.Fd()))
+	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
 	// We want to use a special no-TTY style, when stdout is not a terminal
 	// and there was no specific style passed by arg
 	if !isTerminal && !cmd.Flags().Changed("style") {
@@ -162,7 +162,7 @@ func validateOptions(cmd *cobra.Command) error {
 
 	// Detect terminal width
 	if isTerminal && width == 0 && !cmd.Flags().Changed("width") {
-		w, _, err := terminal.GetSize(int(os.Stdout.Fd()))
+		w, _, err := term.GetSize(int(os.Stdout.Fd()))
 		if err == nil {
 			width = uint(w)
 		}
