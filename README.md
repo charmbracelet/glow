@@ -7,7 +7,7 @@ Render markdown on the CLI, with _pizzazz_!
     <a href="https://github.com/charmbracelet/glow/releases"><img src="https://img.shields.io/github/release/charmbracelet/glow.svg" alt="Latest Release"></a>
     <a href="https://pkg.go.dev/github.com/charmbracelet/glow?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="GoDoc"></a>
     <a href="https://github.com/charmbracelet/glow/actions"><img src="https://github.com/charmbracelet/glow/workflows/build/badge.svg" alt="Build Status"></a>
-    <a href="http://goreportcard.com/report/github.com/charmbracelet/glow"><img src="http://goreportcard.com/badge/charmbracelet/glow" alt="Go ReportCard"></a>
+    <a href="https://goreportcard.com/report/github.com/charmbracelet/glow"><img src="https://goreportcard.com/badge/charmbracelet/glow" alt="Go ReportCard"></a>
 </p>
 
 <p align="center">
