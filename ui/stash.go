@@ -13,8 +13,8 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/charm"
 	lib "github.com/charmbracelet/charm/ui/common"
+	"github.com/charmbracelet/glow/client"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
 	te "github.com/muesli/termenv"
@@ -1374,7 +1374,7 @@ func (m stashModel) populatedView() string {
 // COMMANDS
 
 // loadRemoteMarkdown is a command for loading markdown from the server.
-func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
+func loadRemoteMarkdown(cc *client.Client, md *markdown) tea.Cmd {
 	return func() tea.Msg {
 		newMD, err := fetchMarkdown(cc, md.ID, md.docType)
 		if err != nil {
@@ -1413,7 +1413,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 	}
 }
 
-func deleteStashedItem(cc *charm.Client, id int) tea.Cmd {
+func deleteStashedItem(cc *client.Client, id int) tea.Cmd {
 	return func() tea.Msg {
 		err := cc.DeleteMarkdown(id)
 		if err != nil {
@@ -1454,8 +1454,8 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 // ETC
 
 // fetchMarkdown performs the actual I/O for loading markdown from the sever.
-func fetchMarkdown(cc *charm.Client, id int, t DocType) (*markdown, error) {
-	var md *charm.Markdown
+func fetchMarkdown(cc *client.Client, id int, t DocType) (*markdown, error) {
+	var md *client.Markdown
 	var err error
 
 	switch t {

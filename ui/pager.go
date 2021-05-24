@@ -11,9 +11,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/charm"
 	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glow/client"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
@@ -49,7 +49,7 @@ var (
 )
 
 type contentRenderedMsg string
-type noteSavedMsg *charm.Markdown
+type noteSavedMsg *client.Markdown
 
 type pagerState int
 

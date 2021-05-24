@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strings"
 
-	"github.com/charmbracelet/charm"
+	charm "github.com/charmbracelet/charm/proto"
 	"github.com/charmbracelet/charm/ui/common"
+	"github.com/charmbracelet/glow/client"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 )
@@ -60,18 +60,8 @@ var (
 	}
 )
 
-func getCharmConfig() *charm.Config {
-	cfg, err := charm.ConfigFromEnv()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return cfg
-}
-
-func initCharmClient() *charm.Client {
-	cfg := getCharmConfig()
-	cc, err := charm.NewClient(cfg)
+func initCharmClient() *client.Client {
+	cc, err := client.NewClient()
 	if err == charm.ErrMissingSSHAuth {
 		fmt.Println(formatBlock("We had some trouble authenticating via SSH. If this continues to happen the Charm tool may be able to help you. More info at https://github.com/charmbracelet/charm."))
 		os.Exit(1)

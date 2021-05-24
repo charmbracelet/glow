@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/charmbracelet/charm"
+	"github.com/charmbracelet/glow/client"
 	"github.com/dustin/go-humanize"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/text/runes"
@@ -46,7 +46,7 @@ type markdown struct {
 	// field is ephemeral, and should only be referenced during filtering.
 	filterValue string
 
-	charm.Markdown
+	client.Markdown
 }
 
 func (m *markdown) generateIDs() {
@@ -155,7 +155,7 @@ func normalize(in string) (string, error) {
 
 // wrapMarkdowns wraps a *charm.Markdown with a *markdown in order to add some
 // extra metadata.
-func wrapMarkdowns(t DocType, md []*charm.Markdown) (m []*markdown) {
+func wrapMarkdowns(t DocType, md []*client.Markdown) (m []*markdown) {
 	for _, v := range md {
 		m = append(m, &markdown{
 			docType:  t,

@@ -12,10 +12,11 @@ import (
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/charm"
-	"github.com/charmbracelet/charm/keygen"
+	charm "github.com/charmbracelet/charm/proto"
 	"github.com/charmbracelet/charm/ui/common"
 	lib "github.com/charmbracelet/charm/ui/common"
+	"github.com/charmbracelet/charm/ui/keygen"
+	"github.com/charmbracelet/glow/client"
 	"github.com/charmbracelet/glow/utils"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
@@ -60,19 +61,17 @@ type errMsg struct{ err error }
 
 func (e errMsg) Error() string { return e.err.Error() }
 
-type newCharmClientMsg *charm.Client
+type newCharmClientMsg *client.Client
 type sshAuthErrMsg struct{}
-type keygenFailedMsg struct{ err error }
-type keygenSuccessMsg struct{}
 type initLocalFileSearchMsg struct {
 	cwd string
 	ch  chan gitcha.SearchResult
 }
 type foundLocalFileMsg gitcha.SearchResult
 type localFileSearchFinished struct{}
-type gotStashMsg []*charm.Markdown
+type gotStashMsg []*client.Markdown
 type stashLoadErrMsg struct{ err error }
-type gotNewsMsg []*charm.Markdown
+type gotNewsMsg []*client.Markdown
 type statusMessageTimeoutMsg applicationContext
 type newsLoadErrMsg struct{ err error }
 type stashSuccessMsg markdown
@@ -132,7 +131,7 @@ const (
 // Common stuff we'll need to access in all models.
 type commonModel struct {
 	cfg        Config
-	cc         *charm.Client
+	cc         *client.Client
 	cwd        string
 	authStatus authStatus
 	width      int
@@ -306,7 +305,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sshAuthErrMsg:
 		if m.keygenState != keygenFinished { // if we haven't run the keygen yet, do that
 			m.keygenState = keygenRunning
-			cmds = append(cmds, generateSSHKeys)
+			cmds = append(cmds, keygen.GenerateKeys)
 		} else {
 			// The keygen ran but things still didn't work and we can't auth
 			m.common.authStatus = authFailed
@@ -319,7 +318,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.stash.loaded.Add(StashedDoc, NewsDoc)
 		}
 
-	case keygenFailedMsg:
+	case keygen.FailedMsg:
 		// Keygen failed. That sucks.
 		m.common.authStatus = authFailed
 		m.stash.err = errors.New("could not authenticate; could not generate SSH keys")
@@ -332,7 +331,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Even though it failed, news/stash loading is finished
 		m.stash.loaded.Add(StashedDoc, NewsDoc)
 
-	case keygenSuccessMsg:
+	case keygen.SuccessMsg:
 		// The keygen's done, so let's try initializing the charm client again
 		m.keygenState = keygenFinished
 		cmds = append(cmds, newCharmClient)
@@ -530,12 +529,7 @@ func findNextLocalFile(m model) tea.Cmd {
 }
 
 func newCharmClient() tea.Msg {
-	cfg, err := charm.ConfigFromEnv()
-	if err != nil {
-		return errMsg{err}
-	}
-
-	cc, err := charm.NewClient(cfg)
+	cc, err := client.NewClient()
 	if err == charm.ErrMissingSSHAuth {
 		if debug {
 			log.Println("missing SSH auth:", err)
@@ -601,24 +595,7 @@ func loadNews(m stashModel) tea.Cmd {
 	}
 }
 
-func generateSSHKeys() tea.Msg {
-	if debug {
-		log.Println("running keygen...")
-	}
-	_, err := keygen.NewSSHKeyPair(nil)
-	if err != nil {
-		if debug {
-			log.Println("keygen failed:", err)
-		}
-		return keygenFailedMsg{err}
-	}
-	if debug {
-		log.Println("keys generated succcessfully")
-	}
-	return keygenSuccessMsg{}
-}
-
-func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
+func saveDocumentNote(cc *client.Client, id int, note string) tea.Cmd {
 	if cc == nil {
 		return func() tea.Msg {
 			err := errors.New("can't set note; no charm client")
@@ -635,11 +612,11 @@ func saveDocumentNote(cc *charm.Client, id int, note string) tea.Cmd {
 			}
 			return errMsg{err}
 		}
-		return noteSavedMsg(&charm.Markdown{ID: id, Note: note})
+		return noteSavedMsg(&client.Markdown{ID: id, Note: note})
 	}
 }
 
-func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
+func stashDocument(cc *client.Client, md markdown) tea.Cmd {
 	return func() tea.Msg {
 		if cc == nil {
 			err := errors.New("can't stash; no charm client")
@@ -719,7 +696,7 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 	md := &markdown{
 		docType:   LocalDoc,
 		localPath: res.Path,
-		Markdown: charm.Markdown{
+		Markdown: client.Markdown{
 			Note:      stripAbsolutePath(res.Path, cwd),
 			CreatedAt: res.Info.ModTime(),
 		},
