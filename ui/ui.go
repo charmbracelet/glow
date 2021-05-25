@@ -595,7 +595,7 @@ func loadNews(m stashModel) tea.Cmd {
 	}
 }
 
-func saveDocumentNote(cc *client.Client, id int, note string) tea.Cmd {
+func saveDocumentNote(cc *client.Client, id string, note string) tea.Cmd {
 	if cc == nil {
 		return func() tea.Msg {
 			err := errors.New("can't set note; no charm client")

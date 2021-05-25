@@ -1,10 +1,16 @@
 package client
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/charmbracelet/charm/kv"
+	"github.com/dgraph-io/badger/v3"
+	"github.com/google/uuid"
 )
 
 type Client struct {
@@ -18,6 +24,8 @@ func NewClient() (*Client, error) {
 	}
 	return &Client{kv: kv}, nil
 }
+
+var stashPrefix = []byte("stash_")
 
 // ErrorPageOutOfBounds is an error for an invalid page number.
 var ErrorPageOutOfBounds = errors.New("page must be a value of 1 or greater")
@@ -36,11 +44,10 @@ func (m MarkdownsByCreatedAtDesc) Less(i, j int) bool { return m[i].CreatedAt.Af
 // EncryptKeyID is not blank, the content should be assumed to be encrypted.
 // Once decrypted, that field will be blanked.
 type Markdown struct {
-	ID           int       `json:"id"`
-	EncryptKeyID string    `json:"encrypt_key_id"`
-	Note         string    `json:"note"`
-	Body         string    `json:"body,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID        string    `json:"id"`
+	Note      string    `json:"note"`
+	Body      string    `json:"body,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // GetNews returns the Glow paginated news results.
@@ -57,7 +64,7 @@ func (cc *Client) GetNews(page int) ([]*Markdown, error) {
 }
 
 // GetNewsMarkdown returns the Markdown struct for the given news markdown ID.
-func (cc *Client) GetNewsMarkdown(markdownID int) (*Markdown, error) {
+func (cc *Client) GetNewsMarkdown(markdownID string) (*Markdown, error) {
 	var md Markdown
 	// err := cc.makeAPIRequest("GET", fmt.Sprintf("news/%d", markdownID), nil, &md)
 	// if err != nil {
@@ -71,102 +78,128 @@ func (cc *Client) GetStash(page int) ([]*Markdown, error) {
 	if page < 1 {
 		return nil, ErrorPageOutOfBounds
 	}
-
+	limit := 50
+	startOffset := (page * limit) - limit
+	endOffset := page * limit
 	var stash []*Markdown
-	// auth, err := cc.Auth()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// err = cc.makeAPIRequest("GET", fmt.Sprintf("%s/stash?page=%d", auth.CharmID, page), nil, &stash)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// for i, md := range stash {
-	// 	dm, err := cc.decryptMarkdown(md)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	stash[i] = dm
-	// }
-
-	return stash, nil
+	err := cc.kv.View(func(txn *badger.Txn) error {
+		opt := badger.DefaultIteratorOptions
+		opt.Prefix = stashPrefix
+		it := txn.NewIterator(opt)
+		defer it.Close()
+		for it.Seek(stashPrefix); it.ValidForPrefix(stashPrefix); it.Next() {
+			item := it.Item()
+			k := string(item.Key()[len(stashPrefix):])
+			err := item.Value(func(v []byte) error {
+				md := &Markdown{ID: k}
+				md.Note = string(v)
+				stash = append(stash, md)
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+			if len(stash) > endOffset {
+				break
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if startOffset >= len(stash) {
+		return []*Markdown{}, nil
+	}
+	if endOffset > len(stash) {
+		return stash[startOffset:], nil
+	}
+	return stash[startOffset:endOffset], nil
 }
 
 // GetStashMarkdown returns the Markdown struct for the given stash markdown ID.
-func (cc *Client) GetStashMarkdown(markdownID int) (*Markdown, error) {
+func (cc *Client) GetStashMarkdown(markdownID string) (*Markdown, error) {
 	var md Markdown
-	// auth, err := cc.Auth()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// err = cc.makeAPIRequest("GET", fmt.Sprintf("%s/stash/%d", auth.CharmID, markdownID), nil, &md)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// mdDec, err := cc.decryptMarkdown(&md)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return mdDec, nil
+	d, err := cc.kv.Get([]byte(markdownID))
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(d, &md)
+	if err != nil {
+		return nil, err
+	}
 	return &md, nil
 }
 
 // StashMarkdown encrypts and stashes a new markdown file with note.
 func (cc *Client) StashMarkdown(note string, body string) (*Markdown, error) {
-	// auth, err := cc.Auth()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// md := &Markdown{Note: note, Body: body}
-	// md, err = cc.encryptMarkdown(md)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// var mde Markdown
-	// err = cc.makeAPIRequest("POST", fmt.Sprintf("%s/stash", auth.CharmID), md, &mde)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// newMd, err := cc.decryptMarkdown(&mde)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return newMd, nil
-	var newMd *Markdown
-	return newMd, nil
+	gid := uuid.New().String()
+	md := &Markdown{Note: note, Body: body, ID: gid, CreatedAt: time.Now()}
+	err := cc.saveMarkdown(md)
+	if err != nil {
+		return nil, err
+	}
+	return md, nil
 }
 
 // DeleteMarkdown deletes the stash markdown for the given ID.
-func (cc *Client) DeleteMarkdown(markdownID int) error {
-	// auth, err := cc.Auth()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return cc.makeAPIRequest("DELETE", fmt.Sprintf("%s/stash/%d", auth.CharmID, markdownID), nil, nil)
-	return nil
+func (cc *Client) DeleteMarkdown(markdownID string) error {
+	txn, err := cc.kv.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	mid, sid := markdownKeys(markdownID)
+	err = txn.Delete(mid)
+	if err != nil {
+		return err
+	}
+	err = txn.Delete(sid)
+	if err != nil {
+		return err
+	}
+	return cc.kv.Commit(txn, func(err error) {
+		if err != nil {
+			log.Printf("Badger commit error: %s", err)
+		}
+	})
 }
 
 // SetMarkdownNote updates the note for a given stash markdown ID.
-func (cc *Client) SetMarkdownNote(markdownID int, note string) error {
-	// auth, err := cc.Auth()
-	// if err != nil {
-	// 	return err
-	// }
+func (cc *Client) SetMarkdownNote(markdownID string, note string) error {
+	md, err := cc.GetStashMarkdown(markdownID)
+	if err != nil {
+		return err
+	}
+	md.Note = note
+	return cc.saveMarkdown(md)
+}
 
-	// md, err := cc.GetStashMarkdown(markdownID)
-	// if err != nil {
-	// 	return err
-	// }
-	// md.Note = note
-	// md, err = cc.encryptMarkdown(md)
-	// if err != nil {
-	// 	return err
-	// }
+func (cc *Client) saveMarkdown(md *Markdown) error {
+	txn, err := cc.kv.NewTransaction(true)
+	if err != nil {
+		return err
+	}
+	var buf bytes.Buffer
+	err = json.NewEncoder(&buf).Encode(md)
+	if err != nil {
+		return err
+	}
+	mid, sid := markdownKeys(md.ID)
+	err = txn.Set(mid, buf.Bytes())
+	if err != nil {
+		return err
+	}
+	err = txn.Set(sid, []byte(md.Note))
+	if err != nil {
+		return err
+	}
+	return cc.kv.Commit(txn, func(err error) {
+		if err != nil {
+			log.Printf("Badger commit error: %s", err)
+		}
+	})
+}
 
-	// return cc.makeAPIRequest("PUT", fmt.Sprintf("%s/stash/%d", auth.CharmID, markdownID), md, nil)
-	return nil
+func markdownKeys(markdownID string) ([]byte, []byte) {
+	return []byte(markdownID), []byte(fmt.Sprintf("%s%s", stashPrefix, markdownID))
 }

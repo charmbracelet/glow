@@ -43,13 +43,13 @@ var (
 
 // MSG
 
-type deletedStashedItemMsg int
+type deletedStashedItemMsg string
 type filteredMarkdownMsg []*markdown
 type fetchedMarkdownMsg *markdown
 
 type markdownFetchFailedMsg struct {
 	err  error
-	id   int
+	id   string
 	note string
 }
 
@@ -1089,7 +1089,7 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 			// If the user is issuing a rename on a newly stashed item in a
 			// filtered listing, there's a small chance the user could try and
 			// set a note before the stash is complete.
-			if md.ID == 0 {
+			if md.ID == "" {
 				if debug {
 					log.Printf("user attempted to rename, but markdown ID is 0: %v", md)
 				}
@@ -1413,7 +1413,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 	}
 }
 
-func deleteStashedItem(cc *client.Client, id int) tea.Cmd {
+func deleteStashedItem(cc *client.Client, id string) tea.Cmd {
 	return func() tea.Msg {
 		err := cc.DeleteMarkdown(id)
 		if err != nil {
@@ -1454,7 +1454,7 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 // ETC
 
 // fetchMarkdown performs the actual I/O for loading markdown from the sever.
-func fetchMarkdown(cc *client.Client, id int, t DocType) (*markdown, error) {
+func fetchMarkdown(cc *client.Client, id string, t DocType) (*markdown, error) {
 	var md *client.Markdown
 	var err error
 

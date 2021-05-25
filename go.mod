@@ -7,14 +7,14 @@ replace github.com/charmbracelet/charm => ../charm
 require (
 	github.com/charmbracelet/bubbles v0.7.6
 	github.com/charmbracelet/bubbletea v0.13.2
-	github.com/charmbracelet/charm v0.8.6
+	github.com/charmbracelet/charm v0.0.0-00010101000000-000000000000
 	github.com/charmbracelet/glamour v0.2.1-0.20210402234443-abe9cda419ba
+	github.com/dgraph-io/badger/v3 v3.2011.1 // indirect
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.12
 	github.com/meowgorithm/babyenv v1.3.1
-	github.com/microcosm-cc/bluemonday v1.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/gitcha v0.2.0
 	github.com/muesli/go-app-paths v0.2.1
