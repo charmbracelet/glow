@@ -22,6 +22,10 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = kv.Sync()
+	if err != nil {
+		return nil, err
+	}
 	return &Client{kv: kv}, nil
 }
 
@@ -89,10 +93,12 @@ func (cc *Client) GetStash(page int) ([]*Markdown, error) {
 		defer it.Close()
 		for it.Seek(stashPrefix); it.ValidForPrefix(stashPrefix); it.Next() {
 			item := it.Item()
-			k := string(item.Key()[len(stashPrefix):])
 			err := item.Value(func(v []byte) error {
-				md := &Markdown{ID: k}
-				md.Note = string(v)
+				md := &Markdown{}
+				err := json.Unmarshal(v, md)
+				if err != nil {
+					return err
+				}
 				stash = append(stash, md)
 				return nil
 			})
@@ -175,21 +181,27 @@ func (cc *Client) SetMarkdownNote(markdownID string, note string) error {
 }
 
 func (cc *Client) saveMarkdown(md *Markdown) error {
+	mid, sid := markdownKeys(md.ID)
 	txn, err := cc.kv.NewTransaction(true)
 	if err != nil {
 		return err
 	}
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(md)
+	buf := bytes.NewBuffer(nil)
+	err = json.NewEncoder(buf).Encode(md)
 	if err != nil {
 		return err
 	}
-	mid, sid := markdownKeys(md.ID)
 	err = txn.Set(mid, buf.Bytes())
 	if err != nil {
 		return err
 	}
-	err = txn.Set(sid, []byte(md.Note))
+	buf = bytes.NewBuffer(nil)
+	smd := &Markdown{ID: md.ID, Note: md.Note, CreatedAt: md.CreatedAt}
+	err = json.NewEncoder(buf).Encode(smd)
+	if err != nil {
+		return err
+	}
+	err = txn.Set(sid, buf.Bytes())
 	if err != nil {
 		return err
 	}
