@@ -13,10 +13,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// Client provides the Glow interface to the Charm Cloud
 type Client struct {
 	kv *kv.KV
 }
 
+// NewClient creates a new Client with the default settings
 func NewClient() (*Client, error) {
 	kv, err := kv.OpenWithDefaults("charm.sh.glow", "./data")
 	if err != nil {
