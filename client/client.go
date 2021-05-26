@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/charmbracelet/charm/kv"
@@ -16,19 +17,6 @@ import (
 // Client provides the Glow interface to the Charm Cloud
 type Client struct {
 	kv *kv.KV
-}
-
-// NewClient creates a new Client with the default settings
-func NewClient() (*Client, error) {
-	kv, err := kv.OpenWithDefaults("charm.sh.glow", "./data")
-	if err != nil {
-		return nil, err
-	}
-	err = kv.Sync()
-	if err != nil {
-		return nil, err
-	}
-	return &Client{kv: kv}, nil
 }
 
 var stashPrefix = []byte("stash_")
@@ -54,6 +42,19 @@ type Markdown struct {
 	Note      string    `json:"note"`
 	Body      string    `json:"body,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// NewClient creates a new Client with the default settings
+func NewClient() (*Client, error) {
+	kv, err := kv.OpenWithDefaults("charm.sh.glow", "./data")
+	if err != nil {
+		return nil, err
+	}
+	err = kv.Sync()
+	if err != nil {
+		return nil, err
+	}
+	return &Client{kv: kv}, nil
 }
 
 // GetNews returns the Glow paginated news results.
@@ -87,7 +88,7 @@ func (cc *Client) GetStash(page int) ([]*Markdown, error) {
 	limit := 50
 	startOffset := (page * limit) - limit
 	endOffset := page * limit
-	var stash []*Markdown
+	var stash MarkdownsByCreatedAtDesc
 	err := cc.kv.View(func(txn *badger.Txn) error {
 		opt := badger.DefaultIteratorOptions
 		opt.Prefix = stashPrefix
@@ -116,6 +117,7 @@ func (cc *Client) GetStash(page int) ([]*Markdown, error) {
 	if err != nil {
 		return nil, err
 	}
+	sort.Sort(stash)
 	if startOffset >= len(stash) {
 		return []*Markdown{}, nil
 	}
