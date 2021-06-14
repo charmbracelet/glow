@@ -14,7 +14,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	charm "github.com/charmbracelet/charm/proto"
 	"github.com/charmbracelet/charm/ui/common"
-	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
 	"github.com/charmbracelet/glow/client"
 	"github.com/charmbracelet/glow/utils"
@@ -30,8 +29,7 @@ const (
 )
 
 var (
-	config            Config
-	glowLogoTextColor = lib.Color("#ECFD65")
+	config Config
 
 	markdownExtensions = []string{
 		"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown",
@@ -454,10 +452,7 @@ func errorView(err error, fatal bool) string {
 		exitMsg += "return"
 	}
 	s := fmt.Sprintf("%s\n\n%v\n\n%s",
-		te.String(" ERROR ").
-			Foreground(lib.Cream.Color()).
-			Background(lib.Red.Color()).
-			String(),
+		errorTitleStyle.Render("ERROR"),
 		err,
 		common.Subtle(exitMsg),
 	)

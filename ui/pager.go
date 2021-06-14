@@ -11,13 +11,12 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/client"
+	"github.com/charmbracelet/lipgloss"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
-	te "github.com/muesli/termenv"
 )
 
 const statusBarHeight = 1
@@ -25,27 +24,78 @@ const statusBarHeight = 1
 var (
 	pagerHelpHeight int
 
-	mintGreen = lib.NewColorPair("#89F0CB", "#89F0CB")
-	darkGreen = lib.NewColorPair("#1C8760", "#1C8760")
+	mintGreen = lipgloss.AdaptiveColor{Light: "#89F0CB", Dark: "#89F0CB"}
+	darkGreen = lipgloss.AdaptiveColor{Light: "#1C8760", Dark: "#1C8760"}
 
-	noteHeading = te.String(" Set Memo ").
-			Foreground(lib.Cream.Color()).
-			Background(lib.Green.Color()).
-			String()
+	noteHeading = lipgloss.NewStyle().
+			Foreground(cream).
+			Background(green).
+			Padding(0, 1).
+			Render("Set Memo")
 
-	statusBarNoteFg = lib.NewColorPair("#7D7D7D", "#656565")
-	statusBarBg     = lib.NewColorPair("#242424", "#E6E6E6")
+	statusBarNoteFg = lipgloss.AdaptiveColor{Light: "#656565", Dark: "#7D7D7D"}
+	statusBarBg     = lipgloss.AdaptiveColor{Light: "#E6E6E6", Dark: "#242424"}
 
-	// Styling funcs.
-	statusBarScrollPosStyle        = newStyle(lib.NewColorPair("#5A5A5A", "#949494"), statusBarBg, false)
-	statusBarNoteStyle             = newStyle(statusBarNoteFg, statusBarBg, false)
-	statusBarHelpStyle             = newStyle(statusBarNoteFg, lib.NewColorPair("#323232", "#DCDCDC"), false)
-	statusBarStashDotStyle         = newStyle(lib.Green, statusBarBg, false)
-	statusBarMessageStyle          = newStyle(mintGreen, darkGreen, false)
-	statusBarMessageStashIconStyle = newStyle(mintGreen, darkGreen, false)
-	statusBarMessageScrollPosStyle = newStyle(mintGreen, darkGreen, false)
-	statusBarMessageHelpStyle      = newStyle(lib.NewColorPair("#B6FFE4", "#B6FFE4"), lib.Green, false)
-	helpViewStyle                  = newStyle(statusBarNoteFg, lib.NewColorPair("#1B1B1B", "#f2f2f2"), false)
+	statusBarScrollPosStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.AdaptiveColor{Light: "#949494", Dark: "#5A5A5A"}).
+				Background(statusBarBg).
+				Render
+
+	statusBarNoteStyle = lipgloss.NewStyle().
+				Foreground(statusBarNoteFg).
+				Background(statusBarBg).
+				Render
+
+	statusBarHelpStyle = lipgloss.NewStyle().
+				Foreground(statusBarNoteFg).
+				Background(lipgloss.AdaptiveColor{Light: "#DCDCDC", Dark: "#323232"}).
+				Render
+
+	statusBarStashDotStyle = lipgloss.NewStyle().
+				Foreground(green).
+				Background(statusBarBg).
+				Render
+
+	statusBarMessageStyle = lipgloss.NewStyle().
+				Foreground(mintGreen).
+				Background(darkGreen).
+				Render
+
+	statusBarMessageStashIconStyle = lipgloss.NewStyle().
+					Foreground(mintGreen).
+					Background(darkGreen).
+					Render
+
+	statusBarMessageScrollPosStyle = lipgloss.NewStyle().
+					Foreground(mintGreen).
+					Background(darkGreen).
+					Render
+
+	statusBarMessageHelpStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("#B6FFE4")).
+					Background(green).
+					Render
+
+	helpViewStyle = lipgloss.NewStyle().
+			Foreground(statusBarNoteFg).
+			Background(lipgloss.AdaptiveColor{Light: "#f2f2f2", Dark: "#1B1B1B"}).
+			Render
+
+	spinnerStyle = lipgloss.NewStyle().
+			Foreground(statusBarNoteFg).
+			Background(statusBarBg)
+
+	pagerNoteInputPromptStyle = lipgloss.NewStyle().
+					Foreground(darkGray).
+					Background(yellowGreen).
+					Padding(0, 1)
+
+	pagerNoteInputStyle = lipgloss.NewStyle().
+				Foreground(darkGray).
+				Background(yellowGreen)
+
+	pagerNoteInputCursorStyle = lipgloss.NewStyle().
+					Foreground(fuschia)
 )
 
 type contentRenderedMsg string
@@ -89,20 +139,16 @@ func newPagerModel(common *commonModel) pagerModel {
 
 	// Text input for notes/memos
 	ti := textinput.NewModel()
-	ti.Prompt = te.String(" > ").
-		Foreground(lib.Color(darkGray)).
-		Background(lib.YellowGreen.Color()).
-		String()
-	ti.TextColor = darkGray
-	ti.BackgroundColor = lib.YellowGreen.String()
-	ti.CursorColor = lib.Fuschia.String()
+	ti.Prompt = " > "
+	ti.PromptStyle = pagerNoteInputPromptStyle
+	ti.TextStyle = pagerNoteInputStyle
+	ti.CursorStyle = pagerNoteInputCursorStyle
 	ti.CharLimit = noteCharacterLimit
 	ti.Focus()
 
 	// Text input for search
 	sp := spinner.NewModel()
-	sp.ForegroundColor = statusBarNoteFg.String()
-	sp.BackgroundColor = statusBarBg.String()
+	sp.Style = spinnerStyle
 	sp.HideFor = time.Millisecond * 50
 	sp.MinimumLifetime = time.Millisecond * 180
 

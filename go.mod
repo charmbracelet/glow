@@ -5,13 +5,14 @@ go 1.16
 replace github.com/charmbracelet/charm => ../charm
 
 require (
-	github.com/charmbracelet/bubbles v0.7.6
-	github.com/charmbracelet/bubbletea v0.13.2
+	github.com/charmbracelet/bubbles v0.8.0
+	github.com/charmbracelet/bubbletea v0.14.0
 	github.com/charmbracelet/charm v0.0.0-00010101000000-000000000000
 	github.com/charmbracelet/glamour v0.2.1-0.20210402234443-abe9cda419ba
-	github.com/dgraph-io/badger/v3 v3.2011.1 // indirect
+	github.com/charmbracelet/lipgloss v0.2.1
+	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
-	github.com/google/uuid v1.1.2 // indirect
+	github.com/google/uuid v1.1.2
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.12
 	github.com/meowgorithm/babyenv v1.3.1
@@ -26,6 +27,6 @@ require (
 	github.com/spf13/viper v1.7.1
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/sys v0.0.0-20210503173754-0981d6026fa6
-	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
+	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed
 	golang.org/x/text v0.3.3
 )

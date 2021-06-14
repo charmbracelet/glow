@@ -12,17 +12,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glow/ui"
+	"github.com/charmbracelet/glow/utils"
 	"github.com/meowgorithm/babyenv"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
-
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/charm/ui/common"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glow/ui"
-	"github.com/charmbracelet/glow/utils"
 )
 
 var (
@@ -41,7 +39,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:              "glow [SOURCE|DIR]",
 		Short:            "Render markdown on the CLI, with pizzazz!",
-		Long:             formatBlock(fmt.Sprintf("\nRender markdown on the CLI, %s!", common.Keyword("with pizzazz"))),
+		Long:             paragraph(fmt.Sprintf("\nRender markdown on the CLI, %s!", keyword("with pizzazz"))),
 		SilenceErrors:    false,
 		SilenceUsage:     false,
 		TraverseChildren: true,

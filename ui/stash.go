@@ -13,11 +13,10 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glow/client"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
-	te "github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
 )
 
@@ -35,10 +34,23 @@ var (
 )
 
 var (
-	stashTextInputPromptStyle styleFunc = newFgStyle(lib.YellowGreen)
-	dividerDot                string    = darkGrayFg(" • ")
-	dividerBar                string    = darkGrayFg(" │ ")
-	offlineHeaderNote         string    = darkGrayFg("(Offline)")
+	dividerDot        = darkGrayFg(" • ")
+	dividerBar        = darkGrayFg(" │ ")
+	offlineHeaderNote = darkGrayFg("(Offline)")
+
+	logoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#ECFD65")).
+			Background(fuschia).
+			Bold(true)
+
+	stashSpinnerStyle = lipgloss.NewStyle().
+				Foreground(gray)
+	stashInputPromptStyle = lipgloss.NewStyle().
+				Foreground(yellowGreen).
+				MarginRight(1)
+	stashInputCursorStyle = lipgloss.NewStyle().
+				Foreground(fuschia).
+				MarginRight(1)
 )
 
 // MSG
@@ -499,20 +511,22 @@ func (m *stashModel) moveCursorDown() {
 func newStashModel(common *commonModel) stashModel {
 	sp := spinner.NewModel()
 	sp.Spinner = spinner.Line
-	sp.ForegroundColor = lib.SpinnerColor.String()
+	sp.Style = stashSpinnerStyle
 	sp.HideFor = time.Millisecond * 100
 	sp.MinimumLifetime = time.Millisecond * 180
 	sp.Start()
 
 	ni := textinput.NewModel()
-	ni.Prompt = stashTextInputPromptStyle("Memo: ")
-	ni.CursorColor = lib.Fuschia.String()
+	ni.Prompt = "Memo:"
+	ni.PromptStyle = stashInputPromptStyle
+	ni.CursorStyle = stashInputCursorStyle
 	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
 	si := textinput.NewModel()
-	si.Prompt = stashTextInputPromptStyle("Find: ")
-	si.CursorColor = lib.Fuschia.String()
+	si.Prompt = "Find:"
+	si.PromptStyle = stashInputPromptStyle
+	si.CursorStyle = stashInputCursorStyle
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
 
@@ -1195,7 +1209,7 @@ func (m stashModel) view() string {
 				// pointers in our model should be refactored away.
 				var p paginator.Model = *(m.paginator())
 				p.Type = paginator.Arabic
-				pagination = lib.Subtle(p.View())
+				pagination = paginationStyle.Render(p.View())
 			}
 
 			// We could also look at m.stashFullyLoaded and add an indicator
@@ -1218,11 +1232,7 @@ func (m stashModel) view() string {
 }
 
 func glowLogoView(text string) string {
-	return te.String(text).
-		Bold().
-		Foreground(glowLogoTextColor).
-		Background(lib.Fuschia.Color()).
-		String()
+	return logoStyle.Render(text)
 }
 
 func (m stashModel) headerView() string {
@@ -1258,9 +1268,9 @@ func (m stashModel) headerView() string {
 		}
 
 		if m.stashedOnly() {
-			return lib.Subtle("Can’t load stash") + maybeOffline
+			return subtleStyle.Render("Can’t load stash") + maybeOffline
 		}
-		return lib.Subtle("No markdown files found") + maybeOffline
+		return subtleStyle.Render("No markdown files found") + maybeOffline
 	}
 
 	// Tabs
@@ -1288,9 +1298,9 @@ func (m stashModel) headerView() string {
 		}
 
 		if m.sectionIndex == i && len(m.sections) > 1 {
-			s = selectedTabColor(s)
+			s = selectedTabStyle.Render(s)
 		} else {
-			s = tabColor(s)
+			s = tabStyle.Render(s)
 		}
 		sections = append(sections, s)
 	}
@@ -1379,7 +1389,7 @@ func loadRemoteMarkdown(cc *client.Client, md *markdown) tea.Cmd {
 		newMD, err := fetchMarkdown(cc, md.ID, md.docType)
 		if err != nil {
 			if debug {
-				log.Printf("error loading %s markdown (ID %d, Note: '%s'): %v", md.docType, md.ID, md.Note, err)
+				log.Printf("error loading %s markdown (ID %s, Note: '%s'): %v", md.docType, md.ID, md.Note, err)
 			}
 			return markdownFetchFailedMsg{
 				err:  err,

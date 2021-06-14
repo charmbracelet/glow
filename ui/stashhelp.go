@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/muesli/reflow/ansi"
 )
 
@@ -195,7 +194,7 @@ func (m stashModel) miniHelpView(entries ...string) string {
 	}
 
 	var (
-		truncationChar  = lib.Subtle("…")
+		truncationChar  = subtleStyle.Render("…")
 		truncationWidth = ansi.PrintableRuneWidth(truncationChar)
 	)
 

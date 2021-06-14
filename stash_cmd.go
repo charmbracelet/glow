@@ -21,8 +21,8 @@ var (
 		Use:     "stash [SOURCE]",
 		Hidden:  false,
 		Short:   "Stash a markdown",
-		Long:    formatBlock(fmt.Sprintf("\nDo %s stuff. Run with no arguments to browse your stash or pass a path to a markdown file to stash it.", common.Keyword("stash"))),
-		Example: formatBlock("glow stash\nglow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
+		Long:    paragraph(fmt.Sprintf("\nDo %s stuff. Run with no arguments to browse your stash or pass a path to a markdown file to stash it.", keyword("stash"))),
+		Example: paragraph("glow stash\nglow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initConfig()
@@ -63,7 +63,7 @@ var (
 func initCharmClient() *client.Client {
 	cc, err := client.NewClient()
 	if err == charm.ErrMissingSSHAuth {
-		fmt.Println(formatBlock("We had some trouble authenticating via SSH. If this continues to happen the Charm tool may be able to help you. More info at https://github.com/charmbracelet/charm."))
+		fmt.Println(paragraph("We had some trouble authenticating via SSH. If this continues to happen the Charm tool may be able to help you. More info at https://github.com/charmbracelet/charm."))
 		os.Exit(1)
 	} else if err != nil {
 		fmt.Println(err)

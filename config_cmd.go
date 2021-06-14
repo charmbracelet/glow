@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path"
 
-	"github.com/charmbracelet/charm/ui/common"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
 )
@@ -27,8 +26,8 @@ var configCmd = &cobra.Command{
 	Use:     "config",
 	Hidden:  false,
 	Short:   "Edit the glow config file",
-	Long:    formatBlock(fmt.Sprintf("\n%s the glow config file. We’ll use EDITOR to determine which editor to use. If the config file doesn't exist, it will be created.", common.Keyword("Edit"))),
-	Example: formatBlock("glow config\nglow config --config path/to/config.yml"),
+	Long:    paragraph(fmt.Sprintf("\n%s the glow config file. We’ll use EDITOR to determine which editor to use. If the config file doesn't exist, it will be created.", keyword("Edit"))),
+	Example: paragraph("glow config\nglow config --config path/to/config.yml"),
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		editor := os.Getenv("EDITOR")
