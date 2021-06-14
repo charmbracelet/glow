@@ -5,10 +5,9 @@ import (
 	"log"
 	"strings"
 
-	lib "github.com/charmbracelet/charm/ui/common"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
-	"github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
 )
 
@@ -77,8 +76,8 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 				icon = dullFuchsiaFg(icon)
 				if m.currentSection().key == filterSection &&
 					m.filterState == filterApplied || singleFilteredItem {
-					s := termenv.Style{}.Foreground(lib.Fuschia.Color())
-					title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
+					s := lipgloss.NewStyle().Foreground(fuschia)
+					title = styleFilteredText(title, m.filterInput.Value(), s, s.Copy().Underline(true))
 				} else {
 					title = fuchsiaFg(title)
 				}
@@ -100,8 +99,8 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 				title = dimIndigoFg(title)
 				date = dimSubtleIndigoFg(date)
 			} else {
-				s := termenv.Style{}.Foreground(lib.Indigo.Color())
-				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
+				s := lipgloss.NewStyle().Foreground(indigo)
+				title = styleFilteredText(title, m.filterInput.Value(), s, s.Copy().Underline(true))
 				date = subtleIndigoFg(date)
 			}
 		} else if isFiltering && m.filterInput.Value() == "" {
@@ -117,8 +116,8 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			if title == noMemoTitle {
 				title = brightGrayFg(title)
 			} else {
-				s := termenv.Style{}.Foreground(lib.NewColorPair("#dddddd", "#1a1a1a").Color())
-				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
+				s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
+				title = styleFilteredText(title, m.filterInput.Value(), s, s.Copy().Underline(true))
 			}
 			date = brightGrayFg(date)
 		}
@@ -128,7 +127,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	fmt.Fprintf(b, "%s %s", gutter, date)
 }
 
-func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle termenv.Style) string {
+func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle lipgloss.Style) string {
 	b := strings.Builder{}
 
 	normalizedHay, err := normalize(haystack)
@@ -138,7 +137,7 @@ func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle term
 
 	matches := fuzzy.Find(needles, []string{normalizedHay})
 	if len(matches) == 0 {
-		return defaultStyle.Styled(haystack)
+		return defaultStyle.Render(haystack)
 	}
 
 	m := matches[0] // only one match exists
@@ -146,12 +145,12 @@ func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle term
 		styled := false
 		for _, mi := range m.MatchedIndexes {
 			if i == mi {
-				b.WriteString(matchedStyle.Styled(string(rune)))
+				b.WriteString(matchedStyle.Render(string(rune)))
 				styled = true
 			}
 		}
 		if !styled {
-			b.WriteString(defaultStyle.Styled(string(rune)))
+			b.WriteString(defaultStyle.Render(string(rune)))
 		}
 	}
 
