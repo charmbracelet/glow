@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/charm/cmd"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/ui"
 	"github.com/charmbracelet/glow/utils"
@@ -398,6 +399,7 @@ func init() {
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
 	rootCmd.AddCommand(stashCmd)
 
+	rootCmd.AddCommand(cmd.LinkCmd("glow"))
 	rootCmd.AddCommand(configCmd)
 }
 
