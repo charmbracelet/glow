@@ -400,6 +400,8 @@ func init() {
 	rootCmd.AddCommand(stashCmd)
 
 	rootCmd.AddCommand(cmd.LinkCmd("glow"))
+	rootCmd.AddCommand(cmd.KeysCmd)
+	rootCmd.AddCommand(cmd.KeySyncCmd)
 	rootCmd.AddCommand(configCmd)
 }
 
