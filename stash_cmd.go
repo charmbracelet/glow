@@ -8,14 +8,14 @@ import (
 	"strings"
 
 	charm "github.com/charmbracelet/charm/proto"
-	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glow/client"
-	"github.com/muesli/termenv"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
 var (
 	memo string
+	dot  = lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575")).Render("•")
 
 	stashCmd = &cobra.Command{
 		Use:     "stash [SOURCE]",
@@ -53,7 +53,6 @@ var (
 				return fmt.Errorf("error stashing markdown")
 			}
 
-			dot := termenv.String("•").Foreground(common.Green.Color()).String()
 			fmt.Println(dot + " Stashed!")
 			return nil
 		},

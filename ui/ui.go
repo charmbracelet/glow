@@ -13,7 +13,6 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	charm "github.com/charmbracelet/charm/proto"
-	"github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/charm/ui/keygen"
 	"github.com/charmbracelet/glow/client"
 	"github.com/charmbracelet/glow/utils"
@@ -454,7 +453,7 @@ func errorView(err error, fatal bool) string {
 	s := fmt.Sprintf("%s\n\n%v\n\n%s",
 		errorTitleStyle.Render("ERROR"),
 		err,
-		common.Subtle(exitMsg),
+		subtleStyle.Render(exitMsg),
 	)
 	return "\n" + indent(s, 3)
 }
