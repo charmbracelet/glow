@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/charmbracelet/charm/client"
 	"github.com/charmbracelet/charm/kv"
 	"github.com/dgraph-io/badger/v3"
 	"github.com/google/uuid"
@@ -46,7 +47,11 @@ type Markdown struct {
 
 // NewClient creates a new Client with the default settings
 func NewClient() (*Client, error) {
-	kv, err := kv.OpenWithDefaults("charm.sh.glow", "./data")
+	dp, err := client.DataPath()
+	if err != nil {
+		return nil, err
+	}
+	kv, err := kv.OpenWithDefaults("charm.sh.glow", fmt.Sprintf("%s/kv", dp))
 	if err != nil {
 		return nil, err
 	}
