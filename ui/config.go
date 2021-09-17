@@ -3,6 +3,7 @@ package ui
 // Config contains TUI-specific configuration.
 type Config struct {
 	ShowAllFiles    bool
+	CharmHost       string `env:"CHARM_HOST" default:"api.charm.sh"`
 	Gopath          string `env:"GOPATH"`
 	HomeDir         string `env:"HOME"`
 	GlamourMaxWidth uint

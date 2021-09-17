@@ -302,7 +302,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case sshAuthErrMsg:
 		if m.keygenState != keygenFinished { // if we haven't run the keygen yet, do that
 			m.keygenState = keygenRunning
-			cmds = append(cmds, keygen.GenerateKeys)
+			cmds = append(cmds, keygen.GenerateKeys(m.common.cfg.CharmHost))
 		} else {
 			// The keygen ran but things still didn't work and we can't auth
 			m.common.authStatus = authFailed
