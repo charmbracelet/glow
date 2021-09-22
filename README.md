@@ -59,6 +59,17 @@ scoop install glow
 # Android (with termux)
 pkg install glow
 ```
+###### For debian and ubuntu by using [MPR](https://makedeb.hunterwittenborn.com/home/introduction/) and MPR helper aka [tap](https://mpr.hunterwittenborn.com/packages/tap)
+
+```
+tap install glow-bin 
+```
+or
+```
+git clone https://mpr.hunterwittenborn.com/glow-bin.git
+cd glow-bin
+makedeb -si
+```
 
 Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
 FreeBSD, and OpenBSD binaries are available, as well as Debian, RPM, and Alpine
