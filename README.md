@@ -173,7 +173,7 @@ it in your favorite $EDITOR. Alternatively you can manually put a file named
 that is, please refer to `glow --help`.
 
 You can also set the location of config file using the `--config` flag or setting
-the `GLOW_CONFIG` environment variable.
+the `GLOW_CONFIG_PATH` environment variable.
 
 Here's an example config:
 
