@@ -172,6 +172,9 @@ it in your favorite $EDITOR. Alternatively you can manually put a file named
 `glow.yml` in the default config path of you platform. If you're not sure where
 that is, please refer to `glow --help`.
 
+You can also set the location of config file using the `--config` flag or setting
+the `GLOW_CONFIG` environment variable.
+
 Here's an example config:
 
 ```yaml

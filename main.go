@@ -379,13 +379,17 @@ func init() {
 }
 
 func initConfig() {
+	if fromEnv := os.Getenv("GLOW_CONFIG"); fromEnv != "" && configFile == "" {
+		configFile = fromEnv
+	}
+
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
 		scope := gap.NewScope(gap.User, "glow")
 		dirs, err := scope.ConfigDirs()
 		if err != nil {
-			fmt.Println("Can't retrieve default config. Please manually pass a config file with '--config'")
+			fmt.Println("Can't retrieve default config. Please manually pass a config file with '--config' or set GLOW_CONFIG environment variable")
 			os.Exit(1)
 		}
 
