@@ -8,10 +8,10 @@ replace github.com/charmbracelet/wish => ../wish
 
 require (
 	github.com/charmbracelet/bubbles v0.9.0
-	github.com/charmbracelet/bubbletea v0.15.0
+	github.com/charmbracelet/bubbletea v0.17.0
 	github.com/charmbracelet/charm v0.0.0-00010101000000-000000000000
 	github.com/charmbracelet/glamour v0.2.1-0.20210402234443-abe9cda419ba
-	github.com/charmbracelet/lipgloss v0.3.0
+	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/dgraph-io/badger/v3 v3.2011.1
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/google/uuid v1.1.2
