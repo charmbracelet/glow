@@ -177,10 +177,31 @@ func validateOptions(cmd *cobra.Command) error {
 	return nil
 }
 
+func stdinIsPipe() (bool, error) {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return false, err
+	}
+	if stat.Mode()&os.ModeCharDevice == 0 || stat.Size() > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
 func execute(cmd *cobra.Command, args []string) error {
 	initConfig()
 	if err := validateOptions(cmd); err != nil {
 		return err
+	}
+
+	// if stdin is a pipe then use stdin for input. note that you can also
+	// explicitly use a - to read from stdin.
+	if yes, err := stdinIsPipe(); err != nil {
+		return err
+	} else if yes {
+		src := &source{reader: os.Stdin}
+		defer src.reader.Close()
+		return executeCLI(cmd, src, os.Stdout)
 	}
 
 	switch len(args) {
@@ -221,6 +242,10 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 		return err
 	}
 	defer src.reader.Close()
+	return executeCLI(cmd, src, w)
+}
+
+func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	b, err := ioutil.ReadAll(src.reader)
 	if err != nil {
 		return err
