@@ -64,6 +64,8 @@ github.com/charmbracelet/bubbletea v0.14.1/go.mod h1:b5lOf5mLjMg1tRn1HVla54guZB+
 github.com/charmbracelet/bubbletea v0.15.0/go.mod h1:YTZSs2p3odhwYZdhqJheYHVUjU37c9OLgS85kw6NGQY=
 github.com/charmbracelet/bubbletea v0.17.0 h1:ABmd01l6K7Q8lSQxF7yG8yWayz5gXWSt3JfB/X1eYP4=
 github.com/charmbracelet/bubbletea v0.17.0/go.mod h1:YTZSs2p3odhwYZdhqJheYHVUjU37c9OLgS85kw6NGQY=
+github.com/charmbracelet/bubbletea v0.19.0 h1:1gz4rbxl3qZik/oP8QW2vUtul2gO8RDDzmoLGERpTQc=
+github.com/charmbracelet/bubbletea v0.19.0/go.mod h1:VuXF2pToRxDUHcBUcPmCRUHRvFATM4Ckb/ql1rBl3KA=
 github.com/charmbracelet/glamour v0.2.1-0.20210402234443-abe9cda419ba h1:smKYYwwVPZyMK2LCirIi2WY25tZZW0IU7GYe1ASGCe4=
 github.com/charmbracelet/glamour v0.2.1-0.20210402234443-abe9cda419ba/go.mod h1:nHP5wEbsv2eOJ7XfiScQV3p5dpZSM051R0VkxnOIPgg=
 github.com/charmbracelet/harmonica v0.1.0/go.mod h1:KSri/1RMQOZLbw7AHqgcBycp8pgJnQMYYT8QZRqZ1Ao=
@@ -299,6 +301,8 @@ github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh
 github.com/mmcloughlin/avo v0.0.0-20201105074841-5d2f697d268f/go.mod h1:6aKT4zZIrpGqB3RpFU14ByCSSyKY6LfJz4J/JJChHfI=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
+github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b h1:1XF24mVaiu7u+CFywTdcDo2ie1pzzhwjt6RHqzpMU34=
+github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b/go.mod h1:fQuZ0gauxyBcmsdE3ZT4NasjaRdxmbCS0jRHsrWu3Ho=
 github.com/muesli/gitcha v0.2.0 h1:+wOgT2dI9s2Tznj1t1rb/qkK5e0cb6qD8c4IX2TR/YY=
 github.com/muesli/gitcha v0.2.0/go.mod h1:Ri8m9TZS4+ORG4JVmVKUQcWZuxDvUW3UKxMdQfzG2zI=
 github.com/muesli/go-app-paths v0.2.1 h1:Qi+2igkDX2aPqyRddp7P0sMQIBwBqhkfQfNcjdGjL6Y=
