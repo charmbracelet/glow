@@ -32,6 +32,9 @@ More on that below.
 Use your fave package manager:
 
 ```bash
+# go install
+go install github.com/charmbracelet/glow@latest
+
 # macOS or Linux
 brew install glow
 
