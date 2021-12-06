@@ -2,10 +2,6 @@ module github.com/charmbracelet/glow
 
 go 1.16
 
-replace github.com/charmbracelet/charm => ../charm
-
-replace github.com/charmbracelet/wish => ../wish
-
 require (
 	github.com/charmbracelet/bubbles v0.9.0
 	github.com/charmbracelet/bubbletea v0.19.0
