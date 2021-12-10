@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/charmbracelet/bubbles v0.9.0
-	github.com/charmbracelet/bubbletea v0.19.0
+	github.com/charmbracelet/bubbletea v0.19.1
 	github.com/charmbracelet/charm v0.9.1
 	github.com/charmbracelet/glamour v0.2.1-0.20210402234443-abe9cda419ba
 	github.com/charmbracelet/lipgloss v0.4.0
