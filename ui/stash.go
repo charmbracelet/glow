@@ -852,7 +852,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.common.filesStashing[md.stashID] = struct{}{}
 			m.common.latestFileStashed = md.stashID
 			cmds = append(cmds,
-				stashDocument(m.common.cc, *md),
+				stashDocument(m.common.cc, m.common.cwd, *md),
 				m.newStatusMessage(stashingStatusMessage),
 			)
 

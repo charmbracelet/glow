@@ -615,7 +615,7 @@ func saveDocumentNote(cc *client.Client, id string, note string) tea.Cmd {
 	}
 }
 
-func stashDocument(cc *client.Client, md markdown) tea.Cmd {
+func stashDocument(cc *client.Client, cwd string, md markdown) tea.Cmd {
 	return func() tea.Msg {
 		if cc == nil {
 			err := errors.New("can't stash; no charm client")
@@ -660,7 +660,8 @@ func stashDocument(cc *client.Client, md markdown) tea.Cmd {
 			}
 		}
 
-		newMd, err := cc.StashMarkdown(md.Note, md.Body)
+		memo := stripAbsolutePath(md.Note, cwd)
+		newMd, err := cc.StashMarkdown(memo, md.Body)
 		if err != nil {
 			if debug {
 				log.Println("error stashing document:", err)
