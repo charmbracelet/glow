@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	charm "github.com/charmbracelet/charm/proto"
 	"github.com/charmbracelet/charm/ui/keygen"
@@ -184,8 +183,8 @@ func (m *model) unloadDocument() []tea.Cmd {
 		batch = append(batch, tea.ClearScrollArea)
 	}
 
-	if !m.stash.loadingDone() {
-		batch = append(batch, spinner.Tick)
+	if !m.stash.shouldSpin() {
+		batch = append(batch, m.stash.spinner.Tick)
 	}
 	return batch
 }
@@ -226,7 +225,7 @@ func (m model) Init() tea.Cmd {
 	if d.Contains(StashedDoc) || d.Contains(NewsDoc) {
 		cmds = append(cmds,
 			newCharmClient,
-			spinner.Tick,
+			m.stash.spinner.Tick,
 		)
 	}
 

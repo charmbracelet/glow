@@ -133,12 +133,12 @@ type pagerModel struct {
 
 func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
-	vp := viewport.Model{}
+	vp := viewport.New(0, 0)
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
 
 	// Text input for notes/memos
-	ti := textinput.NewModel()
+	ti := textinput.New()
 	ti.Prompt = " > "
 	ti.PromptStyle = pagerNoteInputPromptStyle
 	ti.TextStyle = pagerNoteInputStyle
@@ -147,10 +147,8 @@ func newPagerModel(common *commonModel) pagerModel {
 	ti.Focus()
 
 	// Text input for search
-	sp := spinner.NewModel()
+	sp := spinner.New()
 	sp.Style = spinnerStyle
-	sp.HideFor = time.Millisecond * 50
-	sp.MinimumLifetime = time.Millisecond * 180
 
 	return pagerModel{
 		common:    common,
@@ -297,11 +295,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				// Stash a local document
 				if m.state != pagerStateStashing && stashableDocTypes.Contains(md.docType) {
 					m.state = pagerStateStashing
-					m.spinner.Start()
 					cmds = append(
 						cmds,
 						stashDocument(m.common.cc, md),
-						spinner.Tick,
+						m.spinner.Tick,
 					)
 				}
 			case "?":
@@ -316,8 +313,8 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		if m.state == pagerStateStashing || m.spinner.Visible() {
 			// If we're still stashing, or if the spinner still needs to
 			// finish, spin it along.
-			newSpinnerModel, cmd := m.spinner.Update(msg)
-			m.spinner = newSpinnerModel
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
 			cmds = append(cmds, cmd)
 		} else if m.state == pagerStateStashSuccess && !m.spinner.Visible() {
 			// If the spinner's finished and we haven't told the user the
@@ -431,9 +428,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	// Status indicator; spinner or stash dot
 	var statusIndicator string
 	if m.state == pagerStateStashing || m.state == pagerStateStashSuccess {
-		if m.spinner.Visible() {
-			statusIndicator = statusBarNoteStyle(" ") + m.spinner.View()
-		}
+		statusIndicator = statusBarNoteStyle(" ") + m.spinner.View()
 	} else if isStashed && showStatusMessage {
 		statusIndicator = statusBarMessageStashIconStyle(" " + pagerStashIcon)
 	} else if isStashed {
