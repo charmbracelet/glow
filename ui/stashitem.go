@@ -66,7 +66,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			date = dullYellowFg(date)
 		default:
 			if m.common.latestFileStashed == md.stashID &&
-				m.statusMessage == stashedStatusMessage {
+				m.statusMessage == stashingStatusMessage {
 				gutter = greenFg(verticalLine)
 				icon = dimGreenFg(icon)
 				title = greenFg(title)
@@ -90,7 +90,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		gutter = " "
 
 		if m.common.latestFileStashed == md.stashID &&
-			m.statusMessage == stashedStatusMessage {
+			m.statusMessage == stashingStatusMessage {
 			icon = dimGreenFg(icon)
 			title = greenFg(title)
 			date = semiDimGreenFg(date)
