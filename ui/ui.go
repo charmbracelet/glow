@@ -51,7 +51,13 @@ func NewProgram(cfg Config) *tea.Program {
 		debug = true
 	}
 	config = cfg
-	return tea.NewProgram(newModel(cfg))
+
+	opts := []tea.ProgramOption{tea.WithAltScreen()}
+	if cfg.EnableMouse {
+		opts = append(opts, tea.WithMouseCellMotion())
+	}
+
+	return tea.NewProgram(newModel(cfg), opts...)
 }
 
 type errMsg struct{ err error }

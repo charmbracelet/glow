@@ -333,6 +333,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	cfg.ShowAllFiles = showAllFiles
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
+	cfg.EnableMouse = mouse
 
 	if stashedOnly {
 		cfg.DocumentTypes.Add(ui.StashedDoc, ui.NewsDoc)
@@ -341,14 +342,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	}
 
 	// Run Bubble Tea program
-	p := ui.NewProgram(cfg)
-	p.EnterAltScreen()
-	defer p.ExitAltScreen()
-	if mouse {
-		p.EnableMouseCellMotion()
-		defer p.DisableMouseCellMotion()
-	}
-	if err := p.Start(); err != nil {
+	if err := ui.NewProgram(cfg).Start(); err != nil {
 		return err
 	}
 
