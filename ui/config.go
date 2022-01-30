@@ -7,7 +7,7 @@ type Config struct {
 	HomeDir         string `env:"HOME"`
 	GlamourMaxWidth uint
 	GlamourStyle    string
-	EnableMouse bool
+	EnableMouse     bool
 
 	// Which directory should we start from?
 	WorkingDirectory string

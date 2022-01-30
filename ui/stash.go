@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	stashedStatusMessage        = statusMessage{normalStatusMessage, "Stashed!"}
+	stashingStatusMessage       = statusMessage{normalStatusMessage, "Stashing..."}
 	alreadyStashedStatusMessage = statusMessage{subtleStatusMessage, "Already stashed"}
 )
 
@@ -253,6 +253,14 @@ func (m stashModel) online() bool {
 	return !m.localOnly() && m.common.authStatus == authOK
 }
 
+// Whether or not the spinner should be spinning.
+func (m stashModel) shouldSpin() bool {
+	loading := !m.loadingDone()
+	stashing := m.common.isStashing()
+	openingDocument := m.viewState == stashStateLoadingDocument
+	return loading || stashing || openingDocument
+}
+
 func (m *stashModel) setSize(width, height int) {
 	m.common.width = width
 	m.common.height = height
@@ -444,7 +452,7 @@ func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 		cmd = loadRemoteMarkdown(m.common.cc, md)
 	}
 
-	return tea.Batch(cmd, spinner.Tick)
+	return tea.Batch(cmd, m.spinner.Tick)
 }
 
 func (m *stashModel) newStatusMessage(sm statusMessage) tea.Cmd {
@@ -509,21 +517,18 @@ func (m *stashModel) moveCursorDown() {
 // INIT
 
 func newStashModel(common *commonModel) stashModel {
-	sp := spinner.NewModel()
+	sp := spinner.New()
 	sp.Spinner = spinner.Line
 	sp.Style = stashSpinnerStyle
-	sp.HideFor = time.Millisecond * 100
-	sp.MinimumLifetime = time.Millisecond * 180
-	sp.Start()
 
-	ni := textinput.NewModel()
+	ni := textinput.New()
 	ni.Prompt = "Memo:"
 	ni.PromptStyle = stashInputPromptStyle
 	ni.CursorStyle = stashInputCursorStyle
 	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
-	si := textinput.NewModel()
+	si := textinput.New()
 	si.Prompt = "Find:"
 	si.PromptStyle = stashInputPromptStyle
 	si.CursorStyle = stashInputCursorStyle
@@ -647,14 +652,9 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		return m, nil
 
 	case spinner.TickMsg:
-		loading := !m.loadingDone()
-		stashing := m.common.isStashing()
-		openingDocument := m.viewState == stashStateLoadingDocument
-		spinnerVisible := m.spinner.Visible()
-
-		if loading || stashing || openingDocument || spinnerVisible {
-			newSpinnerModel, cmd := m.spinner.Update(msg)
-			m.spinner = newSpinnerModel
+		if m.shouldSpin() {
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 
@@ -667,10 +667,9 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 			}
 		}
 
-	// Note: mechanical stuff related to stash success is handled in the parent
-	// update function.
 	case stashSuccessMsg:
-		m.spinner.Finish()
+		// No-op: mechanical stuff related to stash success is handled in the
+		// parent update function.
 
 	// Note: mechanical stuff related to stash failure is handled in the parent
 	// update function.
@@ -848,14 +847,13 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				break
 			}
 
-			// Checks passed; perform the stash. Note that we optimistically
-			// show the status message.
+			// Checks passed; perform the stash.
 			m.common.filesStashed[md.stashID] = struct{}{}
 			m.common.filesStashing[md.stashID] = struct{}{}
 			m.common.latestFileStashed = md.stashID
 			cmds = append(cmds,
 				stashDocument(m.common.cc, *md),
-				m.newStatusMessage(stashedStatusMessage),
+				m.newStatusMessage(stashingStatusMessage),
 			)
 
 			// If we're stashing a filtered item, optimistically convert the
@@ -870,12 +868,9 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			// The spinner subtly shows the stash state in a non-optimistic
 			// fashion, namely because it was originally implemented this way.
-			// If this stash succeeds quickly enough, the spinner won't run
-			// at all.
-			if m.loadingDone() && !m.spinner.Visible() {
-				m.spinner.Start()
-				cmds = append(cmds, spinner.Tick)
-			}
+			// Ideally, if this stash succeeds quickly enough, the spinner
+			// wouldn't run at all.
+			cmds = append(cmds, m.spinner.Tick)
 
 		// Prompt for deletion
 		case "x":
@@ -1146,7 +1141,7 @@ func (m stashModel) view() string {
 	case stashStateReady:
 
 		loadingIndicator := " "
-		if !m.loadingDone() || m.spinner.Visible() {
+		if m.shouldSpin() {
 			loadingIndicator = m.spinner.View()
 		}
 
