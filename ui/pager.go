@@ -297,7 +297,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					m.state = pagerStateStashing
 					cmds = append(
 						cmds,
-						stashDocument(m.common.cc, md),
+						stashDocument(m.common.cc, m.common.cwd, md),
 						m.spinner.Tick,
 					)
 				}
