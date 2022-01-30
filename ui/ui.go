@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/keygen"
@@ -25,6 +24,12 @@ const (
 	noteCharacterLimit   = 256             // should match server
 	statusMessageTimeout = time.Second * 2 // how long to show status messages like "stashed!"
 	ellipsis             = "…"
+
+	// Only show the spinner if it spins for at least this amount of time.
+	spinnerVisibilityTimeout = time.Millisecond * 140
+
+	// Minimum amount of time the spinner should be visible once it starts.
+	spinnerMinLifetime = time.Millisecond * 550
 )
 
 var (
@@ -188,8 +193,8 @@ func (m *model) unloadDocument() []tea.Cmd {
 		batch = append(batch, tea.ClearScrollArea)
 	}
 
-	if !m.stash.loadingDone() {
-		batch = append(batch, spinner.Tick)
+	if !m.stash.shouldSpin() {
+		batch = append(batch, m.stash.spinner.Tick)
 	}
 	return batch
 }
@@ -230,7 +235,7 @@ func (m model) Init() tea.Cmd {
 	if d.Contains(StashedDoc) || d.Contains(NewsDoc) {
 		cmds = append(cmds,
 			newCharmClient,
-			spinner.Tick,
+			m.stash.spinner.Tick,
 		)
 	}
 

@@ -117,7 +117,9 @@ type pagerModel struct {
 	state     pagerState
 	showHelp  bool
 	textInput textinput.Model
-	spinner   spinner.Model
+
+	spinner      spinner.Model
+	spinnerStart time.Time
 
 	statusMessage      string
 	statusMessageTimer *time.Timer
@@ -133,12 +135,12 @@ type pagerModel struct {
 
 func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
-	vp := viewport.Model{}
+	vp := viewport.New(0, 0)
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
 
 	// Text input for notes/memos
-	ti := textinput.NewModel()
+	ti := textinput.New()
 	ti.Prompt = " > "
 	ti.PromptStyle = pagerNoteInputPromptStyle
 	ti.TextStyle = pagerNoteInputStyle
@@ -147,10 +149,8 @@ func newPagerModel(common *commonModel) pagerModel {
 	ti.Focus()
 
 	// Text input for search
-	sp := spinner.NewModel()
+	sp := spinner.New()
 	sp.Style = spinnerStyle
-	sp.HideFor = time.Millisecond * 50
-	sp.MinimumLifetime = time.Millisecond * 180
 
 	return pagerModel{
 		common:    common,
@@ -297,11 +297,11 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				// Stash a local document
 				if m.state != pagerStateStashing && stashableDocTypes.Contains(md.docType) {
 					m.state = pagerStateStashing
-					m.spinner.Start()
+					m.spinnerStart = time.Now()
 					cmds = append(
 						cmds,
 						stashDocument(m.common.cc, md),
-						spinner.Tick,
+						m.spinner.Tick,
 					)
 				}
 			case "?":
@@ -313,15 +313,19 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if m.state == pagerStateStashing || m.spinner.Visible() {
-			// If we're still stashing, or if the spinner still needs to
-			// finish, spin it along.
-			newSpinnerModel, cmd := m.spinner.Update(msg)
-			m.spinner = newSpinnerModel
+		spinnerMinTimeout := m.spinnerStart.
+			Add(spinnerVisibilityTimeout).
+			Add(spinnerMinLifetime)
+
+		if m.state == pagerStateStashing || time.Now().Before(spinnerMinTimeout) {
+			// We're either still stashing or we haven't reached the spinner's
+			// full lifetime. In either case we need to spin the spinner
+			// irrespective of it's more fine-grained visibility rules.
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
 			cmds = append(cmds, cmd)
-		} else if m.state == pagerStateStashSuccess && !m.spinner.Visible() {
-			// If the spinner's finished and we haven't told the user the
-			// stash was successful, do that.
+		} else if m.state == pagerStateStashSuccess {
+			// Successful stash. Stop spinning and update accordingly.
 			m.state = pagerStateBrowse
 			m.currentDocument = *m.stashedDocument
 			m.stashedDocument = nil
@@ -346,7 +350,8 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		// message in the main update function where we're adding this stashed
 		// item to the stash listing.
 		m.state = pagerStateStashSuccess
-		if !m.spinner.Visible() {
+
+		if !m.spinnerVisible() {
 			// The spinner has finished spinning, so tell the user the stash
 			// was successful.
 			m.state = pagerStateBrowse
@@ -376,6 +381,14 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+// spinnerVisible returns whether or not the spinner should be drawn.
+func (m pagerModel) spinnerVisible() bool {
+	windowStart := m.spinnerStart.Add(spinnerVisibilityTimeout)
+	windowEnd := windowStart.Add(spinnerMinLifetime)
+	now := time.Now()
+	return now.After(windowStart) && now.Before(windowEnd)
 }
 
 func (m pagerModel) View() string {
@@ -431,9 +444,11 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	// Status indicator; spinner or stash dot
 	var statusIndicator string
 	if m.state == pagerStateStashing || m.state == pagerStateStashSuccess {
-		if m.spinner.Visible() {
-			statusIndicator = statusBarNoteStyle(" ") + m.spinner.View()
+		var spinner string
+		if m.spinnerVisible() {
+			spinner = m.spinner.View()
 		}
+		statusIndicator = statusBarNoteStyle(" ") + spinner
 	} else if isStashed && showStatusMessage {
 		statusIndicator = statusBarMessageStashIconStyle(" " + pagerStashIcon)
 	} else if isStashed {
