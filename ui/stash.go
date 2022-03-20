@@ -1157,7 +1157,7 @@ func (m stashModel) view() string {
 		} else if m.filterState == filtering {
 			logoOrFilter += m.filterInput.View()
 		} else {
-			logoOrFilter += glowLogoView(" Glow ")
+			logoOrFilter += glowLogoView(fmt.Sprintf(" %s ", m.common.cfg.Title))
 			if m.showStatusMessage {
 				logoOrFilter += "  " + m.statusMessage.String()
 			}

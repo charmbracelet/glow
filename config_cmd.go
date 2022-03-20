@@ -21,7 +21,11 @@ mouse: false
 # use pager to display markdown
 pager: false
 # word-wrap at width
-width: 80`
+width: 80
+# display goodbye message
+goodbye: true
+# homepage title
+title: Glow`
 
 var configCmd = &cobra.Command{
 	Use:     "config",

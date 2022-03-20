@@ -37,6 +37,8 @@ var (
 	showAllFiles bool
 	localOnly    bool
 	mouse        bool
+	goodbye      bool
+	title        string
 
 	rootCmd = &cobra.Command{
 		Use:              "glow [SOURCE|DIR]",
@@ -141,6 +143,8 @@ func validateOptions(cmd *cobra.Command) error {
 	localOnly = viper.GetBool("local")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	goodbye = viper.GetBool("goodbye")
+	title = viper.GetString("title")
 
 	// validate the glamour style
 	style = viper.GetString("style")
@@ -334,6 +338,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	cfg.ShowAllFiles = showAllFiles
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
+	cfg.Title = title
 
 	if stashedOnly {
 		cfg.DocumentTypes.Add(ui.StashedDoc, ui.NewsDoc)
@@ -354,7 +359,9 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	}
 
 	// Exit message
-	fmt.Printf("\n  Thanks for using Glow!\n\n")
+	if goodbye {
+		fmt.Printf("\n  Thanks for using Glow!\n\n")
+	}
 	return nil
 }
 
@@ -385,6 +392,8 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&goodbye, "goodbye", "g", true, "enable goodbye message")
+	rootCmd.Flags().StringVarP(&title, "title", "t", "Glow", "homepage title")
 	rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
@@ -395,6 +404,8 @@ func init() {
 	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("local", "false")
+	viper.SetDefault("goodbye", "true")
+	viper.SetDefault("title", "Glow")
 
 	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")

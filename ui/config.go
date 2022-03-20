@@ -7,6 +7,7 @@ type Config struct {
 	HomeDir         string `env:"HOME"`
 	GlamourMaxWidth uint
 	GlamourStyle    string
+	Title           string
 
 	// Which directory should we start from?
 	WorkingDirectory string
