@@ -22,8 +22,6 @@ mouse: false
 pager: false
 # word-wrap at width
 width: 80
-# display goodbye message
-goodbye: true
 # homepage title
 title: Glow`
 
