@@ -41,6 +41,11 @@ sudo port install glow
 # Arch Linux (btw)
 pacman -S glow
 
+# makedeb Package Repository (MPR)
+git clone 'https://mpr.makedeb.org/glow'
+cd glow/
+makedeb -si
+
 # Void Linux
 xbps-install -S glow
 
