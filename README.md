@@ -29,12 +29,9 @@ More on that below.
 
 ## Installation
 
-Use your fave package manager:
+### Package Manager
 
 ```bash
-# go install
-go install github.com/charmbracelet/glow@latest
-
 # macOS or Linux
 brew install glow
 
@@ -67,7 +64,14 @@ Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
 FreeBSD, and OpenBSD binaries are available, as well as Debian, RPM, and Alpine
 packages. ARM builds are also available for macOS, Linux, FreeBSD, and OpenBSD.
 
-Or just build it yourself (requires Go 1.13+):
+### Go
+
+Or just install it with `go`:
+```bash
+go install github.com/charmbracelet/glow@latest
+```
+
+### Build (requires Go 1.13+)
 
 ```bash
 git clone https://github.com/charmbracelet/glow.git
