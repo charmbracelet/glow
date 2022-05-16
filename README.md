@@ -58,6 +58,9 @@ scoop install glow
 
 # Android (with termux)
 pkg install glow
+
+# Chrome OS
+crew install glow
 ```
 
 Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
