@@ -19,8 +19,8 @@ require (
 	github.com/muesli/termenv v0.8.1
 	github.com/sahilm/fuzzy v0.1.0
 	github.com/segmentio/ksuid v1.0.3
-	github.com/spf13/cobra v1.1.3
-	github.com/spf13/viper v1.7.1
+	github.com/spf13/cobra v1.4.0
+	github.com/spf13/viper v1.4.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/net v0.0.0-20200813134508-3edf25e44fcc // indirect
 	golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78
