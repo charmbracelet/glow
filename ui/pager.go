@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/charm"
 	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/lipgloss"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
@@ -48,8 +49,10 @@ var (
 	helpViewStyle                  = newStyle(statusBarNoteFg, lib.NewColorPair("#1B1B1B", "#f2f2f2"), false)
 )
 
-type contentRenderedMsg string
-type noteSavedMsg *charm.Markdown
+type (
+	contentRenderedMsg string
+	noteSavedMsg       *charm.Markdown
+)
 
 type pagerState int
 
@@ -93,16 +96,15 @@ func newPagerModel(common *commonModel) pagerModel {
 		Foreground(lib.Color(darkGray)).
 		Background(lib.YellowGreen.Color()).
 		String()
-	ti.TextColor = darkGray
-	ti.BackgroundColor = lib.YellowGreen.String()
-	ti.CursorColor = lib.Fuschia.String()
+	ti.TextStyle = ti.TextStyle.Foreground(lipgloss.Color(darkGray))
+	ti.BackgroundStyle = ti.BackgroundStyle.Background(lipgloss.Color(lib.YellowGreen.String()))
+	ti.CursorStyle = ti.CursorStyle.Foreground(lipgloss.Color(lib.Fuschia.String()))
 	ti.CharLimit = noteCharacterLimit
 	ti.Focus()
 
 	// Text input for search
 	sp := spinner.NewModel()
-	sp.ForegroundColor = statusBarNoteFg.String()
-	sp.BackgroundColor = statusBarBg.String()
+	sp.Style = sp.Style.Foreground(lipgloss.Color(statusBarNoteFg.String())).Background(lipgloss.Color(statusBarBg.String()))
 	sp.HideFor = time.Millisecond * 50
 	sp.MinimumLifetime = time.Millisecond * 180
 

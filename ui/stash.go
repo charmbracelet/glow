@@ -15,6 +15,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	lib "github.com/charmbracelet/charm/ui/common"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
 	te "github.com/muesli/termenv"
@@ -43,9 +44,11 @@ var (
 
 // MSG
 
-type deletedStashedItemMsg int
-type filteredMarkdownMsg []*markdown
-type fetchedMarkdownMsg *markdown
+type (
+	deletedStashedItemMsg int
+	filteredMarkdownMsg   []*markdown
+	fetchedMarkdownMsg    *markdown
+)
 
 type markdownFetchFailedMsg struct {
 	err  error
@@ -499,20 +502,20 @@ func (m *stashModel) moveCursorDown() {
 func newStashModel(common *commonModel) stashModel {
 	sp := spinner.NewModel()
 	sp.Spinner = spinner.Line
-	sp.ForegroundColor = lib.SpinnerColor.String()
+	sp.Style = sp.Style.Foreground(lipgloss.Color(lib.SpinnerColor.String()))
 	sp.HideFor = time.Millisecond * 100
 	sp.MinimumLifetime = time.Millisecond * 180
 	sp.Start()
 
 	ni := textinput.NewModel()
 	ni.Prompt = stashTextInputPromptStyle("Memo: ")
-	ni.CursorColor = lib.Fuschia.String()
+	ni.CursorStyle = ni.CursorStyle.Foreground(lipgloss.Color(lib.Fuschia.String()))
 	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
 	si := textinput.NewModel()
 	si.Prompt = stashTextInputPromptStyle("Find: ")
-	si.CursorColor = lib.Fuschia.String()
+	si.CursorStyle = si.CursorStyle.Foreground(lipgloss.Color(lib.Fuschia.String()))
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
 
