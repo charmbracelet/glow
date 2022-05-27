@@ -12,7 +12,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	charm "github.com/charmbracelet/charm/proto"
-	"github.com/charmbracelet/charm/ui/keygen"
 	"github.com/charmbracelet/glow/client"
 	"github.com/charmbracelet/glow/utils"
 	"github.com/muesli/gitcha"
@@ -63,24 +62,29 @@ type errMsg struct{ err error }
 
 func (e errMsg) Error() string { return e.err.Error() }
 
-type newCharmClientMsg *client.Client
-type sshAuthErrMsg struct{}
-type initLocalFileSearchMsg struct {
-	cwd string
-	ch  chan gitcha.SearchResult
-}
-type foundLocalFileMsg gitcha.SearchResult
-type localFileSearchFinished struct{}
-type gotStashMsg []*client.Markdown
-type stashLoadErrMsg struct{ err error }
-type gotNewsMsg []*client.Markdown
-type statusMessageTimeoutMsg applicationContext
-type newsLoadErrMsg struct{ err error }
-type stashSuccessMsg markdown
-type stashFailMsg struct {
-	err      error
-	markdown markdown
-}
+type (
+	newCharmClientMsg      *client.Client
+	sshAuthErrMsg          struct{}
+	initLocalFileSearchMsg struct {
+		cwd string
+		ch  chan gitcha.SearchResult
+	}
+)
+
+type (
+	foundLocalFileMsg       gitcha.SearchResult
+	localFileSearchFinished struct{}
+	gotStashMsg             []*client.Markdown
+	stashLoadErrMsg         struct{ err error }
+	gotNewsMsg              []*client.Markdown
+	statusMessageTimeoutMsg applicationContext
+	newsLoadErrMsg          struct{ err error }
+	stashSuccessMsg         markdown
+	stashFailMsg            struct {
+		err      error
+		markdown markdown
+	}
+)
 
 // applicationContext indicates the area of the application something appies
 // to. Occasionally used as an argument to commands and messages.
@@ -122,14 +126,6 @@ func (s authStatus) String() string {
 	}[s]
 }
 
-type keygenState int
-
-const (
-	keygenUnstarted keygenState = iota
-	keygenRunning
-	keygenFinished
-)
-
 // Common stuff we'll need to access in all models.
 type commonModel struct {
 	cfg        Config
@@ -156,10 +152,9 @@ func (c commonModel) isStashing() bool {
 }
 
 type model struct {
-	common      *commonModel
-	state       state
-	keygenState keygenState
-	fatalErr    error
+	common   *commonModel
+	state    state
+	fatalErr error
 
 	// Sub-models
 	stash stashModel
@@ -210,11 +205,10 @@ func newModel(cfg Config) tea.Model {
 	}
 
 	return model{
-		common:      &common,
-		state:       stateShowStash,
-		keygenState: keygenUnstarted,
-		pager:       newPagerModel(&common),
-		stash:       newStashModel(&common),
+		common: &common,
+		state:  stateShowStash,
+		pager:  newPagerModel(&common),
+		stash:  newStashModel(&common),
 	}
 }
 
@@ -305,38 +299,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case sshAuthErrMsg:
-		if m.keygenState != keygenFinished { // if we haven't run the keygen yet, do that
-			m.keygenState = keygenRunning
-			cmds = append(cmds, keygen.GenerateKeys(m.common.cfg.CharmHost))
-		} else {
-			// The keygen ran but things still didn't work and we can't auth
-			m.common.authStatus = authFailed
-			m.stash.err = errors.New("SSH authentication failed; we tried ssh-agent, loading keys from disk, and generating SSH keys")
-			if debug {
-				log.Println("entering offline mode;", m.stash.err)
-			}
-
-			// Even though it failed, news/stash loading is finished
-			m.stash.loaded.Add(StashedDoc, NewsDoc)
-		}
-
-	case keygen.FailedMsg:
-		// Keygen failed. That sucks.
+		// The keygen ran but things still didn't work and we can't auth
 		m.common.authStatus = authFailed
-		m.stash.err = errors.New("could not authenticate; could not generate SSH keys")
+		m.stash.err = errors.New("SSH authentication failed; we tried ssh-agent, loading keys from disk, and generating SSH keys")
 		if debug {
 			log.Println("entering offline mode;", m.stash.err)
 		}
 
-		m.keygenState = keygenFinished
-
 		// Even though it failed, news/stash loading is finished
 		m.stash.loaded.Add(StashedDoc, NewsDoc)
-
-	case keygen.SuccessMsg:
-		// The keygen's done, so let's try initializing the charm client again
-		m.keygenState = keygenFinished
-		cmds = append(cmds, newCharmClient)
 
 	case newCharmClientMsg:
 		m.common.cc = msg
