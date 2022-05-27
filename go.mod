@@ -3,8 +3,8 @@ module github.com/charmbracelet/glow
 go 1.16
 
 require (
-	github.com/charmbracelet/bubbles v0.10.2
-	github.com/charmbracelet/bubbletea v0.19.3
+	github.com/charmbracelet/bubbles v0.10.3
+	github.com/charmbracelet/bubbletea v0.20.0
 	github.com/charmbracelet/charm v0.9.1
 	github.com/charmbracelet/glamour v0.2.1-0.20210402234443-abe9cda419ba
 	github.com/charmbracelet/lipgloss v0.5.0
@@ -17,7 +17,7 @@ require (
 	github.com/muesli/gitcha v0.2.0
 	github.com/muesli/go-app-paths v0.2.1
 	github.com/muesli/reflow v0.3.0
-	github.com/muesli/termenv v0.11.1-0.20220204035834-5ac8409525e0
+	github.com/muesli/termenv v0.11.1-0.20220212125758-44cd13922739
 	github.com/sahilm/fuzzy v0.1.0
 	github.com/segmentio/ksuid v1.0.3
 	github.com/spf13/cobra v1.4.0
