@@ -39,7 +39,7 @@ brew install glow
 sudo port install glow
 
 # Arch Linux (btw)
-yay -S glow
+pacman -S glow
 
 # Void Linux
 xbps-install -S glow
