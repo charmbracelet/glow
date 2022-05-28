@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
-	"github.com/charmbracelet/charm/keygen"
+	"github.com/charmbracelet/keygen"
 	"github.com/charmbracelet/charm/ui/common"
 	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glow/utils"
@@ -605,7 +605,8 @@ func generateSSHKeys() tea.Msg {
 	if debug {
 		log.Println("running keygen...")
 	}
-	_, err := keygen.NewSSHKeyPair(nil)
+	_, err := keygen.New("",nil,keygen.RSA)
+
 	if err != nil {
 		if debug {
 			log.Println("keygen failed:", err)
