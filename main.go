@@ -353,8 +353,6 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 		return err
 	}
 
-	// Exit message
-	fmt.Printf("\n  Thanks for using Glow!\n\n")
 	return nil
 }
 
