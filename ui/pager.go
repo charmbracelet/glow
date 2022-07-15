@@ -283,6 +283,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 
 				return m, textinput.Blink
+
+			case "e":
+				if m.currentDocument.docType == LocalDoc {
+					return m, openEditor(m.currentDocument.localPath)
+				}
+
 			case "s":
 				if m.common.authStatus != authOK {
 					break
@@ -340,6 +346,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		if m.viewport.HighPerformanceRendering {
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
+
+	// We've finished editing the document, potentially making changes. Let's
+	// retrieve the latest version of the document so that we display
+	// up-to-date contents.
+	case editorFinishedMsg:
+		return m, loadLocalMarkdown(&m.currentDocument)
 
 	// We've reveived terminal dimensions, either for the first time or
 	// after a resize
