@@ -761,6 +761,18 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 			m.updatePagination()
 
+		// Edit document in EDITOR
+		case "e":
+			md := m.selectedMarkdown()
+			if md == nil {
+				break
+			}
+			file := m.selectedMarkdown().localPath
+			if file == "" {
+				break
+			}
+			return openEditor(file)
+
 		// Open document
 		case keyEnter:
 			m.hideStatusMessage()
