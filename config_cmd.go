@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 
 	"github.com/charmbracelet/charm/ui/common"
 	gap "github.com/muesli/go-app-paths"
@@ -31,8 +32,8 @@ var configCmd = &cobra.Command{
 	Example: formatBlock("glow config\nglow config --config path/to/config.yml"),
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		editor := os.Getenv("EDITOR")
-		if editor == "" {
+		editor := strings.Fields(os.Getenv("EDITOR"))
+		if len(editor) == 0 {
 			return errors.New("no EDITOR environment variable set")
 		}
 
@@ -47,13 +48,13 @@ var configCmd = &cobra.Command{
 		}
 
 		if ext := path.Ext(configFile); ext != ".yaml" && ext != ".yml" {
-			return fmt.Errorf("'%s' is not a supported config type: use '%s' or '%s'\n", ext, ".yaml", ".yml")
+			return fmt.Errorf("'%s' is not a supported config type: use '%s' or '%s'", ext, ".yaml", ".yml")
 		}
 
 		if _, err := os.Stat(configFile); os.IsNotExist(err) {
 			// File doesn't exist yet, create all necessary directories and
 			// write the default config file
-			if err := os.MkdirAll(path.Dir(configFile), 0700); err != nil {
+			if err := os.MkdirAll(path.Dir(configFile), 0o700); err != nil {
 				return err
 			}
 
@@ -61,7 +62,7 @@ var configCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 
 			if _, err := f.WriteString(defaultConfig); err != nil {
 				return err
@@ -70,7 +71,11 @@ var configCmd = &cobra.Command{
 			return err
 		}
 
-		c := exec.Command(editor, configFile)
+		var eargs []string
+		if len(editor) > 1 {
+			eargs = editor[1:]
+		}
+		c := exec.Command(editor[0], append(eargs, configFile)...) // nolint: gosec
 		c.Stdin = os.Stdin
 		c.Stdout = os.Stdout
 		c.Stderr = os.Stderr
