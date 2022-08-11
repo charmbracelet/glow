@@ -161,18 +161,20 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	// Detect terminal width
-	if isTerminal && width == 0 && !cmd.Flags().Changed("width") {
-		w, _, err := term.GetSize(int(os.Stdout.Fd()))
-		if err == nil {
-			width = uint(w)
-		}
+	if !cmd.Flags().Changed("width") {
+		if isTerminal && width == 0 {
+			w, _, err := term.GetSize(int(os.Stdout.Fd()))
+			if err == nil {
+				width = uint(w)
+			}
 
-		if width > 120 {
-			width = 120
+			if width > 120 {
+				width = 120
+			}
 		}
-	}
-	if width == 0 {
-		width = 80
+		if width == 0 {
+			width = 80
+		}
 	}
 	return nil
 }
@@ -379,7 +381,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", defaultConfigFile))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
-	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
+	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width (set to 0 to disable)")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
