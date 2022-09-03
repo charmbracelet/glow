@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -246,7 +245,7 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 }
 
 func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
-	b, err := ioutil.ReadAll(src.reader)
+	b, err := io.ReadAll(src.reader)
 	if err != nil {
 		return err
 	}
