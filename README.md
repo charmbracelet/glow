@@ -53,8 +53,9 @@ pkg install glow
 # Solus
 eopkg install glow
 
-# Windows (with Scoop)
+# Windows (with Scoop or Chocolatey)
 scoop install glow
+choco install glow
 
 # Android (with termux)
 pkg install glow
