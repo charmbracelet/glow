@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aymanbagabas/go-osc52"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -98,8 +99,10 @@ var (
 					Foreground(fuschia)
 )
 
-type contentRenderedMsg string
-type noteSavedMsg *client.Markdown
+type (
+	contentRenderedMsg string
+	noteSavedMsg       *client.Markdown
+)
 
 type pagerState int
 
@@ -255,6 +258,9 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				if m.viewport.HighPerformanceRendering {
 					cmds = append(cmds, viewport.Sync(m.viewport))
 				}
+			case "c":
+				osc52.Copy(m.currentDocument.Body)
+				cmds = append(cmds, m.showStatusMessage("Copied contents"))
 			case "m":
 				isStashed := m.currentDocument.docType == StashedDoc ||
 					m.currentDocument.docType == ConvertedDoc
@@ -498,7 +504,7 @@ func (m pagerModel) helpView() (s string) {
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
-		"",
+		"c       copy to clipboard",
 		memoOrStash,
 		"esc     back to files",
 		"q       quit",
