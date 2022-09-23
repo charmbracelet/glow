@@ -5,7 +5,6 @@ import (
 	"log"
 	"math"
 	"strings"
-	"time"
 
 	"github.com/aymanbagabas/go-osc52"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -122,8 +121,7 @@ type pagerModel struct {
 	textInput textinput.Model
 	spinner   spinner.Model
 
-	statusMessage      string
-	statusMessageTimer *time.Timer
+	statusMessage string
 
 	// Current document being rendered, sans-glamour rendering. We cache
 	// it here so we can re-render it on resize.
@@ -196,20 +194,12 @@ func (m *pagerModel) showStatusMessage(statusMessage string) tea.Cmd {
 	// Show a success message to the user
 	m.state = pagerStateStatusMessage
 	m.statusMessage = statusMessage
-	if m.statusMessageTimer != nil {
-		m.statusMessageTimer.Stop()
-	}
-	m.statusMessageTimer = time.NewTimer(statusMessageTimeout)
-
-	return waitForStatusMessageTimeout(pagerContext, m.statusMessageTimer)
+	return nil
 }
 
 func (m *pagerModel) unload() {
 	if m.showHelp {
 		m.toggleHelp()
-	}
-	if m.statusMessageTimer != nil {
-		m.statusMessageTimer.Stop()
 	}
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
@@ -226,6 +216,8 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch m.state {
+		case pagerStateStatusMessage:
+			m.state = pagerStateBrowse
 		case pagerStateSetNote:
 			switch msg.String() {
 			case "esc":
@@ -271,12 +263,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 
 				m.state = pagerStateSetNote
-
-				// Stop the timer for hiding a status message since changing
-				// the state above will have cleared it.
-				if m.statusMessageTimer != nil {
-					m.statusMessageTimer.Stop()
-				}
 
 				// Pre-populate note with existing value
 				if m.textInput.Value() == "" {
