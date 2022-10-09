@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/mitchellh/go-homedir"
 )
@@ -30,4 +31,16 @@ func ExpandPath(path string) string {
 		return os.ExpandEnv(s)
 	}
 	return os.ExpandEnv(path)
+}
+
+// Returns a slice containing the pager location/command and its args.
+// Returns the pager location from the environment variable if present, else uses `less -r`.
+func GetPagerCommand(varName string) []string {
+	pagerCmd := os.Getenv(varName)
+	pa := []string{pagerCmd}
+	if pagerCmd == "" {
+		pagerCmd = "less -r"
+		pa = strings.Split(pagerCmd, " ")
+	}
+	return pa
 }

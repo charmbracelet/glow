@@ -2,7 +2,11 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"reflect"
 	"testing"
+
+	"github.com/charmbracelet/glow/utils"
 )
 
 func TestGlowSources(t *testing.T) {
@@ -58,6 +62,40 @@ func TestGlowFlags(t *testing.T) {
 		}
 		if !v.check() {
 			t.Errorf("Parsing flag failed: %s", v.args)
+		}
+	}
+}
+
+func TestPagerCommandValues(t *testing.T) {
+	tt := []struct {
+		pagerEnvVar     string
+		expectedCommand []string
+	}{
+		{
+			pagerEnvVar:     "C:\\Program Files\\Git\\usr\\bin\\less.exe",
+			expectedCommand: []string{"C:\\Program Files\\Git\\usr\\bin\\less.exe"},
+		},
+		{
+			pagerEnvVar:     "usr/local/bin",
+			expectedCommand: []string{"usr/local/bin"},
+		},
+		{
+			pagerEnvVar:     "",
+			expectedCommand: []string{"less", "-r"},
+		},
+		{
+			pagerEnvVar:     "",
+			expectedCommand: []string{"less", "-r"},
+		},
+	}
+
+	for _, v := range tt {
+		pager := "PAGER"
+		os.Setenv(pager, v.pagerEnvVar)
+		os.Setenv("PATH", os.Getenv("PATH")+":"+v.pagerEnvVar)
+		command := utils.GetPagerCommand(pager)
+		if !reflect.DeepEqual(command, v.expectedCommand) {
+			t.Errorf("Expected: %s Actual %s (pagerEnvVar %s)", v.expectedCommand, command, v.pagerEnvVar)
 		}
 	}
 }
