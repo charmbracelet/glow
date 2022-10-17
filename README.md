@@ -61,11 +61,12 @@ choco install glow
 pkg install glow
 
 # Debian/Ubuntu
-echo "deb https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
-curl https://repo.charm.sh/apt/gpg.key | sudo apt-key add -
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
 sudo apt update && sudo apt install glow
 
-# Fedora
+# Fedora/RHEL
 echo '[charm]
 name=Charm
 baseurl=https://repo.charm.sh/yum/
