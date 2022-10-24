@@ -83,16 +83,11 @@ func TestPagerCommandValues(t *testing.T) {
 			pagerEnvVar:     "",
 			expectedCommand: []string{"less", "-r"},
 		},
-		{
-			pagerEnvVar:     "",
-			expectedCommand: []string{"less", "-r"},
-		},
 	}
 
 	for _, v := range tt {
 		pager := "PAGER"
 		os.Setenv(pager, v.pagerEnvVar)
-		os.Setenv("PATH", os.Getenv("PATH")+":"+v.pagerEnvVar)
 		command := utils.GetPagerCommand(pager)
 		if !reflect.DeepEqual(command, v.expectedCommand) {
 			t.Errorf("Expected: %s Actual %s (pagerEnvVar %s)", v.expectedCommand, command, v.pagerEnvVar)
