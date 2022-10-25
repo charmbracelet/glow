@@ -21,10 +21,6 @@ type Config struct {
 	GlamourEnabled       bool   `env:"GLOW_ENABLE_GLAMOUR" default:"true"`
 }
 
-func (c Config) showLocalFiles() bool {
-	return c.DocumentTypes.Contains(LocalDoc)
-}
-
 func (c Config) localOnly() bool {
 	return c.DocumentTypes.Equals(NewDocTypeSet(LocalDoc))
 }

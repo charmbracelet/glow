@@ -3,8 +3,8 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -55,9 +55,11 @@ var (
 
 // MSG
 
-type deletedStashedItemMsg int
-type filteredMarkdownMsg []*markdown
-type fetchedMarkdownMsg *markdown
+type (
+	deletedStashedItemMsg int
+	filteredMarkdownMsg   []*markdown
+	fetchedMarkdownMsg    *markdown
+)
 
 type markdownFetchFailedMsg struct {
 	err  error
@@ -216,15 +218,6 @@ func (m stashModel) stashedOnly() bool {
 
 func (m stashModel) loadingDone() bool {
 	return m.loaded.Equals(m.common.cfg.DocumentTypes.Difference(ConvertedDoc))
-}
-
-func (m stashModel) hasSection(key sectionKey) bool {
-	for _, v := range m.sections {
-		if key == v.key {
-			return true
-		}
-	}
-	return false
 }
 
 func (m stashModel) currentSection() *section {
@@ -741,7 +734,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.setCursor(m.paginator().ItemsOnPage(numDocs) - 1)
 
 		// Clear filter (if applicable)
-		case "esc":
+		case keyEsc:
 			if m.filterApplied() {
 				m.resetFiltering()
 			}
@@ -769,7 +762,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.updatePagination()
 
 		// Open document
-		case "enter":
+		case keyEnter:
 			m.hideStatusMessage()
 
 			if numDocs == 0 {
@@ -971,7 +964,6 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 					}
 
 					switch md.docType {
-
 					case ConvertedDoc:
 						// If the document was stashed in this session, convert it
 						// back to it's original document type
@@ -989,9 +981,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 						if err == nil {
 							m.filteredMarkdowns = mds
 						}
-
 					}
-
 					break
 				}
 			}
@@ -1021,10 +1011,10 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 	// Handle keys
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
-		case "esc":
+		case keyEsc:
 			// Cancel filtering
 			m.resetFiltering()
-		case "enter", "tab", "shift+tab", "ctrl+k", "up", "ctrl+j", "down":
+		case keyEnter, "tab", "shift+tab", "ctrl+k", "up", "ctrl+j", "down":
 			m.hideStatusMessage()
 
 			if len(m.markdowns) == 0 {
@@ -1087,11 +1077,11 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
-		case "esc":
+		case keyEsc:
 			// Cancel note
 			m.noteInput.Reset()
 			m.selectionState = selectionIdle
-		case "enter":
+		case keyEnter:
 			// Set new note
 			md := m.selectedMarkdown()
 
@@ -1235,7 +1225,7 @@ func (m stashModel) headerView() string {
 	stashedCount := m.countMarkdowns(StashedDoc) + m.countMarkdowns(ConvertedDoc)
 	newsCount := m.countMarkdowns(NewsDoc)
 
-	var sections []string
+	var sections []string //nolint:prealloc
 
 	// Filter results
 	if m.filterState == filtering {
@@ -1384,7 +1374,7 @@ func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
 		newMD, err := fetchMarkdown(cc, md.ID, md.docType)
 		if err != nil {
 			if debug {
-				log.Printf("error loading %s markdown (ID %s, Note: '%s'): %v", md.docType, md.ID, md.Note, err)
+				log.Printf("error loading %s markdown (ID %d, Note: '%s'): %v", md.docType, md.ID, md.Note, err)
 			}
 			return markdownFetchFailedMsg{
 				err:  err,
@@ -1406,7 +1396,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 			return errMsg{errors.New("could not load file: missing path")}
 		}
 
-		data, err := ioutil.ReadFile(md.localPath)
+		data, err := os.ReadFile(md.localPath)
 		if err != nil {
 			if debug {
 				log.Println("error reading local markdown:", err)

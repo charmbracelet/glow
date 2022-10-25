@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,7 +23,9 @@ import (
 )
 
 var (
-	Version   = ""
+	// Version as provided by goreleaser.
+	Version = ""
+	// CommitSHA as provided by goreleaser.
 	CommitSHA = ""
 
 	readmeNames  = []string{"README.md", "README"}
@@ -87,6 +88,7 @@ func sourceFromArg(arg string) (*source, error) {
 			if err != nil {
 				return nil, err
 			}
+			defer resp.Body.Close() //nolint:errcheck
 			if resp.StatusCode != http.StatusOK {
 				return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 			}
@@ -198,12 +200,11 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	} else if yes {
 		src := &source{reader: os.Stdin}
-		defer src.reader.Close()
+		defer src.reader.Close() //nolint:errcheck
 		return executeCLI(cmd, src, os.Stdout)
 	}
 
 	switch len(args) {
-
 	// TUI running on cwd
 	case 0:
 		return runTUI("", false)
@@ -239,12 +240,12 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer src.reader.Close()
+	defer src.reader.Close() //nolint:errcheck
 	return executeCLI(cmd, src, w)
 }
 
 func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
-	b, err := ioutil.ReadAll(src.reader)
+	b, err := io.ReadAll(src.reader)
 	if err != nil {
 		return err
 	}
@@ -301,7 +302,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 
 		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...)
+		c := exec.Command(pa[0], pa[1:]...) // nolint:gosec
 		c.Stdin = strings.NewReader(content)
 		c.Stdout = os.Stdout
 		return c.Run()
@@ -324,7 +325,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer f.Close() //nolint:errcheck
 	}
 
 	cfg.WorkingDirectory = workingDirectory
@@ -375,7 +376,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
-	rootCmd.Flags().MarkHidden("mouse")
+	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
