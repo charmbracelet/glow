@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
 	"strings"
+	"path/filepath"
 
 	"github.com/charmbracelet/charm/ui/common"
 	gap "github.com/muesli/go-app-paths"
@@ -54,7 +54,7 @@ var configCmd = &cobra.Command{
 		if _, err := os.Stat(configFile); os.IsNotExist(err) {
 			// File doesn't exist yet, create all necessary directories and
 			// write the default config file
-			if err := os.MkdirAll(path.Dir(configFile), 0o700); err != nil {
+			if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
 				return err
 			}
 
