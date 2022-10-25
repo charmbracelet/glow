@@ -7,6 +7,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
+// RemoveFrontmatter removes the front matter header of a markdown file.
 func RemoveFrontmatter(content []byte) []byte {
 	if frontmatterBoundaries := detectFrontmatter(content); frontmatterBoundaries[0] == 0 {
 		return content[frontmatterBoundaries[1]:]

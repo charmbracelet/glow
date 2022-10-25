@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"strings"
 	"path/filepath"
+	"strings"
 
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
@@ -54,7 +54,7 @@ var configCmd = &cobra.Command{
 		if _, err := os.Stat(configFile); os.IsNotExist(err) {
 			// File doesn't exist yet, create all necessary directories and
 			// write the default config file
-			if err := os.MkdirAll(filepath.Dir(configFile), 0700); err != nil {
+			if err := os.MkdirAll(filepath.Dir(configFile), 0o700); err != nil {
 				return err
 			}
 

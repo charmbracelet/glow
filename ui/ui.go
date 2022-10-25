@@ -3,7 +3,6 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,7 +12,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/keygen"
-	"github.com/charmbracelet/charm/ui/keygen"
 	"github.com/charmbracelet/glow/utils"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
@@ -57,9 +55,9 @@ func NewProgram(cfg Config) *tea.Program {
 	}
 	config = cfg
 	opts := []tea.ProgramOption{tea.WithAltScreen()}
- 	if cfg.EnableMouse {
- 		opts = append(opts, tea.WithMouseCellMotion())
- 	}
+	if cfg.EnableMouse {
+		opts = append(opts, tea.WithMouseCellMotion())
+	}
 	return tea.NewProgram(newModel(cfg), opts...)
 }
 
@@ -77,6 +75,7 @@ type (
 		ch  chan gitcha.SearchResult
 	}
 )
+
 type (
 	foundLocalFileMsg       gitcha.SearchResult
 	localFileSearchFinished struct{}
@@ -662,9 +661,8 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		// then we'll stash it anyway.
 		if len(md.Body) == 0 {
 			switch md.docType {
-
 			case LocalDoc:
-				data, err := ioutil.ReadFile(md.localPath)
+				data, err := os.ReadFile(md.localPath)
 				if err != nil {
 					if debug {
 						log.Println("error loading document body for stashing:", err)

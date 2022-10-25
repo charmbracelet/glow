@@ -1,8 +1,6 @@
 package ui
 
-import (
-	. "github.com/charmbracelet/lipgloss"
-)
+import . "github.com/charmbracelet/lipgloss" //nolint: revive
 
 // Colors.
 var (
@@ -33,6 +31,7 @@ var (
 )
 
 // Ulimately, we'll transition to named styles.
+// nolint:deadcode,unused,varcheck
 var (
 	normalFg    = NewStyle().Foreground(normal).Render
 	dimNormalFg = NewStyle().Foreground(normalDim).Render

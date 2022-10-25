@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -42,8 +42,8 @@ var (
 				return fmt.Errorf("bad filename")
 			}
 
-			defer f.Close()
-			b, err := ioutil.ReadAll(f)
+			defer f.Close() //nolint:errcheck
+			b, err := io.ReadAll(f)
 			if err != nil {
 				return fmt.Errorf("error reading file")
 			}

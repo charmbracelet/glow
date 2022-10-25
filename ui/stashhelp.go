@@ -240,11 +240,9 @@ func (m stashModel) miniHelpView(entries ...string) string {
 }
 
 func (m stashModel) fullHelpView(groups ...[]string) string {
-	var (
-		columns      []helpColumn
-		tallestCol   int
-		renderedCols [][]string // final rows grouped by column
-	)
+	var tallestCol int
+	columns := make([]helpColumn, 0, len(groups))
+	renderedCols := make([][]string, 0, len(groups)) // final rows grouped by column
 
 	// Get key/value pairs
 	for _, g := range groups {

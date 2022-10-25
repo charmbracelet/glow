@@ -98,8 +98,10 @@ var (
 					Foreground(fuschia)
 )
 
-type contentRenderedMsg string
-type noteSavedMsg *charm.Markdown
+type (
+	contentRenderedMsg string
+	noteSavedMsg       *charm.Markdown
+)
 
 type pagerState int
 
@@ -227,10 +229,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		switch m.state {
 		case pagerStateSetNote:
 			switch msg.String() {
-			case "esc":
+			case keyEsc:
 				m.state = pagerStateBrowse
 				return m, nil
-			case "enter":
+			case keyEnter:
 				var cmd tea.Cmd
 				if m.textInput.Value() != m.currentDocument.Note { // don't update if the note didn't change
 					m.currentDocument.Note = m.textInput.Value() // update optimistically
@@ -242,7 +244,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 		default:
 			switch msg.String() {
-			case "q", "esc":
+			case "q", keyEsc:
 				if m.state != pagerStateBrowse {
 					m.state = pagerStateBrowse
 					return m, nil
@@ -416,10 +418,9 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		maxPercent               float64 = 1.0
 		percentToStringMagnitude float64 = 100.0
 	)
-	var (
-		isStashed         bool = m.currentDocument.docType == StashedDoc || m.currentDocument.docType == ConvertedDoc
-		showStatusMessage bool = m.state == pagerStateStatusMessage
-	)
+
+	isStashed := m.currentDocument.docType == StashedDoc || m.currentDocument.docType == ConvertedDoc
+	showStatusMessage := m.state == pagerStateStatusMessage
 
 	// Logo
 	logo := glowLogoView(" Glow ")
