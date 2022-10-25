@@ -20,7 +20,7 @@ Glow is a terminal based markdown reader designed from the ground up to bring
 out the beauty—and power—of the CLI.
 
 Use it to discover markdown files, read documentation directly on the command
-line and stash markdown files to your own private collection so you can read
+line and stash markdown files to your own private collection, so you can read
 them anywhere. Glow will find local markdown files in subdirectories or a local
 Git repository.
 
@@ -77,8 +77,8 @@ sudo yum install glow
 ```
 
 Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
-FreeBSD, and OpenBSD binaries are available, as well as Debian, RPM, and Alpine
-packages. ARM builds are also available for macOS, Linux, FreeBSD, and OpenBSD.
+FreeBSD and OpenBSD binaries are available, as well as Debian, RPM, and Alpine
+packages. ARM builds are also available for macOS, Linux, FreeBSD and OpenBSD.
 
 ### Go
 
