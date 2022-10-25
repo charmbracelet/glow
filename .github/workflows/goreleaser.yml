@@ -28,7 +28,7 @@ jobs:
         if: env.SNAPCRAFT_LOGIN != null
         run: snapcraft login --with <(echo "$SNAPCRAFT_LOGIN")
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v3
         with:
           version: latest
           args: release --snapshot --skip-publish --skip-sign --rm-dist
