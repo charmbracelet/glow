@@ -17,7 +17,7 @@ require (
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68
 	github.com/muesli/termenv v0.8.1
 	github.com/sahilm/fuzzy v0.1.0
-	github.com/segmentio/ksuid v1.0.3
+	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.13.0
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a
