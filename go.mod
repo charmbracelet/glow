@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/glamour v0.2.1-0.20210402234443-abe9cda419ba
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/mattn/go-runewidth v0.0.12
+	github.com/mattn/go-runewidth v0.0.14
 	github.com/meowgorithm/babyenv v1.3.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/gitcha v0.2.0
