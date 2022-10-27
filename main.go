@@ -49,6 +49,8 @@ var (
 	}
 )
 
+const configPathEnvVar = "GLOW_CONFIG_PATH"
+
 // source provides a readable markdown source.
 type source struct {
 	reader io.ReadCloser
@@ -402,13 +404,17 @@ func init() {
 }
 
 func initConfig() {
+	if fromEnv := os.Getenv(configPathEnvVar); fromEnv != "" && configFile == "" {
+		configFile = fromEnv
+	}
+
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
 		scope := gap.NewScope(gap.User, "glow")
 		dirs, err := scope.ConfigDirs()
 		if err != nil {
-			fmt.Println("Can't retrieve default config. Please manually pass a config file with '--config'")
+			fmt.Printf("Can't retrieve default config. Please manually pass a config file with '--config' or set %s environment variable\n", configPathEnvVar)
 			os.Exit(1)
 		}
 

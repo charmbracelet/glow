@@ -30,12 +30,16 @@ var configCmd = &cobra.Command{
 	Hidden:  false,
 	Short:   "Edit the glow config file",
 	Long:    formatBlock(fmt.Sprintf("\n%s the glow config file. We’ll use EDITOR to determine which editor to use. If the config file doesn't exist, it will be created.", common.Keyword("Edit"))),
-	Example: formatBlock("glow config\nglow config --config path/to/config.yml"),
+	Example: formatBlock(fmt.Sprintf("glow config\nglow config --config path/to/config.yml\n%s=path/to/config.yml glow config", configPathEnvVar)),
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		editor := strings.Fields(os.Getenv("EDITOR"))
 		if len(editor) == 0 {
 			return errors.New("no EDITOR environment variable set")
+		}
+
+		if fromEnv := os.Getenv(configPathEnvVar); fromEnv != "" && configFile == "" {
+			configFile = fromEnv
 		}
 
 		if configFile == "" {
