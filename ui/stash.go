@@ -3,8 +3,8 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -1401,7 +1401,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 			return errMsg{errors.New("could not load file: missing path")}
 		}
 
-		data, err := ioutil.ReadFile(md.localPath)
+		data, err := os.ReadFile(md.localPath)
 		if err != nil {
 			if debug {
 				log.Println("error reading local markdown:", err)

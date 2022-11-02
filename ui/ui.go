@@ -3,7 +3,6 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -656,7 +655,7 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 			switch md.docType {
 
 			case LocalDoc:
-				data, err := ioutil.ReadFile(md.localPath)
+				data, err := os.ReadFile(md.localPath)
 				if err != nil {
 					if debug {
 						log.Println("error loading document body for stashing:", err)
