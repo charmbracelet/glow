@@ -159,6 +159,10 @@ func (m stashModel) helpView() (string, int) {
 
 	appHelp = append(appHelp, "q", "quit")
 
+	if m.sections[m.sectionIndex].docTypes.Contains(LocalDoc) {
+		appHelp = append(appHelp, "r", "refresh")
+	}
+
 	// Detailed help
 	if m.showFullHelp {
 		if m.filterState != filtering {

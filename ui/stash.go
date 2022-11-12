@@ -355,6 +355,17 @@ func (m stashModel) selectedMarkdown() *markdown {
 	return mds[i]
 }
 
+func (m *stashModel) clearMarkdownsOfType(doctype DocType) {
+	new := m.markdowns[:0]
+	for _, md := range m.markdowns {
+		if doctype != md.docType {
+			m.markdowns = append(new, md)
+		}
+	}
+	m.markdowns = new
+	m.updatePagination()
+}
+
 // Adds markdown documents to the model.
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
 	if len(mds) > 0 {

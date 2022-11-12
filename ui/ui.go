@@ -264,6 +264,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(batch...)
 			}
 
+		case "r":
+			if m.stash.sections[m.stash.sectionIndex].docTypes.Contains(LocalDoc) {
+				m.stash.clearMarkdownsOfType(LocalDoc)
+				cmds = append(cmds, findLocalFiles(m))
+			}
 		case "q":
 			var cmd tea.Cmd
 
