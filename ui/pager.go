@@ -531,7 +531,7 @@ func (m pagerModel) helpView() (s string) {
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
-		"",
+		"e       edit this document",
 		memoOrStash,
 		"esc     back to files",
 		"q       quit",
