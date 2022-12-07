@@ -36,6 +36,7 @@ var (
 	showAllFiles bool
 	localOnly    bool
 	mouse        bool
+	watchFile    bool
 
 	rootCmd = &cobra.Command{
 		Use:              "glow [SOURCE|DIR]",
@@ -139,6 +140,7 @@ func validateOptions(cmd *cobra.Command) error {
 	// grab config values from Viper
 	width = viper.GetUint("width")
 	localOnly = viper.GetBool("local")
+	watchFile = viper.GetBool("watch")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
 
@@ -331,6 +333,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	cfg.WorkingDirectory = workingDirectory
 	cfg.DocumentTypes = ui.NewDocTypeSet()
 	cfg.ShowAllFiles = showAllFiles
+	cfg.WatchFileChange = watchFile
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
 	cfg.EnableMouse = mouse
@@ -375,6 +378,7 @@ func init() {
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&watchFile, "watch-file", "f", false, "watch for file change of currently displayed file (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
