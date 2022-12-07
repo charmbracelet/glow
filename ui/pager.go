@@ -335,7 +335,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			})
 		}
 		if m.currentDocument.localPath == msg.localPath {
-			cmds = append(cmds, checkFileStatus(m.currentDocument.localPath))
+			cmds = append(cmds, checkFileStatus(m.currentDocument.localPath, m.common.cfg.WatchInterval))
 		}
 
 	case spinner.TickMsg:
@@ -361,7 +361,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	// Glow has rendered the content
 	case contentRenderedMsg:
 		if m.common.cfg.WatchFileChange {
-			cmds = append(cmds, checkFileStatus(m.currentDocument.localPath))
+			cmds = append(cmds, checkFileStatus(m.currentDocument.localPath, m.common.cfg.WatchInterval))
 		}
 		m.setContent(string(msg))
 		if m.viewport.HighPerformanceRendering {
@@ -418,12 +418,15 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func checkFileStatus(path string) tea.Cmd {
+func checkFileStatus(path string, interval uint) tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		if newFileInfo, err := os.Stat(path); err == nil {
 			duration := t.Sub(newFileInfo.ModTime())
 			// changed within the last second
-			return pollFileStatusMsg{localPath: path, changed: duration.Seconds() <= 1}
+			return pollFileStatusMsg{
+				localPath: path,
+				changed:   duration.Seconds() <= float64(interval),
+			}
 		}
 		return pollFileStatusMsg{changed: false, localPath: path}
 	})

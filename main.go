@@ -3,14 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/ui"
@@ -20,6 +12,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 )
 
 var (
@@ -28,15 +27,16 @@ var (
 	// CommitSHA as provided by goreleaser.
 	CommitSHA = ""
 
-	readmeNames  = []string{"README.md", "README"}
-	configFile   string
-	pager        bool
-	style        string
-	width        uint
-	showAllFiles bool
-	localOnly    bool
-	mouse        bool
-	watchFile    bool
+	readmeNames   = []string{"README.md", "README"}
+	configFile    string
+	pager         bool
+	style         string
+	width         uint
+	showAllFiles  bool
+	localOnly     bool
+	mouse         bool
+	watchFile     bool
+	watchInterval uint
 
 	rootCmd = &cobra.Command{
 		Use:              "glow [SOURCE|DIR]",
@@ -141,6 +141,7 @@ func validateOptions(cmd *cobra.Command) error {
 	width = viper.GetUint("width")
 	localOnly = viper.GetBool("local")
 	watchFile = viper.GetBool("watch")
+	watchInterval = viper.GetUint("interval")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
 
@@ -334,6 +335,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	cfg.DocumentTypes = ui.NewDocTypeSet()
 	cfg.ShowAllFiles = showAllFiles
 	cfg.WatchFileChange = watchFile
+	cfg.WatchInterval = watchInterval
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
 	cfg.EnableMouse = mouse
@@ -378,7 +380,8 @@ func init() {
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
-	rootCmd.Flags().BoolVarP(&watchFile, "watch-file", "f", false, "watch for file change of currently displayed file (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&watchFile, "watch", "f", true, "watch for file change of currently displayed file (TUI-mode only)")
+	rootCmd.Flags().UintVarP(&watchInterval, "interval", "i", 1, "watch interval in seconds for file change of currently displayed file (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
@@ -387,6 +390,8 @@ func init() {
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("local", rootCmd.Flags().Lookup("local"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
+	_ = viper.BindPFlag("watch", rootCmd.Flags().Lookup("watch"))
+	_ = viper.BindPFlag("interval", rootCmd.Flags().Lookup("interval"))
 	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("local", "false")

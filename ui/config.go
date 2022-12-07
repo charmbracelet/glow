@@ -9,6 +9,7 @@ type Config struct {
 	GlamourStyle    string
 	EnableMouse     bool
 	WatchFileChange bool
+	WatchInterval   uint
 
 	// Which directory should we start from?
 	WorkingDirectory string
