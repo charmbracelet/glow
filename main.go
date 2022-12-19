@@ -83,12 +83,11 @@ func sourceFromArg(arg string) (*source, error) {
 			if u.Scheme != "http" && u.Scheme != "https" {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
 			}
-
-			resp, err := http.Get(u.String())
+			// consumer of the source is responsible for closing the ReadCloser.
+			resp, err := http.Get(u.String()) // nolint:bodyclose
 			if err != nil {
 				return nil, err
 			}
-			defer resp.Body.Close() //nolint:errcheck
 			if resp.StatusCode != http.StatusOK {
 				return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 			}
