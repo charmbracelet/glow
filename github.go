@@ -30,7 +30,7 @@ func findGitHubREADME(s string) (*source, error) {
 	u.Host = "raw.githubusercontent.com"
 
 	for _, r := range readmeNames {
-		v := u
+		v, _ := url.Parse(u.String())
 		v.Path += "/master/" + r
 
 		// nolint:bodyclose
