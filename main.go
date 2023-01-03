@@ -28,7 +28,7 @@ var (
 	// CommitSHA as provided by goreleaser.
 	CommitSHA = ""
 
-	readmeNames  = []string{"README.md", "README"}
+	readmeNames  = []string{"README.md", "README", "readme.md", "readme"}
 	configFile   string
 	pager        bool
 	style        string
