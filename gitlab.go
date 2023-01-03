@@ -27,9 +27,13 @@ func findGitLabREADME(s string) (*source, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	readmeNamesCombo := make([]string, 0, len(readmeNames)*2)
 	for _, r := range readmeNames {
-		v := u
+		readmeNamesCombo = append(readmeNamesCombo, []string{r, strings.ToLower(r)}...)
+	}
+
+	for _, r := range readmeNamesCombo {
+		v := *u
 		v.Path += "/raw/master/" + r
 
 		// nolint:bodyclose
