@@ -22,5 +22,5 @@ require (
 	github.com/spf13/viper v1.14.0
 	golang.org/x/sys v0.0.0-20220908164124-27713097b956
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
-	golang.org/x/text v0.4.0
+	golang.org/x/text v0.6.0
 )
