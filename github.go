@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -21,27 +23,45 @@ func isGitHubURL(s string) (string, bool) {
 	return u.String(), strings.ToLower(u.Host) == "github.com"
 }
 
-// findGitHubREADME tries to find the correct README filename in a repository.
+// findGitHubREADME finds the correct README filename in a repository using GitHub API.
 func findGitHubREADME(s string) (*source, error) {
-	u, err := url.ParseRequestURI(s)
+	sSplit := strings.Split(s, "/")
+	owner, repo := sSplit[3], sSplit[4]
+
+	type readme struct {
+		DownloadUrl string `json:"download_url"`
+	}
+
+	readmeUrl := "https://api.github.com/repos/" + owner + "/" + repo + "/readme"
+	res, err := http.Get(readmeUrl)
 	if err != nil {
 		return nil, err
 	}
-	u.Host = "raw.githubusercontent.com"
+	if res.Body != nil {
+		defer res.Body.Close()
+	}
 
-	for _, r := range readmeNames {
-		v := u
-		v.Path += "/master/" + r
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 
-		// nolint:bodyclose
-		// it is closed on the caller
-		resp, err := http.Get(v.String())
+	var result readme
+	jsonErr := json.Unmarshal(body, &result)
+	if jsonErr != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == http.StatusOK {
+		resp, err := http.Get(result.DownloadUrl)
 		if err != nil {
-			return nil, err
+			return nil, err;
 		}
-
+		if resp.Body != nil {
+			defer res.Body.Close()
+		}
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, v.String()}, nil
+			return &source{resp.Body, result.DownloadUrl}, nil
 		}
 	}
 
