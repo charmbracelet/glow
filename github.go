@@ -29,11 +29,11 @@ func findGitHubREADME(s string) (*source, error) {
 	owner, repo := sSplit[3], sSplit[4]
 
 	type readme struct {
-		DownloadUrl string `json:"download_url"`
+		DownloadURL string `json:"download_url"`
 	}
 
-	readmeUrl := "https://api.github.com/repos/" + owner + "/" + repo + "/readme"
-	res, err := http.Get(readmeUrl)
+	readmeURL := "https://api.github.com/repos/" + owner + "/" + repo + "/readme"
+	res, err := http.Get(readmeURL)
 	if err != nil {
 		return nil, err
 	}
@@ -53,15 +53,15 @@ func findGitHubREADME(s string) (*source, error) {
 	}
 
 	if res.StatusCode == http.StatusOK {
-		resp, err := http.Get(result.DownloadUrl)
+		resp, err := http.Get(result.DownloadURL)
 		if err != nil {
-			return nil, err;
+			return nil, err
 		}
 		if resp.Body != nil {
-			defer res.Body.Close()
+			defer resp.Body.Close()
 		}
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, result.DownloadUrl}, nil
+			return &source{resp.Body, result.DownloadURL}, nil
 		}
 	}
 
