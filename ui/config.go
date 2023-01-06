@@ -7,6 +7,7 @@ type Config struct {
 	HomeDir         string `env:"HOME"`
 	GlamourMaxWidth uint
 	GlamourStyle    string
+	EnableMouse     bool
 
 	// Which directory should we start from?
 	WorkingDirectory string
@@ -18,10 +19,6 @@ type Config struct {
 	Logfile              string `env:"GLOW_LOGFILE"`
 	HighPerformancePager bool   `env:"GLOW_HIGH_PERFORMANCE_PAGER" default:"true"`
 	GlamourEnabled       bool   `env:"GLOW_ENABLE_GLAMOUR" default:"true"`
-}
-
-func (c Config) showLocalFiles() bool {
-	return c.DocumentTypes.Contains(LocalDoc)
 }
 
 func (c Config) localOnly() bool {

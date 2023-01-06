@@ -33,6 +33,8 @@ func findGitHubREADME(s string) (*source, error) {
 		v := u
 		v.Path += "/master/" + r
 
+		// nolint:bodyclose
+		// it is closed on the caller
 		resp, err := http.Get(v.String())
 		if err != nil {
 			return nil, err

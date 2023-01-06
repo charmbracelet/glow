@@ -1,95 +1,14 @@
-env:
-  - GO111MODULE=on
-  - CGO_ENABLED=0
-before:
-  hooks:
-    - go mod tidy
-builds:
-  -
-    binary: glow
-    ldflags: -s -w -X main.Version={{ .Version }} -X main.CommitSHA={{ .Commit }}
-    goos:
-      - linux
-      - freebsd
-      - openbsd
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
-      - 386
-      - arm
-    goarm:
-      - 6
-      - 7
+includes:
+  - from_url:
+      url: charmbracelet/meta/main/goreleaser-glow.yaml
 
-archives:
-  -
-    builds:
-      - glow
-    format_overrides:
-      - goos: windows
-        format: zip
-    replacements:
-      windows: Windows
-      darwin: Darwin
-      386: i386
-      amd64: x86_64
+variables:
+  main: "."
+  binary_name: glow
+  description: "Render markdown on the CLI, with pizzazz! 💅🏻"
+  github_url: "https://github.com/charmbracelet/soft-serve"
+  maintainer: "Christian Muehlhaeuser <muesli@charm.sh>"
+  brew_commit_author_name: "Christian Muehlhaeuser"
+  brew_commit_author_email: "muesli@charm.sh"
 
-nfpms:
-  -
-    vendor: charmbracelet
-    homepage: "https://charm.sh/"
-    maintainer: "Christian Muehlhaeuser <muesli@gmail.com>"
-    description: "Render markdown on the CLI"
-    license: MIT
-    formats:
-      - apk
-      - deb
-      - rpm
-    bindir: /usr/bin
-
-brews:
-  - goarm: 6
-    tap:
-      owner: charmbracelet
-      name: homebrew-tap
-    commit_author:
-      name: "Christian Muehlhaeuser"
-      email: "muesli@gmail.com"
-    homepage: "https://charm.sh/"
-    description: "Render markdown on the CLI"
-    # skip_upload: true
-
-snapcrafts:
-  -
-    name: glow
-    publish: true
-    summary: Render markdown on the CLI, with pizzazz!
-    description: |
-      Glow is a terminal based markdown reader designed from the ground up to bring out the beauty—and power—of the CLI.
-      Use it to discover markdown files, read documentation directly on the command line and stash markdown files to your own private collection so you can read them anywhere. Glow will find local markdown files in subdirectories or a local Git repository.
-      By the way, all data stashed is encrypted end-to-end: only you can decrypt it. More on that below.
-
-    grade: stable
-    confinement: strict
-    license: MIT
-    base: core20
-
-    apps:
-      glow:
-        plugs: ["home", "network"]
-
-signs:
-  - artifacts: checksum
-
-checksum:
-  name_template: "checksums.txt"
-snapshot:
-  name_template: "{{ .Tag }}-next"
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
