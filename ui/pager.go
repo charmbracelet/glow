@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aymanbagabas/go-osc52"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -289,6 +290,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					return m, openEditor(m.currentDocument.localPath)
 				}
 
+			case "c":
+				osc52.Copy(m.currentDocument.Body)
+				cmds = append(cmds, m.showStatusMessage("Copied contents"))
+
 			case "s":
 				if m.common.authStatus != authOK {
 					break
@@ -532,6 +537,7 @@ func (m pagerModel) helpView() (s string) {
 		"g/home  go to top",
 		"G/end   go to bottom",
 		"e       edit this document",
+		"c       copy contents",
 		memoOrStash,
 		"esc     back to files",
 		"q       quit",
