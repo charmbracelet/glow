@@ -2,27 +2,27 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/charmbracelet/charm"
-	"github.com/charmbracelet/charm/ui/common"
-	"github.com/muesli/termenv"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 )
 
 var (
 	memo string
+	dot  = lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575")).Render("•")
 
 	stashCmd = &cobra.Command{
 		Use:     "stash [SOURCE]",
 		Hidden:  false,
 		Short:   "Stash a markdown",
-		Long:    formatBlock(fmt.Sprintf("\nDo %s stuff. Run with no arguments to browse your stash or pass a path to a markdown file to stash it.", common.Keyword("stash"))),
-		Example: formatBlock("glow stash\nglow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
+		Long:    paragraph(fmt.Sprintf("\nDo %s stuff. Run with no arguments to browse your stash or pass a path to a markdown file to stash it.", keyword("stash"))),
+		Example: paragraph("glow stash\nglow stash README.md\nglow stash -m \"secret notes\" path/to/notes.md"),
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			initConfig()
@@ -42,8 +42,8 @@ var (
 				return fmt.Errorf("bad filename")
 			}
 
-			defer f.Close()
-			b, err := ioutil.ReadAll(f)
+			defer f.Close() //nolint:errcheck
+			b, err := io.ReadAll(f)
 			if err != nil {
 				return fmt.Errorf("error reading file")
 			}
@@ -53,7 +53,6 @@ var (
 				return fmt.Errorf("error stashing markdown")
 			}
 
-			dot := termenv.String("•").Foreground(common.Green.Color()).String()
 			fmt.Println(dot + " Stashed!")
 			return nil
 		},
@@ -73,7 +72,7 @@ func initCharmClient() *charm.Client {
 	cfg := getCharmConfig()
 	cc, err := charm.NewClient(cfg)
 	if err == charm.ErrMissingSSHAuth {
-		fmt.Println(formatBlock("We had some trouble authenticating via SSH. If this continues to happen the Charm tool may be able to help you. More info at https://github.com/charmbracelet/charm."))
+		fmt.Println(paragraph("We had some trouble authenticating via SSH. If this continues to happen the Charm tool may be able to help you. More info at https://github.com/charmbracelet/charm."))
 		os.Exit(1)
 	} else if err != nil {
 		fmt.Println(err)

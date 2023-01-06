@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,21 +11,21 @@ import (
 	"path/filepath"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glow/ui"
+	"github.com/charmbracelet/glow/utils"
 	"github.com/meowgorithm/babyenv"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
-
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/charm/ui/common"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glow/ui"
-	"github.com/charmbracelet/glow/utils"
 )
 
 var (
-	Version   = ""
+	// Version as provided by goreleaser.
+	Version = ""
+	// CommitSHA as provided by goreleaser.
 	CommitSHA = ""
 
 	readmeNames  = []string{"README.md", "README"}
@@ -41,7 +40,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:              "glow [SOURCE|DIR]",
 		Short:            "Render markdown on the CLI, with pizzazz!",
-		Long:             formatBlock(fmt.Sprintf("\nRender markdown on the CLI, %s!", common.Keyword("with pizzazz"))),
+		Long:             paragraph(fmt.Sprintf("\nRender markdown on the CLI, %s!", keyword("with pizzazz"))),
 		SilenceErrors:    false,
 		SilenceUsage:     false,
 		TraverseChildren: true,
@@ -84,8 +83,8 @@ func sourceFromArg(arg string) (*source, error) {
 			if u.Scheme != "http" && u.Scheme != "https" {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
 			}
-
-			resp, err := http.Get(u.String())
+			// consumer of the source is responsible for closing the ReadCloser.
+			resp, err := http.Get(u.String()) // nolint:bodyclose
 			if err != nil {
 				return nil, err
 			}
@@ -200,12 +199,11 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	} else if yes {
 		src := &source{reader: os.Stdin}
-		defer src.reader.Close()
+		defer src.reader.Close() //nolint:errcheck
 		return executeCLI(cmd, src, os.Stdout)
 	}
 
 	switch len(args) {
-
 	// TUI running on cwd
 	case 0:
 		return runTUI("", false)
@@ -241,12 +239,12 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer src.reader.Close()
+	defer src.reader.Close() //nolint:errcheck
 	return executeCLI(cmd, src, w)
 }
 
 func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
-	b, err := ioutil.ReadAll(src.reader)
+	b, err := io.ReadAll(src.reader)
 	if err != nil {
 		return err
 	}
@@ -321,7 +319,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer f.Close() //nolint:errcheck
 	}
 
 	cfg.WorkingDirectory = workingDirectory
@@ -329,6 +327,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	cfg.ShowAllFiles = showAllFiles
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
+	cfg.EnableMouse = mouse
 
 	if stashedOnly {
 		cfg.DocumentTypes.Add(ui.StashedDoc, ui.NewsDoc)
@@ -337,14 +336,7 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	}
 
 	// Run Bubble Tea program
-	p := ui.NewProgram(cfg)
-	p.EnterAltScreen()
-	defer p.ExitAltScreen()
-	if mouse {
-		p.EnableMouseCellMotion()
-		defer p.DisableMouseCellMotion()
-	}
-	if err := p.Start(); err != nil {
+	if _, err := ui.NewProgram(cfg).Run(); err != nil {
 		return err
 	}
 
@@ -378,7 +370,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
-	rootCmd.Flags().MarkHidden("mouse")
+	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))

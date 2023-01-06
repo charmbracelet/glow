@@ -20,7 +20,7 @@ Glow is a terminal based markdown reader designed from the ground up to bring
 out the beauty—and power—of the CLI.
 
 Use it to discover markdown files, read documentation directly on the command
-line and stash markdown files to your own private collection so you can read
+line and stash markdown files to your own private collection, so you can read
 them anywhere. Glow will find local markdown files in subdirectories or a local
 Git repository.
 
@@ -61,11 +61,12 @@ choco install glow
 pkg install glow
 
 # Debian/Ubuntu
-echo "deb https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
-curl https://repo.charm.sh/apt/gpg.key | sudo apt-key add -
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
 sudo apt update && sudo apt install glow
 
-# Fedora
+# Fedora/RHEL
 echo '[charm]
 name=Charm
 baseurl=https://repo.charm.sh/yum/
@@ -76,8 +77,8 @@ sudo yum install glow
 ```
 
 Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
-FreeBSD, and OpenBSD binaries are available, as well as Debian, RPM, and Alpine
-packages. ARM builds are also available for macOS, Linux, FreeBSD, and OpenBSD.
+FreeBSD and OpenBSD binaries are available, as well as Debian, RPM, and Alpine
+packages. ARM builds are also available for macOS, Linux, FreeBSD and OpenBSD.
 
 ### Go
 
@@ -222,15 +223,22 @@ machine and not our server, so we never see any unencrypted data.
 
 [charmlib]: https://github.com/charmbracelet/charm
 
+## Feedback
+
+We’d love to hear your thoughts on this project. Feel free to drop us a note!
+
+* [Twitter](https://twitter.com/charmcli)
+* [The Fediverse](https://mastodon.social/@charmcli)
+* [Discord](https://charm.sh/chat)
+
 ## License
 
 [MIT](https://github.com/charmbracelet/glow/raw/master/LICENSE)
 
-* * *
+***
 
 Part of [Charm](https://charm.sh).
 
-<a href="https://charm.sh/"><img alt="The Charm logo" src="https://stuff.charm.sh/charm-badge-unrounded.jpg" width="400"></a>
+<a href="https://charm.sh/"><img alt="The Charm logo" src="https://stuff.charm.sh/charm-badge.jpg" width="400"></a>
 
 Charm热爱开源 • Charm loves open source
-

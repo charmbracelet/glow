@@ -168,8 +168,7 @@ func wrapMarkdowns(t DocType, md []*charm.Markdown) (m []*markdown) {
 // Return the time in a human-readable format relative to the current time.
 func relativeTime(then time.Time) string {
 	now := time.Now()
-	ago := now.Sub(then)
-	if ago < time.Minute {
+	if ago := now.Sub(then); ago < time.Minute {
 		return "just now"
 	} else if ago < humanize.Week {
 		return humanize.CustomRelTime(then, now, "ago", "from now", magnitudes)

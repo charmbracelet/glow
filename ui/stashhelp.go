@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/muesli/reflow/ansi"
 )
 
@@ -195,7 +194,7 @@ func (m stashModel) miniHelpView(entries ...string) string {
 	}
 
 	var (
-		truncationChar  = lib.Subtle("…")
+		truncationChar  = subtleStyle.Render("…")
 		truncationWidth = ansi.PrintableRuneWidth(truncationChar)
 	)
 
@@ -241,11 +240,9 @@ func (m stashModel) miniHelpView(entries ...string) string {
 }
 
 func (m stashModel) fullHelpView(groups ...[]string) string {
-	var (
-		columns      []helpColumn
-		tallestCol   int
-		renderedCols [][]string // final rows grouped by column
-	)
+	var tallestCol int
+	columns := make([]helpColumn, 0, len(groups))
+	renderedCols := make([][]string, 0, len(groups)) // final rows grouped by column
 
 	// Get key/value pairs
 	for _, g := range groups {

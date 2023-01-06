@@ -3,19 +3,15 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/charm/keygen"
-	"github.com/charmbracelet/charm/ui/common"
-	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glow/utils"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
@@ -26,11 +22,16 @@ const (
 	noteCharacterLimit   = 256             // should match server
 	statusMessageTimeout = time.Second * 2 // how long to show status messages like "stashed!"
 	ellipsis             = "…"
+
+	// Only show the spinner if it spins for at least this amount of time.
+	spinnerVisibilityTimeout = time.Millisecond * 140
+
+	// Minimum amount of time the spinner should be visible once it starts.
+	spinnerMinLifetime = time.Millisecond * 550
 )
 
 var (
-	config            Config
-	glowLogoTextColor = lib.Color("#ECFD65")
+	config Config
 
 	markdownExtensions = []string{
 		"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown",
@@ -53,33 +54,42 @@ func NewProgram(cfg Config) *tea.Program {
 		debug = true
 	}
 	config = cfg
-	return tea.NewProgram(newModel(cfg))
+	opts := []tea.ProgramOption{tea.WithAltScreen()}
+	if cfg.EnableMouse {
+		opts = append(opts, tea.WithMouseCellMotion())
+	}
+	return tea.NewProgram(newModel(cfg), opts...)
 }
 
 type errMsg struct{ err error }
 
 func (e errMsg) Error() string { return e.err.Error() }
 
-type newCharmClientMsg *charm.Client
-type sshAuthErrMsg struct{}
-type keygenFailedMsg struct{ err error }
-type keygenSuccessMsg struct{}
-type initLocalFileSearchMsg struct {
-	cwd string
-	ch  chan gitcha.SearchResult
-}
-type foundLocalFileMsg gitcha.SearchResult
-type localFileSearchFinished struct{}
-type gotStashMsg []*charm.Markdown
-type stashLoadErrMsg struct{ err error }
-type gotNewsMsg []*charm.Markdown
-type statusMessageTimeoutMsg applicationContext
-type newsLoadErrMsg struct{ err error }
-type stashSuccessMsg markdown
-type stashFailMsg struct {
-	err      error
-	markdown markdown
-}
+type (
+	newCharmClientMsg      *charm.Client
+	sshAuthErrMsg          struct{}
+	keygenFailedMsg        struct{ err error }
+	keygenSuccessMsg       struct{}
+	initLocalFileSearchMsg struct {
+		cwd string
+		ch  chan gitcha.SearchResult
+	}
+)
+
+type (
+	foundLocalFileMsg       gitcha.SearchResult
+	localFileSearchFinished struct{}
+	gotStashMsg             []*charm.Markdown
+	stashLoadErrMsg         struct{ err error }
+	gotNewsMsg              []*charm.Markdown
+	statusMessageTimeoutMsg applicationContext
+	newsLoadErrMsg          struct{ err error }
+	stashSuccessMsg         markdown
+	stashFailMsg            struct {
+		err      error
+		markdown markdown
+	}
+)
 
 // applicationContext indicates the area of the application something appies
 // to. Occasionally used as an argument to commands and messages.
@@ -182,8 +192,8 @@ func (m *model) unloadDocument() []tea.Cmd {
 		batch = append(batch, tea.ClearScrollArea)
 	}
 
-	if !m.stash.loadingDone() {
-		batch = append(batch, spinner.Tick)
+	if !m.stash.shouldSpin() {
+		batch = append(batch, m.stash.spinner.Tick)
 	}
 	return batch
 }
@@ -224,7 +234,7 @@ func (m model) Init() tea.Cmd {
 	if d.Contains(StashedDoc) || d.Contains(NewsDoc) {
 		cmds = append(cmds,
 			newCharmClient,
-			spinner.Tick,
+			m.stash.spinner.Tick,
 		)
 	}
 
@@ -455,12 +465,9 @@ func errorView(err error, fatal bool) string {
 		exitMsg += "return"
 	}
 	s := fmt.Sprintf("%s\n\n%v\n\n%s",
-		te.String(" ERROR ").
-			Foreground(lib.Cream.Color()).
-			Background(lib.Red.Color()).
-			String(),
+		errorTitleStyle.Render("ERROR"),
 		err,
-		common.Subtle(exitMsg),
+		subtleStyle.Render(exitMsg),
 	)
 	return "\n" + indent(s, 3)
 }
@@ -654,9 +661,8 @@ func stashDocument(cc *charm.Client, md markdown) tea.Cmd {
 		// then we'll stash it anyway.
 		if len(md.Body) == 0 {
 			switch md.docType {
-
 			case LocalDoc:
-				data, err := ioutil.ReadFile(md.localPath)
+				data, err := os.ReadFile(md.localPath)
 				if err != nil {
 					if debug {
 						log.Println("error loading document body for stashing:", err)

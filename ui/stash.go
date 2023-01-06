@@ -3,8 +3,8 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -14,10 +14,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
-	lib "github.com/charmbracelet/charm/ui/common"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
-	te "github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
 )
 
@@ -30,22 +29,37 @@ const (
 )
 
 var (
-	stashedStatusMessage        = statusMessage{normalStatusMessage, "Stashed!"}
+	stashingStatusMessage       = statusMessage{normalStatusMessage, "Stashing..."}
 	alreadyStashedStatusMessage = statusMessage{subtleStatusMessage, "Already stashed"}
 )
 
 var (
-	stashTextInputPromptStyle styleFunc = newFgStyle(lib.YellowGreen)
-	dividerDot                string    = darkGrayFg(" • ")
-	dividerBar                string    = darkGrayFg(" │ ")
-	offlineHeaderNote         string    = darkGrayFg("(Offline)")
+	dividerDot        = darkGrayFg(" • ")
+	dividerBar        = darkGrayFg(" │ ")
+	offlineHeaderNote = darkGrayFg("(Offline)")
+
+	logoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#ECFD65")).
+			Background(fuschia).
+			Bold(true)
+
+	stashSpinnerStyle = lipgloss.NewStyle().
+				Foreground(gray)
+	stashInputPromptStyle = lipgloss.NewStyle().
+				Foreground(yellowGreen).
+				MarginRight(1)
+	stashInputCursorStyle = lipgloss.NewStyle().
+				Foreground(fuschia).
+				MarginRight(1)
 )
 
 // MSG
 
-type deletedStashedItemMsg int
-type filteredMarkdownMsg []*markdown
-type fetchedMarkdownMsg *markdown
+type (
+	deletedStashedItemMsg int
+	filteredMarkdownMsg   []*markdown
+	fetchedMarkdownMsg    *markdown
+)
 
 type markdownFetchFailedMsg struct {
 	err  error
@@ -206,15 +220,6 @@ func (m stashModel) loadingDone() bool {
 	return m.loaded.Equals(m.common.cfg.DocumentTypes.Difference(ConvertedDoc))
 }
 
-func (m stashModel) hasSection(key sectionKey) bool {
-	for _, v := range m.sections {
-		if key == v.key {
-			return true
-		}
-	}
-	return false
-}
-
 func (m stashModel) currentSection() *section {
 	return &m.sections[m.sectionIndex]
 }
@@ -239,6 +244,14 @@ func (m *stashModel) setCursor(i int) {
 // disabled and we've authenticated successfully.
 func (m stashModel) online() bool {
 	return !m.localOnly() && m.common.authStatus == authOK
+}
+
+// Whether or not the spinner should be spinning.
+func (m stashModel) shouldSpin() bool {
+	loading := !m.loadingDone()
+	stashing := m.common.isStashing()
+	openingDocument := m.viewState == stashStateLoadingDocument
+	return loading || stashing || openingDocument
 }
 
 func (m *stashModel) setSize(width, height int) {
@@ -432,7 +445,7 @@ func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
 		cmd = loadRemoteMarkdown(m.common.cc, md)
 	}
 
-	return tea.Batch(cmd, spinner.Tick)
+	return tea.Batch(cmd, m.spinner.Tick)
 }
 
 func (m *stashModel) newStatusMessage(sm statusMessage) tea.Cmd {
@@ -497,22 +510,21 @@ func (m *stashModel) moveCursorDown() {
 // INIT
 
 func newStashModel(common *commonModel) stashModel {
-	sp := spinner.NewModel()
+	sp := spinner.New()
 	sp.Spinner = spinner.Line
-	sp.ForegroundColor = lib.SpinnerColor.String()
-	sp.HideFor = time.Millisecond * 100
-	sp.MinimumLifetime = time.Millisecond * 180
-	sp.Start()
+	sp.Style = stashSpinnerStyle
 
-	ni := textinput.NewModel()
-	ni.Prompt = stashTextInputPromptStyle("Memo: ")
-	ni.CursorColor = lib.Fuschia.String()
+	ni := textinput.New()
+	ni.Prompt = "Memo:"
+	ni.PromptStyle = stashInputPromptStyle
+	ni.CursorStyle = stashInputCursorStyle
 	ni.CharLimit = noteCharacterLimit
 	ni.Focus()
 
-	si := textinput.NewModel()
-	si.Prompt = stashTextInputPromptStyle("Find: ")
-	si.CursorColor = lib.Fuschia.String()
+	si := textinput.New()
+	si.Prompt = "Find:"
+	si.PromptStyle = stashInputPromptStyle
+	si.CursorStyle = stashInputCursorStyle
 	si.CharLimit = noteCharacterLimit
 	si.Focus()
 
@@ -633,14 +645,9 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		return m, nil
 
 	case spinner.TickMsg:
-		loading := !m.loadingDone()
-		stashing := m.common.isStashing()
-		openingDocument := m.viewState == stashStateLoadingDocument
-		spinnerVisible := m.spinner.Visible()
-
-		if loading || stashing || openingDocument || spinnerVisible {
-			newSpinnerModel, cmd := m.spinner.Update(msg)
-			m.spinner = newSpinnerModel
+		if m.shouldSpin() {
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 
@@ -653,10 +660,9 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 			}
 		}
 
-	// Note: mechanical stuff related to stash success is handled in the parent
-	// update function.
 	case stashSuccessMsg:
-		m.spinner.Finish()
+		// No-op: mechanical stuff related to stash success is handled in the
+		// parent update function.
 
 	// Note: mechanical stuff related to stash failure is handled in the parent
 	// update function.
@@ -728,7 +734,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.setCursor(m.paginator().ItemsOnPage(numDocs) - 1)
 
 		// Clear filter (if applicable)
-		case "esc":
+		case keyEsc:
 			if m.filterApplied() {
 				m.resetFiltering()
 			}
@@ -755,8 +761,20 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 			m.updatePagination()
 
+		// Edit document in EDITOR
+		case "e":
+			md := m.selectedMarkdown()
+			if md == nil {
+				break
+			}
+			file := m.selectedMarkdown().localPath
+			if file == "" {
+				break
+			}
+			return openEditor(file)
+
 		// Open document
-		case "enter":
+		case keyEnter:
 			m.hideStatusMessage()
 
 			if numDocs == 0 {
@@ -834,14 +852,13 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				break
 			}
 
-			// Checks passed; perform the stash. Note that we optimistically
-			// show the status message.
+			// Checks passed; perform the stash.
 			m.common.filesStashed[md.stashID] = struct{}{}
 			m.common.filesStashing[md.stashID] = struct{}{}
 			m.common.latestFileStashed = md.stashID
 			cmds = append(cmds,
 				stashDocument(m.common.cc, *md),
-				m.newStatusMessage(stashedStatusMessage),
+				m.newStatusMessage(stashingStatusMessage),
 			)
 
 			// If we're stashing a filtered item, optimistically convert the
@@ -856,12 +873,9 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 			// The spinner subtly shows the stash state in a non-optimistic
 			// fashion, namely because it was originally implemented this way.
-			// If this stash succeeds quickly enough, the spinner won't run
-			// at all.
-			if m.loadingDone() && !m.spinner.Visible() {
-				m.spinner.Start()
-				cmds = append(cmds, spinner.Tick)
-			}
+			// Ideally, if this stash succeeds quickly enough, the spinner
+			// wouldn't run at all.
+			cmds = append(cmds, m.spinner.Tick)
 
 		// Prompt for deletion
 		case "x":
@@ -962,7 +976,6 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 					}
 
 					switch md.docType {
-
 					case ConvertedDoc:
 						// If the document was stashed in this session, convert it
 						// back to it's original document type
@@ -980,9 +993,7 @@ func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
 						if err == nil {
 							m.filteredMarkdowns = mds
 						}
-
 					}
-
 					break
 				}
 			}
@@ -1012,10 +1023,10 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 	// Handle keys
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
-		case "esc":
+		case keyEsc:
 			// Cancel filtering
 			m.resetFiltering()
-		case "enter", "tab", "shift+tab", "ctrl+k", "up", "ctrl+j", "down":
+		case keyEnter, "tab", "shift+tab", "ctrl+k", "up", "ctrl+j", "down":
 			m.hideStatusMessage()
 
 			if len(m.markdowns) == 0 {
@@ -1078,11 +1089,11 @@ func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
 
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
-		case "esc":
+		case keyEsc:
 			// Cancel note
 			m.noteInput.Reset()
 			m.selectionState = selectionIdle
-		case "enter":
+		case keyEnter:
 			// Set new note
 			md := m.selectedMarkdown()
 
@@ -1132,7 +1143,7 @@ func (m stashModel) view() string {
 	case stashStateReady:
 
 		loadingIndicator := " "
-		if !m.loadingDone() || m.spinner.Visible() {
+		if m.shouldSpin() {
 			loadingIndicator = m.spinner.View()
 		}
 
@@ -1195,7 +1206,7 @@ func (m stashModel) view() string {
 				// pointers in our model should be refactored away.
 				var p paginator.Model = *(m.paginator())
 				p.Type = paginator.Arabic
-				pagination = lib.Subtle(p.View())
+				pagination = paginationStyle.Render(p.View())
 			}
 
 			// We could also look at m.stashFullyLoaded and add an indicator
@@ -1218,11 +1229,7 @@ func (m stashModel) view() string {
 }
 
 func glowLogoView(text string) string {
-	return te.String(text).
-		Bold().
-		Foreground(glowLogoTextColor).
-		Background(lib.Fuschia.Color()).
-		String()
+	return logoStyle.Render(text)
 }
 
 func (m stashModel) headerView() string {
@@ -1230,7 +1237,7 @@ func (m stashModel) headerView() string {
 	stashedCount := m.countMarkdowns(StashedDoc) + m.countMarkdowns(ConvertedDoc)
 	newsCount := m.countMarkdowns(NewsDoc)
 
-	var sections []string
+	var sections []string //nolint:prealloc
 
 	// Filter results
 	if m.filterState == filtering {
@@ -1258,9 +1265,9 @@ func (m stashModel) headerView() string {
 		}
 
 		if m.stashedOnly() {
-			return lib.Subtle("Can’t load stash") + maybeOffline
+			return subtleStyle.Render("Can’t load stash") + maybeOffline
 		}
-		return lib.Subtle("No markdown files found") + maybeOffline
+		return subtleStyle.Render("No markdown files found") + maybeOffline
 	}
 
 	// Tabs
@@ -1288,9 +1295,9 @@ func (m stashModel) headerView() string {
 		}
 
 		if m.sectionIndex == i && len(m.sections) > 1 {
-			s = selectedTabColor(s)
+			s = selectedTabStyle.Render(s)
 		} else {
-			s = tabColor(s)
+			s = tabStyle.Render(s)
 		}
 		sections = append(sections, s)
 	}
@@ -1401,7 +1408,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 			return errMsg{errors.New("could not load file: missing path")}
 		}
 
-		data, err := ioutil.ReadFile(md.localPath)
+		data, err := os.ReadFile(md.localPath)
 		if err != nil {
 			if debug {
 				log.Println("error reading local markdown:", err)

@@ -12,12 +12,11 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm"
-	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/lipgloss"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
-	te "github.com/muesli/termenv"
 )
 
 const statusBarHeight = 1
@@ -25,31 +24,84 @@ const statusBarHeight = 1
 var (
 	pagerHelpHeight int
 
-	mintGreen = lib.NewColorPair("#89F0CB", "#89F0CB")
-	darkGreen = lib.NewColorPair("#1C8760", "#1C8760")
+	mintGreen = lipgloss.AdaptiveColor{Light: "#89F0CB", Dark: "#89F0CB"}
+	darkGreen = lipgloss.AdaptiveColor{Light: "#1C8760", Dark: "#1C8760"}
 
-	noteHeading = te.String(" Set Memo ").
-			Foreground(lib.Cream.Color()).
-			Background(lib.Green.Color()).
-			String()
+	noteHeading = lipgloss.NewStyle().
+			Foreground(cream).
+			Background(green).
+			Padding(0, 1).
+			Render("Set Memo")
 
-	statusBarNoteFg = lib.NewColorPair("#7D7D7D", "#656565")
-	statusBarBg     = lib.NewColorPair("#242424", "#E6E6E6")
+	statusBarNoteFg = lipgloss.AdaptiveColor{Light: "#656565", Dark: "#7D7D7D"}
+	statusBarBg     = lipgloss.AdaptiveColor{Light: "#E6E6E6", Dark: "#242424"}
 
-	// Styling funcs.
-	statusBarScrollPosStyle        = newStyle(lib.NewColorPair("#5A5A5A", "#949494"), statusBarBg, false)
-	statusBarNoteStyle             = newStyle(statusBarNoteFg, statusBarBg, false)
-	statusBarHelpStyle             = newStyle(statusBarNoteFg, lib.NewColorPair("#323232", "#DCDCDC"), false)
-	statusBarStashDotStyle         = newStyle(lib.Green, statusBarBg, false)
-	statusBarMessageStyle          = newStyle(mintGreen, darkGreen, false)
-	statusBarMessageStashIconStyle = newStyle(mintGreen, darkGreen, false)
-	statusBarMessageScrollPosStyle = newStyle(mintGreen, darkGreen, false)
-	statusBarMessageHelpStyle      = newStyle(lib.NewColorPair("#B6FFE4", "#B6FFE4"), lib.Green, false)
-	helpViewStyle                  = newStyle(statusBarNoteFg, lib.NewColorPair("#1B1B1B", "#f2f2f2"), false)
+	statusBarScrollPosStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.AdaptiveColor{Light: "#949494", Dark: "#5A5A5A"}).
+				Background(statusBarBg).
+				Render
+
+	statusBarNoteStyle = lipgloss.NewStyle().
+				Foreground(statusBarNoteFg).
+				Background(statusBarBg).
+				Render
+
+	statusBarHelpStyle = lipgloss.NewStyle().
+				Foreground(statusBarNoteFg).
+				Background(lipgloss.AdaptiveColor{Light: "#DCDCDC", Dark: "#323232"}).
+				Render
+
+	statusBarStashDotStyle = lipgloss.NewStyle().
+				Foreground(green).
+				Background(statusBarBg).
+				Render
+
+	statusBarMessageStyle = lipgloss.NewStyle().
+				Foreground(mintGreen).
+				Background(darkGreen).
+				Render
+
+	statusBarMessageStashIconStyle = lipgloss.NewStyle().
+					Foreground(mintGreen).
+					Background(darkGreen).
+					Render
+
+	statusBarMessageScrollPosStyle = lipgloss.NewStyle().
+					Foreground(mintGreen).
+					Background(darkGreen).
+					Render
+
+	statusBarMessageHelpStyle = lipgloss.NewStyle().
+					Foreground(lipgloss.Color("#B6FFE4")).
+					Background(green).
+					Render
+
+	helpViewStyle = lipgloss.NewStyle().
+			Foreground(statusBarNoteFg).
+			Background(lipgloss.AdaptiveColor{Light: "#f2f2f2", Dark: "#1B1B1B"}).
+			Render
+
+	spinnerStyle = lipgloss.NewStyle().
+			Foreground(statusBarNoteFg).
+			Background(statusBarBg)
+
+	pagerNoteInputPromptStyle = lipgloss.NewStyle().
+					Foreground(darkGray).
+					Background(yellowGreen).
+					Padding(0, 1)
+
+	pagerNoteInputStyle = lipgloss.NewStyle().
+				Foreground(darkGray).
+				Background(yellowGreen)
+
+	pagerNoteInputCursorStyle = lipgloss.NewStyle().
+					Foreground(fuschia)
 )
 
-type contentRenderedMsg string
-type noteSavedMsg *charm.Markdown
+type (
+	contentRenderedMsg string
+	noteSavedMsg       *charm.Markdown
+)
 
 type pagerState int
 
@@ -67,7 +119,9 @@ type pagerModel struct {
 	state     pagerState
 	showHelp  bool
 	textInput textinput.Model
-	spinner   spinner.Model
+
+	spinner      spinner.Model
+	spinnerStart time.Time
 
 	statusMessage      string
 	statusMessageTimer *time.Timer
@@ -83,28 +137,22 @@ type pagerModel struct {
 
 func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
-	vp := viewport.Model{}
+	vp := viewport.New(0, 0)
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
 
 	// Text input for notes/memos
-	ti := textinput.NewModel()
-	ti.Prompt = te.String(" > ").
-		Foreground(lib.Color(darkGray)).
-		Background(lib.YellowGreen.Color()).
-		String()
-	ti.TextColor = darkGray
-	ti.BackgroundColor = lib.YellowGreen.String()
-	ti.CursorColor = lib.Fuschia.String()
+	ti := textinput.New()
+	ti.Prompt = " > "
+	ti.PromptStyle = pagerNoteInputPromptStyle
+	ti.TextStyle = pagerNoteInputStyle
+	ti.CursorStyle = pagerNoteInputCursorStyle
 	ti.CharLimit = noteCharacterLimit
 	ti.Focus()
 
 	// Text input for search
-	sp := spinner.NewModel()
-	sp.ForegroundColor = statusBarNoteFg.String()
-	sp.BackgroundColor = statusBarBg.String()
-	sp.HideFor = time.Millisecond * 50
-	sp.MinimumLifetime = time.Millisecond * 180
+	sp := spinner.New()
+	sp.Style = spinnerStyle
 
 	return pagerModel{
 		common:    common,
@@ -181,10 +229,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		switch m.state {
 		case pagerStateSetNote:
 			switch msg.String() {
-			case "esc":
+			case keyEsc:
 				m.state = pagerStateBrowse
 				return m, nil
-			case "enter":
+			case keyEnter:
 				var cmd tea.Cmd
 				if m.textInput.Value() != m.currentDocument.Note { // don't update if the note didn't change
 					m.currentDocument.Note = m.textInput.Value() // update optimistically
@@ -196,7 +244,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 		default:
 			switch msg.String() {
-			case "q", "esc":
+			case "q", keyEsc:
 				if m.state != pagerStateBrowse {
 					m.state = pagerStateBrowse
 					return m, nil
@@ -235,6 +283,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 
 				return m, textinput.Blink
+
+			case "e":
+				if m.currentDocument.docType == LocalDoc {
+					return m, openEditor(m.currentDocument.localPath)
+				}
+
 			case "s":
 				if m.common.authStatus != authOK {
 					break
@@ -251,11 +305,11 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				// Stash a local document
 				if m.state != pagerStateStashing && stashableDocTypes.Contains(md.docType) {
 					m.state = pagerStateStashing
-					m.spinner.Start()
+					m.spinnerStart = time.Now()
 					cmds = append(
 						cmds,
 						stashDocument(m.common.cc, md),
-						spinner.Tick,
+						m.spinner.Tick,
 					)
 				}
 			case "?":
@@ -267,15 +321,19 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		}
 
 	case spinner.TickMsg:
-		if m.state == pagerStateStashing || m.spinner.Visible() {
-			// If we're still stashing, or if the spinner still needs to
-			// finish, spin it along.
-			newSpinnerModel, cmd := m.spinner.Update(msg)
-			m.spinner = newSpinnerModel
+		spinnerMinTimeout := m.spinnerStart.
+			Add(spinnerVisibilityTimeout).
+			Add(spinnerMinLifetime)
+
+		if m.state == pagerStateStashing || time.Now().Before(spinnerMinTimeout) {
+			// We're either still stashing or we haven't reached the spinner's
+			// full lifetime. In either case we need to spin the spinner
+			// irrespective of it's more fine-grained visibility rules.
+			var cmd tea.Cmd
+			m.spinner, cmd = m.spinner.Update(msg)
 			cmds = append(cmds, cmd)
-		} else if m.state == pagerStateStashSuccess && !m.spinner.Visible() {
-			// If the spinner's finished and we haven't told the user the
-			// stash was successful, do that.
+		} else if m.state == pagerStateStashSuccess {
+			// Successful stash. Stop spinning and update accordingly.
 			m.state = pagerStateBrowse
 			m.currentDocument = *m.stashedDocument
 			m.stashedDocument = nil
@@ -289,6 +347,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
 
+	// We've finished editing the document, potentially making changes. Let's
+	// retrieve the latest version of the document so that we display
+	// up-to-date contents.
+	case editorFinishedMsg:
+		return m, loadLocalMarkdown(&m.currentDocument)
+
 	// We've reveived terminal dimensions, either for the first time or
 	// after a resize
 	case tea.WindowSizeMsg:
@@ -300,7 +364,8 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		// message in the main update function where we're adding this stashed
 		// item to the stash listing.
 		m.state = pagerStateStashSuccess
-		if !m.spinner.Visible() {
+
+		if !m.spinnerVisible() {
 			// The spinner has finished spinning, so tell the user the stash
 			// was successful.
 			m.state = pagerStateBrowse
@@ -332,6 +397,14 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+// spinnerVisible returns whether or not the spinner should be drawn.
+func (m pagerModel) spinnerVisible() bool {
+	windowStart := m.spinnerStart.Add(spinnerVisibilityTimeout)
+	windowEnd := windowStart.Add(spinnerMinLifetime)
+	now := time.Now()
+	return now.After(windowStart) && now.Before(windowEnd)
+}
+
 func (m pagerModel) View() string {
 	var b strings.Builder
 	fmt.Fprint(&b, m.viewport.View()+"\n")
@@ -357,10 +430,9 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		maxPercent               float64 = 1.0
 		percentToStringMagnitude float64 = 100.0
 	)
-	var (
-		isStashed         bool = m.currentDocument.docType == StashedDoc || m.currentDocument.docType == ConvertedDoc
-		showStatusMessage bool = m.state == pagerStateStatusMessage
-	)
+
+	isStashed := m.currentDocument.docType == StashedDoc || m.currentDocument.docType == ConvertedDoc
+	showStatusMessage := m.state == pagerStateStatusMessage
 
 	// Logo
 	logo := glowLogoView(" Glow ")
@@ -385,9 +457,11 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	// Status indicator; spinner or stash dot
 	var statusIndicator string
 	if m.state == pagerStateStashing || m.state == pagerStateStashSuccess {
-		if m.spinner.Visible() {
-			statusIndicator = statusBarNoteStyle(" ") + m.spinner.View()
+		var spinner string
+		if m.spinnerVisible() {
+			spinner = m.spinner.View()
 		}
+		statusIndicator = statusBarNoteStyle(" ") + spinner
 	} else if isStashed && showStatusMessage {
 		statusIndicator = statusBarMessageStashIconStyle(" " + pagerStashIcon)
 	} else if isStashed {
