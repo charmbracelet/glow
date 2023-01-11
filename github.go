@@ -23,7 +23,7 @@ func isGitHubURL(s string) (string, bool) {
 	return u.String(), strings.ToLower(u.Host) == "github.com"
 }
 
-// findGitHubREADME finds the correct README filename in a repository using GitHub API.
+// findGitHubREADME tries to find the correct README filename in a repository using GitHub API.
 func findGitHubREADME(s string) (*source, error) {
 	sSplit := strings.Split(s, "/")
 	owner, repo := sSplit[3], sSplit[4]
