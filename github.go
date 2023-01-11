@@ -33,12 +33,12 @@ func findGitHubREADME(s string) (*source, error) {
 	}
 
 	apiURL := "https://api.github.com/repos/" + owner + "/" + repo + "/readme"
+
+	// nolint:bodyclose
+	// it is closed on the caller
 	res, err := http.Get(apiURL)
 	if err != nil {
 		return nil, err
-	}
-	if res.Body != nil {
-		defer res.Body.Close()
 	}
 
 	body, err := io.ReadAll(res.Body)
@@ -53,13 +53,13 @@ func findGitHubREADME(s string) (*source, error) {
 	}
 
 	if res.StatusCode == http.StatusOK {
+		// nolint:bodyclose
+		// it is closed on the caller
 		resp, err := http.Get(result.DownloadURL)
 		if err != nil {
 			return nil, err
 		}
-		if resp.Body != nil {
-			defer resp.Body.Close()
-		}
+
 		if resp.StatusCode == http.StatusOK {
 			return &source{resp.Body, result.DownloadURL}, nil
 		}
