@@ -32,8 +32,8 @@ func findGitHubREADME(s string) (*source, error) {
 		DownloadURL string `json:"download_url"`
 	}
 
-	readmeURL := "https://api.github.com/repos/" + owner + "/" + repo + "/readme"
-	res, err := http.Get(readmeURL)
+	apiURL := "https://api.github.com/repos/" + owner + "/" + repo + "/readme"
+	res, err := http.Get(apiURL)
 	if err != nil {
 		return nil, err
 	}
