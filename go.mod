@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/charmbracelet/bubbles v0.14.0
-	github.com/charmbracelet/bubbletea v0.23.0
+	github.com/charmbracelet/bubbletea v0.23.1
 	github.com/charmbracelet/charm v0.8.6
 	github.com/charmbracelet/glamour v0.6.0
 	github.com/charmbracelet/lipgloss v0.6.0
@@ -22,5 +22,5 @@ require (
 	github.com/spf13/viper v1.14.0
 	golang.org/x/sys v0.0.0-20220908164124-27713097b956
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
-	golang.org/x/text v0.4.0
+	golang.org/x/text v0.6.0
 )

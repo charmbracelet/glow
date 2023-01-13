@@ -568,6 +568,7 @@ func (m pagerModel) helpView() (s string) {
 		"G/end   go to bottom",
 		"r	refresh file content",
 		"",
+		"e       edit this document",
 		memoOrStash,
 		"esc     back to files",
 		"q       quit",
