@@ -110,9 +110,11 @@ func (m stashModel) helpView() (string, int) {
 	var (
 		isStashed     bool
 		isStashable   bool
+		isEditable    bool
 		navHelp       []string
 		filterHelp    []string
 		selectionHelp []string
+		editHelp      []string
 		sectionHelp   []string
 		appHelp       []string
 	)
@@ -121,6 +123,7 @@ func (m stashModel) helpView() (string, int) {
 		md := m.selectedMarkdown()
 		isStashed = md != nil && md.docType == StashedDoc
 		isStashable = md != nil && md.docType == LocalDoc && m.online()
+		isEditable = md != nil && md.docType == LocalDoc && md.localPath != ""
 	}
 
 	if numDocs > 0 && m.showFullHelp {
@@ -152,6 +155,10 @@ func (m stashModel) helpView() (string, int) {
 		selectionHelp = []string{"s", "stash"}
 	}
 
+	if isEditable {
+		editHelp = []string{"e", "edit"}
+	}
+
 	// If there are errors
 	if m.err != nil {
 		appHelp = append(appHelp, "!", "errors")
@@ -164,14 +171,14 @@ func (m stashModel) helpView() (string, int) {
 		if m.filterState != filtering {
 			appHelp = append(appHelp, "?", "close help")
 		}
-		return m.renderHelp(navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
+		return m.renderHelp(navHelp, filterHelp, append(selectionHelp, editHelp...), sectionHelp, appHelp)
 	}
 
 	// Mini help
 	if m.filterState != filtering {
 		appHelp = append(appHelp, "?", "more")
 	}
-	return m.renderHelp(navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
+	return m.renderHelp(navHelp, filterHelp, selectionHelp, editHelp, sectionHelp, appHelp)
 }
 
 // renderHelp returns the rendered help view and associated line height for
