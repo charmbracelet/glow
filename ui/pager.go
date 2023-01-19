@@ -528,10 +528,15 @@ func (m pagerModel) helpView() (s string) {
 		memoOrStash = "s       stash this document"
 	}
 
+	editOrBlank := "e       edit this document"
+	if m.currentDocument.docType != LocalDoc || m.currentDocument.localPath == "" {
+		editOrBlank = ""
+	}
+
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
-		"e       edit this document",
+		editOrBlank,
 		memoOrStash,
 		"esc     back to files",
 		"q       quit",
