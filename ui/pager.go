@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aymanbagabas/go-osc52"
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -291,8 +291,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 
 			case "c":
-				osc52.Copy(m.currentDocument.Body)
-				cmds = append(cmds, m.showStatusMessage("Copied contents"))
+				err := clipboard.WriteAll(m.currentDocument.Body)
+				if err != nil {
+					cmds = append(cmds, m.showStatusMessage("Unable to copy contents"))
+				} else {
+					cmds = append(cmds, m.showStatusMessage("Copied contents"))
+				}
 
 			case "s":
 				if m.common.authStatus != authOK {
