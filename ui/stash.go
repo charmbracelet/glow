@@ -764,7 +764,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		// Edit document in EDITOR
 		case "e":
 			md := m.selectedMarkdown()
-			if md == nil {
+			if md == nil || md.docType != LocalDoc {
 				break
 			}
 			file := m.selectedMarkdown().localPath
