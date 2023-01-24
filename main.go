@@ -28,14 +28,15 @@ var (
 	// CommitSHA as provided by goreleaser.
 	CommitSHA = ""
 
-	readmeNames  = []string{"README.md", "README"}
-	configFile   string
-	pager        bool
-	style        string
-	width        uint
-	showAllFiles bool
-	localOnly    bool
-	mouse        bool
+	readmeNames    = []string{"README.md", "README", "readme.md", "readme"}
+	readmeBranches = []string{"main", "master"}
+	configFile     string
+	pager          bool
+	style          string
+	width          uint
+	showAllFiles   bool
+	localOnly      bool
+	mouse          bool
 
 	rootCmd = &cobra.Command{
 		Use:              "glow [SOURCE|DIR]",
