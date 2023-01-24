@@ -560,7 +560,7 @@ func newStashModel(common *commonModel) stashModel {
 }
 
 func newStashPaginator() paginator.Model {
-	p := paginator.NewModel()
+	p := paginator.New()
 	p.Type = paginator.Dots
 	p.ActiveDot = brightGrayFg("•")
 	p.InactiveDot = darkGrayFg("•")
