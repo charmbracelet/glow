@@ -32,7 +32,7 @@ func findGitHubREADME(s string) (*source, error) {
 
 	for _, b := range readmeBranches {
 		for _, r := range readmeNames {
-			v := u
+			v := *u
 			v.Path += fmt.Sprintf("/%s/%s", b, r)
 
 			// nolint:bodyclose

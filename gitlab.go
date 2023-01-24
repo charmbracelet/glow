@@ -31,7 +31,7 @@ func findGitLabREADME(s string) (*source, error) {
 
 	for _, b := range readmeBranches {
 		for _, r := range readmeNames {
-			v := u
+			v := *u
 			v.Path += fmt.Sprintf("/raw/%s/%s", b, r)
 
 			// nolint:bodyclose
