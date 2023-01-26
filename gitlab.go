@@ -3,42 +3,31 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// isGitLabURL tests a string to determine if it is a well-structured GitLab URL.
-func isGitLabURL(s string) (string, bool) {
-	if strings.HasPrefix(s, "gitlab.com/") {
-		s = "https://" + s
-	}
-
-	u, err := url.ParseRequestURI(s)
-	if err != nil {
-		return "", false
-	}
-
-	return u.String(), strings.ToLower(u.Host) == "gitlab.com"
-}
-
 // findGitLabREADME tries to find the correct README filename in a repository using GitLab API.
-func findGitLabREADME(s string) (*source, error) {
-	sSplit := strings.Split(s, "/")
-	owner, repo := sSplit[3], sSplit[4]
+func findGitLabREADME(u *url.URL) (*source, error) {
+	owner, repo, ok := strings.Cut(strings.TrimPrefix(u.Path, "/"), "/")
+	if !ok {
+		return nil, fmt.Errorf("invalid url: %s", u.String())
+	}
 
 	projectPath := url.QueryEscape(owner + "/" + repo)
 
 	type readme struct {
-		ReadmeUrl string `json:"readme_url"`
+		ReadmeURL string `json:"readme_url"`
 	}
 
-	apiURL := "https://gitlab.com/api/v4/projects/" + projectPath
+	apiURL := fmt.Sprintf("https://%s/api/v4/projects/%s", u.Hostname(), projectPath)
 
 	// nolint:bodyclose
 	// it is closed on the caller
-	res, err := http.Get(apiURL)
+	res, err := http.Get(apiURL) // nolint: gosec
 	if err != nil {
 		return nil, err
 	}
@@ -49,23 +38,22 @@ func findGitLabREADME(s string) (*source, error) {
 	}
 
 	var result readme
-	jsonErr := json.Unmarshal(body, &result)
-	if jsonErr != nil {
+	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
 	}
 
-	readmeRawUrl := strings.Replace(result.ReadmeUrl, "blob", "raw", -1)
+	readmeRawURL := strings.Replace(result.ReadmeURL, "blob", "raw", -1)
 
 	if res.StatusCode == http.StatusOK {
 		// nolint:bodyclose
 		// it is closed on the caller
-		resp, err := http.Get(readmeRawUrl)
+		resp, err := http.Get(readmeRawURL) // nolint: gosec
 		if err != nil {
 			return nil, err
 		}
 
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, readmeRawUrl}, nil
+			return &source{resp.Body, readmeRawURL}, nil
 		}
 	}
 

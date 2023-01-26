@@ -3,40 +3,29 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// isGitHubURL tests a string to determine if it is a well-structured GitHub URL.
-func isGitHubURL(s string) (string, bool) {
-	if strings.HasPrefix(s, "github.com/") {
-		s = "https://" + s
-	}
-
-	u, err := url.ParseRequestURI(s)
-	if err != nil {
-		return "", false
-	}
-
-	return u.String(), strings.ToLower(u.Host) == "github.com"
-}
-
 // findGitHubREADME tries to find the correct README filename in a repository using GitHub API.
-func findGitHubREADME(s string) (*source, error) {
-	sSplit := strings.Split(s, "/")
-	owner, repo := sSplit[3], sSplit[4]
+func findGitHubREADME(u *url.URL) (*source, error) {
+	owner, repo, ok := strings.Cut(strings.TrimPrefix(u.Path, "/"), "/")
+	if !ok {
+		return nil, fmt.Errorf("invalid url: %s", u.String())
+	}
 
 	type readme struct {
 		DownloadURL string `json:"download_url"`
 	}
 
-	apiURL := "https://api.github.com/repos/" + owner + "/" + repo + "/readme"
+	apiURL := fmt.Sprintf("https://api.%s/repos/%s/%s/readme", u.Hostname(), owner, repo)
 
 	// nolint:bodyclose
 	// it is closed on the caller
-	res, err := http.Get(apiURL)
+	res, err := http.Get(apiURL) // nolint: gosec
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +36,7 @@ func findGitHubREADME(s string) (*source, error) {
 	}
 
 	var result readme
-	jsonErr := json.Unmarshal(body, &result)
-	if jsonErr != nil {
+	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
 	}
 
