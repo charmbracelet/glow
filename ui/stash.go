@@ -560,7 +560,7 @@ func newStashModel(common *commonModel) stashModel {
 }
 
 func newStashPaginator() paginator.Model {
-	p := paginator.NewModel()
+	p := paginator.New()
 	p.Type = paginator.Dots
 	p.ActiveDot = brightGrayFg("•")
 	p.InactiveDot = darkGrayFg("•")
@@ -764,7 +764,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		// Edit document in EDITOR
 		case "e":
 			md := m.selectedMarkdown()
-			if md == nil {
+			if md == nil || md.docType != LocalDoc {
 				break
 			}
 			file := m.selectedMarkdown().localPath

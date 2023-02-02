@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -298,6 +299,14 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					return m, openEditor(m.currentDocument.localPath)
 				}
 
+			case "c":
+				err := clipboard.WriteAll(m.currentDocument.Body)
+				if err != nil {
+					cmds = append(cmds, m.showStatusMessage("Unable to copy contents"))
+				} else {
+					cmds = append(cmds, m.showStatusMessage("Copied contents"))
+				}
+
 			case "s":
 				if m.common.authStatus != authOK {
 					break
@@ -563,12 +572,18 @@ func (m pagerModel) helpView() (s string) {
 		memoOrStash = "s       stash this document"
 	}
 
+	editOrBlank := "e       edit this document"
+	if m.currentDocument.docType != LocalDoc || m.currentDocument.localPath == "" {
+		editOrBlank = ""
+	}
+
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
 		"r	refresh file content",
 		"",
-		"e       edit this document",
+		"c       copy contents",
+		editOrBlank,
 		memoOrStash,
 		"esc     back to files",
 		"q       quit",

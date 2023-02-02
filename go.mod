@@ -3,7 +3,8 @@ module github.com/charmbracelet/glow
 go 1.16
 
 require (
-	github.com/charmbracelet/bubbles v0.14.0
+	github.com/atotto/clipboard v0.1.4
+	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.1
 	github.com/charmbracelet/charm v0.8.6
 	github.com/charmbracelet/glamour v0.6.0

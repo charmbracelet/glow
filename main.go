@@ -274,6 +274,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		gs,
 		glamour.WithWordWrap(int(width)),
 		glamour.WithBaseURL(baseURL),
+		glamour.WithPreservedNewLines(),
 	)
 	if err != nil {
 		return err

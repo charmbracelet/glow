@@ -1,14 +1,12 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
-	"strings"
 
+	"github.com/charmbracelet/glow/editor"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
 )
@@ -32,11 +30,6 @@ var configCmd = &cobra.Command{
 	Example: paragraph("glow config\nglow config --config path/to/config.yml"),
 	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		editor := strings.Fields(os.Getenv("EDITOR"))
-		if len(editor) == 0 {
-			return errors.New("no EDITOR environment variable set")
-		}
-
 		if configFile == "" {
 			scope := gap.NewScope(gap.User, "glow")
 
@@ -71,11 +64,7 @@ var configCmd = &cobra.Command{
 			return err
 		}
 
-		var eargs []string
-		if len(editor) > 1 {
-			eargs = editor[1:]
-		}
-		c := exec.Command(editor[0], append(eargs, configFile)...) // nolint: gosec
+		c := editor.Cmd(configFile)
 		c.Stdin = os.Stdin
 		c.Stdout = os.Stdout
 		c.Stderr = os.Stderr
