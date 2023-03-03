@@ -96,7 +96,7 @@ var (
 				Background(yellowGreen)
 
 	pagerNoteInputCursorStyle = lipgloss.NewStyle().
-					Foreground(fuschia)
+					Foreground(fuchsia)
 )
 
 type (

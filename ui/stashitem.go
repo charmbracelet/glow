@@ -76,7 +76,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 				icon = dullFuchsiaFg(icon)
 				if m.currentSection().key == filterSection &&
 					m.filterState == filterApplied || singleFilteredItem {
-					s := lipgloss.NewStyle().Foreground(fuschia)
+					s := lipgloss.NewStyle().Foreground(fuchsia)
 					title = styleFilteredText(title, m.filterInput.Value(), s, s.Copy().Underline(true))
 				} else {
 					title = fuchsiaFg(title)

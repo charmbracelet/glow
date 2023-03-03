@@ -91,7 +91,7 @@ type (
 	}
 )
 
-// applicationContext indicates the area of the application something appies
+// applicationContext indicates the area of the application something applies
 // to. Occasionally used as an argument to commands and messages.
 type applicationContext int
 
@@ -620,7 +620,7 @@ func generateSSHKeys() tea.Msg {
 		return keygenFailedMsg{err}
 	}
 	if debug {
-		log.Println("keys generated succcessfully")
+		log.Println("keys generated successfully")
 	}
 	return keygenSuccessMsg{}
 }
