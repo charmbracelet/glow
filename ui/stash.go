@@ -40,7 +40,7 @@ var (
 
 	logoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ECFD65")).
-			Background(fuschia).
+			Background(fuchsia).
 			Bold(true)
 
 	stashSpinnerStyle = lipgloss.NewStyle().
@@ -49,7 +49,7 @@ var (
 				Foreground(yellowGreen).
 				MarginRight(1)
 	stashInputCursorStyle = lipgloss.NewStyle().
-				Foreground(fuschia).
+				Foreground(fuchsia).
 				MarginRight(1)
 )
 

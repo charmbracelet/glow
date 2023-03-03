@@ -134,7 +134,7 @@ func (m markdownsByLocalFirst) Less(i, j int) bool {
 		return m[i].CreatedAt.After(m[j].CreatedAt)
 	}
 
-	// If the times also match, sort by unqiue ID.
+	// If the times also match, sort by unique ID.
 	ids := []ksuid.KSUID{m[i].uniqueID, m[j].uniqueID}
 	ksuid.Sort(ids)
 	return ids[0] == m[i].uniqueID
