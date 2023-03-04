@@ -36,6 +36,7 @@ var (
 	showAllFiles bool
 	localOnly    bool
 	mouse        bool
+	emoji        bool
 
 	rootCmd = &cobra.Command{
 		Use:              "glow [SOURCE|DIR]",
@@ -140,6 +141,7 @@ func validateOptions(cmd *cobra.Command) error {
 	localOnly = viper.GetBool("local")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	emoji = viper.GetBool("emoji")
 
 	// validate the glamour style
 	style = viper.GetString("style")
@@ -260,19 +262,24 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 
 	// initialize glamour
-	var gs glamour.TermRendererOption
+	var gtr []glamour.TermRendererOption
+
 	if style == "auto" {
-		gs = glamour.WithEnvironmentConfig()
+		gtr = append(gtr, glamour.WithEnvironmentConfig())
 	} else {
-		gs = glamour.WithStylePath(style)
+		gtr = append(gtr, glamour.WithStylePath(style))
 	}
 
-	r, err := glamour.NewTermRenderer(
-		gs,
-		glamour.WithWordWrap(int(width)),
-		glamour.WithBaseURL(baseURL),
-		glamour.WithPreservedNewLines(),
-	)
+	gtr = append(gtr, glamour.WithWordWrap(int(width)))
+	gtr = append(gtr, glamour.WithBaseURL(baseURL))
+	gtr = append(gtr, glamour.WithPreservedNewLines())
+
+	if emoji || cmd.Flags().Changed("emoji") {
+		gtr = append(gtr, glamour.WithEmoji())
+	}
+
+	r, err := glamour.NewTermRenderer(gtr...)
+
 	if err != nil {
 		return err
 	}
@@ -376,6 +383,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&emoji, "emoji", "e", false, "display with emoji")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
