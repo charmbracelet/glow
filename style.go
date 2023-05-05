@@ -4,7 +4,7 @@ import . "github.com/charmbracelet/lipgloss" //nolint:revive
 
 var (
 	keyword = NewStyle().
-		Foreground(AdaptiveColor{Light: "#04B575", Dark: "#04B575"}).
+		Foreground(Color("#04B575")).
 		Render
 
 	paragraph = NewStyle().

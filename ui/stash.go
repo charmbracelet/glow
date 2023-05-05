@@ -34,9 +34,9 @@ var (
 )
 
 var (
-	dividerDot        = darkGrayFg(" • ")
-	dividerBar        = darkGrayFg(" │ ")
-	offlineHeaderNote = darkGrayFg("(Offline)")
+	dividerDot        = darkGrayFg.SetString(" • ")
+	dividerBar        = darkGrayFg.SetString(" │ ")
+	offlineHeaderNote = darkGrayFg.SetString("(Offline)")
 
 	logoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ECFD65")).
@@ -98,28 +98,7 @@ type section struct {
 }
 
 // map sections to their associated types.
-var sections = map[sectionKey]section{
-	localSection: {
-		key:       localSection,
-		docTypes:  NewDocTypeSet(LocalDoc),
-		paginator: newStashPaginator(),
-	},
-	stashedSection: {
-		key:       stashedSection,
-		docTypes:  NewDocTypeSet(StashedDoc, ConvertedDoc),
-		paginator: newStashPaginator(),
-	},
-	newsSection: {
-		key:       newsSection,
-		docTypes:  NewDocTypeSet(NewsDoc),
-		paginator: newStashPaginator(),
-	},
-	filterSection: {
-		key:       filterSection,
-		docTypes:  DocTypeSet{},
-		paginator: newStashPaginator(),
-	},
-}
+var sections = map[sectionKey]section{}
 
 // filterState is the current filtering state in the file listing.
 type filterState int
@@ -153,6 +132,31 @@ const (
 type statusMessage struct {
 	status  statusMessageType
 	message string
+}
+
+func initSections() {
+	sections = map[sectionKey]section{
+		localSection: {
+			key:       localSection,
+			docTypes:  NewDocTypeSet(LocalDoc),
+			paginator: newStashPaginator(),
+		},
+		stashedSection: {
+			key:       stashedSection,
+			docTypes:  NewDocTypeSet(StashedDoc, ConvertedDoc),
+			paginator: newStashPaginator(),
+		},
+		newsSection: {
+			key:       newsSection,
+			docTypes:  NewDocTypeSet(NewsDoc),
+			paginator: newStashPaginator(),
+		},
+		filterSection: {
+			key:       filterSection,
+			docTypes:  DocTypeSet{},
+			paginator: newStashPaginator(),
+		},
+	}
 }
 
 // String returns a styled version of the status message appropriate for the
@@ -563,7 +567,7 @@ func newStashPaginator() paginator.Model {
 	p := paginator.New()
 	p.Type = paginator.Dots
 	p.ActiveDot = brightGrayFg("•")
-	p.InactiveDot = darkGrayFg("•")
+	p.InactiveDot = darkGrayFg.Render("•")
 	return p
 }
 
@@ -1255,13 +1259,13 @@ func (m stashModel) headerView() string {
 			sections[i] = grayFg(sections[i])
 		}
 
-		return strings.Join(sections, dividerDot)
+		return strings.Join(sections, dividerDot.String())
 	}
 
 	if m.loadingDone() && len(m.markdowns) == 0 {
 		var maybeOffline string
 		if m.common.authStatus == authFailed {
-			maybeOffline = " " + offlineHeaderNote
+			maybeOffline = " " + offlineHeaderNote.String()
 		}
 
 		if m.stashedOnly() {
@@ -1302,9 +1306,9 @@ func (m stashModel) headerView() string {
 		sections = append(sections, s)
 	}
 
-	s := strings.Join(sections, dividerBar)
+	s := strings.Join(sections, dividerBar.String())
 	if m.common.authStatus == authFailed {
-		s += dividerDot + offlineHeaderNote
+		s += dividerDot.String() + offlineHeaderNote.String()
 	}
 
 	return s

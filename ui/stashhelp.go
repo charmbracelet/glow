@@ -231,7 +231,7 @@ func (m stashModel) miniHelpView(entries ...string) string {
 		next = fmt.Sprintf("%s %s", k, v)
 
 		if i < len(entries)-2 {
-			next += dividerDot
+			next += dividerDot.String()
 		}
 
 		// Only this (and the following) help text items if we have the

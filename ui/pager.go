@@ -32,7 +32,7 @@ var (
 			Foreground(cream).
 			Background(green).
 			Padding(0, 1).
-			Render("Set Memo")
+			SetString("Set Memo")
 
 	statusBarNoteFg = lipgloss.AdaptiveColor{Light: "#656565", Dark: "#7D7D7D"}
 	statusBarBg     = lipgloss.AdaptiveColor{Light: "#E6E6E6", Dark: "#242424"}
@@ -168,7 +168,7 @@ func (m *pagerModel) setSize(w, h int) {
 	m.viewport.Width = w
 	m.viewport.Height = h - statusBarHeight
 	m.textInput.Width = w -
-		ansi.PrintableRuneWidth(noteHeading) -
+		ansi.PrintableRuneWidth(noteHeading.String()) -
 		ansi.PrintableRuneWidth(m.textInput.Prompt) - 1
 
 	if m.showHelp {
