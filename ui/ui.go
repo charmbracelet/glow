@@ -199,6 +199,8 @@ func (m *model) unloadDocument() []tea.Cmd {
 }
 
 func newModel(cfg Config) tea.Model {
+	initSections()
+
 	if cfg.GlamourStyle == "auto" {
 		if te.HasDarkBackground() {
 			cfg.GlamourStyle = "dark"

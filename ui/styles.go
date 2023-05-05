@@ -41,7 +41,7 @@ var (
 
 	grayFg     = NewStyle().Foreground(gray).Render
 	midGrayFg  = NewStyle().Foreground(midGray).Render
-	darkGrayFg = NewStyle().Foreground(darkGray).Render
+	darkGrayFg = NewStyle().Foreground(darkGray)
 
 	greenFg        = NewStyle().Foreground(green).Render
 	semiDimGreenFg = NewStyle().Foreground(semiDimGreen).Render
