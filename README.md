@@ -53,9 +53,10 @@ pkg install glow
 # Solus
 eopkg install glow
 
-# Windows (with Scoop or Chocolatey)
-scoop install glow
+# Windows (with Chocolatey or Scoop or Winget)
 choco install glow
+scoop install glow
+winget install charmbracelet.glow
 
 # Android (with termux)
 pkg install glow
