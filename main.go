@@ -381,7 +381,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	var preserveNewLines bool
-rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-newlines", "n", true, "preserve newlines in the output")
+	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-newlines", "n", true, "preserve newlines in the output")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
