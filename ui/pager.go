@@ -298,6 +298,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					cmds = append(cmds, m.showStatusMessage("Copied contents"))
 				}
 
+			// Reload the document
+			case "r":
+				if m.currentDocument.docType == LocalDoc {
+					return m, loadLocalMarkdown(&m.currentDocument)
+				}
+
 			case "s":
 				if m.common.authStatus != authOK {
 					break
@@ -542,12 +548,18 @@ func (m pagerModel) helpView() (s string) {
 		editOrBlank = ""
 	}
 
+	reloadDocument := "r       reload document"
+	if m.currentDocument.docType != LocalDoc || m.currentDocument.localPath == "" {
+		reloadDocument = ""
+	}
+
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
 		"c       copy contents",
 		editOrBlank,
 		memoOrStash,
+		reloadDocument,
 		"esc     back to files",
 		"q       quit",
 	}
