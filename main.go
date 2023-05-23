@@ -267,12 +267,16 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		gs = glamour.WithStylePath(style)
 	}
 
-	r, err := glamour.NewTermRenderer(
-		gs,
-		glamour.WithWordWrap(int(width)),
-		glamour.WithBaseURL(baseURL),
-		glamour.WithPreservedNewLines(),
-	)
+preserveNewLines := viper.GetBool("preserveNewLines")
+rendererOptions := []glamour.TermRendererOption{
+	gs,
+	glamour.WithWordWrap(int(width)),
+	glamour.WithBaseURL(baseURL),
+}
+if preserveNewLines {
+	rendererOptions = append(rendererOptions, glamour.WithPreservedNewLines())
+}
+r, err := glamour.NewTermRenderer(rendererOptions...)
 	if err != nil {
 		return err
 	}
@@ -375,18 +379,20 @@ func init() {
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
-	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
-	_ = rootCmd.Flags().MarkHidden("mouse")
+rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-newlines", "n", true, "preserve newlines in the output")
+_ = rootCmd.Flags().MarkHidden("mouse")
 
-	// Config bindings
-	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
-	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
-	_ = viper.BindPFlag("local", rootCmd.Flags().Lookup("local"))
-	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
-	viper.SetDefault("style", "auto")
-	viper.SetDefault("width", 0)
-	viper.SetDefault("local", "false")
-
+// Config bindings
+_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
+_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
+_ = viper.BindPFlag("local", rootCmd.Flags().Lookup("local"))
+_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
+_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-newlines"))
+viper.SetDefault("style", "auto")
+viper.SetDefault("width", 0)
+viper.SetDefault("local", "false")
+viper.SetDefault("preserveNewLines", true)
 	// Stash
 	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
 	rootCmd.AddCommand(stashCmd)
