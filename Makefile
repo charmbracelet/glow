@@ -11,6 +11,7 @@ clean:
 
 glow:
 	go build
+	cp glow.desktop /usr/share/applications/
 
 run: clean glow
 	GLOW_LOGFILE=$(LOGFILE) ./glow
