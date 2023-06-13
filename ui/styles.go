@@ -18,7 +18,7 @@ var (
 	cream           = AdaptiveColor{Light: "#FFFDF5", Dark: "#FFFDF5"}
 	yellowGreen     = AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"}
 	dullYellowGreen = AdaptiveColor{Light: "#6BCB94", Dark: "#9BA92F"}
-	fuschia         = AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}
+	fuchsia         = AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}
 	dimFuchsia      = AdaptiveColor{Light: "#F1A8FF", Dark: "#99519E"}
 	dullFuchsia     = AdaptiveColor{Dark: "#AD58B4", Light: "#F793FF"}
 	dimDullFuchsia  = AdaptiveColor{Light: "#F6C9FF", Dark: "#6B3A6F"}
@@ -41,19 +41,19 @@ var (
 
 	grayFg     = NewStyle().Foreground(gray).Render
 	midGrayFg  = NewStyle().Foreground(midGray).Render
-	darkGrayFg = NewStyle().Foreground(darkGray).Render
+	darkGrayFg = NewStyle().Foreground(darkGray)
 
 	greenFg        = NewStyle().Foreground(green).Render
 	semiDimGreenFg = NewStyle().Foreground(semiDimGreen).Render
 	dimGreenFg     = NewStyle().Foreground(dimGreen).Render
 
-	fuchsiaFg    = NewStyle().Foreground(fuschia).Render
+	fuchsiaFg    = NewStyle().Foreground(fuchsia).Render
 	dimFuchsiaFg = NewStyle().Foreground(dimFuchsia).Render
 
 	dullFuchsiaFg    = NewStyle().Foreground(dullFuchsia).Render
 	dimDullFuchsiaFg = NewStyle().Foreground(dimDullFuchsia).Render
 
-	indigoFg    = NewStyle().Foreground(fuschia).Render
+	indigoFg    = NewStyle().Foreground(fuchsia).Render
 	dimIndigoFg = NewStyle().Foreground(dimIndigo).Render
 
 	subtleIndigoFg    = NewStyle().Foreground(subtleIndigo).Render

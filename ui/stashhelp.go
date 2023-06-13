@@ -15,7 +15,7 @@ type helpEntry struct{ key, val string }
 type helpColumn []helpEntry
 
 // newHelpColumn creates a help column from pairs of string arguments
-// represeting keys and values. If the arguments are not even (and therein
+// representing keys and values. If the arguments are not even (and therein
 // not every key has a matching value) the function will panic.
 func newHelpColumn(pairs ...string) (h helpColumn) {
 	if len(pairs)%2 != 0 {
@@ -193,7 +193,7 @@ func (m stashModel) renderHelp(groups ...[]string) (string, int) {
 }
 
 // Builds the help view from various sections pieces, truncating it if the view
-// would otherwise wrap to two lines. Help view entires should come in as pairs,
+// would otherwise wrap to two lines. Help view entries should come in as pairs,
 // with the first being the key and the second being the help text.
 func (m stashModel) miniHelpView(entries ...string) string {
 	if len(entries) == 0 {
@@ -231,7 +231,7 @@ func (m stashModel) miniHelpView(entries ...string) string {
 		next = fmt.Sprintf("%s %s", k, v)
 
 		if i < len(entries)-2 {
-			next += dividerDot
+			next += dividerDot.String()
 		}
 
 		// Only this (and the following) help text items if we have the
