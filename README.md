@@ -53,7 +53,7 @@ pkg install glow
 # Solus
 eopkg install glow
 
-# Windows (with Chocolatey or Scoop or Winget)
+# Windows (with Chocolatey, Scoop, or Winget)
 choco install glow
 scoop install glow
 winget install charmbracelet.glow
