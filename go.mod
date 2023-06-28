@@ -16,7 +16,7 @@ require (
 	github.com/muesli/gitcha v0.2.0
 	github.com/muesli/go-app-paths v0.2.2
 	github.com/muesli/reflow v0.3.0
-	github.com/muesli/termenv v0.15.1
+	github.com/muesli/termenv v0.15.2
 	github.com/sahilm/fuzzy v0.1.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.6.1
