@@ -16,11 +16,22 @@ func TestEditor(t *testing.T) {
 	} {
 		t.Run(k, func(t *testing.T) {
 			t.Setenv("EDITOR", k)
-			cmd := Cmd("README.md")
+			cmd, _ := Cmd("README.md")
 			got := cmd.Args
 			if !reflect.DeepEqual(got, v) {
 				t.Fatalf("expected %v; got %v", v, got)
 			}
 		})
 	}
+
+	t.Run("inside snap", func(t *testing.T) {
+		t.Setenv("SNAP_REVISION", "10")
+		got, err := Cmd("foo")
+		if err == nil {
+			t.Fatalf("expected an error, got nil")
+		}
+		if got != nil {
+			t.Fatalf("should have returned nil, got %v", got)
+		}
+	})
 }
