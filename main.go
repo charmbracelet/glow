@@ -284,15 +284,16 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	// trim lines
 	lines := strings.Split(string(out), "\n")
-	var content string
+	var cb strings.Builder
 	for i, s := range lines {
-		content += strings.TrimSpace(s)
+		cb.WriteString(strings.TrimSpace(s))
 
 		// don't add an artificial newline after the last split
 		if i+1 < len(lines) {
-			content += "\n"
+			cb.WriteString("\n")
 		}
 	}
+	content := cb.String()
 
 	// display
 	if pager || cmd.Flags().Changed("pager") {
