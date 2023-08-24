@@ -23,13 +23,14 @@ pager: false
 width: 80`
 
 var configCmd = &cobra.Command{
-	Use:     "config",
-	Hidden:  false,
-	Short:   "Edit the glow config file",
-	Long:    paragraph(fmt.Sprintf("\n%s the glow config file. We’ll use EDITOR to determine which editor to use. If the config file doesn't exist, it will be created.", keyword("Edit"))),
-	Example: paragraph("glow config\nglow config --config path/to/config.yml"),
-	Args:    cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Use:          "config",
+	Hidden:       false,
+	Short:        "Edit the glow config file",
+	Long:         paragraph(fmt.Sprintf("\n%s the glow config file. We’ll use EDITOR to determine which editor to use. If the config file doesn't exist, it will be created.", keyword("Edit"))),
+	Example:      paragraph("glow config\nglow config --config path/to/config.yml"),
+	Args:         cobra.NoArgs,
+	SilenceUsage: true,
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if configFile == "" {
 			scope := gap.NewScope(gap.User, "glow")
 
@@ -64,7 +65,10 @@ var configCmd = &cobra.Command{
 			return err
 		}
 
-		c := editor.Cmd(configFile)
+		c, err := editor.Cmd(configFile)
+		if err != nil {
+			return fmt.Errorf("could not edit %s: %w", configFile, err)
+		}
 		c.Stdin = os.Stdin
 		c.Stdout = os.Stdout
 		c.Stderr = os.Stderr
