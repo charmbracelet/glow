@@ -6,7 +6,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/charmbracelet/glow/editor"
+	"github.com/charmbracelet/x/editor"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
 )
@@ -65,7 +65,7 @@ var configCmd = &cobra.Command{
 			return err
 		}
 
-		c, err := editor.Cmd(configFile)
+		c, err := editor.Cmd("Glow", configFile)
 		if err != nil {
 			return fmt.Errorf("could not edit %s: %w", configFile, err)
 		}
