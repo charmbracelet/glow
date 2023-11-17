@@ -9,6 +9,7 @@ require (
 	github.com/charmbracelet/charm v0.8.7
 	github.com/charmbracelet/glamour v0.6.0
 	github.com/charmbracelet/lipgloss v0.6.0
+	github.com/charmbracelet/x/editor v0.0.0-20231116172829-450eedbca1ab
 	github.com/dustin/go-humanize v1.0.1-0.20200219035652-afde56e7acac
 	github.com/mattn/go-runewidth v0.0.14
 	github.com/meowgorithm/babyenv v1.3.1
