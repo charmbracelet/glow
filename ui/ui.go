@@ -53,12 +53,19 @@ func NewProgram(cfg Config) *tea.Program {
 		log.Println("Bubble Tea now initializing...")
 		debug = true
 	}
+
 	config = cfg
+
 	opts := []tea.ProgramOption{tea.WithAltScreen()}
 	if cfg.EnableMouse {
 		opts = append(opts, tea.WithMouseCellMotion())
 	}
-	return tea.NewProgram(newModel(cfg), opts...)
+
+	m := newModel(cfg)
+
+	program := tea.NewProgram(m, opts...)
+
+	return program
 }
 
 type errMsg struct{ err error }
@@ -220,13 +227,22 @@ func newModel(cfg Config) tea.Model {
 		filesStashing: make(map[ksuid.KSUID]struct{}),
 	}
 
-	return model{
+	m := model{
 		common:      &common,
 		state:       stateShowStash,
 		keygenState: keygenUnstarted,
 		pager:       newPagerModel(&common),
 		stash:       newStashModel(&common),
 	}
+
+	if cfg.FilePath != "" {
+		// Open file passed in with TUI-mode flag
+		m.pager.currentDocument = *localFileToMarkdown(cfg.WorkingDirectory, cfg.FilePath, cfg.FileCreatedAt, true) // TODO: Fix time
+		m.state = stateShowDocument
+		m.pager.update(keyEnter)
+	}
+
+	return m
 }
 
 func (m model) Init() tea.Cmd {
@@ -359,6 +375,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case fetchedMarkdownMsg:
 		// We've loaded a markdown file's contents for rendering
+		println("Update markdown!")
 		m.pager.currentDocument = *msg
 		msg.Body = string(utils.RemoveFrontmatter([]byte(msg.Body)))
 		cmds = append(cmds, renderWithGlamour(m.pager, msg.Body))
@@ -383,7 +400,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case foundLocalFileMsg:
-		newMd := localFileToMarkdown(m.common.cwd, gitcha.SearchResult(msg))
+		res := gitcha.SearchResult(msg)
+		newMd := localFileToMarkdown(m.common.cwd, res.Path, res.Info.ModTime())
 		m.stash.addMarkdowns(newMd)
 		if m.stash.filterApplied() {
 			newMd.buildFilterValue()
@@ -723,13 +741,23 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 // Convert a Gitcha result to an internal representation of a markdown
 // document. Note that we could be doing things like checking if the file is
 // a directory, but we trust that gitcha has already done that.
-func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
+func localFileToMarkdown(cwd string, path string, createdAt time.Time, loadBody ...bool) *markdown {
+	body := ""
+	if len(loadBody) == 1 && loadBody[0] {
+		content, err := os.ReadFile(path)
+		if err == nil {
+			// Convert the byte slice to a string
+			body = string(content)
+		}
+	}
+
 	md := &markdown{
 		docType:   LocalDoc,
-		localPath: res.Path,
+		localPath: path,
 		Markdown: charm.Markdown{
-			Note:      stripAbsolutePath(res.Path, cwd),
-			CreatedAt: res.Info.ModTime(),
+			Body:      body,
+			Note:      stripAbsolutePath(path, cwd),
+			CreatedAt: createdAt,
 		},
 	}
 

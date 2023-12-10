@@ -1,5 +1,7 @@
 package ui
 
+import "time"
+
 // Config contains TUI-specific configuration.
 type Config struct {
 	ShowAllFiles    bool
@@ -11,6 +13,10 @@ type Config struct {
 
 	// Which directory should we start from?
 	WorkingDirectory string
+
+	// (Optional) If not "", open TUI-mode with this file open
+	FilePath      string
+	FileCreatedAt time.Time
 
 	// Which document types shall we show?
 	DocumentTypes DocTypeSet
