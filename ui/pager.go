@@ -287,7 +287,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 			case "e":
 				if m.currentDocument.docType == LocalDoc {
-					return m, openEditor(m.currentDocument.localPath)
+					return m, openEditor(m.currentDocument.localPath, &m.viewport)
 				}
 
 			case "c":
