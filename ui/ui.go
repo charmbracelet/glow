@@ -239,7 +239,8 @@ func newModel(cfg Config) tea.Model {
 		// Open file passed in with TUI-mode flag
 		m.pager.currentDocument = *localFileToMarkdown(cfg.WorkingDirectory, cfg.FilePath, cfg.FileCreatedAt, true) // TODO: Fix time
 		m.state = stateShowDocument
-		m.pager.update(keyEnter)
+		newPagerModel, _ := m.pager.update(keyEnter)
+		m.pager = newPagerModel
 	}
 
 	return m
