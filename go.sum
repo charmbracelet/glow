@@ -236,6 +236,8 @@ github.com/charmbracelet/lipgloss v0.6.0 h1:1StyZB9vBSOyuZxQUcUwGr17JmojPNm87ini
 github.com/charmbracelet/lipgloss v0.6.0/go.mod h1:tHh2wr34xcHjC2HCXIlGSG1jaDF0S0atAUvBMP6Ppuk=
 github.com/charmbracelet/x/editor v0.0.0-20240118113134-7c8cecb18fdb h1:DkWxIrfPV/8pBiZhxUJT22Z1vMLl/ChsMVh14Qe2Mt0=
 github.com/charmbracelet/x/editor v0.0.0-20240118113134-7c8cecb18fdb/go.mod h1:oivrEbcP/AYt/Hpvk5pwDXXrQ933gQS6UzL6fxqAGSA=
+github.com/charmbracelet/x/editor v0.0.0-20240129143450-0ee713645824 h1:I+fJNplA3CQZe0Sc9+1SrEu+RZjZcrtYWPWlqUnMSko=
+github.com/charmbracelet/x/editor v0.0.0-20240129143450-0ee713645824/go.mod h1:oivrEbcP/AYt/Hpvk5pwDXXrQ933gQS6UzL6fxqAGSA=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
