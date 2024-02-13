@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.6.0
 	github.com/charmbracelet/x/editor v0.0.0-20231116172829-450eedbca1ab
 	github.com/dustin/go-humanize v1.0.1
-	github.com/mattn/go-runewidth v0.0.14
+	github.com/mattn/go-runewidth v0.0.15
 	github.com/meowgorithm/babyenv v1.3.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/gitcha v0.2.0
