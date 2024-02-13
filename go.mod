@@ -20,7 +20,7 @@ require (
 	github.com/muesli/termenv v0.15.2
 	github.com/sahilm/fuzzy v0.1.0
 	github.com/segmentio/ksuid v1.0.4
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.14.0
 	golang.org/x/sys v0.15.0
 	golang.org/x/term v0.15.0
@@ -39,7 +39,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
