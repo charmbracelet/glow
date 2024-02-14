@@ -14,7 +14,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.15
 	github.com/meowgorithm/babyenv v1.3.1
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/muesli/gitcha v0.2.0
+	github.com/muesli/gitcha v0.3.0
 	github.com/muesli/go-app-paths v0.2.2
 	github.com/muesli/reflow v0.3.0
 	github.com/muesli/termenv v0.15.2
