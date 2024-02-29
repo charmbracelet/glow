@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"strings"
 	"time"
 
@@ -99,6 +100,10 @@ var (
 					Foreground(fuchsia)
 )
 
+type pollFileStatusMsg struct {
+	localPath string
+	changed   bool
+}
 type (
 	contentRenderedMsg string
 	noteSavedMsg       *charm.Markdown
@@ -250,6 +255,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 					m.state = pagerStateBrowse
 					return m, nil
 				}
+			case "r":
+				cmds = append(cmds, func() tea.Msg {
+					return editorFinishedMsg{}
+				})
 			case "home", "g":
 				m.viewport.GotoTop()
 				if m.viewport.HighPerformanceRendering {
@@ -328,6 +337,15 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 			}
 		}
+	case pollFileStatusMsg:
+		if msg.changed {
+			cmds = append(cmds, func() tea.Msg {
+				return editorFinishedMsg{}
+			})
+		}
+		if m.currentDocument.localPath == msg.localPath {
+			cmds = append(cmds, checkFileStatus(m.currentDocument.localPath, m.common.cfg.WatchInterval))
+		}
 
 	case spinner.TickMsg:
 		spinnerMinTimeout := m.spinnerStart.
@@ -351,6 +369,9 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	// Glow has rendered the content
 	case contentRenderedMsg:
+		if m.common.cfg.WatchFileChange {
+			cmds = append(cmds, checkFileStatus(m.currentDocument.localPath, m.common.cfg.WatchInterval))
+		}
 		m.setContent(string(msg))
 		if m.viewport.HighPerformanceRendering {
 			cmds = append(cmds, viewport.Sync(m.viewport))
@@ -404,6 +425,20 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func checkFileStatus(path string, interval uint) tea.Cmd {
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		if newFileInfo, err := os.Stat(path); err == nil {
+			duration := t.Sub(newFileInfo.ModTime())
+			// changed within the last second
+			return pollFileStatusMsg{
+				localPath: path,
+				changed:   duration.Seconds() <= float64(interval),
+			}
+		}
+		return pollFileStatusMsg{changed: false, localPath: path}
+	})
 }
 
 // spinnerVisible returns whether or not the spinner should be drawn.
@@ -545,6 +580,8 @@ func (m pagerModel) helpView() (s string) {
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
+		"r	refresh file content",
+		"",
 		"c       copy contents",
 		editOrBlank,
 		memoOrStash,
