@@ -1,4 +1,4 @@
-# Glow
+app-misc/glowapp-misc/glowapp-misc/glow# Glow
 
 Render markdown on the CLI, with _pizzazz_!
 
@@ -43,6 +43,9 @@ pacman -S glow
 
 # Void Linux
 xbps-install -S glow
+
+# Gentoo Linux (with GURU overlay)
+emerge --ask app-misc/glow
 
 # Nix
 nix-env -iA nixpkgs.glow
