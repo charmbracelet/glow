@@ -505,12 +505,14 @@ func findLocalFiles(m model) tea.Cmd {
 			log.Println("local directory is:", cwd)
 		}
 
-		var ignore []string
-		if !m.common.cfg.ShowAllFiles {
-			ignore = ignorePatterns(m)
+		// Switch between FindFiles and FindAllFiles to bypass .gitignore rules
+		var ch chan gitcha.SearchResult
+		if m.common.cfg.ShowAllFiles {
+			ch, err = gitcha.FindAllFilesExcept(cwd, markdownExtensions, nil)
+		} else {
+			ch, err = gitcha.FindFilesExcept(cwd, markdownExtensions, ignorePatterns(m))
 		}
 
-		ch, err := gitcha.FindFilesExcept(cwd, markdownExtensions, ignore)
 		if err != nil {
 			if debug {
 				log.Println("error finding local files:", err)
