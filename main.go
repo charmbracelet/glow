@@ -297,13 +297,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	// display
 	if pager || cmd.Flags().Changed("pager") {
-		pagerCmd := os.Getenv("PAGER")
-		if pagerCmd == "" {
-			pagerCmd = "less -r"
-		}
-
-		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...) // nolint:gosec
+		pa := utils.GetPagerCommand("PAGER")
+		c := exec.Command(pa[0], pa[1:]...)
 		c.Stdin = strings.NewReader(content)
 		c.Stdout = os.Stdout
 		return c.Run()
