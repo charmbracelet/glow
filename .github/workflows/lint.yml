@@ -8,9 +8,9 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
           # Optional: golangci-lint command line arguments.
           args: --issues-exit-code=0
