@@ -6,7 +6,7 @@ type Config struct {
 	Gopath          string `env:"GOPATH"`
 	HomeDir         string `env:"HOME"`
 	GlamourMaxWidth uint
-	GlamourStyle    string
+	GlamourStyle    string `env:"GLAMOUR_STYLE"`
 	EnableMouse     bool
 
 	// Which directory should we start from?
