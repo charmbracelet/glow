@@ -1,0 +1,73 @@
+.TH GLOW "1" "April 2021" "1.4.1" "User Commands"
+.SH NAME
+glow - render markdown on the CLI, \fBwith pizzazz\fR!
+.SH SYNOPSIS
+.sp
+.nf
+\fIglow\fR [\-v|\-\-version] [\-h|\-\-help] [\-a|\-\-all] [\-\-config \fIstring\fR]
+     [\-l|\-\-local] [\-p|\-\-pager] [\-s|\-\-style \fIstring\fR] [\-w|\-\-width \fIuint\fR]
+     [command] [SOURCE|DIR]
+.fi
+.sp
+.SH
+OPTIONS
+.PP
+\-v, \-\-version
+.RS 4
+version for glow
+.RE
+.PP
+\-h, \-\-help
+.RS 4
+help for glow
+.RE
+.PP
+\-a, \-\-all
+.RS 4
+show system files and directories (TUI-mode only)
+.RE
+.PP
+\-\-config \fIstring\fR
+.RS 4
+config file (default \fB$HOME\fR/.config/glow/glow.yml)
+.RE
+.PP
+\-l, \-\-local
+.RS 4
+show local files only; no network (TUI-mode only)
+.RE
+.PP
+\-p, \-\-pager
+.RS 4
+display with pager
+.RE
+.PP
+\-s, \-\-style \fIstring\fR
+.RS 4
+style name or JSON path (default "auto")
+.RE
+.PP
+\-w, \-\-width \fIuint\fR
+.RS 4
+word-wrap at width
+.RE
+.SH COMMANDS
+.PP
+config
+.RS 4
+Edit the glow config file
+.RE
+.PP
+help
+.RS 4
+Help about any command
+.RE
+.PP
+stash
+.RS 4
+Stash a markdown
+.RE
+.PP
+Use "glow [command] --help" for more information about a command.
+.SH BUGS
+https://github.com/charmbracelet/glow/issues
