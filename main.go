@@ -399,11 +399,20 @@ func initConfig() {
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
-		scope := gap.NewScope(gap.User, "glow")
-		dirs, err := scope.ConfigDirs()
-		if err != nil {
-			fmt.Println("Can't retrieve default config. Please manually pass a config file with '--config'")
-			os.Exit(1)
+		var dirs []string
+		var err error
+
+		envConfigDir, envDirExists := os.LookupEnv("GLOW_CONFIG_HOME")
+
+		if !envDirExists {
+			scope := gap.NewScope(gap.User, "glow")
+			dirs, err = scope.ConfigDirs()
+			if err != nil {
+				fmt.Println("Can't retrieve default config. Please manually pass a config file with '--config'")
+				os.Exit(1)
+			}
+		} else {
+			dirs = append(dirs, envConfigDir)
 		}
 
 		for _, v := range dirs {
