@@ -362,7 +362,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case editorFinishedMsg:
 		return m, loadLocalMarkdown(&m.currentDocument)
 
-	// We've reveived terminal dimensions, either for the first time or
+	// We've received terminal dimensions, either for the first time or
 	// after a resize
 	case tea.WindowSizeMsg:
 		return m, renderWithGlamour(m, m.currentDocument.Body)
