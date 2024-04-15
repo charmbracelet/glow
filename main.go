@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
@@ -36,6 +38,7 @@ var (
 	showAllFiles bool
 	localOnly    bool
 	mouse        bool
+	reload       bool
 
 	rootCmd = &cobra.Command{
 		Use:              "glow [SOURCE|DIR]",
@@ -140,6 +143,12 @@ func validateOptions(cmd *cobra.Command) error {
 	localOnly = viper.GetBool("local")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	reload = viper.GetBool("reload")
+
+	if (reload || cmd.Flags().Changed("reload")) &&
+		!(pager || cmd.Flags().Changed("pager")) {
+		return fmt.Errorf("reload option needs to be used with pager")
+	}
 
 	// validate the glamour style
 	style = viper.GetString("style")
@@ -200,7 +209,8 @@ func execute(cmd *cobra.Command, args []string) error {
 	} else if yes {
 		src := &source{reader: os.Stdin}
 		defer src.reader.Close() //nolint:errcheck
-		return executeCLI(cmd, src, os.Stdout)
+		_, err := executeCLI(cmd, src, os.Stdout)
+		return err
 	}
 
 	switch len(args) {
@@ -219,12 +229,22 @@ func execute(cmd *cobra.Command, args []string) error {
 				return runTUI(p, false)
 			}
 		}
+
+		reloadOnFileChange :=
+			err == nil && !info.IsDir() &&
+				(reload || cmd.Flags().Changed("reload")) &&
+				(pager || cmd.Flags().Changed("pager"))
+
+		if reloadOnFileChange {
+			return executeArgOnFileChange(cmd, args[0])
+		}
+
 		fallthrough
 
 	// CLI
 	default:
 		for _, arg := range args {
-			if err := executeArg(cmd, arg, os.Stdout); err != nil {
+			if _, err := executeArg(cmd, arg, os.Stdout); err != nil {
 				return err
 			}
 		}
@@ -233,20 +253,112 @@ func execute(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
+func executeArgOnFileChange(cmd *cobra.Command, arg string) error {
+	ch := make(chan struct{}, 1)
+	defer close(ch)
+
+	stopCh := make(chan struct{}, 1)
+	defer close(stopCh)
+
+	errCh := make(chan struct{}, 1)
+	defer close(errCh)
+
+	var process *os.Process
+	defer func(p *os.Process) {
+		if p != nil {
+			p.Release()
+			p.Kill()
+		}
+	}(process)
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		detectLocalFileChanges(arg, ch, errCh)
+	}()
+
+	for {
+		select {
+		case <-ch:
+			go executeArgForReload(cmd, arg, process, errCh, stopCh)
+		case <-errCh:
+			return nil
+		case <-stopCh:
+			return nil
+		}
+	}
+}
+
+func executeArgForReload(
+	cmd *cobra.Command,
+	arg string,
+	process *os.Process,
+	errCh, stopCh chan<- struct{},
+) {
+	c, err := executeArg(cmd, arg, os.Stdout)
+	if err != nil {
+		fmt.Println(err)
+		errCh <- struct{}{}
+		return
+	}
+
+	if process != nil {
+		process.Release()
+		process.Kill()
+	}
+
+	if err = c.Start(); err != nil {
+		fmt.Println(err)
+		errCh <- struct{}{}
+		return
+	}
+	process = c.Process
+
+	err = c.Wait()
+	if err != nil {
+		fmt.Println(err)
+		errCh <- struct{}{}
+		return
+	}
+
+	stopCh <- struct{}{}
+}
+
+func detectLocalFileChanges(filePath string, ch, errCh chan<- struct{}) {
+	lastModTime := time.Unix(0, 0)
+	m := &sync.Mutex{}
+
+	for {
+		m.Lock()
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			errCh <- struct{}{}
+			return
+		}
+
+		if fileInfo.ModTime().After(lastModTime) {
+			lastModTime = fileInfo.ModTime()
+			ch <- struct{}{}
+		}
+		m.Unlock()
+
+		time.Sleep(1500 * time.Millisecond)
+	}
+}
+
+func executeArg(cmd *cobra.Command, arg string, w io.Writer) (*exec.Cmd, error) {
 	// create an io.Reader from the markdown source in cli-args
 	src, err := sourceFromArg(arg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer src.reader.Close() //nolint:errcheck
 	return executeCLI(cmd, src, w)
 }
 
-func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
+func executeCLI(cmd *cobra.Command, src *source, w io.Writer) (*exec.Cmd, error) {
 	b, err := io.ReadAll(src.reader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	b = utils.RemoveFrontmatter(b)
@@ -274,12 +386,12 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		glamour.WithPreservedNewLines(),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	out, err := r.RenderBytes(b)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// trim lines
@@ -306,11 +418,16 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		c := exec.Command(pa[0], pa[1:]...) // nolint:gosec
 		c.Stdin = strings.NewReader(content)
 		c.Stdout = os.Stdout
-		return c.Run()
+
+		if reload || cmd.Flags().Changed("reload") {
+			return c, nil
+		} else {
+			return nil, c.Run()
+		}
 	}
 
 	fmt.Fprint(w, content)
-	return nil
+	return nil, nil
 }
 
 func runTUI(workingDirectory string, stashedOnly bool) error {
@@ -377,6 +494,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&reload, "reload", "r", false, "reload on file change (with pager only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
