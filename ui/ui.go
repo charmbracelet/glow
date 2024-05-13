@@ -229,7 +229,7 @@ func newModel(cfg Config) tea.Model {
 	}
 }
 
-func (m model) Init() tea.Cmd {
+func (m model) Init(tea.Context) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	d := m.common.cfg.DocumentTypes
 
@@ -244,10 +244,10 @@ func (m model) Init() tea.Cmd {
 		cmds = append(cmds, findLocalFiles(m))
 	}
 
-	return tea.Batch(cmds...)
+	return m, tea.Batch(cmds...)
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m model) Update(ctx tea.Context, msg tea.Msg) (tea.Model, tea.Cmd) {
 	// If there's been an error, any key exits
 	if m.fatalErr != nil {
 		if _, ok := msg.(tea.KeyMsg); ok {
@@ -446,7 +446,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m model) View() string {
+func (m model) View(ctx tea.Context) string {
 	if m.fatalErr != nil {
 		return errorView(m.fatalErr, true)
 	}
