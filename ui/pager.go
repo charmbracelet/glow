@@ -138,12 +138,12 @@ type pagerModel struct {
 
 func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
-	vp := viewport.New(0, 0)
+	vp := viewport.New(common.ctx, 0, 0)
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
 
 	// Text input for notes/memos
-	ti := textinput.New()
+	ti := textinput.New(common.ctx)
 	ti.Prompt = " > "
 	ti.PromptStyle = pagerNoteInputPromptStyle
 	ti.TextStyle = pagerNoteInputStyle
@@ -152,7 +152,7 @@ func newPagerModel(common *commonModel) pagerModel {
 	ti.Focus()
 
 	// Text input for search
-	sp := spinner.New()
+	sp := spinner.New(common.ctx)
 	sp.Style = spinnerStyle
 
 	return pagerModel{
@@ -219,7 +219,7 @@ func (m *pagerModel) unload() {
 	m.textInput.Reset()
 }
 
-func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
+func (m pagerModel) update(ctx tea.Context, msg tea.Msg) (pagerModel, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -339,7 +339,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			// full lifetime. In either case we need to spin the spinner
 			// irrespective of it's more fine-grained visibility rules.
 			var cmd tea.Cmd
-			m.spinner, cmd = m.spinner.Update(msg)
+			m.spinner, cmd = m.spinner.Update(ctx, msg)
 			cmds = append(cmds, cmd)
 		} else if m.state == pagerStateStashSuccess {
 			// Successful stash. Stop spinning and update accordingly.
@@ -396,10 +396,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	switch m.state {
 	case pagerStateSetNote:
-		m.textInput, cmd = m.textInput.Update(msg)
+		m.textInput, cmd = m.textInput.Update(ctx, msg)
 		cmds = append(cmds, cmd)
 	default:
-		m.viewport, cmd = m.viewport.Update(msg)
+		m.viewport, cmd = m.viewport.Update(ctx, msg)
 		cmds = append(cmds, cmd)
 	}
 
@@ -414,16 +414,16 @@ func (m pagerModel) spinnerVisible() bool {
 	return now.After(windowStart) && now.Before(windowEnd)
 }
 
-func (m pagerModel) View() string {
+func (m pagerModel) View(ctx tea.Context) string {
 	var b strings.Builder
-	fmt.Fprint(&b, m.viewport.View()+"\n")
+	fmt.Fprint(&b, m.viewport.View(ctx)+"\n")
 
 	// Footer
 	switch m.state {
 	case pagerStateSetNote:
 		m.setNoteView(&b)
 	default:
-		m.statusBarView(&b)
+		m.statusBarView(ctx, &b)
 	}
 
 	if m.showHelp {
@@ -433,7 +433,7 @@ func (m pagerModel) View() string {
 	return b.String()
 }
 
-func (m pagerModel) statusBarView(b *strings.Builder) {
+func (m pagerModel) statusBarView(ctx tea.Context, b *strings.Builder) {
 	const (
 		minPercent               float64 = 0.0
 		maxPercent               float64 = 1.0
@@ -444,7 +444,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	showStatusMessage := m.state == pagerStateStatusMessage
 
 	// Logo
-	logo := glowLogoView(" Glow ")
+	logo := m.common.styles.LogoStyle.Render(" Glow ")
 
 	// Scroll percent
 	percent := math.Max(minPercent, math.Min(maxPercent, m.viewport.ScrollPercent()))
@@ -468,7 +468,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	if m.state == pagerStateStashing || m.state == pagerStateStashSuccess {
 		var spinner string
 		if m.spinnerVisible() {
-			spinner = m.spinner.View()
+			spinner = m.spinner.View(ctx)
 		}
 		statusIndicator = statusBarNoteStyle(" ") + spinner
 	} else if isStashed && showStatusMessage {
@@ -528,7 +528,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 
 func (m pagerModel) setNoteView(b *strings.Builder) {
 	fmt.Fprint(b, noteHeading)
-	fmt.Fprint(b, m.textInput.View())
+	fmt.Fprint(b, m.textInput.View(m.common.ctx))
 }
 
 func (m pagerModel) helpView() (s string) {

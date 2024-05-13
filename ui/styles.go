@@ -1,6 +1,10 @@
 package ui
 
-import . "github.com/charmbracelet/lipgloss" //nolint: revive
+import (
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	. "github.com/charmbracelet/lipgloss"
+) //nolint: revive
 
 // Colors.
 var (
@@ -30,55 +34,125 @@ var (
 	dimGreen     = AdaptiveColor{Light: "#72D2B0", Dark: "#0B5137"}
 )
 
+type styler func(...string) string
+
 // Ulimately, we'll transition to named styles.
 // nolint:deadcode,unused,varcheck
-var (
-	normalFg    = NewStyle().Foreground(normal).Render
-	dimNormalFg = NewStyle().Foreground(normalDim).Render
+type styles struct {
+	NormalFg    styler
+	DimNormalFg styler
 
-	brightGrayFg    = NewStyle().Foreground(brightGray).Render
-	dimBrightGrayFg = NewStyle().Foreground(dimBrightGray).Render
+	BrightGrayFg    styler
+	DimBrightGrayFg styler
 
-	grayFg     = NewStyle().Foreground(gray).Render
-	midGrayFg  = NewStyle().Foreground(midGray).Render
-	darkGrayFg = NewStyle().Foreground(darkGray)
+	GrayFg     styler
+	MidGrayFg  styler
+	DarkGrayFg styler
 
-	greenFg        = NewStyle().Foreground(green).Render
-	semiDimGreenFg = NewStyle().Foreground(semiDimGreen).Render
-	dimGreenFg     = NewStyle().Foreground(dimGreen).Render
+	GreenFg        styler
+	SemiDimGreenFg styler
+	DimGreenFg     styler
 
-	fuchsiaFg    = NewStyle().Foreground(fuchsia).Render
-	dimFuchsiaFg = NewStyle().Foreground(dimFuchsia).Render
+	FuchsiaFg    styler
+	DimFuchsiaFg styler
 
-	dullFuchsiaFg    = NewStyle().Foreground(dullFuchsia).Render
-	dimDullFuchsiaFg = NewStyle().Foreground(dimDullFuchsia).Render
+	DullFuchsiaFg    styler
+	DimDullFuchsiaFg styler
 
-	indigoFg    = NewStyle().Foreground(fuchsia).Render
-	dimIndigoFg = NewStyle().Foreground(dimIndigo).Render
+	IndigoFg    styler
+	DimIndigoFg styler
 
-	subtleIndigoFg    = NewStyle().Foreground(subtleIndigo).Render
-	dimSubtleIndigoFg = NewStyle().Foreground(dimSubtleIndigo).Render
+	SubtleIndigoFg    styler
+	DimSubtleIndigoFg styler
 
-	yellowFg     = NewStyle().Foreground(yellowGreen).Render     // renders light green on light backgrounds
-	dullYellowFg = NewStyle().Foreground(dullYellowGreen).Render // renders light green on light backgrounds
-	redFg        = NewStyle().Foreground(red).Render
-	faintRedFg   = NewStyle().Foreground(faintRed).Render
-)
+	YellowFg     styler
+	DullYellowFg styler
+	RedFg        styler
+	FaintRedFg   styler
 
-var (
-	tabStyle = NewStyle().
-			Foreground(AdaptiveColor{Light: "#909090", Dark: "#626262"})
+	TabStyle         Style
+	SelectedTabStyle Style
+	ErrorTitleStyle  Style
+	SubtleStyle      Style
+	PaginationStyle  Style
 
-	selectedTabStyle = NewStyle().
-				Foreground(AdaptiveColor{Light: "#333333", Dark: "#979797"})
+	LogoStyle             Style
+	StashSpinnerStyle     Style
+	StashInputPromptStyle Style
+	StashInputCursorStyle Style
 
-	errorTitleStyle = NewStyle().
+	DividerDot        string
+	DividerBar        string
+	OfflineHeaderNote string
+}
+
+func defaultStyles(ctx tea.Context) styles {
+	darkGrayFg := ctx.NewStyle().Foreground(darkGray).Render
+	subtleStyle := ctx.NewStyle().
+		Foreground(AdaptiveColor{Light: "#9B9B9B", Dark: "#5C5C5C"})
+
+	return styles{
+		NormalFg:    ctx.NewStyle().Foreground(normal).Render,
+		DimNormalFg: ctx.NewStyle().Foreground(normalDim).Render,
+
+		BrightGrayFg:    ctx.NewStyle().Foreground(brightGray).Render,
+		DimBrightGrayFg: ctx.NewStyle().Foreground(dimBrightGray).Render,
+
+		GrayFg:     ctx.NewStyle().Foreground(gray).Render,
+		MidGrayFg:  ctx.NewStyle().Foreground(midGray).Render,
+		DarkGrayFg: darkGrayFg,
+
+		GreenFg:        ctx.NewStyle().Foreground(green).Render,
+		SemiDimGreenFg: ctx.NewStyle().Foreground(semiDimGreen).Render,
+		DimGreenFg:     ctx.NewStyle().Foreground(dimGreen).Render,
+
+		FuchsiaFg:    ctx.NewStyle().Foreground(fuchsia).Render,
+		DimFuchsiaFg: ctx.NewStyle().Foreground(dimFuchsia).Render,
+
+		DullFuchsiaFg:    ctx.NewStyle().Foreground(dullFuchsia).Render,
+		DimDullFuchsiaFg: ctx.NewStyle().Foreground(dimDullFuchsia).Render,
+
+		IndigoFg:    ctx.NewStyle().Foreground(fuchsia).Render,
+		DimIndigoFg: ctx.NewStyle().Foreground(dimIndigo).Render,
+
+		SubtleIndigoFg:    ctx.NewStyle().Foreground(subtleIndigo).Render,
+		DimSubtleIndigoFg: ctx.NewStyle().Foreground(dimSubtleIndigo).Render,
+
+		YellowFg:     ctx.NewStyle().Foreground(yellowGreen).Render,     // renders light green on light backgrounds
+		DullYellowFg: ctx.NewStyle().Foreground(dullYellowGreen).Render, // renders light green on light backgrounds
+		RedFg:        ctx.NewStyle().Foreground(red).Render,
+		FaintRedFg:   ctx.NewStyle().Foreground(faintRed).Render,
+		TabStyle: ctx.NewStyle().
+			Foreground(AdaptiveColor{Light: "#909090", Dark: "#626262"}),
+
+		SelectedTabStyle: ctx.NewStyle().
+			Foreground(AdaptiveColor{Light: "#333333", Dark: "#979797"}),
+
+		ErrorTitleStyle: ctx.NewStyle().
 			Foreground(cream).
 			Background(red).
-			Padding(0, 1)
+			Padding(0, 1),
 
-	subtleStyle = NewStyle().
-			Foreground(AdaptiveColor{Light: "#9B9B9B", Dark: "#5C5C5C"})
+		SubtleStyle: subtleStyle,
 
-	paginationStyle = subtleStyle.Copy()
-)
+		PaginationStyle: subtleStyle.Copy(),
+
+		LogoStyle: ctx.NewStyle().
+			Foreground(lipgloss.Color("#ECFD65")).
+			Background(fuchsia).
+			Bold(true),
+
+		StashSpinnerStyle: ctx.NewStyle().
+			Foreground(gray),
+		StashInputPromptStyle: ctx.NewStyle().
+			Foreground(yellowGreen).
+			MarginRight(1),
+		StashInputCursorStyle: ctx.NewStyle().
+			Foreground(fuchsia).
+			MarginRight(1),
+
+		DividerDot:        darkGrayFg(" • "),
+		DividerBar:        darkGrayFg(" │ "),
+		OfflineHeaderNote: darkGrayFg("(Offline)"),
+	}
+}

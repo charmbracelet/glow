@@ -30,7 +30,7 @@ func newHelpColumn(pairs ...string) (h helpColumn) {
 }
 
 // render returns styled and formatted rows from keys and values.
-func (h helpColumn) render(height int) (rows []string) {
+func (h helpColumn) render(st *styles, height int) (rows []string) {
 	keyWidth, valWidth := h.maxWidths()
 
 	for i := 0; i < height; i++ {
@@ -44,11 +44,11 @@ func (h helpColumn) render(height int) (rows []string) {
 
 			switch k {
 			case "s":
-				k = greenFg(k)
-				v = semiDimGreenFg(v)
+				k = st.GreenFg(k)
+				v = st.SemiDimGreenFg(v)
 			default:
-				k = grayFg(k)
-				v = midGrayFg(v)
+				k = st.GrayFg(k)
+				v = st.MidGrayFg(v)
 			}
 		}
 		b.WriteString(k)
@@ -196,12 +196,13 @@ func (m stashModel) renderHelp(groups ...[]string) (string, int) {
 // would otherwise wrap to two lines. Help view entries should come in as pairs,
 // with the first being the key and the second being the help text.
 func (m stashModel) miniHelpView(entries ...string) string {
+	st := &m.common.styles
 	if len(entries) == 0 {
 		return ""
 	}
 
 	var (
-		truncationChar  = subtleStyle.Render("…")
+		truncationChar  = st.SubtleStyle.Render("…")
 		truncationWidth = ansi.PrintableRuneWidth(truncationChar)
 	)
 
@@ -221,17 +222,17 @@ func (m stashModel) miniHelpView(entries ...string) string {
 
 		switch k {
 		case "s":
-			k = greenFg(k)
-			v = semiDimGreenFg(v)
+			k = st.GreenFg(k)
+			v = st.SemiDimGreenFg(v)
 		default:
-			k = grayFg(k)
-			v = midGrayFg(v)
+			k = st.GrayFg(k)
+			v = st.MidGrayFg(v)
 		}
 
 		next = fmt.Sprintf("%s %s", k, v)
 
 		if i < len(entries)-2 {
-			next += dividerDot.String()
+			next += st.DividerDot
 		}
 
 		// Only this (and the following) help text items if we have the
@@ -269,7 +270,7 @@ func (m stashModel) fullHelpView(groups ...[]string) string {
 
 	// Build columns
 	for _, c := range columns {
-		renderedCols = append(renderedCols, c.render(tallestCol))
+		renderedCols = append(renderedCols, c.render(&m.common.styles, tallestCol))
 	}
 
 	// Merge columns

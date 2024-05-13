@@ -14,7 +14,6 @@ import (
 	"github.com/charmbracelet/charm/keygen"
 	"github.com/charmbracelet/glow/utils"
 	"github.com/muesli/gitcha"
-	te "github.com/muesli/termenv"
 	"github.com/segmentio/ksuid"
 )
 
@@ -141,6 +140,7 @@ const (
 
 // Common stuff we'll need to access in all models.
 type commonModel struct {
+	ctx        tea.Context
 	cfg        Config
 	cc         *charm.Client
 	cwd        string
@@ -158,6 +158,8 @@ type commonModel struct {
 	// Files currently being stashed. We remove files from this set once
 	// a stash operation has either succeeded or failed.
 	filesStashing map[ksuid.KSUID]struct{}
+
+	styles styles
 }
 
 func (c commonModel) isStashing() bool {
@@ -199,16 +201,6 @@ func (m *model) unloadDocument() []tea.Cmd {
 }
 
 func newModel(cfg Config) tea.Model {
-	initSections()
-
-	if cfg.GlamourStyle == "auto" {
-		if te.HasDarkBackground() {
-			cfg.GlamourStyle = "dark"
-		} else {
-			cfg.GlamourStyle = "light"
-		}
-	}
-
 	if len(cfg.DocumentTypes) == 0 {
 		cfg.DocumentTypes.Add(LocalDoc, StashedDoc, ConvertedDoc, NewsDoc)
 	}
@@ -224,12 +216,28 @@ func newModel(cfg Config) tea.Model {
 		common:      &common,
 		state:       stateShowStash,
 		keygenState: keygenUnstarted,
-		pager:       newPagerModel(&common),
-		stash:       newStashModel(&common),
 	}
 }
 
-func (m model) Init(tea.Context) (tea.Model, tea.Cmd) {
+func (m model) Init(ctx tea.Context) (tea.Model, tea.Cmd) {
+	if m.common.cfg.GlamourStyle == "auto" {
+		if ctx.HasLightBackground() {
+			m.common.cfg.GlamourStyle = "light"
+		} else {
+			m.common.cfg.GlamourStyle = "dark"
+		}
+	}
+
+	// Initialize styles & sub-models
+	m.common.ctx = ctx
+	m.common.styles = defaultStyles(ctx)
+
+	// Initialize sections after we have the styles
+	initSections(m.common)
+
+	m.pager = newPagerModel(m.common)
+	m.stash = newStashModel(m.common)
+
 	var cmds []tea.Cmd
 	d := m.common.cfg.DocumentTypes
 
@@ -273,7 +281,7 @@ func (m model) Update(ctx tea.Context, msg tea.Msg) (tea.Model, tea.Cmd) {
 			case stateShowStash:
 				// pass through all keys if we're editing the filter
 				if m.stash.filterState == filtering || m.stash.selectionState == selectionSettingNote {
-					m.stash, cmd = m.stash.update(msg)
+					m.stash, cmd = m.stash.update(ctx, msg)
 					return m, cmd
 				}
 
@@ -283,7 +291,7 @@ func (m model) Update(ctx tea.Context, msg tea.Msg) (tea.Model, tea.Cmd) {
 				// If setting a note send all keys straight through
 				case pagerStateSetNote:
 					var batch []tea.Cmd
-					newPagerModel, cmd := m.pager.update(msg)
+					newPagerModel, cmd := m.pager.update(ctx, msg)
 					m.pager = newPagerModel
 					batch = append(batch, cmd)
 					return m, tea.Batch(batch...)
@@ -370,7 +378,7 @@ func (m model) Update(ctx tea.Context, msg tea.Msg) (tea.Model, tea.Cmd) {
 		// A note was saved to a document. This will have been done in the
 		// pager, so we'll need to find the corresponding note in the stash.
 		// So, pass the message to the stash for processing.
-		stashModel, cmd := m.stash.update(msg)
+		stashModel, cmd := m.stash.update(ctx, msg)
 		m.stash = stashModel
 		return m, cmd
 
@@ -378,7 +386,7 @@ func (m model) Update(ctx tea.Context, msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Always pass these messages to the stash so we can keep it updated
 		// about network activity, even if the user isn't currently viewing
 		// the stash.
-		stashModel, cmd := m.stash.update(msg)
+		stashModel, cmd := m.stash.update(ctx, msg)
 		m.stash = stashModel
 		return m, cmd
 
@@ -424,7 +432,7 @@ func (m model) Update(ctx tea.Context, msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case filteredMarkdownMsg:
 		if m.state == stateShowDocument {
-			newStashModel, cmd := m.stash.update(msg)
+			newStashModel, cmd := m.stash.update(ctx, msg)
 			m.stash = newStashModel
 			cmds = append(cmds, cmd)
 		}
@@ -433,12 +441,12 @@ func (m model) Update(ctx tea.Context, msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Process children
 	switch m.state {
 	case stateShowStash:
-		newStashModel, cmd := m.stash.update(msg)
+		newStashModel, cmd := m.stash.update(ctx, msg)
 		m.stash = newStashModel
 		cmds = append(cmds, cmd)
 
 	case stateShowDocument:
-		newPagerModel, cmd := m.pager.update(msg)
+		newPagerModel, cmd := m.pager.update(ctx, msg)
 		m.pager = newPagerModel
 		cmds = append(cmds, cmd)
 	}
@@ -448,18 +456,18 @@ func (m model) Update(ctx tea.Context, msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View(ctx tea.Context) string {
 	if m.fatalErr != nil {
-		return errorView(m.fatalErr, true)
+		return errorView(&m.common.styles, m.fatalErr, true)
 	}
 
 	switch m.state {
 	case stateShowDocument:
-		return m.pager.View()
+		return m.pager.View(ctx)
 	default:
-		return m.stash.view()
+		return m.stash.view(ctx)
 	}
 }
 
-func errorView(err error, fatal bool) string {
+func errorView(st *styles, err error, fatal bool) string {
 	exitMsg := "press any key to "
 	if fatal {
 		exitMsg += "exit"
@@ -467,9 +475,9 @@ func errorView(err error, fatal bool) string {
 		exitMsg += "return"
 	}
 	s := fmt.Sprintf("%s\n\n%v\n\n%s",
-		errorTitleStyle.Render("ERROR"),
+		st.ErrorTitleStyle.Render("ERROR"),
 		err,
-		subtleStyle.Render(exitMsg),
+		st.SubtleStyle.Render(exitMsg),
 	)
 	return "\n" + indent(s, 3)
 }

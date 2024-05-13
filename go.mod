@@ -4,11 +4,11 @@ go 1.18
 
 require (
 	github.com/atotto/clipboard v0.1.4
-	github.com/charmbracelet/bubbles v0.18.1-0.20240513171522-f4f674440a65
-	github.com/charmbracelet/bubbletea v0.26.3-0.20240510203954-a434f25ff7d3
+	github.com/charmbracelet/bubbles v0.18.1-0.20240513205629-dab412b45aa1
+	github.com/charmbracelet/bubbletea v0.26.3-0.20240513205551-cf6db9e1506a
 	github.com/charmbracelet/charm v0.8.7
 	github.com/charmbracelet/glamour v0.6.0
-	github.com/charmbracelet/lipgloss v0.10.1-0.20240510203806-a6dc2ab509a8
+	github.com/charmbracelet/lipgloss v0.10.1-0.20240513205513-d059cfa7d6f0
 	github.com/charmbracelet/x/editor v0.0.0-20231116172829-450eedbca1ab
 	github.com/dustin/go-humanize v1.0.1
 	github.com/mattn/go-runewidth v0.0.15
@@ -17,7 +17,6 @@ require (
 	github.com/muesli/gitcha v0.2.0
 	github.com/muesli/go-app-paths v0.2.2
 	github.com/muesli/reflow v0.3.0
-	github.com/muesli/termenv v0.15.2
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/cobra v1.8.0
@@ -53,6 +52,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/sasquatch v0.0.0-20200811221207-66979d92330a // indirect
+	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
@@ -74,3 +74,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/charmbracelet/bubbletea => ../bubbletea
+
+replace github.com/charmbracelet/lipgloss => ../lipgloss

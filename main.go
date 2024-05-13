@@ -15,7 +15,6 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/ui"
 	"github.com/charmbracelet/glow/utils"
-	_ "github.com/charmbracelet/lipgloss/defaults" // Use std input defaults for lipgloss
 	"github.com/meowgorithm/babyenv"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"

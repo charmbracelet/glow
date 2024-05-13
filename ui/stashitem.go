@@ -46,6 +46,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	isSelected := index == m.cursor()
 	isFiltering := m.filterState == filtering
 	singleFilteredItem := isFiltering && len(m.getVisibleMarkdowns()) == 1
+	styles := &m.common.styles
 
 	// If there are multiple items being filtered don't highlight a selected
 	// item in the results. If we've filtered down to one item, however,
@@ -55,33 +56,33 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 		switch m.selectionState {
 		case selectionPromptingDelete:
-			gutter = faintRedFg(verticalLine)
-			icon = faintRedFg(icon)
-			title = redFg(title)
-			date = faintRedFg(date)
+			gutter = styles.FaintRedFg(verticalLine)
+			icon = styles.FaintRedFg(icon)
+			title = styles.RedFg(title)
+			date = styles.FaintRedFg(date)
 		case selectionSettingNote:
-			gutter = dullYellowFg(verticalLine)
+			gutter = styles.DullYellowFg(verticalLine)
 			icon = ""
-			title = m.noteInput.View()
-			date = dullYellowFg(date)
+			title = m.noteInput.View(m.common.ctx)
+			date = styles.DullYellowFg(date)
 		default:
 			if m.common.latestFileStashed == md.stashID &&
 				m.statusMessage == stashingStatusMessage {
-				gutter = greenFg(verticalLine)
-				icon = dimGreenFg(icon)
-				title = greenFg(title)
-				date = semiDimGreenFg(date)
+				gutter = styles.GreenFg(verticalLine)
+				icon = styles.DimGreenFg(icon)
+				title = styles.GreenFg(title)
+				date = styles.SemiDimGreenFg(date)
 			} else {
-				gutter = dullFuchsiaFg(verticalLine)
-				icon = dullFuchsiaFg(icon)
+				gutter = styles.DullFuchsiaFg(verticalLine)
+				icon = styles.DullFuchsiaFg(icon)
 				if m.currentSection().key == filterSection &&
 					m.filterState == filterApplied || singleFilteredItem {
 					s := lipgloss.NewStyle().Foreground(fuchsia)
 					title = styleFilteredText(title, m.filterInput.Value(), s, s.Copy().Underline(true))
 				} else {
-					title = fuchsiaFg(title)
+					title = styles.FuchsiaFg(title)
 				}
-				date = dullFuchsiaFg(date)
+				date = styles.DullFuchsiaFg(date)
 			}
 		}
 	} else {
@@ -91,35 +92,35 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 		if m.common.latestFileStashed == md.stashID &&
 			m.statusMessage == stashingStatusMessage {
-			icon = dimGreenFg(icon)
-			title = greenFg(title)
-			date = semiDimGreenFg(date)
+			icon = styles.DimGreenFg(icon)
+			title = styles.GreenFg(title)
+			date = styles.SemiDimGreenFg(date)
 		} else if md.docType == NewsDoc {
 			if isFiltering && m.filterInput.Value() == "" {
-				title = dimIndigoFg(title)
-				date = dimSubtleIndigoFg(date)
+				title = styles.DimIndigoFg(title)
+				date = styles.DimSubtleIndigoFg(date)
 			} else {
 				s := lipgloss.NewStyle().Foreground(indigo)
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Copy().Underline(true))
-				date = subtleIndigoFg(date)
+				date = styles.SubtleIndigoFg(date)
 			}
 		} else if isFiltering && m.filterInput.Value() == "" {
-			icon = dimGreenFg(icon)
+			icon = styles.DimGreenFg(icon)
 			if title == noMemoTitle {
-				title = dimBrightGrayFg(title)
+				title = styles.DimBrightGrayFg(title)
 			} else {
-				title = dimNormalFg(title)
+				title = styles.DimNormalFg(title)
 			}
-			date = dimBrightGrayFg(date)
+			date = styles.DimBrightGrayFg(date)
 		} else {
-			icon = greenFg(icon)
+			icon = styles.GreenFg(icon)
 			if title == noMemoTitle {
-				title = brightGrayFg(title)
+				title = styles.BrightGrayFg(title)
 			} else {
 				s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Copy().Underline(true))
 			}
-			date = brightGrayFg(date)
+			date = styles.BrightGrayFg(date)
 		}
 	}
 
