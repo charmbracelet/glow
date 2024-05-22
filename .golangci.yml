@@ -20,6 +20,7 @@ linters:
     - goconst
     - godot
     - godox
+    - gofumpt
     - goimports
     - goprintffuncname
     - gosec
