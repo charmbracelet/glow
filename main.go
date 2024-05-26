@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
@@ -31,6 +32,7 @@ var (
 	readmeNames  = []string{"README.md", "README"}
 	configFile   string
 	pager        bool
+	tui          bool
 	style        string
 	width        uint
 	showAllFiles bool
@@ -140,6 +142,7 @@ func validateOptions(cmd *cobra.Command) error {
 	localOnly = viper.GetBool("local")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	tui = viper.GetBool("tui")
 
 	// validate the glamour style
 	style = viper.GetString("style")
@@ -219,6 +222,16 @@ func execute(cmd *cobra.Command, args []string) error {
 				return runTUI(p, false)
 			}
 		}
+
+		useTUI := tui || cmd.Flags().Changed("tui")
+		if err == nil && useTUI && !info.IsDir() {
+			// Is file; open in TUI-mode
+			p, err := filepath.Abs(args[0])
+			if err == nil {
+				return runTUI(p, false, true)
+			}
+		}
+
 		fallthrough
 
 	// CLI
@@ -313,7 +326,29 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	return nil
 }
 
-func runTUI(workingDirectory string, stashedOnly bool) error {
+func runTUI(path string, stashedOnly bool, withFile ...bool) error {
+	var (
+		workingDirectory string
+		filePath         string
+		createdAt        time.Time
+	)
+
+	if len(withFile) == 1 && withFile[0] == true {
+		// Open TUI-mode with file
+		workingDirectory = filepath.Dir(path)
+		filePath = path
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			createdAt = time.Now()
+		} else {
+			createdAt = fileInfo.ModTime()
+		}
+	} else {
+		workingDirectory = path
+		filePath = ""
+		createdAt = time.Now()
+	}
+
 	// Read environment to get debugging stuff
 	var cfg ui.Config
 	if err := babyenv.Parse(&cfg); err != nil {
@@ -330,6 +365,8 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 	}
 
 	cfg.WorkingDirectory = workingDirectory
+	cfg.FilePath = filePath
+	cfg.FileCreatedAt = createdAt
 	cfg.DocumentTypes = ui.NewDocTypeSet()
 	cfg.ShowAllFiles = showAllFiles
 	cfg.GlamourMaxWidth = width
@@ -372,6 +409,7 @@ func init() {
 	// "Glow Classic" cli arguments
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", defaultConfigFile))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
+	rootCmd.Flags().BoolVarP(&tui, "tui", "t", false, "display with TUI-mode")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
