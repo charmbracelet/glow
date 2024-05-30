@@ -15,8 +15,7 @@ func TestGlowSources(t *testing.T) {
 
 	for _, v := range tt {
 		buf := &bytes.Buffer{}
-		err := executeArg(rootCmd, v, buf)
-
+		_, err := executeArg(rootCmd, v, buf)
 		if err != nil {
 			t.Errorf("Error during execution (args: %s): %v", v, err)
 		}
@@ -35,6 +34,12 @@ func TestGlowFlags(t *testing.T) {
 			args: []string{"-p"},
 			check: func() bool {
 				return pager
+			},
+		},
+		{
+			args: []string{"-r"},
+			check: func() bool {
+				return reload
 			},
 		},
 		{
