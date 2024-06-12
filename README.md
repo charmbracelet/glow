@@ -47,6 +47,9 @@ xbps-install -S glow
 # Nix
 nix-env -iA nixpkgs.glow
 
+# Flox
+flox install glow
+
 # FreeBSD
 pkg install glow
 
