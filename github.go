@@ -29,8 +29,13 @@ func findGitHubREADME(s string) (*source, error) {
 	}
 	u.Host = "raw.githubusercontent.com"
 
+	readmeNamesCombo := make([]string, 0, len(readmeNames)*2)
 	for _, r := range readmeNames {
-		v := u
+		readmeNamesCombo = append(readmeNamesCombo, []string{r, strings.ToLower(r)}...)
+	}
+
+	for _, r := range readmeNamesCombo {
+		v := *u
 		v.Path += "/master/" + r
 
 		// nolint:bodyclose
