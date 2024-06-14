@@ -61,6 +61,9 @@ winget install charmbracelet.glow
 # Android (with termux)
 pkg install glow
 
+# Chrome OS
+crew install glow
+
 # Debian/Ubuntu
 sudo mkdir -p /etc/apt/keyrings
 curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
