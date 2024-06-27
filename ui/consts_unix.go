@@ -4,5 +4,5 @@
 package ui
 
 const (
-	pagerStashIcon = "🔒"
+	pagerStashIcon = "•"
 )

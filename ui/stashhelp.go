@@ -99,16 +99,9 @@ func (m stashModel) helpView() (string, int) {
 		return m.renderHelp(h)
 	}
 
-	// Help for when we're interacting with a single document
-	switch m.selectionState {
-	case selectionSettingNote:
-		return m.renderHelp([]string{"enter", "confirm", "esc", "cancel"}, []string{"q", "quit"})
-	case selectionPromptingDelete:
-		return m.renderHelp([]string{"y", "delete", "n", "cancel"}, []string{"q", "quit"})
-	}
-
 	var (
 		isStashed     bool
+		isNews        bool
 		isStashable   bool
 		isEditable    bool
 		navHelp       []string
@@ -118,13 +111,6 @@ func (m stashModel) helpView() (string, int) {
 		sectionHelp   []string
 		appHelp       []string
 	)
-
-	if numDocs > 0 {
-		md := m.selectedMarkdown()
-		isStashed = md != nil && md.docType == StashedDoc
-		isStashable = md != nil && md.docType == LocalDoc && m.online()
-		isEditable = md != nil && md.docType == LocalDoc && md.localPath != ""
-	}
 
 	if numDocs > 0 && m.showFullHelp {
 		navHelp = []string{"enter", "open", "j/k ↑/↓", "choose"}
@@ -143,16 +129,21 @@ func (m stashModel) helpView() (string, int) {
 	}
 
 	// If we're browsing a filtered set
-	if m.filterState == filterApplied {
-		filterHelp = []string{"/", "edit search", "esc", "clear search"}
+	if m.filterApplied() {
+		filterHelp = []string{"/", "edit search", "esc", "clear filter"}
 	} else {
 		filterHelp = []string{"/", "find"}
+		if m.stashFullyLoaded {
+			filterHelp = append(filterHelp, "t", "team filter")
+		}
 	}
 
 	if isStashed {
-		selectionHelp = []string{"x", "delete", "m", "set memo"}
+		selectionHelp = []string{"s", "stash", "x", "delete", "n", "new", "m", "memo"}
 	} else if isStashable {
-		selectionHelp = []string{"s", "stash"}
+		selectionHelp = []string{"s", "stash", "n", "new"}
+	} else if isNews {
+		selectionHelp = []string{"x", "dismiss"}
 	}
 
 	if isEditable {
@@ -181,13 +172,15 @@ func (m stashModel) helpView() (string, int) {
 	return m.renderHelp(navHelp, filterHelp, selectionHelp, editHelp, sectionHelp, appHelp)
 }
 
+const minHelpViewHeight = 5
+
 // renderHelp returns the rendered help view and associated line height for
 // the given groups of help items.
 func (m stashModel) renderHelp(groups ...[]string) (string, int) {
 	if m.showFullHelp {
 		str := m.fullHelpView(groups...)
 		numLines := strings.Count(str, "\n") + 1
-		return str, numLines
+		return str, max(numLines, minHelpViewHeight)
 	}
 	return m.miniHelpView(concatStringSlices(groups...)...), 1
 }

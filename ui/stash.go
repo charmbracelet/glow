@@ -3,8 +3,8 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
+	"path"
 	"sort"
 	"strings"
 	"time"
@@ -13,8 +13,8 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/charm"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
 	"github.com/sahilm/fuzzy"
@@ -28,15 +28,11 @@ const (
 	stashViewHorizontalPadding = 6
 )
 
-var (
-	stashingStatusMessage       = statusMessage{normalStatusMessage, "Stashing..."}
-	alreadyStashedStatusMessage = statusMessage{subtleStatusMessage, "Already stashed"}
-)
+var stashingStatusMessage = statusMessage{normalStatusMessage, "Stashing..."}
 
 var (
-	dividerDot        = darkGrayFg.SetString(" • ")
-	dividerBar        = darkGrayFg.SetString(" │ ")
-	offlineHeaderNote = darkGrayFg.SetString("(Offline)")
+	dividerDot = darkGrayFg.SetString(" • ")
+	dividerBar = darkGrayFg.SetString(" │ ")
 
 	logoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ECFD65")).
@@ -56,16 +52,9 @@ var (
 // MSG
 
 type (
-	deletedStashedItemMsg int
-	filteredMarkdownMsg   []*markdown
-	fetchedMarkdownMsg    *markdown
+	filteredMarkdownMsg []*markdown
+	fetchedMarkdownMsg  *markdown
 )
-
-type markdownFetchFailedMsg struct {
-	err  error
-	id   int
-	note string
-}
 
 // MODEL
 
@@ -82,9 +71,7 @@ const (
 type sectionKey int
 
 const (
-	localSection = iota
-	stashedSection
-	newsSection
+	documentsSection = iota
 	filterSection
 )
 
@@ -92,7 +79,6 @@ const (
 // its contents in the file listing view.
 type section struct {
 	key       sectionKey
-	docTypes  DocTypeSet
 	paginator paginator.Model
 	cursor    int
 }
@@ -107,15 +93,6 @@ const (
 	unfiltered    filterState = iota // no filter set
 	filtering                        // user is actively setting a filter
 	filterApplied                    // a filter is applied and user is not editing filter
-)
-
-// selectionState is the state of the currently selected document.
-type selectionState int
-
-const (
-	selectionIdle = iota
-	selectionSettingNote
-	selectionPromptingDelete
 )
 
 // statusMessageType adds some context to the status message being sent.
@@ -136,24 +113,12 @@ type statusMessage struct {
 
 func initSections() {
 	sections = map[sectionKey]section{
-		localSection: {
-			key:       localSection,
-			docTypes:  NewDocTypeSet(LocalDoc),
-			paginator: newStashPaginator(),
-		},
-		stashedSection: {
-			key:       stashedSection,
-			docTypes:  NewDocTypeSet(StashedDoc, ConvertedDoc),
-			paginator: newStashPaginator(),
-		},
-		newsSection: {
-			key:       newsSection,
-			docTypes:  NewDocTypeSet(NewsDoc),
+		documentsSection: {
+			key:       documentsSection,
 			paginator: newStashPaginator(),
 		},
 		filterSection: {
 			key:       filterSection,
-			docTypes:  DocTypeSet{},
 			paginator: newStashPaginator(),
 		},
 	}
@@ -176,12 +141,10 @@ type stashModel struct {
 	common             *commonModel
 	err                error
 	spinner            spinner.Model
-	noteInput          textinput.Model
 	filterInput        textinput.Model
 	stashFullyLoaded   bool // have we loaded all available stashed documents from the server?
 	viewState          stashViewState
 	filterState        filterState
-	selectionState     selectionState
 	showFullHelp       bool
 	showStatusMessage  bool
 	statusMessage      statusMessage
@@ -194,8 +157,8 @@ type stashModel struct {
 	// Index of the section we're currently looking at
 	sectionIndex int
 
-	// Tracks what exactly is loaded between the stash, news and local files
-	loaded DocTypeSet
+	// Tracks if docs were loaded
+	loaded bool
 
 	// The master set of markdown documents we're working with.
 	markdowns []*markdown
@@ -209,19 +172,11 @@ type stashModel struct {
 	// from the local pagination. Generally, the server will return more items
 	// than we can display at a time so we can paginate locally without having
 	// to fetch every time.
-	serverPage int
-}
-
-func (m stashModel) localOnly() bool {
-	return m.common.cfg.localOnly()
-}
-
-func (m stashModel) stashedOnly() bool {
-	return m.common.cfg.stashedOnly()
+	serverPage int64
 }
 
 func (m stashModel) loadingDone() bool {
-	return m.loaded.Equals(m.common.cfg.DocumentTypes.Difference(ConvertedDoc))
+	return m.loaded
 }
 
 func (m stashModel) currentSection() *section {
@@ -244,39 +199,22 @@ func (m *stashModel) setCursor(i int) {
 	m.currentSection().cursor = i
 }
 
-// Returns whether or not we're online. That is, when "local-only" mode is
-// disabled and we've authenticated successfully.
-func (m stashModel) online() bool {
-	return !m.localOnly() && m.common.authStatus == authOK
-}
-
 // Whether or not the spinner should be spinning.
 func (m stashModel) shouldSpin() bool {
 	loading := !m.loadingDone()
-	stashing := m.common.isStashing()
 	openingDocument := m.viewState == stashStateLoadingDocument
-	return loading || stashing || openingDocument
+	return loading || openingDocument
 }
 
 func (m *stashModel) setSize(width, height int) {
 	m.common.width = width
 	m.common.height = height
 
-	m.noteInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.noteInput.Prompt)
-	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(m.filterInput.Prompt)
+	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(
+		m.filterInput.Prompt,
+	)
 
 	m.updatePagination()
-}
-
-// bakeConvertedDocs turns converted documents into stashed ones. Essentially,
-// we're discarding the fact that they were ever converted so we can stop
-// treating them like converted documents.
-func (m *stashModel) bakeConvertedDocs() {
-	for _, md := range m.markdowns {
-		if md.docType == ConvertedDoc {
-			md.docType = StashedDoc
-		}
-	}
 }
 
 func (m *stashModel) resetFiltering() {
@@ -284,11 +222,7 @@ func (m *stashModel) resetFiltering() {
 	m.filterInput.Reset()
 	m.filteredMarkdowns = nil
 
-	// Turn converted markdowns into stashed ones so that the next time we
-	// filter we get both local and stashed results.
-	m.bakeConvertedDocs()
-
-	sort.Stable(markdownsByLocalFirst(m.markdowns))
+	sortMarkdowns(m.markdowns)
 
 	// If the filtered section is present (it's always at the end) slice it out
 	// of the sections slice to remove it from the UI.
@@ -315,7 +249,7 @@ func (m stashModel) filterApplied() bool {
 func (m stashModel) shouldUpdateFilter() bool {
 	// If we're in the middle of setting a note don't update the filter so that
 	// the focus won't jump around.
-	return m.filterApplied() && m.selectionState != selectionSettingNote
+	return m.filterApplied()
 }
 
 // Update pagination according to the amount of markdowns for the current
@@ -361,58 +295,16 @@ func (m stashModel) selectedMarkdown() *markdown {
 
 // Adds markdown documents to the model.
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
-	if len(mds) > 0 {
-		for _, md := range mds {
-			md.generateIDs()
-		}
-
-		m.markdowns = append(m.markdowns, mds...)
-		if !m.filterApplied() {
-			sort.Stable(markdownsByLocalFirst(m.markdowns))
-		}
-		m.updatePagination()
-	}
-}
-
-// Return the number of markdown documents of a given type.
-func (m stashModel) countMarkdowns(t DocType) (found int) {
-	if len(m.markdowns) == 0 {
+	if len(mds) == 0 {
 		return
 	}
 
-	var mds []*markdown
-	if m.filterState == filtering {
-		mds = m.getVisibleMarkdowns()
-	} else {
-		mds = m.markdowns
+	m.markdowns = append(m.markdowns, mds...)
+	if !m.filterApplied() {
+		sortMarkdowns(m.markdowns)
 	}
 
-	for i := 0; i < len(mds); i++ {
-		if mds[i].docType == t {
-			found++
-		}
-	}
-	return
-}
-
-// Sift through the master markdown collection for the specified types.
-func (m stashModel) getMarkdownByType(types ...DocType) []*markdown {
-	var agg []*markdown
-
-	if len(m.markdowns) == 0 {
-		return agg
-	}
-
-	for _, t := range types {
-		for _, md := range m.markdowns {
-			if md.docType == t {
-				agg = append(agg, md)
-			}
-		}
-	}
-
-	sort.Stable(markdownsByLocalFirst(agg))
-	return agg
+	m.updatePagination()
 }
 
 // Returns the markdowns that should be currently shown.
@@ -421,45 +313,15 @@ func (m stashModel) getVisibleMarkdowns() []*markdown {
 		return m.filteredMarkdowns
 	}
 
-	return m.getMarkdownByType(m.currentSection().docTypes.AsSlice()...)
-}
-
-// Return the markdowns eligible to be filtered.
-func (m stashModel) getFilterableMarkdowns() (agg []*markdown) {
-	mds := m.getMarkdownByType(LocalDoc, ConvertedDoc, StashedDoc)
-
-	// Copy values
-	for _, v := range mds {
-		p := *v
-		agg = append(agg, &p)
-	}
-
-	return
+	return m.markdowns
 }
 
 // Command for opening a markdown document in the pager. Note that this also
 // alters the model.
 func (m *stashModel) openMarkdown(md *markdown) tea.Cmd {
-	var cmd tea.Cmd
 	m.viewState = stashStateLoadingDocument
-
-	if md.docType == LocalDoc {
-		cmd = loadLocalMarkdown(md)
-	} else {
-		cmd = loadRemoteMarkdown(m.common.cc, md)
-	}
-
+	cmd := loadLocalMarkdown(md)
 	return tea.Batch(cmd, m.spinner.Tick)
-}
-
-func (m *stashModel) newStatusMessage(sm statusMessage) tea.Cmd {
-	m.showStatusMessage = true
-	m.statusMessage = sm
-	if m.statusMessageTimer != nil {
-		m.statusMessageTimer.Stop()
-	}
-	m.statusMessageTimer = time.NewTimer(statusMessageTimeout)
-	return waitForStatusMessageTimeout(stashContext, m.statusMessageTimer)
 }
 
 func (m *stashModel) hideStatusMessage() {
@@ -518,45 +380,21 @@ func newStashModel(common *commonModel) stashModel {
 	sp.Spinner = spinner.Line
 	sp.Style = stashSpinnerStyle
 
-	ni := textinput.New()
-	ni.Prompt = "Memo:"
-	ni.PromptStyle = stashInputPromptStyle
-	ni.CursorStyle = stashInputCursorStyle
-	ni.CharLimit = noteCharacterLimit
-	ni.Focus()
-
 	si := textinput.New()
 	si.Prompt = "Find:"
 	si.PromptStyle = stashInputPromptStyle
-	si.CursorStyle = stashInputCursorStyle
-	si.CharLimit = noteCharacterLimit
+	si.Cursor.Style = stashInputCursorStyle
 	si.Focus()
 
-	var s []section
-	if common.cfg.localOnly() {
-		s = []section{
-			sections[localSection],
-		}
-	} else if common.cfg.stashedOnly() {
-		s = []section{
-			sections[stashedSection],
-			sections[newsSection],
-		}
-	} else {
-		s = []section{
-			sections[localSection],
-			sections[stashedSection],
-			sections[newsSection],
-		}
+	s := []section{
+		sections[documentsSection],
 	}
 
 	m := stashModel{
 		common:      common,
 		spinner:     sp,
-		noteInput:   ni,
 		filterInput: si,
 		serverPage:  1,
-		loaded:      NewDocTypeSet(),
 		sections:    s,
 	}
 
@@ -580,72 +418,13 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	case errMsg:
 		m.err = msg
 
-	case stashLoadErrMsg:
-		m.err = msg.err
-		m.loaded.Add(StashedDoc) // still done, albeit unsuccessfully
-		m.stashFullyLoaded = true
-
-	case newsLoadErrMsg:
-		m.err = msg.err
-		m.loaded.Add(NewsDoc) // still done, albeit unsuccessfully
-
 	case localFileSearchFinished:
 		// We're finished searching for local files
-		m.loaded.Add(LocalDoc)
-
-	case gotStashMsg, gotNewsMsg:
-		// Stash or news results have come in from the server.
-		//
-		// With the stash, this doesn't mean the whole stash listing is loaded,
-		// but now know it can load, at least, so mark the stash as loaded here.
-		var docs []*markdown
-
-		switch msg := msg.(type) {
-		case gotStashMsg:
-			m.loaded.Add(StashedDoc)
-			docs = wrapMarkdowns(StashedDoc, msg)
-
-			if len(msg) == 0 {
-				// If the server comes back with nothing then we've got
-				// everything
-				m.stashFullyLoaded = true
-			} else {
-				// Load the next page
-				m.serverPage++
-				cmds = append(cmds, loadStash(m))
-			}
-
-		case gotNewsMsg:
-			m.loaded.Add(NewsDoc)
-			docs = wrapMarkdowns(NewsDoc, msg)
-		}
-
-		// If we're filtering build filter indexes immediately so any
-		// matching results will show up in the filter.
-		if m.filterApplied() {
-			for _, md := range docs {
-				md.buildFilterValue()
-			}
-		}
-		if m.shouldUpdateFilter() {
-			cmds = append(cmds, filterMarkdowns(m))
-		}
-
-		m.addMarkdowns(docs...)
-
-	case markdownFetchFailedMsg:
-		s := "Couldn't load markdown"
-		if msg.note != "" {
-			s += ": " + msg.note
-		}
-		cmd := m.newStatusMessage(statusMessage{
-			status:  normalStatusMessage,
-			message: s,
-		})
-		return m, cmd
+		m.loaded = true
 
 	case filteredMarkdownMsg:
 		m.filteredMarkdowns = msg
+		m.setCursor(0)
 		return m, nil
 
 	case spinner.TickMsg:
@@ -655,28 +434,6 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 
-	// A note was set on a document. This may have happened in the pager so
-	// we'll find the corresponding document here and update accordingly.
-	case noteSavedMsg:
-		for i := range m.markdowns {
-			if m.markdowns[i].ID == msg.ID {
-				m.markdowns[i].Note = msg.Note
-			}
-		}
-
-	case stashSuccessMsg:
-		// No-op: mechanical stuff related to stash success is handled in the
-		// parent update function.
-
-	// Note: mechanical stuff related to stash failure is handled in the parent
-	// update function.
-	case stashFailMsg:
-		m.err = msg.err
-		cmds = append(cmds, m.newStatusMessage(statusMessage{
-			status:  errorStatusMessage,
-			message: fmt.Sprintf("Couldn’t stash ‘%s’", msg.markdown.Note),
-		}))
-
 	case statusMessageTimeoutMsg:
 		if applicationContext(msg) == stashContext {
 			m.hideStatusMessage()
@@ -685,15 +442,6 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 
 	if m.filterState == filtering {
 		cmds = append(cmds, m.handleFiltering(msg))
-		return m, tea.Batch(cmds...)
-	}
-
-	switch m.selectionState {
-	case selectionSettingNote:
-		cmds = append(cmds, m.handleNoteInput(msg))
-		return m, tea.Batch(cmds...)
-	case selectionPromptingDelete:
-		cmds = append(cmds, m.handleDeleteConfirmation(msg))
 		return m, tea.Batch(cmds...)
 	}
 
@@ -765,17 +513,14 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			}
 			m.updatePagination()
 
+		case "F":
+			m.loaded = false
+			return findLocalFiles(*m.common)
+
 		// Edit document in EDITOR
 		case "e":
 			md := m.selectedMarkdown()
-			if md == nil || md.docType != LocalDoc {
-				break
-			}
-			file := m.selectedMarkdown().localPath
-			if file == "" {
-				break
-			}
-			return openEditor(file)
+			return openEditor(md.localPath)
 
 		// Open document
 		case keyEnter:
@@ -793,14 +538,13 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		// Filter your notes
 		case "/":
 			m.hideStatusMessage()
-			m.bakeConvertedDocs()
 
 			// Build values we'll filter against
 			for _, md := range m.markdowns {
 				md.buildFilterValue()
 			}
 
-			m.filteredMarkdowns = m.getFilterableMarkdowns()
+			m.filteredMarkdowns = m.markdowns
 
 			m.paginator().Page = 0
 			m.setCursor(0)
@@ -808,99 +552,6 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			m.filterInput.CursorEnd()
 			m.filterInput.Focus()
 			return textinput.Blink
-
-		// Set note
-		case "m":
-			m.hideStatusMessage()
-
-			if numDocs == 0 {
-				break
-			}
-
-			md := m.selectedMarkdown()
-			isUserMarkdown := md.docType == StashedDoc || md.docType == ConvertedDoc
-			isSettingNote := m.selectionState == selectionSettingNote
-			isPromptingDelete := m.selectionState == selectionPromptingDelete
-
-			if isUserMarkdown && !isSettingNote && !isPromptingDelete {
-				m.selectionState = selectionSettingNote
-				m.noteInput.SetValue(md.Note)
-				m.noteInput.CursorEnd()
-				return textinput.Blink
-			}
-
-		// Stash
-		case "s":
-			if numDocs == 0 || !m.online() || m.selectedMarkdown() == nil {
-				break
-			}
-
-			md := m.selectedMarkdown()
-
-			// Is this a document we're allowed to stash?
-			if !stashableDocTypes.Contains(md.docType) {
-				break
-			}
-
-			// Was this document already stashed?
-			if _, alreadyStashed := m.common.filesStashed[md.stashID]; alreadyStashed {
-				cmds = append(cmds, m.newStatusMessage(alreadyStashedStatusMessage))
-				break
-			}
-
-			// Is the document missing a stash ID?
-			if md.stashID.IsNil() {
-				if debug && md.stashID.IsNil() {
-					log.Printf("refusing to stash markdown; local ID path is nil: %#v", md)
-				}
-				break
-			}
-
-			// Checks passed; perform the stash.
-			m.common.filesStashed[md.stashID] = struct{}{}
-			m.common.filesStashing[md.stashID] = struct{}{}
-			m.common.latestFileStashed = md.stashID
-			cmds = append(cmds,
-				stashDocument(m.common.cc, *md),
-				m.newStatusMessage(stashingStatusMessage),
-			)
-
-			// If we're stashing a filtered item, optimistically convert the
-			// filtered item into a stashed item.
-			if m.filterApplied() {
-				for _, v := range m.filteredMarkdowns {
-					if v.uniqueID == md.uniqueID {
-						v.convertToStashed()
-					}
-				}
-			}
-
-			// The spinner subtly shows the stash state in a non-optimistic
-			// fashion, namely because it was originally implemented this way.
-			// Ideally, if this stash succeeds quickly enough, the spinner
-			// wouldn't run at all.
-			cmds = append(cmds, m.spinner.Tick)
-
-		// Prompt for deletion
-		case "x":
-			m.hideStatusMessage()
-
-			validState := m.viewState == stashStateReady &&
-				m.selectionState == selectionIdle
-
-			if numDocs == 0 && !validState {
-				break
-			}
-
-			md := m.selectedMarkdown()
-			if md == nil {
-				break
-			}
-
-			t := md.docType
-			if t == StashedDoc || t == ConvertedDoc {
-				m.selectionState = selectionPromptingDelete
-			}
 
 		// Toggle full help
 		case "?":
@@ -940,84 +591,6 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 	}
 
 	return tea.Batch(cmds...)
-}
-
-// Updates for when a user is being prompted whether or not to delete a
-// markdown item.
-func (m *stashModel) handleDeleteConfirmation(msg tea.Msg) tea.Cmd {
-	if msg, ok := msg.(tea.KeyMsg); ok {
-		switch msg.String() {
-		case "y":
-			if m.selectionState != selectionPromptingDelete {
-				break
-			}
-
-			smd := m.selectedMarkdown()
-
-			for _, md := range m.markdowns {
-				if md.uniqueID != smd.uniqueID {
-					continue
-				}
-
-				// Remove from the things-we-stashed-this-session set
-				delete(m.common.filesStashed, md.stashID)
-
-				// Delete optimistically and remove the stashed item before
-				// we've received a success response.
-				mds, err := deleteMarkdown(m.markdowns, md)
-				if err == nil {
-					m.markdowns = mds
-				}
-
-				break
-			}
-
-			// Also optimistically delete from filtered markdowns
-			if m.filterApplied() {
-				for _, md := range m.filteredMarkdowns {
-					if md.uniqueID != smd.uniqueID {
-						continue
-					}
-
-					switch md.docType {
-					case ConvertedDoc:
-						// If the document was stashed in this session, convert it
-						// back to it's original document type
-						if md.originalDocType == LocalDoc {
-							md.revertFromStashed()
-							break
-						}
-
-						// Other documents fall through and delete as normal
-						fallthrough
-
-					// Otherwise, remove the document from the listing
-					default:
-						mds, err := deleteMarkdown(m.filteredMarkdowns, md)
-						if err == nil {
-							m.filteredMarkdowns = mds
-						}
-					}
-					break
-				}
-			}
-
-			m.selectionState = selectionIdle
-			m.updatePagination()
-
-			if len(m.filteredMarkdowns) == 0 {
-				m.resetFiltering()
-			}
-
-			return deleteStashedItem(m.common.cc, smd.ID)
-
-		// Any other key cancels deletion
-		default:
-			m.selectionState = selectionIdle
-		}
-	}
-
-	return nil
 }
 
 // Updates for when a user is in the filter editing interface.
@@ -1088,53 +661,6 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func (m *stashModel) handleNoteInput(msg tea.Msg) tea.Cmd {
-	var cmds []tea.Cmd
-
-	if msg, ok := msg.(tea.KeyMsg); ok {
-		switch msg.String() {
-		case keyEsc:
-			// Cancel note
-			m.noteInput.Reset()
-			m.selectionState = selectionIdle
-		case keyEnter:
-			// Set new note
-			md := m.selectedMarkdown()
-
-			// If the user is issuing a rename on a newly stashed item in a
-			// filtered listing, there's a small chance the user could try and
-			// set a note before the stash is complete.
-			if md.ID == 0 {
-				if debug {
-					log.Printf("user attempted to rename, but markdown ID is 0: %v", md)
-				}
-				return m.newStatusMessage(statusMessage{
-					status:  subtleStatusMessage,
-					message: "Too fast. Try again in a sec.",
-				})
-			}
-
-			newNote := m.noteInput.Value()
-			cmd := saveDocumentNote(m.common.cc, md.ID, newNote)
-			md.Note = newNote
-			m.noteInput.Reset()
-			m.selectionState = selectionIdle
-			return cmd
-		}
-	}
-
-	if m.shouldUpdateFilter() {
-		cmds = append(cmds, filterMarkdowns(*m))
-	}
-
-	// Update the note text input component
-	newNoteInputModel, noteInputCmd := m.noteInput.Update(msg)
-	m.noteInput = newNoteInputModel
-	cmds = append(cmds, noteInputCmd)
-
-	return tea.Batch(cmds...)
-}
-
 // VIEW
 
 func (m stashModel) view() string {
@@ -1145,25 +671,14 @@ func (m stashModel) view() string {
 	case stashStateLoadingDocument:
 		s += " " + m.spinner.View() + " Loading document..."
 	case stashStateReady:
-
 		loadingIndicator := " "
 		if m.shouldSpin() {
 			loadingIndicator = m.spinner.View()
 		}
 
-		var header string
-		switch m.selectionState {
-		case selectionPromptingDelete:
-			header = redFg("Delete this item from your stash? ") + faintRedFg("(y/N)")
-		case selectionSettingNote:
-			header = yellowFg("Set the memo for this item?")
-		}
-
 		// Only draw the normal header if we're not using the header area for
 		// something else (like a note or delete prompt).
-		if header == "" {
-			header = m.headerView()
-		}
+		header := m.headerView()
 
 		// Rules for the logo, filter and status message.
 		logoOrFilter := " "
@@ -1172,7 +687,7 @@ func (m stashModel) view() string {
 		} else if m.filterState == filtering {
 			logoOrFilter += m.filterInput.View()
 		} else {
-			logoOrFilter += glowLogoView(" Glow ")
+			logoOrFilter += glowLogoView()
 			if m.showStatusMessage {
 				logoOrFilter += "  " + m.statusMessage.String()
 			}
@@ -1208,7 +723,7 @@ func (m stashModel) view() string {
 				// One could argue, in fact, that using pointers in
 				// a functional framework is an antipattern and our use of
 				// pointers in our model should be refactored away.
-				var p paginator.Model = *(m.paginator())
+				p := *(m.paginator())
 				p.Type = paginator.Arabic
 				pagination = paginationStyle.Render(p.View())
 			}
@@ -1232,27 +747,22 @@ func (m stashModel) view() string {
 	return "\n" + indent(s, stashIndent)
 }
 
-func glowLogoView(text string) string {
-	return logoStyle.Render(text)
+func glowLogoView() string {
+	return logoStyle.Render(" Glow ")
 }
 
 func (m stashModel) headerView() string {
-	localCount := m.countMarkdowns(LocalDoc)
-	stashedCount := m.countMarkdowns(StashedDoc) + m.countMarkdowns(ConvertedDoc)
-	newsCount := m.countMarkdowns(NewsDoc)
+	localCount := len(m.markdowns)
 
 	var sections []string //nolint:prealloc
 
 	// Filter results
 	if m.filterState == filtering {
-		if localCount+stashedCount+newsCount == 0 {
+		if localCount == 0 {
 			return grayFg("Nothing found.")
 		}
 		if localCount > 0 {
 			sections = append(sections, fmt.Sprintf("%d local", localCount))
-		}
-		if stashedCount > 0 {
-			sections = append(sections, fmt.Sprintf("%d stashed", stashedCount))
 		}
 
 		for i := range sections {
@@ -1262,38 +772,14 @@ func (m stashModel) headerView() string {
 		return strings.Join(sections, dividerDot.String())
 	}
 
-	if m.loadingDone() && len(m.markdowns) == 0 {
-		var maybeOffline string
-		if m.common.authStatus == authFailed {
-			maybeOffline = " " + offlineHeaderNote.String()
-		}
-
-		if m.stashedOnly() {
-			return subtleStyle.Render("Can’t load stash") + maybeOffline
-		}
-		return subtleStyle.Render("No markdown files found") + maybeOffline
-	}
-
 	// Tabs
 	for i, v := range m.sections {
 		var s string
 
 		switch v.key {
-		case localSection:
-			if m.stashedOnly() {
-				continue
-			}
-			s = fmt.Sprintf("%d local", localCount)
-		case stashedSection:
-			if m.localOnly() {
-				continue
-			}
-			s = fmt.Sprintf("%d stashed", stashedCount)
-		case newsSection:
-			if m.localOnly() {
-				continue
-			}
-			s = fmt.Sprintf("%d news", newsCount)
+		case documentsSection:
+			s = fmt.Sprintf("%d documents", localCount)
+
 		case filterSection:
 			s = fmt.Sprintf("%d “%s”", len(m.filteredMarkdowns), m.filterInput.Value())
 		}
@@ -1306,12 +792,7 @@ func (m stashModel) headerView() string {
 		sections = append(sections, s)
 	}
 
-	s := strings.Join(sections, dividerBar.String())
-	if m.common.authStatus == authFailed {
-		s += dividerDot.String() + offlineHeaderNote.String()
-	}
-
-	return s
+	return strings.Join(sections, dividerBar.String())
 }
 
 func (m stashModel) populatedView() string {
@@ -1326,27 +807,11 @@ func (m stashModel) populatedView() string {
 		}
 
 		switch m.sections[m.sectionIndex].key {
-		case localSection:
+		case documentsSection:
 			if m.loadingDone() {
-				f("No local files found.")
+				f("No files found.")
 			} else {
 				f("Looking for local files...")
-			}
-		case stashedSection:
-			if m.common.authStatus == authFailed {
-				f("Can't load your stash. Are you offline?")
-			} else if m.loadingDone() {
-				f("Nothing stashed yet.")
-			} else {
-				f("Loading your stash...")
-			}
-		case newsSection:
-			if m.common.authStatus == authFailed {
-				f("Can't load news. Are you offline?")
-			} else if m.loadingDone() {
-				f("No stashed files found.")
-			} else {
-				f("Loading your stash...")
 			}
 		case filterSection:
 			return ""
@@ -1384,67 +849,38 @@ func (m stashModel) populatedView() string {
 
 // COMMANDS
 
-// loadRemoteMarkdown is a command for loading markdown from the server.
-func loadRemoteMarkdown(cc *charm.Client, md *markdown) tea.Cmd {
-	return func() tea.Msg {
-		newMD, err := fetchMarkdown(cc, md.ID, md.docType)
-		if err != nil {
-			if debug {
-				log.Printf("error loading %s markdown (ID %d, Note: '%s'): %v", md.docType, md.ID, md.Note, err)
-			}
-			return markdownFetchFailedMsg{
-				err:  err,
-				id:   md.ID,
-				note: md.Note,
-			}
-		}
-		newMD.stashID = md.stashID
-		return fetchedMarkdownMsg(newMD)
-	}
-}
-
 func loadLocalMarkdown(md *markdown) tea.Cmd {
 	return func() tea.Msg {
-		if md.docType != LocalDoc {
-			return errMsg{errors.New("could not load local file: not a local file")}
-		}
 		if md.localPath == "" {
 			return errMsg{errors.New("could not load file: missing path")}
 		}
 
 		data, err := os.ReadFile(md.localPath)
 		if err != nil {
-			if debug {
-				log.Println("error reading local markdown:", err)
-			}
+			log.Debug("error reading local file", "error", err)
 			return errMsg{err}
 		}
+		md.Note = pathToNote(md.localPath)
 		md.Body = string(data)
 		return fetchedMarkdownMsg(md)
 	}
 }
 
-func deleteStashedItem(cc *charm.Client, id int) tea.Cmd {
-	return func() tea.Msg {
-		err := cc.DeleteMarkdown(id)
-		if err != nil {
-			if debug {
-				log.Println("could not delete stashed item:", err)
-			}
-			return errMsg{err}
-		}
-		return deletedStashedItemMsg(id)
+func pathToNote(localPath string) string {
+	if localPath == "" {
+		return ""
 	}
+	return strings.Replace(path.Base(localPath), path.Ext(localPath), "", 1)
 }
 
 func filterMarkdowns(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		if m.filterInput.Value() == "" || !m.filterApplied() {
-			return filteredMarkdownMsg(m.getFilterableMarkdowns()) // return everything
+			return filteredMarkdownMsg(m.markdowns) // return everything
 		}
 
 		targets := []string{}
-		mds := m.getFilterableMarkdowns()
+		mds := m.markdowns
 
 		for _, t := range mds {
 			targets = append(targets, t.filterValue)
@@ -1462,54 +898,6 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 	}
 }
 
-// ETC
-
-// fetchMarkdown performs the actual I/O for loading markdown from the sever.
-func fetchMarkdown(cc *charm.Client, id int, t DocType) (*markdown, error) {
-	var md *charm.Markdown
-	var err error
-
-	switch t {
-	case StashedDoc, ConvertedDoc:
-		md, err = cc.GetStashMarkdown(id)
-	case NewsDoc:
-		md, err = cc.GetNewsMarkdown(id)
-	default:
-		err = fmt.Errorf("unknown markdown type: %s", t)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &markdown{
-		docType:  t,
-		Markdown: *md,
-	}, nil
-}
-
-// Delete a markdown from a slice of markdowns.
-func deleteMarkdown(markdowns []*markdown, target *markdown) ([]*markdown, error) {
-	index := -1
-
-	// Operate on a copy to avoid any pointer weirdness
-	mds := make([]*markdown, len(markdowns))
-	copy(mds, markdowns)
-
-	for i, v := range mds {
-		if v.uniqueID == target.uniqueID {
-			index = i
-			break
-		}
-	}
-
-	if index == -1 {
-		err := fmt.Errorf("could not find markdown to delete")
-		if debug {
-			log.Println(err)
-		}
-		return nil, err
-	}
-
-	return append(mds[:index], mds[index+1:]...), nil
+func (m *stashModel) loadDocs() tea.Cmd {
+	return findLocalFiles(*m.common)
 }

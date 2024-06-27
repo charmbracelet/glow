@@ -11,12 +11,11 @@ func openEditor(path string) tea.Cmd {
 	cb := func(err error) tea.Msg {
 		return editorFinishedMsg{err}
 	}
-
-	editor, err := editor.Cmd("Glow", path)
+	cmd, err := editor.Cmd("glow", path)
 	if err != nil {
 		return func() tea.Msg {
-			return errMsg{err}
+			return cb(err)
 		}
 	}
-	return tea.ExecProcess(editor, cb)
+	return tea.ExecProcess(cmd, cb)
 }
