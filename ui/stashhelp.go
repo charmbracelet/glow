@@ -100,9 +100,6 @@ func (m stashModel) helpView() (string, int) {
 	}
 
 	var (
-		isStashed     bool
-		isNews        bool
-		isStashable   bool
 		isEditable    bool
 		navHelp       []string
 		filterHelp    []string
@@ -136,14 +133,6 @@ func (m stashModel) helpView() (string, int) {
 		if m.stashFullyLoaded {
 			filterHelp = append(filterHelp, "t", "team filter")
 		}
-	}
-
-	if isStashed {
-		selectionHelp = []string{"s", "stash", "x", "delete", "n", "new", "m", "memo"}
-	} else if isStashable {
-		selectionHelp = []string{"s", "stash", "n", "new"}
-	} else if isNews {
-		selectionHelp = []string{"x", "dismiss"}
 	}
 
 	if isEditable {

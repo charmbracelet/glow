@@ -13,9 +13,7 @@ func openEditor(path string) tea.Cmd {
 	}
 	cmd, err := editor.Cmd("glow", path)
 	if err != nil {
-		return func() tea.Msg {
-			return cb(err)
-		}
+		return func() tea.Msg { return cb(err) }
 	}
 	return tea.ExecProcess(cmd, cb)
 }
