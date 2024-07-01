@@ -12,7 +12,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// markdown wraps api.Markdown.
 type markdown struct {
 	// Full path of a local markdown file. Only relevant to local documents and
 	// those that have been stashed in this session.

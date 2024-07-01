@@ -39,7 +39,7 @@ var configCmd = &cobra.Command{
 			return err
 		}
 
-		c, err := editor.Cmd("glow", configFile)
+		c, err := editor.Cmd("Glow", configFile)
 		if err != nil {
 			return err
 		}

@@ -11,7 +11,7 @@ func openEditor(path string) tea.Cmd {
 	cb := func(err error) tea.Msg {
 		return editorFinishedMsg{err}
 	}
-	cmd, err := editor.Cmd("glow", path)
+	cmd, err := editor.Cmd("Glow", path)
 	if err != nil {
 		return func() tea.Msg { return cb(err) }
 	}

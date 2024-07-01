@@ -20,9 +20,11 @@ import (
 	"github.com/muesli/termenv"
 )
 
-const statusBarHeight = 1
-
-const lineNumberWidth = 4
+const (
+	statusBarHeight = 1
+	lineNumberWidth = 4
+	pagerStashIcon  = "•"
+)
 
 var (
 	pagerHelpHeight int

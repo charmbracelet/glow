@@ -374,7 +374,6 @@ func init() {
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
-	_ = viper.BindPFlag("stash", rootCmd.Flags().Lookup("stash"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	viper.SetDefault("style", glamour.AutoStyle)
 	viper.SetDefault("width", 0)
