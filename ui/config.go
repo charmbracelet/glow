@@ -12,19 +12,7 @@ type Config struct {
 	// Which directory should we start from?
 	WorkingDirectory string
 
-	// Which document types shall we show?
-	DocumentTypes DocTypeSet
-
 	// For debugging the UI
-	Logfile              string `env:"GLOW_LOGFILE"`
-	HighPerformancePager bool   `env:"GLOW_HIGH_PERFORMANCE_PAGER" default:"true"`
-	GlamourEnabled       bool   `env:"GLOW_ENABLE_GLAMOUR" default:"true"`
-}
-
-func (c Config) localOnly() bool {
-	return c.DocumentTypes.Equals(NewDocTypeSet(LocalDoc))
-}
-
-func (c Config) stashedOnly() bool {
-	return c.DocumentTypes.Contains(StashedDoc) && !c.DocumentTypes.Contains(LocalDoc)
+	HighPerformancePager bool `env:"GLOW_HIGH_PERFORMANCE_PAGER" envDefault:"true"`
+	GlamourEnabled       bool `env:"GLOW_ENABLE_GLAMOUR"         envDefault:"true"`
 }

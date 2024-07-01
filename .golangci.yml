@@ -24,7 +24,7 @@ linters:
     - goimports
     - goprintffuncname
     - gosec
-    - ifshort
+    # - ifshort
     - misspell
     - prealloc
     - revive

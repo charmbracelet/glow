@@ -3,9 +3,9 @@
 
 package ui
 
-func ignorePatterns(m model) []string {
+func ignorePatterns(m commonModel) []string {
 	return []string{
-		m.common.cfg.Gopath,
+		m.cfg.Gopath,
 		"node_modules",
 		".*",
 	}

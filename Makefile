@@ -2,8 +2,6 @@
 
 .PHONY: default clean glow run log
 
-LOGFILE := debug.log
-
 default: glow
 
 clean:
@@ -13,8 +11,7 @@ glow:
 	go build
 
 run: clean glow
-	GLOW_LOGFILE=$(LOGFILE) ./glow
+	./glow
 
 log:
-	> $(LOGFILE)
-	tail -f $(LOGFILE)
+	tail -f ~/.cache/glow/glow.log
