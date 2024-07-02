@@ -201,14 +201,8 @@ func (m stashModel) miniHelpView(entries ...string) string {
 		k := entries[i]
 		v := entries[i+1]
 
-		switch k {
-		case "s":
-			k = greenFg(k)
-			v = semiDimGreenFg(v)
-		default:
-			k = grayFg(k)
-			v = midGrayFg(v)
-		}
+		k = grayFg(k)
+		v = midGrayFg(v)
 
 		next = fmt.Sprintf("%s %s", k, v)
 

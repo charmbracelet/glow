@@ -12,7 +12,6 @@ import (
 
 const (
 	verticalLine         = "│"
-	noMemoTitle          = "No Memo"
 	fileListingStashIcon = "• "
 )
 
@@ -68,23 +67,15 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			separator = semiDimGreenFg(separator)
 		} else if isFiltering && m.filterInput.Value() == "" {
 			icon = dimGreenFg(icon)
-			if title == noMemoTitle {
-				title = dimBrightGrayFg(title)
-			} else {
-				title = dimNormalFg(title)
-			}
+			title = dimNormalFg(title)
 			date = dimBrightGrayFg(date)
 			editedBy = dimBrightGrayFg(editedBy)
 			separator = dimBrightGrayFg(separator)
 		} else {
 			icon = greenFg(icon)
 
-			if title == noMemoTitle {
-				title = brightGrayFg(title)
-			} else {
-				s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
-				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline(true))
-			}
+			s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
+			title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline(true))
 			date = grayFg(date)
 			editedBy = midGrayFg(editedBy)
 			separator = brightGrayFg(separator)

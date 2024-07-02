@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"sort"
 	"strings"
 	"time"
@@ -860,17 +859,10 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 			log.Debug("error reading local file", "error", err)
 			return errMsg{err}
 		}
-		md.Note = pathToNote(md.localPath)
+		md.Note = md.localPath
 		md.Body = string(data)
 		return fetchedMarkdownMsg(md)
 	}
-}
-
-func pathToNote(localPath string) string {
-	if localPath == "" {
-		return ""
-	}
-	return strings.Replace(path.Base(localPath), path.Ext(localPath), "", 1)
 }
 
 func filterMarkdowns(m stashModel) tea.Cmd {

@@ -23,7 +23,6 @@ import (
 const (
 	statusBarHeight = 1
 	lineNumberWidth = 4
-	pagerStashIcon  = "•"
 )
 
 var (
@@ -50,11 +49,6 @@ var (
 	statusBarHelpStyle = lipgloss.NewStyle().
 				Foreground(statusBarNoteFg).
 				Background(lipgloss.AdaptiveColor{Light: "#DCDCDC", Dark: "#323232"}).
-				Render
-
-	statusBarStashDotStyle = lipgloss.NewStyle().
-				Foreground(green).
-				Background(statusBarBg).
 				Render
 
 	statusBarMessageStyle = lipgloss.NewStyle().
@@ -292,22 +286,16 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		helpNote = statusBarHelpStyle(" ? Help ")
 	}
 
-	statusIndicator := statusBarStashDotStyle(" " + pagerStashIcon)
-
 	// Note
 	var note string
 	if showStatusMessage {
 		note = m.statusMessage
 	} else {
 		note = m.currentDocument.Note
-		if len(note) == 0 {
-			note = "(No memo)"
-		}
 	}
 	note = truncate.StringWithTail(" "+note+" ", uint(max(0,
 		m.common.width-
 			ansi.PrintableRuneWidth(logo)-
-			ansi.PrintableRuneWidth(statusIndicator)-
 			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
 	)), ellipsis)
@@ -321,7 +309,6 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	padding := max(0,
 		m.common.width-
 			ansi.PrintableRuneWidth(logo)-
-			ansi.PrintableRuneWidth(statusIndicator)-
 			ansi.PrintableRuneWidth(note)-
 			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
@@ -333,9 +320,8 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		emptySpace = statusBarNoteStyle(emptySpace)
 	}
 
-	fmt.Fprintf(b, "%s%s%s%s%s%s",
+	fmt.Fprintf(b, "%s%s%s%s%s",
 		logo,
-		statusIndicator,
 		note,
 		emptySpace,
 		scrollPercent,
@@ -344,8 +330,6 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 }
 
 func (m pagerModel) helpView() (s string) {
-	memoOrStash := "m       set memo"
-
 	edit := "e       edit this document"
 
 	col1 := []string{
@@ -353,7 +337,6 @@ func (m pagerModel) helpView() (s string) {
 		"G/end   go to bottom",
 		"c       copy contents",
 		edit,
-		memoOrStash,
 		"esc     back to files",
 		"q       quit",
 	}
