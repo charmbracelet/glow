@@ -34,7 +34,7 @@ var configCmd = &cobra.Command{
 	Long:    paragraph(fmt.Sprintf("\n%s the glow config file. We’ll use EDITOR to determine which editor to use. If the config file doesn't exist, it will be created.", keyword("Edit"))),
 	Example: paragraph("glow config\nglow config --config path/to/config.yml"),
 	Args:    cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		if err := ensureConfigFile(); err != nil {
 			return err
 		}
