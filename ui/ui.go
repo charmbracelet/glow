@@ -334,7 +334,7 @@ func findLocalFiles(m commonModel) tea.Cmd {
 
 		// Switch between FindFiles and FindAllFiles to bypass .gitignore rules
 		var ch chan gitcha.SearchResult
-		if m.common.cfg.ShowAllFiles {
+		if m.cfg.ShowAllFiles {
 			ch, err = gitcha.FindAllFilesExcept(cwd, markdownExtensions, nil)
 		} else {
 			ch, err = gitcha.FindFilesExcept(cwd, markdownExtensions, ignorePatterns(m))
