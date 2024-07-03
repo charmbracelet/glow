@@ -8,7 +8,7 @@ require (
 	github.com/caarlos0/env/v11 v11.0.1
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v0.26.4
-	github.com/charmbracelet/glamour v0.6.1-0.20230519131405-7528eaad6620
+	github.com/charmbracelet/glamour v0.7.0
 	github.com/charmbracelet/lipgloss v0.11.1-0.20240608174255-33b3263db7dd
 	github.com/charmbracelet/log v0.4.0
 	github.com/charmbracelet/x/editor v0.0.0-20240625164403-2627ec16405d
