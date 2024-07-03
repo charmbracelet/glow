@@ -23,6 +23,12 @@ width: 80
 
 func defaultConfigFile() string {
 	scope := gap.NewScope(gap.User, "glow")
+	if c := os.Getenv("CHARM_CONFIG_HOME"); c != "" {
+		return filepath.Join(c, "glow.yml")
+	}
+	if c := os.Getenv("XDG_CONFIG_HOME"); c != "" {
+		return filepath.Join(c, "glow.yml")
+	}
 	path, _ := scope.ConfigPath("glow.yml")
 	return path
 }

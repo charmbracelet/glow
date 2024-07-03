@@ -395,6 +395,14 @@ func tryLoadConfigFromDefaultPlaces() {
 		os.Exit(1)
 	}
 
+	if c := os.Getenv("CHARM_CONFIG_HOME"); c != "" {
+		viper.AddConfigPath(c)
+	}
+
+	if c := os.Getenv("XDG_CONFIG_HOME"); c != "" {
+		viper.AddConfigPath(c)
+	}
+
 	for _, v := range dirs {
 		viper.AddConfigPath(v)
 	}
