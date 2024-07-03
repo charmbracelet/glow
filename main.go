@@ -46,6 +46,10 @@ var (
 		SilenceErrors:    false,
 		SilenceUsage:     true,
 		TraverseChildren: true,
+		Args:             cobra.MaximumNArgs(1),
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveDefault
+		},
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			return validateOptions(cmd)
 		},
@@ -360,6 +364,7 @@ func init() {
 		Version = "unknown (built from source)"
 	}
 	rootCmd.Version = Version
+	rootCmd.InitDefaultCompletionCmd()
 
 	// "Glow Classic" cli arguments
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", defaultConfigFile()))
