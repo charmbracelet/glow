@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -28,19 +29,21 @@ func findGitLabREADME(s string) (*source, error) {
 		return nil, err
 	}
 
-	for _, r := range readmeNames {
-		v := u
-		v.Path += "/raw/master/" + r
+	for _, b := range readmeBranches {
+		for _, r := range readmeNames {
+			v := *u
+			v.Path += fmt.Sprintf("/raw/%s/%s", b, r)
 
-		// nolint:bodyclose
-		// it is closed on the caller
-		resp, err := http.Get(v.String())
-		if err != nil {
-			return nil, err
-		}
+			// nolint:bodyclose
+			// it is closed on the caller
+			resp, err := http.Get(v.String())
+			if err != nil {
+				return nil, err
+			}
 
-		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, v.String()}, nil
+			if resp.StatusCode == http.StatusOK {
+				return &source{resp.Body, v.String()}, nil
+			}
 		}
 	}
 
