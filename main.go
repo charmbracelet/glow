@@ -384,7 +384,7 @@ func init() {
 	viper.SetDefault("style", glamour.AutoStyle)
 	viper.SetDefault("width", 0)
 
-	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(configCmd, manCmd)
 }
 
 func tryLoadConfigFromDefaultPlaces() {
