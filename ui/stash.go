@@ -859,7 +859,6 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 			log.Debug("error reading local file", "error", err)
 			return errMsg{err}
 		}
-		md.Note = md.localPath
 		md.Body = string(data)
 		return fetchedMarkdownMsg(md)
 	}
