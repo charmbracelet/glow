@@ -214,6 +214,9 @@ github.com/muesli/cancelreader v0.2.2 h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELU
 github.com/muesli/cancelreader v0.2.2/go.mod h1:3XuTXfFS2VjM+HTLZY9Ak0l6eUKfijIfMUZ4EgX0QYo=
 github.com/muesli/gitcha v0.2.0 h1:+wOgT2dI9s2Tznj1t1rb/qkK5e0cb6qD8c4IX2TR/YY=
 github.com/muesli/gitcha v0.2.0/go.mod h1:Ri8m9TZS4+ORG4JVmVKUQcWZuxDvUW3UKxMdQfzG2zI=
+github.com/muesli/gitcha v0.3.0 h1:+PJkVKrDXVB0VgRn/yVx2CqSVSDGMSepzvohsCrPYtQ=
+github.com/muesli/gitcha v0.3.0/go.mod h1:vX3jFL+XcEUq1uY74RCjLSZfAV+ZuvLg70/NGPdXn84=
+github.com/muesli/go-app-paths v0.2.1/go.mod h1:SxS3Umca63pcFcLtbjVb+J0oD7cl4ixQWoBKhGEtEho=
 github.com/muesli/go-app-paths v0.2.2 h1:NqG4EEZwNIhBq/pREgfBmgDmt3h1Smr1MjZiXbpZUnI=
 github.com/muesli/go-app-paths v0.2.2/go.mod h1:SxS3Umca63pcFcLtbjVb+J0oD7cl4ixQWoBKhGEtEho=
 github.com/muesli/reflow v0.3.0 h1:IFsN6K9NfGtjeggFP+68I4chLZV2yIKsXJFNZ+eWh6s=
