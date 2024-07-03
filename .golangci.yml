@@ -20,10 +20,11 @@ linters:
     - goconst
     - godot
     - godox
+    - gofumpt
     - goimports
     - goprintffuncname
     - gosec
-    - ifshort
+    # - ifshort
     - misspell
     - prealloc
     - revive
