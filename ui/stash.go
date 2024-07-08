@@ -888,7 +888,3 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 		return filteredMarkdownMsg(filtered)
 	}
 }
-
-func (m *stashModel) loadDocs() tea.Cmd {
-	return findLocalFiles(*m.common)
-}

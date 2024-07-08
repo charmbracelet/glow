@@ -164,7 +164,7 @@ func newModel(cfg Config) tea.Model {
 
 func (m model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.stash.spinner.Tick}
-	cmds = append(cmds, m.stash.loadDocs())
+	cmds = append(cmds, findLocalFiles(*m.common))
 	return tea.Batch(cmds...)
 }
 
@@ -186,6 +186,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				batch := m.unloadDocument()
 				return m, tea.Batch(batch...)
 			}
+		case "r":
+			m.stash.markdowns = nil
+			return m, m.Init()
 
 		case "q":
 			var cmd tea.Cmd
