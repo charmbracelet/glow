@@ -2,13 +2,18 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 
-	"github.com/adrg/xdg"
 	"github.com/charmbracelet/log"
+	gap "github.com/muesli/go-app-paths"
 )
 
 func getLogFilePath() (string, error) {
-	return xdg.CacheFile("glow/glow.log")
+	dir, err := gap.NewScope(gap.User, "glow").CacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "glow.log"), nil
 }
 
 func setupLog() (func() error, error) {
