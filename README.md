@@ -40,8 +40,8 @@ pacman -S glow
 # Void Linux
 xbps-install -S glow
 
-# Nix
-nix-env -iA nixpkgs.glow
+# Nix shell
+nix-shell -p glow --command glow
 
 # FreeBSD
 pkg install glow
