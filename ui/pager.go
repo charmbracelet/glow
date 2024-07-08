@@ -397,10 +397,15 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 		width = 0
 	}
 
-	r, err := glamour.NewTermRenderer(
+	options := []glamour.TermRendererOption{
 		utils.GlamourStyle(m.common.cfg.GlamourStyle, isCode),
 		glamour.WithWordWrap(width),
-	)
+	}
+
+	if m.common.cfg.PreserveNewLines {
+		options = append(options, glamour.WithPreservedNewLines())
+	}
+	r, err := glamour.NewTermRenderer(options...)
 	if err != nil {
 		return "", err
 	}
