@@ -187,8 +187,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(batch...)
 			}
 		case "r":
-			m.stash.markdowns = nil
-			return m, m.Init()
+			if m.state == stateShowStash {
+				m.stash.markdowns = nil
+				return m, m.Init()
+			}
 
 		case "q":
 			var cmd tea.Cmd
