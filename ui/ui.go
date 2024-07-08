@@ -164,7 +164,7 @@ func newModel(cfg Config) tea.Model {
 
 func (m model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.stash.spinner.Tick}
-	cmds = append(cmds, m.stash.loadDocs())
+	cmds = append(cmds, findLocalFiles(*m.common))
 	return tea.Batch(cmds...)
 }
 
@@ -185,6 +185,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {
 				batch := m.unloadDocument()
 				return m, tea.Batch(batch...)
+			}
+		case "r":
+			if m.state == stateShowStash {
+				m.stash.markdowns = nil
+				return m, m.Init()
 			}
 
 		case "q":

@@ -205,6 +205,9 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			_ = clipboard.WriteAll(m.currentDocument.Body)
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Copied contents", false}))
 
+		case "r":
+			return m, loadLocalMarkdown(&m.currentDocument)
+
 		case "?":
 			m.toggleHelp()
 			if m.viewport.HighPerformanceRendering {
@@ -330,13 +333,12 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 }
 
 func (m pagerModel) helpView() (s string) {
-	edit := "e       edit this document"
-
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
 		"c       copy contents",
-		edit,
+		"e       edit this document",
+		"r       reload this document",
 		"esc     back to files",
 		"q       quit",
 	}
