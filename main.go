@@ -433,6 +433,5 @@ func tryLoadConfigFromDefaultPlaces() {
 	}
 	if err := ensureConfigFile(); err != nil {
 		log.Error("Could not create default configuration", "error", err)
-		os.Exit(1)
 	}
 }
