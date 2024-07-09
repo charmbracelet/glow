@@ -1,14 +1,14 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
+
+version: 2
+
 includes:
   - from_url:
       url: charmbracelet/meta/main/goreleaser-glow.yaml
 
 variables:
-  main: "."
-  binary_name: glow
   description: "Render markdown on the CLI, with pizzazz!"
   github_url: "https://github.com/charmbracelet/soft-serve"
   maintainer: "Christian Muehlhaeuser <muesli@charm.sh>"
   brew_commit_author_name: "Christian Muehlhaeuser"
   brew_commit_author_email: "muesli@charm.sh"
-
-# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json

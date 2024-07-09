@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
 name: goreleaser
 
 on:
@@ -21,5 +23,3 @@ jobs:
       nfpm_gpg_key: ${{ secrets.NFPM_GPG_KEY }}
       nfpm_passphrase: ${{ secrets.NFPM_PASSPHRASE }}
       snapcraft_token: ${{ secrets.SNAPCRAFT_TOKEN }}
-
-# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
