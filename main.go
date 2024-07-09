@@ -72,19 +72,9 @@ func sourceFromArg(arg string) (*source, error) {
 	}
 
 	// a GitHub or GitLab URL (even without the protocol):
-	if u, ok := isGitHubURL(arg); ok {
-		src, err := findGitHubREADME(u)
-		if err != nil {
-			return nil, err
-		}
-		return src, nil
-	}
-	if u, ok := isGitLabURL(arg); ok {
-		src, err := findGitLabREADME(u)
-		if err != nil {
-			return nil, err
-		}
-		return src, nil
+	src, err := readmeURL(arg)
+	if src != nil || err != nil {
+		return src, err
 	}
 
 	// HTTP(S) URLs:
