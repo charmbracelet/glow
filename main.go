@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -148,7 +149,7 @@ func validateOptions(cmd *cobra.Command) error {
 	style = viper.GetString("style")
 	if style != glamour.AutoStyle && glamour.DefaultStyles[style] == nil {
 		style = utils.ExpandPath(style)
-		if _, err := os.Stat(style); os.IsNotExist(err) {
+		if _, err := os.Stat(style); errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("Specified style does not exist: %s", style)
 		} else if err != nil {
 			return err

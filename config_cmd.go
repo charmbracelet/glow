@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -61,7 +63,7 @@ func ensureConfigFile() error {
 		return fmt.Errorf("'%s' is not a supported configuration type: use '%s' or '%s'", ext, ".yaml", ".yml")
 	}
 
-	if _, err := os.Stat(configFile); os.IsNotExist(err) {
+	if _, err := os.Stat(configFile); errors.Is(err, fs.ErrNotExist) {
 		// File doesn't exist yet, create all necessary directories and
 		// write the default config file
 		if err := os.MkdirAll(filepath.Dir(configFile), 0o700); err != nil {
