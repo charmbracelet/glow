@@ -10,3 +10,16 @@ jobs:
     uses: charmbracelet/meta/.github/workflows/snapshot.yml@main
     secrets:
       goreleaser_key: ${{ secrets.GORELEASER_KEY }}
+
+  govulncheck:
+    uses: charmbracelet/meta/.github/workflows/govulncheck.yml@main
+    with:
+      go-version: stable
+
+  semgrep:
+    uses: charmbracelet/meta/.github/workflows/semgrep.yml@main
+
+  ruleguard:
+    uses: charmbracelet/meta/.github/workflows/ruleguard.yml@main
+    with:
+      go-version: stable
