@@ -388,7 +388,6 @@ func init() {
 }
 
 func tryLoadConfigFromDefaultPlaces() {
-	fmt.Println("AQUI 1")
 	scope := gap.NewScope(gap.User, "glow")
 	dirs, err := scope.ConfigDirs()
 	if err != nil {
