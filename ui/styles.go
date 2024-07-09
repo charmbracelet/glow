@@ -1,84 +1,46 @@
 package ui
 
-import . "github.com/charmbracelet/lipgloss" //nolint: revive
+import "github.com/charmbracelet/lipgloss"
 
 // Colors.
 var (
-	normal          = AdaptiveColor{Light: "#1A1A1A", Dark: "#dddddd"}
-	normalDim       = AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}
-	gray            = AdaptiveColor{Light: "#909090", Dark: "#626262"}
-	midGray         = AdaptiveColor{Light: "#B2B2B2", Dark: "#4A4A4A"}
-	darkGray        = AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}
-	brightGray      = AdaptiveColor{Light: "#847A85", Dark: "#979797"}
-	dimBrightGray   = AdaptiveColor{Light: "#C2B8C2", Dark: "#4D4D4D"}
-	indigo          = AdaptiveColor{Light: "#5A56E0", Dark: "#7571F9"}
-	dimIndigo       = AdaptiveColor{Light: "#9498FF", Dark: "#494690"}
-	subtleIndigo    = AdaptiveColor{Light: "#7D79F6", Dark: "#514DC1"}
-	dimSubtleIndigo = AdaptiveColor{Light: "#BBBDFF", Dark: "#383584"}
-	cream           = AdaptiveColor{Light: "#FFFDF5", Dark: "#FFFDF5"}
-	yellowGreen     = AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"}
-	dullYellowGreen = AdaptiveColor{Light: "#6BCB94", Dark: "#9BA92F"}
-	fuschia         = AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}
-	dimFuchsia      = AdaptiveColor{Light: "#F1A8FF", Dark: "#99519E"}
-	dullFuchsia     = AdaptiveColor{Dark: "#AD58B4", Light: "#F793FF"}
-	dimDullFuchsia  = AdaptiveColor{Light: "#F6C9FF", Dark: "#6B3A6F"}
-	green           = Color("#04B575")
-	red             = AdaptiveColor{Light: "#FF4672", Dark: "#ED567A"}
-	faintRed        = AdaptiveColor{Light: "#FF6F91", Dark: "#C74665"}
-
-	semiDimGreen = AdaptiveColor{Light: "#35D79C", Dark: "#036B46"}
-	dimGreen     = AdaptiveColor{Light: "#72D2B0", Dark: "#0B5137"}
+	normalDim      = lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}
+	gray           = lipgloss.AdaptiveColor{Light: "#909090", Dark: "#626262"}
+	midGray        = lipgloss.AdaptiveColor{Light: "#B2B2B2", Dark: "#4A4A4A"}
+	darkGray       = lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"}
+	brightGray     = lipgloss.AdaptiveColor{Light: "#847A85", Dark: "#979797"}
+	dimBrightGray  = lipgloss.AdaptiveColor{Light: "#C2B8C2", Dark: "#4D4D4D"}
+	cream          = lipgloss.AdaptiveColor{Light: "#FFFDF5", Dark: "#FFFDF5"}
+	yellowGreen    = lipgloss.AdaptiveColor{Light: "#04B575", Dark: "#ECFD65"}
+	fuchsia        = lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}
+	dimFuchsia     = lipgloss.AdaptiveColor{Light: "#F1A8FF", Dark: "#99519E"}
+	dullFuchsia    = lipgloss.AdaptiveColor{Dark: "#AD58B4", Light: "#F793FF"}
+	dimDullFuchsia = lipgloss.AdaptiveColor{Light: "#F6C9FF", Dark: "#7B4380"}
+	green          = lipgloss.Color("#04B575")
+	red            = lipgloss.AdaptiveColor{Light: "#FF4672", Dark: "#ED567A"}
+	semiDimGreen   = lipgloss.AdaptiveColor{Light: "#35D79C", Dark: "#036B46"}
+	dimGreen       = lipgloss.AdaptiveColor{Light: "#72D2B0", Dark: "#0B5137"}
 )
 
 // Ulimately, we'll transition to named styles.
-// nolint:deadcode,unused,varcheck
 var (
-	normalFg    = NewStyle().Foreground(normal).Render
-	dimNormalFg = NewStyle().Foreground(normalDim).Render
-
-	brightGrayFg    = NewStyle().Foreground(brightGray).Render
-	dimBrightGrayFg = NewStyle().Foreground(dimBrightGray).Render
-
-	grayFg     = NewStyle().Foreground(gray).Render
-	midGrayFg  = NewStyle().Foreground(midGray).Render
-	darkGrayFg = NewStyle().Foreground(darkGray).Render
-
-	greenFg        = NewStyle().Foreground(green).Render
-	semiDimGreenFg = NewStyle().Foreground(semiDimGreen).Render
-	dimGreenFg     = NewStyle().Foreground(dimGreen).Render
-
-	fuchsiaFg    = NewStyle().Foreground(fuschia).Render
-	dimFuchsiaFg = NewStyle().Foreground(dimFuchsia).Render
-
-	dullFuchsiaFg    = NewStyle().Foreground(dullFuchsia).Render
-	dimDullFuchsiaFg = NewStyle().Foreground(dimDullFuchsia).Render
-
-	indigoFg    = NewStyle().Foreground(fuschia).Render
-	dimIndigoFg = NewStyle().Foreground(dimIndigo).Render
-
-	subtleIndigoFg    = NewStyle().Foreground(subtleIndigo).Render
-	dimSubtleIndigoFg = NewStyle().Foreground(dimSubtleIndigo).Render
-
-	yellowFg     = NewStyle().Foreground(yellowGreen).Render     // renders light green on light backgrounds
-	dullYellowFg = NewStyle().Foreground(dullYellowGreen).Render // renders light green on light backgrounds
-	redFg        = NewStyle().Foreground(red).Render
-	faintRedFg   = NewStyle().Foreground(faintRed).Render
-)
-
-var (
-	tabStyle = NewStyle().
-			Foreground(AdaptiveColor{Light: "#909090", Dark: "#626262"})
-
-	selectedTabStyle = NewStyle().
-				Foreground(AdaptiveColor{Light: "#333333", Dark: "#979797"})
-
-	errorTitleStyle = NewStyle().
-			Foreground(cream).
-			Background(red).
-			Padding(0, 1)
-
-	subtleStyle = NewStyle().
-			Foreground(AdaptiveColor{Light: "#9B9B9B", Dark: "#5C5C5C"})
-
-	paginationStyle = subtleStyle.Copy()
+	dimNormalFg      = lipgloss.NewStyle().Foreground(normalDim).Render
+	brightGrayFg     = lipgloss.NewStyle().Foreground(brightGray).Render
+	dimBrightGrayFg  = lipgloss.NewStyle().Foreground(dimBrightGray).Render
+	grayFg           = lipgloss.NewStyle().Foreground(gray).Render
+	midGrayFg        = lipgloss.NewStyle().Foreground(midGray).Render
+	darkGrayFg       = lipgloss.NewStyle().Foreground(darkGray)
+	greenFg          = lipgloss.NewStyle().Foreground(green).Render
+	semiDimGreenFg   = lipgloss.NewStyle().Foreground(semiDimGreen).Render
+	dimGreenFg       = lipgloss.NewStyle().Foreground(dimGreen).Render
+	fuchsiaFg        = lipgloss.NewStyle().Foreground(fuchsia).Render
+	dimFuchsiaFg     = lipgloss.NewStyle().Foreground(dimFuchsia).Render
+	dullFuchsiaFg    = lipgloss.NewStyle().Foreground(dullFuchsia).Render
+	dimDullFuchsiaFg = lipgloss.NewStyle().Foreground(dimDullFuchsia).Render
+	redFg            = lipgloss.NewStyle().Foreground(red).Render
+	tabStyle         = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#909090", Dark: "#626262"})
+	selectedTabStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#333333", Dark: "#979797"})
+	errorTitleStyle  = lipgloss.NewStyle().Foreground(cream).Background(red).Padding(0, 1)
+	subtleStyle      = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#9B9B9B", Dark: "#5C5C5C"})
+	paginationStyle  = subtleStyle
 )

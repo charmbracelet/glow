@@ -7,7 +7,7 @@ func TestURLParser(t *testing.T) {
 		"github.com/charmbracelet/glow":             "https://raw.githubusercontent.com/charmbracelet/glow/master/README.md",
 		"github://charmbracelet/glow":               "https://raw.githubusercontent.com/charmbracelet/glow/master/README.md",
 		"github://caarlos0/dotfiles.fish":           "https://raw.githubusercontent.com/caarlos0/dotfiles.fish/main/README.md",
-		"github://tj/git-extras":                    "https://raw.githubusercontent.com/tj/git-extras/master/Readme.md",
+		"github://tj/git-extras":                    "https://raw.githubusercontent.com/tj/git-extras/main/Readme.md",
 		"https://github.com/goreleaser/nfpm":        "https://raw.githubusercontent.com/goreleaser/nfpm/main/README.md",
 		"gitlab.com/caarlos0/test":                  "https://gitlab.com/caarlos0/test/-/raw/master/README.md",
 		"gitlab://caarlos0/test":                    "https://gitlab.com/caarlos0/test/-/raw/master/README.md",

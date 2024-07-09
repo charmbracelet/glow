@@ -11,11 +11,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/caarlos0/env/v11"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glow/ui"
 	"github.com/charmbracelet/glow/utils"
-	"github.com/meowgorithm/babyenv"
+	"github.com/charmbracelet/log"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -28,23 +28,33 @@ var (
 	// CommitSHA as provided by goreleaser.
 	CommitSHA = ""
 
-	readmeNames  = []string{"README.md", "README"}
-	configFile   string
-	pager        bool
-	style        string
-	width        uint
-	showAllFiles bool
-	localOnly    bool
-	mouse        bool
+	readmeNames      = []string{"README.md", "README", "Readme.md", "Readme", "readme.md", "readme"}
+	readmeBranches   = []string{"main", "master"}
+	configFile       string
+	pager            bool
+	style            string
+	width            uint
+	showAllFiles     bool
+	preserveNewLines bool
+	mouse            bool
 
 	rootCmd = &cobra.Command{
-		Use:              "glow [SOURCE|DIR]",
-		Short:            "Render markdown on the CLI, with pizzazz!",
-		Long:             paragraph(fmt.Sprintf("\nRender markdown on the CLI, %s!", keyword("with pizzazz"))),
+		Use:   "glow [SOURCE|DIR]",
+		Short: "Render markdown on the CLI, with pizzazz!",
+		Long: paragraph(
+			fmt.Sprintf("\nRender markdown on the CLI, %s!", keyword("with pizzazz")),
+		),
 		SilenceErrors:    false,
-		SilenceUsage:     false,
+		SilenceUsage:     true,
 		TraverseChildren: true,
-		RunE:             execute,
+		Args:             cobra.MaximumNArgs(1),
+		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return nil, cobra.ShellCompDirectiveDefault
+		},
+		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			return validateOptions(cmd)
+		},
+		RunE: execute,
 	}
 )
 
@@ -93,7 +103,10 @@ func sourceFromArg(arg string) (*source, error) {
 	st, err := os.Stat(arg)
 	if err == nil && st.IsDir() {
 		var src *source
-		_ = filepath.Walk(arg, func(path string, info os.FileInfo, err error) error {
+		_ = filepath.Walk(arg, func(path string, _ os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 			for _, v := range readmeNames {
 				if strings.EqualFold(filepath.Base(path), v) {
 					r, err := os.Open(path)
@@ -127,13 +140,13 @@ func sourceFromArg(arg string) (*source, error) {
 func validateOptions(cmd *cobra.Command) error {
 	// grab config values from Viper
 	width = viper.GetUint("width")
-	localOnly = viper.GetBool("local")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	preserveNewLines = viper.GetBool("preserveNewLines")
 
 	// validate the glamour style
 	style = viper.GetString("style")
-	if style != "auto" && glamour.DefaultStyles[style] == nil {
+	if style != glamour.AutoStyle && glamour.DefaultStyles[style] == nil {
 		style = utils.ExpandPath(style)
 		if _, err := os.Stat(style); os.IsNotExist(err) {
 			return fmt.Errorf("Specified style does not exist: %s", style)
@@ -178,11 +191,6 @@ func stdinIsPipe() (bool, error) {
 }
 
 func execute(cmd *cobra.Command, args []string) error {
-	initConfig()
-	if err := validateOptions(cmd); err != nil {
-		return err
-	}
-
 	// if stdin is a pipe then use stdin for input. note that you can also
 	// explicitly use a - to read from stdin.
 	if yes, err := stdinIsPipe(); err != nil {
@@ -196,7 +204,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	// TUI running on cwd
 	case 0:
-		return runTUI("", false)
+		return runTUI("")
 
 	// TUI with possible dir argument
 	case 1:
@@ -206,7 +214,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		if err == nil && info.IsDir() {
 			p, err := filepath.Abs(args[0])
 			if err == nil {
-				return runTUI(p, false)
+				return runTUI(p)
 			}
 		}
 		fallthrough
@@ -249,16 +257,11 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		baseURL = u.String() + "/"
 	}
 
-	// initialize glamour
-	var gs glamour.TermRendererOption
-	if style == "auto" {
-		gs = glamour.WithEnvironmentConfig()
-	} else {
-		gs = glamour.WithStylePath(style)
-	}
+	isCode := !utils.IsMarkdownFile(src.URL)
 
+	// initialize glamour
 	r, err := glamour.NewTermRenderer(
-		gs,
+		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)),
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
@@ -267,20 +270,26 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return err
 	}
 
-	out, err := r.RenderBytes(b)
+	s := string(b)
+	ext := filepath.Ext(src.URL)
+	if isCode {
+		s = utils.WrapCodeBlock(string(b), ext)
+	}
+
+	out, err := r.Render(s)
 	if err != nil {
 		return err
 	}
 
 	// trim lines
-	lines := strings.Split(string(out), "\n")
-	var content string
+	lines := strings.Split(out, "\n")
+	var content strings.Builder
 	for i, s := range lines {
-		content += strings.TrimSpace(s)
+		content.WriteString(strings.TrimSpace(s))
 
 		// don't add an artificial newline after the last split
 		if i+1 < len(lines) {
-			content += "\n"
+			content.WriteByte('\n')
 		}
 	}
 
@@ -293,43 +302,29 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 		pa := strings.Split(pagerCmd, " ")
 		c := exec.Command(pa[0], pa[1:]...) // nolint:gosec
-		c.Stdin = strings.NewReader(content)
+		c.Stdin = strings.NewReader(content.String())
 		c.Stdout = os.Stdout
 		return c.Run()
 	}
 
-	fmt.Fprint(w, content)
+	fmt.Fprint(w, content.String()) //nolint: errcheck
 	return nil
 }
 
-func runTUI(workingDirectory string, stashedOnly bool) error {
+func runTUI(workingDirectory string) error {
 	// Read environment to get debugging stuff
-	var cfg ui.Config
-	if err := babyenv.Parse(&cfg); err != nil {
+	cfg, err := env.ParseAs[ui.Config]()
+	if err != nil {
 		return fmt.Errorf("error parsing config: %v", err)
 	}
 
-	// Log to file, if set
-	if cfg.Logfile != "" {
-		f, err := tea.LogToFile(cfg.Logfile, "glow")
-		if err != nil {
-			return err
-		}
-		defer f.Close() //nolint:errcheck
-	}
-
 	cfg.WorkingDirectory = workingDirectory
-	cfg.DocumentTypes = ui.NewDocTypeSet()
+
 	cfg.ShowAllFiles = showAllFiles
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
 	cfg.EnableMouse = mouse
-
-	if stashedOnly {
-		cfg.DocumentTypes.Add(ui.StashedDoc, ui.NewsDoc)
-	} else if localOnly {
-		cfg.DocumentTypes.Add(ui.LocalDoc)
-	}
+	cfg.PreserveNewLines = preserveNewLines
 
 	// Run Bubble Tea program
 	if _, err := ui.NewProgram(cfg).Run(); err != nil {
@@ -340,12 +335,20 @@ func runTUI(workingDirectory string, stashedOnly bool) error {
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
+	closer, err := setupLog()
+	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
+	if err := rootCmd.Execute(); err != nil {
+		_ = closer()
+		os.Exit(1)
+	}
+	_ = closer()
 }
 
 func init() {
+	tryLoadConfigFromDefaultPlaces()
 	if len(CommitSHA) >= 7 {
 		vt := rootCmd.VersionTemplate()
 		rootCmd.SetVersionTemplate(vt[:len(vt)-1] + " (" + CommitSHA[0:7] + ")\n")
@@ -354,63 +357,68 @@ func init() {
 		Version = "unknown (built from source)"
 	}
 	rootCmd.Version = Version
-
-	scope := gap.NewScope(gap.User, "glow")
-	defaultConfigFile, _ := scope.ConfigPath("glow.yml")
+	rootCmd.InitDefaultCompletionCmd()
 
 	// "Glow Classic" cli arguments
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", defaultConfigFile))
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
-	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
+	rootCmd.Flags().StringVarP(&style, "style", "s", glamour.AutoStyle, "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
-	rootCmd.Flags().BoolVarP(&localOnly, "local", "l", false, "show local files only; no network (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
-	_ = viper.BindPFlag("local", rootCmd.Flags().Lookup("local"))
+	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
-	viper.SetDefault("style", "auto")
+	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
+
+	viper.SetDefault("style", glamour.AutoStyle)
 	viper.SetDefault("width", 0)
-	viper.SetDefault("local", "false")
 
-	// Stash
-	stashCmd.PersistentFlags().StringVarP(&memo, "memo", "m", "", "memo/note for stashing")
-	rootCmd.AddCommand(stashCmd)
-
-	rootCmd.AddCommand(configCmd)
+	rootCmd.AddCommand(configCmd, manCmd)
 }
 
-func initConfig() {
-	if configFile != "" {
-		viper.SetConfigFile(configFile)
-	} else {
-		scope := gap.NewScope(gap.User, "glow")
-		dirs, err := scope.ConfigDirs()
-		if err != nil {
-			fmt.Println("Can't retrieve default config. Please manually pass a config file with '--config'")
-			os.Exit(1)
-		}
-
-		for _, v := range dirs {
-			viper.AddConfigPath(v)
-		}
-		viper.SetConfigName("glow")
-		viper.SetConfigType("yaml")
+func tryLoadConfigFromDefaultPlaces() {
+	scope := gap.NewScope(gap.User, "glow")
+	dirs, err := scope.ConfigDirs()
+	if err != nil {
+		fmt.Println("Could not load find config directory.")
+		os.Exit(1)
 	}
 
+	if c := os.Getenv("CHARM_CONFIG_HOME"); c != "" {
+		viper.AddConfigPath(c)
+	}
+
+	if c := os.Getenv("XDG_CONFIG_HOME"); c != "" {
+		viper.AddConfigPath(filepath.Join(c, "glow"))
+	}
+
+	for _, v := range dirs {
+		viper.AddConfigPath(v)
+	}
+
+	viper.SetConfigName("glow")
+	viper.SetConfigType("yaml")
 	viper.SetEnvPrefix("glow")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			fmt.Println("Error parsing config:", err)
-			os.Exit(1)
+			log.Warn("Could not parse configuration file", "err", err)
 		}
 	}
 
-	// fmt.Println("Using config file:", viper.ConfigFileUsed())
+	if used := viper.ConfigFileUsed(); used != "" {
+		log.Debug("Using configuration file", "path", viper.ConfigFileUsed())
+	} else {
+		if err := ensureConfigFile(); err != nil {
+			fmt.Println("Could not create default config.")
+			os.Exit(1)
+		}
+	}
 }
