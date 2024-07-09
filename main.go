@@ -367,7 +367,7 @@ func init() {
 	rootCmd.InitDefaultCompletionCmd()
 
 	// "Glow Classic" cli arguments
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", defaultConfigFile()))
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().StringVarP(&style, "style", "s", glamour.AutoStyle, "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
@@ -393,6 +393,14 @@ func tryLoadConfigFromDefaultPlaces() {
 	if err != nil {
 		fmt.Println("Could not load find config directory.")
 		os.Exit(1)
+	}
+
+	if c := os.Getenv("CHARM_CONFIG_HOME"); c != "" {
+		viper.AddConfigPath(c)
+	}
+
+	if c := os.Getenv("XDG_CONFIG_HOME"); c != "" {
+		viper.AddConfigPath(filepath.Join(c, "glow"))
 	}
 
 	for _, v := range dirs {

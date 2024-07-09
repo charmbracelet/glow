@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/charmbracelet/x/editor"
-	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const defaultConfig = `# style name or JSON path (default "auto")
@@ -20,12 +20,6 @@ pager: false
 # word-wrap at width
 width: 80
 `
-
-func defaultConfigFile() string {
-	scope := gap.NewScope(gap.User, "glow")
-	path, _ := scope.ConfigPath("glow.yml")
-	return path
-}
 
 var configCmd = &cobra.Command{
 	Use:     "config",
@@ -57,7 +51,7 @@ var configCmd = &cobra.Command{
 
 func ensureConfigFile() error {
 	if configFile == "" {
-		configFile = defaultConfigFile()
+		configFile = viper.GetViper().ConfigFileUsed()
 		if err := os.MkdirAll(filepath.Dir(configFile), 0o755); err != nil {
 			return fmt.Errorf("Could not write config file: %w", err)
 		}
