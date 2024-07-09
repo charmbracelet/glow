@@ -85,7 +85,7 @@ Or just install it with `go`:
 go install github.com/charmbracelet/glow@latest
 ```
 
-### Build (requires Go 1.13+)
+### Build (requires Go 1.21+)
 
 ```bash
 git clone https://github.com/charmbracelet/glow.git
