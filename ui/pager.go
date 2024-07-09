@@ -196,14 +196,16 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 
 		case "e":
-			l := int(math.Round(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
+			lineno := int(math.RoundToEven(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
 			if m.viewport.AtTop() {
-				l = 0
+				lineno = 0
 			}
-			if m.viewport.AtBottom() {
-				l = m.viewport.TotalLineCount()
-			}
-			return m, openEditor(m.currentDocument.localPath, l)
+			log.Info(
+				"opening editor",
+				"file", m.currentDocument.localPath,
+				"line", fmt.Sprintf("%d/%d", lineno, m.viewport.TotalLineCount()),
+			)
+			return m, openEditor(m.currentDocument.localPath, lineno)
 
 		case "c":
 			// Copy using OSC 52
