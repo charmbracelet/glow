@@ -396,7 +396,7 @@ func tryLoadConfigFromDefaultPlaces() {
 	scope := gap.NewScope(gap.User, "glow")
 	dirs, err := scope.ConfigDirs()
 	if err != nil {
-		fmt.Println("Could not load find config directory.")
+		fmt.Println("Could not load find configuration directory.")
 		os.Exit(1)
 	}
 
@@ -425,10 +425,11 @@ func tryLoadConfigFromDefaultPlaces() {
 
 	if used := viper.ConfigFileUsed(); used != "" {
 		log.Debug("Using configuration file", "path", viper.ConfigFileUsed())
-	} else {
-		if err := ensureConfigFile(); err != nil {
-			fmt.Println("Could not create default config.")
-			os.Exit(1)
-		}
+		return
+	}
+
+	if err := ensureConfigFile(); err != nil {
+		fmt.Println("Could not create default configuration.")
+		os.Exit(1)
 	}
 }
