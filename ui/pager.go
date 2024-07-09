@@ -196,7 +196,14 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 
 		case "e":
-			return m, openEditor(m.currentDocument.localPath)
+			l := int(math.Round(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
+			if m.viewport.AtTop() {
+				l = 0
+			}
+			if m.viewport.AtBottom() {
+				l = m.viewport.TotalLineCount()
+			}
+			return m, openEditor(m.currentDocument.localPath, l)
 
 		case "c":
 			// Copy using OSC 52
@@ -221,9 +228,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		if m.viewport.HighPerformanceRendering {
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
-
-	case editMardownMsg:
-		return m, openEditor(msg.md.localPath)
 
 	// We've finished editing the document, potentially making changes. Let's
 	// retrieve the latest version of the document so that we display
@@ -445,5 +449,3 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	return content.String(), nil
 }
-
-type editMardownMsg struct{ md *markdown }

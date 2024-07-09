@@ -519,7 +519,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		// Edit document in EDITOR
 		case "e":
 			md := m.selectedMarkdown()
-			return openEditor(md.localPath)
+			return openEditor(md.localPath, 0)
 
 		// Open document
 		case keyEnter:
