@@ -2,12 +2,13 @@ package ui
 
 // Config contains TUI-specific configuration.
 type Config struct {
-	ShowAllFiles    bool
-	Gopath          string `env:"GOPATH"`
-	HomeDir         string `env:"HOME"`
-	GlamourMaxWidth uint
-	GlamourStyle    string
-	EnableMouse     bool
+	ShowAllFiles     bool
+	Gopath           string `env:"GOPATH"`
+	HomeDir          string `env:"HOME"`
+	GlamourMaxWidth  uint
+	GlamourStyle     string
+	EnableMouse      bool
+	PreserveNewLines bool
 
 	// Which directory should we start from?
 	WorkingDirectory string

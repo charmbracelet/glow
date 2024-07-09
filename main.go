@@ -28,14 +28,15 @@ var (
 	// CommitSHA as provided by goreleaser.
 	CommitSHA = ""
 
-	readmeNames    = []string{"README.md", "README", "Readme.md", "Readme", "readme.md", "readme"}
-	readmeBranches = []string{"main", "master"}
-	configFile     string
-	pager          bool
-	style          string
-	width          uint
-	showAllFiles   bool
-	mouse          bool
+	readmeNames      = []string{"README.md", "README", "Readme.md", "Readme", "readme.md", "readme"}
+	readmeBranches   = []string{"main", "master"}
+	configFile       string
+	pager            bool
+	style            string
+	width            uint
+	showAllFiles     bool
+	preserveNewLines bool
+	mouse            bool
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -151,6 +152,7 @@ func validateOptions(cmd *cobra.Command) error {
 	width = viper.GetUint("width")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	preserveNewLines = viper.GetBool("preserveNewLines")
 
 	// validate the glamour style
 	style = viper.GetString("style")
@@ -332,6 +334,7 @@ func runTUI(workingDirectory string) error {
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
 	cfg.EnableMouse = mouse
+	cfg.PreserveNewLines = preserveNewLines
 
 	// Run Bubble Tea program
 	if _, err := ui.NewProgram(cfg).Run(); err != nil {
@@ -372,7 +375,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&style, "style", "s", glamour.AutoStyle, "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
-
+	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
@@ -381,6 +384,8 @@ func init() {
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
+	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
+
 	viper.SetDefault("style", glamour.AutoStyle)
 	viper.SetDefault("width", 0)
 
