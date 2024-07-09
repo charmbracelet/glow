@@ -53,12 +53,12 @@ func ensureConfigFile() error {
 	if configFile == "" {
 		configFile = viper.GetViper().ConfigFileUsed()
 		if err := os.MkdirAll(filepath.Dir(configFile), 0o755); err != nil {
-			return fmt.Errorf("Could not write config file: %w", err)
+			return fmt.Errorf("could not write configuration file: %w", err)
 		}
 	}
 
 	if ext := path.Ext(configFile); ext != ".yaml" && ext != ".yml" {
-		return fmt.Errorf("'%s' is not a supported config type: use '%s' or '%s'", ext, ".yaml", ".yml")
+		return fmt.Errorf("'%s' is not a supported configuration type: use '%s' or '%s'", ext, ".yaml", ".yml")
 	}
 
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {

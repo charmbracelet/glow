@@ -400,12 +400,12 @@ func tryLoadConfigFromDefaultPlaces() {
 		os.Exit(1)
 	}
 
-	if c := os.Getenv("CHARM_CONFIG_HOME"); c != "" {
-		viper.AddConfigPath(c)
+	if c := os.Getenv("XDG_CONFIG_HOME"); c != "" {
+		dirs = append([]string{filepath.Join(c, "glow")}, dirs...)
 	}
 
-	if c := os.Getenv("XDG_CONFIG_HOME"); c != "" {
-		viper.AddConfigPath(filepath.Join(c, "glow"))
+	if c := os.Getenv("GLOW_CONFIG_HOME"); c != "" {
+		dirs = append([]string{c}, dirs...)
 	}
 
 	for _, v := range dirs {
@@ -428,8 +428,11 @@ func tryLoadConfigFromDefaultPlaces() {
 		return
 	}
 
+	if viper.ConfigFileUsed() == "" {
+		configFile = filepath.Join(dirs[0], "glow.yml")
+	}
 	if err := ensureConfigFile(); err != nil {
-		fmt.Println("Could not create default configuration.")
+		log.Error("Could not create default configuration", "error", err)
 		os.Exit(1)
 	}
 }
