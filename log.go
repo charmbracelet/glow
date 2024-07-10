@@ -22,6 +22,9 @@ func setupLog() (func() error, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := os.MkdirAll(filepath.Dir(logFile), 0o644); err != nil {
+		return nil, err
+	}
 	f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, err
