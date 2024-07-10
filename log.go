@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 
@@ -24,15 +23,13 @@ func setupLog() (func() error, error) {
 		return nil, err
 	}
 	if err := os.MkdirAll(filepath.Dir(logFile), 0o644); err != nil {
-		if errors.Is(err, os.ErrPermission) {
-			// log disabled
-			return nil, nil
-		}
-		return nil, err
+		// log disabled
+		return nil, nil
 	}
 	f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 	if err != nil {
-		return nil, err
+		// log disabled
+		return nil, nil
 	}
 	log.SetOutput(f)
 	log.SetLevel(log.DebugLevel)
