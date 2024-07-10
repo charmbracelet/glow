@@ -24,12 +24,12 @@ func setupLog() (func() error, error) {
 	}
 	if err := os.MkdirAll(filepath.Dir(logFile), 0o644); err != nil {
 		// log disabled
-		return nil, nil
+		return func() error { return nil }, nil
 	}
 	f, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 	if err != nil {
 		// log disabled
-		return nil, nil
+		return func() error { return nil }, nil
 	}
 	log.SetOutput(f)
 	log.SetLevel(log.DebugLevel)
