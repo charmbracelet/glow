@@ -2,47 +2,30 @@ package ui
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
-	lib "github.com/charmbracelet/charm/ui/common"
-	"github.com/muesli/reflow/ansi"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/truncate"
-	"github.com/muesli/termenv"
 	"github.com/sahilm/fuzzy"
 )
 
 const (
 	verticalLine         = "│"
-	noMemoTitle          = "No Memo"
 	fileListingStashIcon = "• "
 )
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	var (
-		truncateTo = uint(m.common.width - stashViewHorizontalPadding*2)
-		gutter     string
-		title      = md.Note
-		date       = md.relativeTime()
-		icon       = ""
+		truncateTo  = uint(m.common.width - stashViewHorizontalPadding*2)
+		gutter      string
+		title       = truncate.StringWithTail(md.Note, truncateTo, ellipsis)
+		date        = md.relativeTime()
+		editedBy    = ""
+		hasEditedBy = false
+		icon        = ""
+		separator   = ""
 	)
-
-	switch md.docType {
-	case NewsDoc:
-		if title == "" {
-			title = "News"
-		} else {
-			title = truncate.StringWithTail(title, truncateTo, ellipsis)
-		}
-	case StashedDoc, ConvertedDoc:
-		icon = fileListingStashIcon
-		if title == "" {
-			title = noMemoTitle
-		}
-		title = truncate.StringWithTail(title, truncateTo-uint(ansi.PrintableRuneWidth(icon)), ellipsis)
-	default:
-		title = truncate.StringWithTail(title, truncateTo, ellipsis)
-	}
 
 	isSelected := index == m.cursor()
 	isFiltering := m.filterState == filtering
@@ -53,92 +36,70 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	// highlight that first item since pressing return will open it.
 	if isSelected && !isFiltering || singleFilteredItem {
 		// Selected item
-
-		switch m.selectionState {
-		case selectionPromptingDelete:
-			gutter = faintRedFg(verticalLine)
-			icon = faintRedFg(icon)
-			title = redFg(title)
-			date = faintRedFg(date)
-		case selectionSettingNote:
-			gutter = dullYellowFg(verticalLine)
-			icon = ""
-			title = m.noteInput.View()
-			date = dullYellowFg(date)
-		default:
-			if m.common.latestFileStashed == md.stashID &&
-				m.statusMessage == stashedStatusMessage {
-				gutter = greenFg(verticalLine)
-				icon = dimGreenFg(icon)
-				title = greenFg(title)
-				date = semiDimGreenFg(date)
-			} else {
-				gutter = dullFuchsiaFg(verticalLine)
-				icon = dullFuchsiaFg(icon)
-				if m.currentSection().key == filterSection &&
-					m.filterState == filterApplied || singleFilteredItem {
-					s := termenv.Style{}.Foreground(lib.Fuschia.Color())
-					title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
-				} else {
-					title = fuchsiaFg(title)
-				}
-				date = dullFuchsiaFg(date)
-			}
-		}
-	} else {
-		// Regular (non-selected) items
-
-		gutter = " "
-
-		if m.common.latestFileStashed == md.stashID &&
-			m.statusMessage == stashedStatusMessage {
+		if m.statusMessage == stashingStatusMessage {
+			gutter = greenFg(verticalLine)
 			icon = dimGreenFg(icon)
 			title = greenFg(title)
 			date = semiDimGreenFg(date)
-		} else if md.docType == NewsDoc {
-			if isFiltering && m.filterInput.Value() == "" {
-				title = dimIndigoFg(title)
-				date = dimSubtleIndigoFg(date)
+			editedBy = semiDimGreenFg(editedBy)
+			separator = semiDimGreenFg(separator)
+		} else {
+			gutter = dullFuchsiaFg(verticalLine)
+			if m.currentSection().key == filterSection &&
+				m.filterState == filterApplied || singleFilteredItem {
+				s := lipgloss.NewStyle().Foreground(fuchsia)
+				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline(true))
 			} else {
-				s := termenv.Style{}.Foreground(lib.Indigo.Color())
-				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
-				date = subtleIndigoFg(date)
+				title = fuchsiaFg(title)
+				icon = fuchsiaFg(icon)
 			}
+			date = dimFuchsiaFg(date)
+			editedBy = dimDullFuchsiaFg(editedBy)
+			separator = dullFuchsiaFg(separator)
+		}
+	} else {
+		gutter = " "
+		if m.statusMessage == stashingStatusMessage {
+			icon = dimGreenFg(icon)
+			title = greenFg(title)
+			date = semiDimGreenFg(date)
+			editedBy = semiDimGreenFg(editedBy)
+			separator = semiDimGreenFg(separator)
 		} else if isFiltering && m.filterInput.Value() == "" {
 			icon = dimGreenFg(icon)
-			if title == noMemoTitle {
-				title = dimBrightGrayFg(title)
-			} else {
-				title = dimNormalFg(title)
-			}
+			title = dimNormalFg(title)
 			date = dimBrightGrayFg(date)
+			editedBy = dimBrightGrayFg(editedBy)
+			separator = dimBrightGrayFg(separator)
 		} else {
 			icon = greenFg(icon)
-			if title == noMemoTitle {
-				title = brightGrayFg(title)
-			} else {
-				s := termenv.Style{}.Foreground(lib.NewColorPair("#dddddd", "#1a1a1a").Color())
-				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline())
-			}
-			date = brightGrayFg(date)
+
+			s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
+			title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline(true))
+			date = grayFg(date)
+			editedBy = midGrayFg(editedBy)
+			separator = brightGrayFg(separator)
 		}
 	}
 
-	fmt.Fprintf(b, "%s %s%s\n", gutter, icon, title)
+	fmt.Fprintf(b, "%s %s%s%s%s\n", gutter, icon, separator, separator, title)
 	fmt.Fprintf(b, "%s %s", gutter, date)
+	if hasEditedBy {
+		fmt.Fprintf(b, " %s", editedBy)
+	}
 }
 
-func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle termenv.Style) string {
+func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle lipgloss.Style) string {
 	b := strings.Builder{}
 
 	normalizedHay, err := normalize(haystack)
-	if err != nil && debug {
-		log.Printf("error normalizing '%s': %v", haystack, err)
+	if err != nil {
+		log.Error("error normalizing", "haystack", haystack, "error", err)
 	}
 
 	matches := fuzzy.Find(needles, []string{normalizedHay})
 	if len(matches) == 0 {
-		return defaultStyle.Styled(haystack)
+		return defaultStyle.Render(haystack)
 	}
 
 	m := matches[0] // only one match exists
@@ -146,12 +107,12 @@ func styleFilteredText(haystack, needles string, defaultStyle, matchedStyle term
 		styled := false
 		for _, mi := range m.MatchedIndexes {
 			if i == mi {
-				b.WriteString(matchedStyle.Styled(string(rune)))
+				b.WriteString(matchedStyle.Render(string(rune)))
 				styled = true
 			}
 		}
 		if !styled {
-			b.WriteString(defaultStyle.Styled(string(rune)))
+			b.WriteString(defaultStyle.Render(string(rune)))
 		}
 	}
 

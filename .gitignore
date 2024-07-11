@@ -1,3 +1,5 @@
 glow
 dist/
 .envrc
+completions/
+manpages/

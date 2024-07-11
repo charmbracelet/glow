@@ -1,28 +1,25 @@
 name: build
+
 on: [push, pull_request]
+
 jobs:
-  test:
-    strategy:
-      matrix:
-        go-version: [~1.13, ^1]
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    env:
-      GO111MODULE: "on"
-    steps:
-      - name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go-version }}
+  build:
+    uses: charmbracelet/meta/.github/workflows/build.yml@main
 
-      - name: Checkout code
-        uses: actions/checkout@v2
+  snapshot:
+    uses: charmbracelet/meta/.github/workflows/snapshot.yml@main
+    secrets:
+      goreleaser_key: ${{ secrets.GORELEASER_KEY }}
 
-      - name: Download Go modules
-        run: go mod download
+  govulncheck:
+    uses: charmbracelet/meta/.github/workflows/govulncheck.yml@main
+    with:
+      go-version: stable
 
-      - name: Build
-        run: go build -v ./...
+  semgrep:
+    uses: charmbracelet/meta/.github/workflows/semgrep.yml@main
 
-      - name: Test
-        run: go test ./...
+  ruleguard:
+    uses: charmbracelet/meta/.github/workflows/ruleguard.yml@main
+    with:
+      go-version: stable

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	lib "github.com/charmbracelet/charm/ui/common"
 	"github.com/muesli/reflow/ansi"
 )
 
@@ -16,7 +15,7 @@ type helpEntry struct{ key, val string }
 type helpColumn []helpEntry
 
 // newHelpColumn creates a help column from pairs of string arguments
-// represeting keys and values. If the arguments are not even (and therein
+// representing keys and values. If the arguments are not even (and therein
 // not every key has a matching value) the function will panic.
 func newHelpColumn(pairs ...string) (h helpColumn) {
 	if len(pairs)%2 != 0 {
@@ -100,29 +99,15 @@ func (m stashModel) helpView() (string, int) {
 		return m.renderHelp(h)
 	}
 
-	// Help for when we're interacting with a single document
-	switch m.selectionState {
-	case selectionSettingNote:
-		return m.renderHelp([]string{"enter", "confirm", "esc", "cancel"}, []string{"q", "quit"})
-	case selectionPromptingDelete:
-		return m.renderHelp([]string{"y", "delete", "n", "cancel"}, []string{"q", "quit"})
-	}
-
 	var (
-		isStashed     bool
-		isStashable   bool
+		isEditable    bool
 		navHelp       []string
 		filterHelp    []string
 		selectionHelp []string
+		editHelp      []string
 		sectionHelp   []string
 		appHelp       []string
 	)
-
-	if numDocs > 0 {
-		md := m.selectedMarkdown()
-		isStashed = md != nil && md.docType == StashedDoc
-		isStashable = md != nil && md.docType == LocalDoc && m.online()
-	}
 
 	if numDocs > 0 && m.showFullHelp {
 		navHelp = []string{"enter", "open", "j/k ↑/↓", "choose"}
@@ -141,16 +126,17 @@ func (m stashModel) helpView() (string, int) {
 	}
 
 	// If we're browsing a filtered set
-	if m.filterState == filterApplied {
-		filterHelp = []string{"/", "edit search", "esc", "clear search"}
+	if m.filterApplied() {
+		filterHelp = []string{"/", "edit search", "esc", "clear filter"}
 	} else {
 		filterHelp = []string{"/", "find"}
+		if m.stashFullyLoaded {
+			filterHelp = append(filterHelp, "t", "team filter")
+		}
 	}
 
-	if isStashed {
-		selectionHelp = []string{"x", "delete", "m", "set memo"}
-	} else if isStashable {
-		selectionHelp = []string{"s", "stash"}
+	if isEditable {
+		editHelp = []string{"e", "edit"}
 	}
 
 	// If there are errors
@@ -158,6 +144,7 @@ func (m stashModel) helpView() (string, int) {
 		appHelp = append(appHelp, "!", "errors")
 	}
 
+	appHelp = append(appHelp, "r", "refresh")
 	appHelp = append(appHelp, "q", "quit")
 
 	// Detailed help
@@ -165,15 +152,17 @@ func (m stashModel) helpView() (string, int) {
 		if m.filterState != filtering {
 			appHelp = append(appHelp, "?", "close help")
 		}
-		return m.renderHelp(navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
+		return m.renderHelp(navHelp, filterHelp, append(selectionHelp, editHelp...), sectionHelp, appHelp)
 	}
 
 	// Mini help
 	if m.filterState != filtering {
 		appHelp = append(appHelp, "?", "more")
 	}
-	return m.renderHelp(navHelp, filterHelp, selectionHelp, sectionHelp, appHelp)
+	return m.renderHelp(navHelp, filterHelp, selectionHelp, editHelp, sectionHelp, appHelp)
 }
+
+const minHelpViewHeight = 5
 
 // renderHelp returns the rendered help view and associated line height for
 // the given groups of help items.
@@ -181,13 +170,13 @@ func (m stashModel) renderHelp(groups ...[]string) (string, int) {
 	if m.showFullHelp {
 		str := m.fullHelpView(groups...)
 		numLines := strings.Count(str, "\n") + 1
-		return str, numLines
+		return str, max(numLines, minHelpViewHeight)
 	}
 	return m.miniHelpView(concatStringSlices(groups...)...), 1
 }
 
 // Builds the help view from various sections pieces, truncating it if the view
-// would otherwise wrap to two lines. Help view entires should come in as pairs,
+// would otherwise wrap to two lines. Help view entries should come in as pairs,
 // with the first being the key and the second being the help text.
 func (m stashModel) miniHelpView(entries ...string) string {
 	if len(entries) == 0 {
@@ -195,7 +184,7 @@ func (m stashModel) miniHelpView(entries ...string) string {
 	}
 
 	var (
-		truncationChar  = lib.Subtle("…")
+		truncationChar  = subtleStyle.Render("…")
 		truncationWidth = ansi.PrintableRuneWidth(truncationChar)
 	)
 
@@ -213,19 +202,13 @@ func (m stashModel) miniHelpView(entries ...string) string {
 		k := entries[i]
 		v := entries[i+1]
 
-		switch k {
-		case "s":
-			k = greenFg(k)
-			v = semiDimGreenFg(v)
-		default:
-			k = grayFg(k)
-			v = midGrayFg(v)
-		}
+		k = grayFg(k)
+		v = midGrayFg(v)
 
 		next = fmt.Sprintf("%s %s", k, v)
 
 		if i < len(entries)-2 {
-			next += dividerDot
+			next += dividerDot.String()
 		}
 
 		// Only this (and the following) help text items if we have the
@@ -241,11 +224,9 @@ func (m stashModel) miniHelpView(entries ...string) string {
 }
 
 func (m stashModel) fullHelpView(groups ...[]string) string {
-	var (
-		columns      []helpColumn
-		tallestCol   int
-		renderedCols [][]string // final rows grouped by column
-	)
+	var tallestCol int
+	columns := make([]helpColumn, 0, len(groups))
+	renderedCols := make([][]string, 0, len(groups)) // final rows grouped by column
 
 	// Get key/value pairs
 	for _, g := range groups {
