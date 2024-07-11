@@ -436,7 +436,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	var content strings.Builder
 	for i, s := range lines {
-		if isCode {
+		if isCode || m.common.cfg.ShowLineNumbers {
 			content.WriteString(lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
 			content.WriteString(trunc(s))
 		} else {

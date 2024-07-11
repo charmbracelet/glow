@@ -36,6 +36,7 @@ var (
 	style            string
 	width            uint
 	showAllFiles     bool
+	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
 
@@ -324,6 +325,7 @@ func runTUI(workingDirectory string) error {
 	cfg.WorkingDirectory = workingDirectory
 
 	cfg.ShowAllFiles = showAllFiles
+	cfg.ShowLineNumbers = showLineNumbers
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
 	cfg.EnableMouse = mouse
@@ -368,6 +370,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&style, "style", "s", glamour.AutoStyle, "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
+	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
@@ -378,6 +381,8 @@ func init() {
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
+	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
+	_ = viper.BindPFlag("showAllFiles", rootCmd.Flags().Lookup("all"))
 
 	viper.SetDefault("style", glamour.AutoStyle)
 	viper.SetDefault("width", 0)
