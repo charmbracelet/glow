@@ -212,6 +212,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(cmds...)
 			}
 
+		case "ctrl+z":
+			return m, tea.Suspend
+
 		// Ctrl+C always quits no matter where in the application you are.
 		case "ctrl+c":
 			return m, tea.Quit
