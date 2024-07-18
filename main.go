@@ -287,18 +287,6 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return err
 	}
 
-	// trim lines
-	lines := strings.Split(out, "\n")
-	var content strings.Builder
-	for i, s := range lines {
-		content.WriteString(strings.TrimSpace(s))
-
-		// don't add an artificial newline after the last split
-		if i+1 < len(lines) {
-			content.WriteByte('\n')
-		}
-	}
-
 	// display
 	if pager || cmd.Flags().Changed("pager") {
 		pagerCmd := os.Getenv("PAGER")
@@ -308,13 +296,13 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 		pa := strings.Split(pagerCmd, " ")
 		c := exec.Command(pa[0], pa[1:]...) // nolint:gosec
-		c.Stdin = strings.NewReader(content.String())
+		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
 		return c.Run()
 	}
 
-	fmt.Fprint(w, content.String()) //nolint: errcheck
-	return nil
+	_, err = fmt.Fprint(w, out)
+	return err
 }
 
 func runTUI(workingDirectory string) error {
