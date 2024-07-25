@@ -59,8 +59,8 @@ github.com/charmbracelet/bubbles v0.18.0 h1:PYv1A036luoBGroX6VWjQIE9Syf2Wby2oOl/
 github.com/charmbracelet/bubbles v0.18.0/go.mod h1:08qhZhtIwzgrtBjAcJnij1t1H0ZRjwHyGsy6AL11PSw=
 github.com/charmbracelet/bubbletea v0.26.7-0.20240711210516-ea13ffb9a18d h1:IHcf2pu0D9dau/Z1Jff53mke0Yc62lf1sVRl0vWsAew=
 github.com/charmbracelet/bubbletea v0.26.7-0.20240711210516-ea13ffb9a18d/go.mod h1:MT/hMxp8fkrH8YV7AZ0KM7SeveivHPy0lUaZL0sBOxU=
-github.com/charmbracelet/glamour v0.7.1-0.20240723201342-342f07bc6d83 h1:LpKGvSc1enYqAxjeRnhSxLlmE6Zq6Pk5Kk5nuV0WqEI=
-github.com/charmbracelet/glamour v0.7.1-0.20240723201342-342f07bc6d83/go.mod h1:8oyd4gn8mrEWXeMnQq172bcowKd6LSmR8tOCS3sXn/s=
+github.com/charmbracelet/glamour v0.7.1-0.20240725142829-adb0b8d1c3ea h1:+zL7DrRjedvLEMQtKEajxpGMHMMD1y9yyk30TZyEx34=
+github.com/charmbracelet/glamour v0.7.1-0.20240725142829-adb0b8d1c3ea/go.mod h1:8oyd4gn8mrEWXeMnQq172bcowKd6LSmR8tOCS3sXn/s=
 github.com/charmbracelet/lipgloss v0.12.2-0.20240712161825-87dd58def709 h1:xKyYI89iCZPBA4QOBN1WQ8Fqt+iH09K3Ywx0qOKVPUo=
 github.com/charmbracelet/lipgloss v0.12.2-0.20240712161825-87dd58def709/go.mod h1:lVwxBOJ0KkZflL9y+DObgGY8V90IZUJ1e6jjZ+PBcnE=
 github.com/charmbracelet/log v0.4.0 h1:G9bQAcx8rWA2T3pWvx7YtPTPwgqpk7D68BX21IRW8ZM=
