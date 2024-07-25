@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 
@@ -17,6 +18,7 @@ func getLogFilePath() (string, error) {
 }
 
 func setupLog() (func() error, error) {
+	log.SetOutput(io.Discard)
 	// Log to file, if set
 	logFile, err := getLogFilePath()
 	if err != nil {
