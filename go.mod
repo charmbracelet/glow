@@ -7,7 +7,7 @@ require (
 	github.com/caarlos0/env/v11 v11.0.1
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v0.26.7-0.20240711210516-ea13ffb9a18d
-	github.com/charmbracelet/glamour v0.7.1-0.20240709165248-5e17ca86e5d3
+	github.com/charmbracelet/glamour v0.7.1-0.20240723201342-342f07bc6d83
 	github.com/charmbracelet/lipgloss v0.12.2-0.20240712161825-87dd58def709
 	github.com/charmbracelet/log v0.4.0
 	github.com/charmbracelet/x/editor v0.0.0-20240625164403-2627ec16405d
@@ -73,5 +73,3 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/charmbracelet/glamour => ../glamour/
