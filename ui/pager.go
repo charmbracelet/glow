@@ -440,7 +440,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 			content.WriteString(lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
 			content.WriteString(trunc(s))
 		} else {
-			content.WriteString(strings.TrimSpace(s))
+			content.WriteString(s)
 		}
 
 		// don't add an artificial newline after the last split
