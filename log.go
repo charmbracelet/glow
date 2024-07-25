@@ -22,7 +22,7 @@ func setupLog() (func() error, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(logFile), 0o644); err != nil {
+	if err := os.MkdirAll(filepath.Dir(logFile), 0o755); err != nil {
 		// log disabled
 		return func() error { return nil }, nil
 	}
