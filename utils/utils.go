@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/ansi"
+	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mitchellh/go-homedir"
 )
@@ -69,7 +70,7 @@ func IsMarkdownFile(filename string) bool {
 
 func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	if !isCode {
-		if style == glamour.AutoStyle {
+		if style == styles.AutoStyle {
 			return glamour.WithAutoStyle()
 		} else {
 			return glamour.WithStylePath(style)
@@ -82,22 +83,24 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	var styleConfig ansi.StyleConfig
 
 	switch style {
-	case glamour.AutoStyle:
+	case styles.AutoStyle:
 		if lipgloss.HasDarkBackground() {
-			styleConfig = glamour.DarkStyleConfig
+			styleConfig = styles.DarkStyleConfig
 		} else {
-			styleConfig = glamour.LightStyleConfig
+			styleConfig = styles.LightStyleConfig
 		}
-	case glamour.DarkStyle:
-		styleConfig = glamour.DarkStyleConfig
-	case glamour.LightStyle:
-		styleConfig = glamour.LightStyleConfig
-	case glamour.PinkStyle:
-		styleConfig = glamour.PinkStyleConfig
-	case glamour.NoTTYStyle:
-		styleConfig = glamour.NoTTYStyleConfig
-	case glamour.DraculaStyle:
-		styleConfig = glamour.DraculaStyleConfig
+	case styles.DarkStyle:
+		styleConfig = styles.DarkStyleConfig
+	case styles.LightStyle:
+		styleConfig = styles.LightStyleConfig
+	case styles.PinkStyle:
+		styleConfig = styles.PinkStyleConfig
+	case styles.NoTTYStyle:
+		styleConfig = styles.NoTTYStyleConfig
+	case styles.DraculaStyle:
+		styleConfig = styles.DraculaStyleConfig
+	case styles.TokyoNightStyle:
+		styleConfig = styles.DraculaStyleConfig
 	default:
 		return glamour.WithStylesFromJSONFile(style)
 	}

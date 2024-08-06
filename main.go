@@ -14,6 +14,7 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/ui"
 	"github.com/charmbracelet/glow/utils"
 	"github.com/charmbracelet/lipgloss"
@@ -149,7 +150,7 @@ func validateOptions(cmd *cobra.Command) error {
 
 	// validate the glamour style
 	style = viper.GetString("style")
-	if style != glamour.AutoStyle && glamour.DefaultStyles[style] == nil {
+	if style != styles.AutoStyle && styles.DefaultStyles[style] == nil {
 		style = utils.ExpandPath(style)
 		if _, err := os.Stat(style); errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("Specified style does not exist: %s", style)
@@ -357,7 +358,7 @@ func init() {
 	// "Glow Classic" cli arguments
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
-	rootCmd.Flags().StringVarP(&style, "style", "s", glamour.AutoStyle, "style name or JSON path")
+	rootCmd.Flags().StringVarP(&style, "style", "s", styles.AutoStyle, "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width (set to 0 to disable)")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
@@ -374,7 +375,7 @@ func init() {
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("showAllFiles", rootCmd.Flags().Lookup("all"))
 
-	viper.SetDefault("style", glamour.AutoStyle)
+	viper.SetDefault("style", styles.AutoStyle)
 	viper.SetDefault("width", 0)
 
 	rootCmd.AddCommand(configCmd, manCmd)
