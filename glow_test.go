@@ -10,6 +10,7 @@ func TestGlowSources(t *testing.T) {
 		".",
 		"README.md",
 		"github.com/charmbracelet/glow",
+		"github://charmbracelet/glow",
 		"https://github.com/charmbracelet/glow",
 	}
 
