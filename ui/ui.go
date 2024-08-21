@@ -9,7 +9,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/utils"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
@@ -134,11 +134,11 @@ func (m *model) unloadDocument() []tea.Cmd {
 func newModel(cfg Config) tea.Model {
 	initSections()
 
-	if cfg.GlamourStyle == glamour.AutoStyle {
+	if cfg.GlamourStyle == styles.AutoStyle {
 		if te.HasDarkBackground() {
-			cfg.GlamourStyle = glamour.DarkStyle
+			cfg.GlamourStyle = styles.DarkStyle
 		} else {
-			cfg.GlamourStyle = glamour.LightStyle
+			cfg.GlamourStyle = styles.LightStyle
 		}
 	}
 

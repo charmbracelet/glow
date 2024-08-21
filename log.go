@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 
@@ -17,12 +18,13 @@ func getLogFilePath() (string, error) {
 }
 
 func setupLog() (func() error, error) {
+	log.SetOutput(io.Discard)
 	// Log to file, if set
 	logFile, err := getLogFilePath()
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(logFile), 0o644); err != nil {
+	if err := os.MkdirAll(filepath.Dir(logFile), 0o755); err != nil {
 		// log disabled
 		return func() error { return nil }, nil
 	}
