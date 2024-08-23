@@ -11,7 +11,7 @@ Render markdown on the CLI, with _pizzazz_!
 </p>
 
 <p align="center">
-    <img src="https://stuff.charm.sh/glow/glow-1.3-trailer-github.gif" width="600" alt="Glow UI Demo">
+    <img src="https://github.com/user-attachments/assets/c2246366-f84b-4847-b431-32a61ca07b74" width="800" alt="Glow UI Demo">
 </p>
 
 ## What is it?
