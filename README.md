@@ -176,13 +176,11 @@ Here's an example config:
 ```yaml
 # style name or JSON path (default "auto")
 style: "light"
-# show local files only; no network (TUI-mode only)
-local: true
-# mouse support (TUI-mode only)
+# mouse wheel support (TUI-mode only)
 mouse: true
 # use pager to display markdown
 pager: true
-# word-wrap at width
+# at which column should we word wrap?
 width: 80
 ```
 
