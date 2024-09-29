@@ -36,6 +36,7 @@ var (
 	pager            bool
 	style            string
 	width            uint
+	all              bool
 	showAllFiles     bool
 	showLineNumbers  bool
 	preserveNewLines bool
@@ -146,6 +147,7 @@ func validateOptions(cmd *cobra.Command) error {
 	width = viper.GetUint("width")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	all = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 
 	// validate the glamour style
@@ -315,7 +317,11 @@ func runTUI(workingDirectory string) error {
 
 	cfg.WorkingDirectory = workingDirectory
 
-	cfg.ShowAllFiles = showAllFiles
+	if showAllFiles {
+		cfg.ShowAllFiles = showAllFiles
+	} else {
+		cfg.ShowAllFiles = all
+	}
 	cfg.ShowLineNumbers = showLineNumbers
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
