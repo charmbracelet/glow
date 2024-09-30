@@ -36,7 +36,6 @@ var (
 	pager            bool
 	style            string
 	width            uint
-	all              bool
 	showAllFiles     bool
 	showLineNumbers  bool
 	preserveNewLines bool
@@ -147,7 +146,7 @@ func validateOptions(cmd *cobra.Command) error {
 	width = viper.GetUint("width")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
-	all = viper.GetBool("all")
+	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 
 	// validate the glamour style
@@ -317,11 +316,7 @@ func runTUI(workingDirectory string) error {
 
 	cfg.WorkingDirectory = workingDirectory
 
-	if showAllFiles {
-		cfg.ShowAllFiles = showAllFiles
-	} else {
-		cfg.ShowAllFiles = all
-	}
+	cfg.ShowAllFiles = showAllFiles
 	cfg.ShowLineNumbers = showLineNumbers
 	cfg.GlamourMaxWidth = width
 	cfg.GlamourStyle = style
@@ -379,10 +374,11 @@ func init() {
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
-	_ = viper.BindPFlag("showAllFiles", rootCmd.Flags().Lookup("all"))
+	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
 	viper.SetDefault("style", styles.AutoStyle)
 	viper.SetDefault("width", 0)
+	viper.SetDefault("all", true)
 
 	rootCmd.AddCommand(configCmd, manCmd)
 }
