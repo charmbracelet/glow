@@ -146,6 +146,7 @@ func validateOptions(cmd *cobra.Command) error {
 	width = viper.GetUint("width")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 
 	// validate the glamour style
@@ -373,10 +374,11 @@ func init() {
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
-	_ = viper.BindPFlag("showAllFiles", rootCmd.Flags().Lookup("all"))
+	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
 	viper.SetDefault("style", styles.AutoStyle)
 	viper.SetDefault("width", 0)
+	viper.SetDefault("all", true)
 
 	rootCmd.AddCommand(configCmd, manCmd)
 }
