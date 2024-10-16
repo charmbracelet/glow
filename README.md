@@ -184,6 +184,10 @@ pager: true
 width: 80
 # show all files, including hidden and ignored.
 all: true
+# show line numbers (TUI-mode only)
+showLineNumbers: false
+# preserve newlines in the output
+preserveNewLines: false
 ```
 
 ## Feedback
