@@ -7,11 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/v2/utils"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
@@ -141,14 +139,6 @@ func newModel(cfg Config) tea.Model {
 			cfg.GlamourStyle = styles.LightStyle
 		}
 	}
-
-	teamList := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
-	teamList.Styles.Title = lipgloss.NewStyle().Foreground(yellowGreen)
-	teamList.SetStatusBarItemName("team", "teams")
-	teamList.SetShowHelp(true)
-
-	// We use the team list status message as a permanent placeholder.
-	teamList.StatusMessageLifetime = time.Hour
 
 	common := commonModel{
 		cfg: cfg,
