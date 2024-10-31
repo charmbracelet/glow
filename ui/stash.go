@@ -141,7 +141,6 @@ type stashModel struct {
 	err                error
 	spinner            spinner.Model
 	filterInput        textinput.Model
-	stashFullyLoaded   bool // have we loaded all available stashed documents from the server?
 	viewState          stashViewState
 	filterState        filterState
 	showFullHelp       bool
@@ -726,10 +725,6 @@ func (m stashModel) view() string {
 				p.Type = paginator.Arabic
 				pagination = paginationStyle.Render(p.View())
 			}
-
-			// We could also look at m.stashFullyLoaded and add an indicator
-			// showing that we don't actually know how many more pages there
-			// are.
 		}
 
 		s += fmt.Sprintf(

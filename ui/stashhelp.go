@@ -130,9 +130,6 @@ func (m stashModel) helpView() (string, int) {
 		filterHelp = []string{"/", "edit search", "esc", "clear filter"}
 	} else {
 		filterHelp = []string{"/", "find"}
-		if m.stashFullyLoaded {
-			filterHelp = append(filterHelp, "t", "team filter")
-		}
 	}
 
 	if isEditable {
