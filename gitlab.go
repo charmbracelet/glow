@@ -1,46 +1,59 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// isGitLabURL tests a string to determine if it is a well-structured GitLab URL.
-func isGitLabURL(s string) (string, bool) {
-	if strings.HasPrefix(s, "gitlab.com/") {
-		s = "https://" + s
+// findGitLabREADME tries to find the correct README filename in a repository using GitLab API.
+func findGitLabREADME(u *url.URL) (*source, error) {
+	owner, repo, ok := strings.Cut(strings.TrimPrefix(u.Path, "/"), "/")
+	if !ok {
+		return nil, fmt.Errorf("invalid url: %s", u.String())
 	}
 
-	u, err := url.ParseRequestURI(s)
-	if err != nil {
-		return "", false
+	projectPath := url.QueryEscape(owner + "/" + repo)
+
+	type readme struct {
+		ReadmeURL string `json:"readme_url"`
 	}
 
-	return u.String(), strings.ToLower(u.Host) == "gitlab.com"
-}
+	apiURL := fmt.Sprintf("https://%s/api/v4/projects/%s", u.Hostname(), projectPath)
 
-// findGitLabREADME tries to find the correct README filename in a repository.
-func findGitLabREADME(s string) (*source, error) {
-	u, err := url.ParseRequestURI(s)
+	// nolint:bodyclose
+	// it is closed on the caller
+	res, err := http.Get(apiURL) // nolint: gosec
 	if err != nil {
 		return nil, err
 	}
 
-	for _, r := range readmeNames {
-		v := u
-		v.Path += "/raw/master/" + r
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 
+	var result readme
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+
+	readmeRawURL := strings.Replace(result.ReadmeURL, "blob", "raw", -1)
+
+	if res.StatusCode == http.StatusOK {
 		// nolint:bodyclose
 		// it is closed on the caller
-		resp, err := http.Get(v.String())
+		resp, err := http.Get(readmeRawURL) // nolint: gosec
 		if err != nil {
 			return nil, err
 		}
 
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, v.String()}, nil
+			return &source{resp.Body, readmeRawURL}, nil
 		}
 	}
 

@@ -7,16 +7,13 @@ import (
 
 type editorFinishedMsg struct{ err error }
 
-func openEditor(path string) tea.Cmd {
+func openEditor(path string, lineno int) tea.Cmd {
 	cb := func(err error) tea.Msg {
 		return editorFinishedMsg{err}
 	}
-
-	editor, err := editor.Cmd("Glow", path)
+	cmd, err := editor.Cmd("Glow", path, editor.OpenAtLine(uint(lineno)))
 	if err != nil {
-		return func() tea.Msg {
-			return errMsg{err}
-		}
+		return func() tea.Msg { return cb(err) }
 	}
-	return tea.ExecProcess(editor, cb)
+	return tea.ExecProcess(cmd, cb)
 }

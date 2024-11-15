@@ -1,47 +1,55 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 )
 
-// isGitHubURL tests a string to determine if it is a well-structured GitHub URL.
-func isGitHubURL(s string) (string, bool) {
-	if strings.HasPrefix(s, "github.com/") {
-		s = "https://" + s
+// findGitHubREADME tries to find the correct README filename in a repository using GitHub API.
+func findGitHubREADME(u *url.URL) (*source, error) {
+	owner, repo, ok := strings.Cut(strings.TrimPrefix(u.Path, "/"), "/")
+	if !ok {
+		return nil, fmt.Errorf("invalid url: %s", u.String())
 	}
 
-	u, err := url.ParseRequestURI(s)
-	if err != nil {
-		return "", false
+	type readme struct {
+		DownloadURL string `json:"download_url"`
 	}
 
-	return u.String(), strings.ToLower(u.Host) == "github.com"
-}
+	apiURL := fmt.Sprintf("https://api.%s/repos/%s/%s/readme", u.Hostname(), owner, repo)
 
-// findGitHubREADME tries to find the correct README filename in a repository.
-func findGitHubREADME(s string) (*source, error) {
-	u, err := url.ParseRequestURI(s)
+	// nolint:bodyclose
+	// it is closed on the caller
+	res, err := http.Get(apiURL) // nolint: gosec
 	if err != nil {
 		return nil, err
 	}
-	u.Host = "raw.githubusercontent.com"
 
-	for _, r := range readmeNames {
-		v := u
-		v.Path += "/master/" + r
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
 
+	var result readme
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == http.StatusOK {
 		// nolint:bodyclose
 		// it is closed on the caller
-		resp, err := http.Get(v.String())
+		resp, err := http.Get(result.DownloadURL)
 		if err != nil {
 			return nil, err
 		}
 
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, v.String()}, nil
+			return &source{resp.Body, result.DownloadURL}, nil
 		}
 	}
 
