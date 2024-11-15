@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -144,7 +143,7 @@ func sourceFromArg(arg string) (*source, error) {
 // validateStyle checks if the style is a default style, if not, checks that
 // the custom style exists.
 func validateStyle(style string) error {
-	if style != "auto" && glamour.DefaultStyles[style] == nil {
+	if style != "auto" && styles.DefaultStyles[style] == nil {
 		style = utils.ExpandPath(style)
 		if _, err := os.Stat(style); os.IsNotExist(err) {
 			return fmt.Errorf("Specified style does not exist: %s", style)
@@ -323,22 +322,12 @@ func runTUI(workingDirectory string) error {
 		return fmt.Errorf("error parsing config: %v", err)
 	}
 
-	// Log to file, if set
-	if cfg.Logfile != "" {
-		f, err := tea.LogToFile(cfg.Logfile, "glow")
-		if err != nil {
-			return err
-		}
-		defer f.Close() //nolint:errcheck
-	}
-
 	// use style set in env, or auto if unset
 	if err := validateStyle(cfg.GlamourStyle); err != nil {
 		cfg.GlamourStyle = style
 	}
 
 	cfg.WorkingDirectory = workingDirectory
-
 	cfg.ShowAllFiles = showAllFiles
 	cfg.ShowLineNumbers = showLineNumbers
 	cfg.GlamourMaxWidth = width
