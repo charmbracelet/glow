@@ -2,7 +2,8 @@ package main
 
 import (
 	"bytes"
-	"strings"
+	"errors"
+	"net"
 	"testing"
 )
 
@@ -17,16 +18,15 @@ func TestGlowSources(t *testing.T) {
 
 	for _, v := range tt {
 		t.Run(v, func(t *testing.T) {
-			// Start by checking for network issues.
-			_, nerr := readmeURL(v)
-			if nerr != nil && strings.Contains(nerr.Error(), "no such host") {
-				t.Logf("Error during execution (args: %s):\n%v", v, nerr)
-				t.Skip("Test uses network. Are you connected to the Internet?")
-			}
-
 			buf := &bytes.Buffer{}
 			err := executeArg(rootCmd, v, buf)
 			if err != nil {
+				// Check for network issues.
+				var netErr *net.DNSError
+				if errors.As(err, &netErr) {
+					t.Logf("Error during execution (args: %s): %v", v, err)
+					t.Skip("Test uses network. Are you connected to the Internet?")
+				}
 				t.Errorf("Error during execution (args: %s): %v", v, err)
 			}
 			if buf.Len() == 0 {

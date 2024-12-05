@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -76,6 +77,12 @@ func sourceFromArg(arg string) (*source, error) {
 
 	// a GitHub or GitLab URL (even without the protocol):
 	src, err := readmeURL(arg)
+	// Return error if it's a network issue.
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return src, err
+	}
+
 	if src != nil && err == nil {
 		// if there's an error, try next methods...
 		return src, nil
