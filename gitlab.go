@@ -57,5 +57,5 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 		}
 	}
 
-	return nil, errors.New(fmt.Sprintf("Can't find README in GitLab repository. Response status: %d %s", res.StatusCode, res.Status))
+	return nil, errors.New("can't find README in GitLab repository")
 }
