@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -141,6 +140,20 @@ func sourceFromArg(arg string) (*source, error) {
 	return &source{r, u}, err
 }
 
+// validateStyle checks if the style is a default style, if not, checks that
+// the custom style exists.
+func validateStyle(style string) error {
+	if style != "auto" && styles.DefaultStyles[style] == nil {
+		style = utils.ExpandPath(style)
+		if _, err := os.Stat(style); os.IsNotExist(err) {
+			return fmt.Errorf("Specified style does not exist: %s", style)
+		} else if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func validateOptions(cmd *cobra.Command) error {
 	// grab config values from Viper
 	width = viper.GetUint("width")
@@ -151,13 +164,8 @@ func validateOptions(cmd *cobra.Command) error {
 
 	// validate the glamour style
 	style = viper.GetString("style")
-	if style != styles.AutoStyle && styles.DefaultStyles[style] == nil {
-		style = utils.ExpandPath(style)
-		if _, err := os.Stat(style); errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("Specified style does not exist: %s", style)
-		} else if err != nil {
-			return err
-		}
+	if err := validateStyle(style); err != nil {
+		return err
 	}
 
 	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
@@ -314,12 +322,15 @@ func runTUI(workingDirectory string) error {
 		return fmt.Errorf("error parsing config: %v", err)
 	}
 
-	cfg.WorkingDirectory = workingDirectory
+	// use style set in env, or auto if unset
+	if err := validateStyle(cfg.GlamourStyle); err != nil {
+		cfg.GlamourStyle = style
+	}
 
+	cfg.WorkingDirectory = workingDirectory
 	cfg.ShowAllFiles = showAllFiles
 	cfg.ShowLineNumbers = showLineNumbers
 	cfg.GlamourMaxWidth = width
-	cfg.GlamourStyle = style
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
 
