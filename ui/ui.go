@@ -177,7 +177,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Batch(batch...)
 			}
 		case "r":
+			var cmd tea.Cmd
 			if m.state == stateShowStash {
+				// pass through all keys if we're editing the filter
+				if m.stash.filterState == filtering {
+					m.stash, cmd = m.stash.update(msg)
+					return m, cmd
+				}
 				m.stash.markdowns = nil
 				return m, m.Init()
 			}
