@@ -175,22 +175,26 @@ func validateOptions(cmd *cobra.Command) error {
 		style = "notty"
 	}
 
-	// Detect terminal width
-	if !cmd.Flags().Changed("width") {
-		if isTerminal && width == 0 {
-			w, _, err := term.GetSize(int(os.Stdout.Fd()))
-			if err == nil {
-				width = uint(w)
-			}
+	// Determining width
 
-			if width > 120 {
-				width = 120
-			}
-		}
-		if width == 0 {
-			width = 80
+	// accept the value of width if it comes from commandline
+	if cmd.Flags().Changed("width") {
+		return nil
+	}
+	// trying to set width to terminal width
+	if isTerminal {
+		w, _, err := term.GetSize(int(os.Stdout.Fd()))
+		if err == nil {
+			width = uint(min(w, 120))
+			return nil
 		}
 	}
+	// accept the value of width if it comes from config
+	if viper.InConfig("width") {
+		return nil
+	}
+	// fall back to a hard-coded sane value
+	width = 80
 	return nil
 }
 
