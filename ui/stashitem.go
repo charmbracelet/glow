@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss/v2/compat"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/truncate"
 	"github.com/sahilm/fuzzy"
@@ -74,7 +75,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		} else {
 			icon = greenFg(icon)
 
-			s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
+			s := lipgloss.NewStyle().Foreground(compat.AdaptiveColor{Light: lipgloss.Color("#1a1a1a"), Dark: lipgloss.Color("#dddddd")})
 			title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline(true))
 			date = grayFg(date)
 			editedBy = midGrayFg(editedBy)

@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/paginator"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/bubbles/v2/paginator"
+	"github.com/charmbracelet/bubbles/v2/spinner"
+	"github.com/charmbracelet/bubbles/v2/textinput"
+	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
@@ -208,9 +208,9 @@ func (m *stashModel) setSize(width, height int) {
 	m.common.width = width
 	m.common.height = height
 
-	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(
+	m.filterInput.SetWidth(width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(
 		m.filterInput.Prompt,
-	)
+	))
 
 	m.updatePagination()
 }
@@ -465,7 +465,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 	switch msg := msg.(type) {
 	// Handle keys
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "k", "ctrl+k", "up":
 			m.moveCursorUp()

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/v2/utils"
 	"github.com/charmbracelet/log"
@@ -119,10 +119,6 @@ func (m *model) unloadDocument() []tea.Cmd {
 	m.pager.showHelp = false
 
 	var batch []tea.Cmd
-	if m.pager.viewport.HighPerformanceRendering {
-		batch = append(batch, tea.ClearScrollArea)
-	}
-
 	if !m.stash.shouldSpin() {
 		batch = append(batch, m.stash.spinner.Tick)
 	}
@@ -152,10 +148,10 @@ func newModel(cfg Config) tea.Model {
 	}
 }
 
-func (m model) Init() tea.Cmd {
+func (m model) Init() (tea.Model, tea.Cmd) {
 	cmds := []tea.Cmd{m.stash.spinner.Tick}
 	cmds = append(cmds, findLocalFiles(*m.common))
-	return tea.Batch(cmds...)
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -169,7 +165,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc":
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {
@@ -179,7 +175,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "r":
 			if m.state == stateShowStash {
 				m.stash.markdowns = nil
-				return m, m.Init()
+				return m.Init()
 			}
 
 		case "q":
