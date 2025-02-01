@@ -178,6 +178,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "r":
 			if m.state == stateShowStash {
+
+				if m.stash.filterState == filtering {
+					var cmd tea.Cmd
+
+					m.stash, cmd = m.stash.update(msg)
+					return m, cmd
+				}
+
 				m.stash.markdowns = nil
 				return m, m.Init()
 			}
