@@ -22,7 +22,7 @@ pager: false
 # word-wrap at width
 width: 80
 # show all files, including hidden and ignored.
-all: true
+all: false
 `
 
 var configCmd = &cobra.Command{
