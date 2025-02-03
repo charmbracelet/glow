@@ -183,7 +183,7 @@ pager: true
 # at which column should we word wrap?
 width: 80
 # show all files, including hidden and ignored.
-all: true
+all: false
 ```
 
 ## Feedback
