@@ -100,7 +100,6 @@ func (m stashModel) helpView() (string, int) {
 	}
 
 	var (
-		isEditable    bool
 		navHelp       []string
 		filterHelp    []string
 		selectionHelp []string
@@ -132,16 +131,13 @@ func (m stashModel) helpView() (string, int) {
 		filterHelp = []string{"/", "find"}
 	}
 
-	if isEditable {
-		editHelp = []string{"e", "edit"}
-	}
-
 	// If there are errors
 	if m.err != nil {
 		appHelp = append(appHelp, "!", "errors")
 	}
 
 	appHelp = append(appHelp, "r", "refresh")
+	appHelp = append(appHelp, "e", "edit")
 	appHelp = append(appHelp, "q", "quit")
 
 	// Detailed help
