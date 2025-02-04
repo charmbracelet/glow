@@ -161,6 +161,7 @@ func validateOptions(cmd *cobra.Command) error {
 	pager = viper.GetBool("pager")
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
+	showLineNumbers = viper.GetBool("showLineNumbers")
 
 	// validate the glamour style
 	style = viper.GetString("style")
