@@ -37,6 +37,9 @@ sudo port install glow
 # Arch Linux (btw)
 pacman -S glow
 
+# OpenSUSE
+sudo zypper install glow
+
 # Void Linux
 xbps-install -S glow
 
