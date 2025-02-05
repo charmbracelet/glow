@@ -33,6 +33,7 @@ var (
 	readmeNames      = []string{"README.md", "README", "Readme.md", "Readme", "readme.md", "readme"}
 	configFile       string
 	pager            bool
+	tui              bool
 	style            string
 	width            uint
 	showAllFiles     bool
@@ -159,8 +160,13 @@ func validateOptions(cmd *cobra.Command) error {
 	width = viper.GetUint("width")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
+	tui = viper.GetBool("tui")
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
+
+	if pager && tui {
+		return errors.New("glow: cannot use both pager and tui")
+	}
 
 	// validate the glamour style
 	style = viper.GetString("style")
@@ -298,7 +304,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 
 	// display
-	if pager || cmd.Flags().Changed("pager") {
+	switch {
+	case pager || cmd.Flags().Changed("pager"):
 		pagerCmd := os.Getenv("PAGER")
 		if pagerCmd == "" {
 			pagerCmd = "less -r"
@@ -309,13 +316,15 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
 		return c.Run()
+	case tui || cmd.Flags().Changed("tui"):
+		return runTUI(src.URL)
+	default:
+		_, err = fmt.Fprint(w, out)
+		return err
 	}
-
-	_, err = fmt.Fprint(w, out)
-	return err
 }
 
-func runTUI(workingDirectory string) error {
+func runTUI(path string) error {
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
 	if err != nil {
@@ -327,7 +336,7 @@ func runTUI(workingDirectory string) error {
 		cfg.GlamourStyle = style
 	}
 
-	cfg.WorkingDirectory = workingDirectory
+	cfg.Path = path
 	cfg.ShowAllFiles = showAllFiles
 	cfg.ShowLineNumbers = showLineNumbers
 	cfg.GlamourMaxWidth = width
@@ -370,6 +379,7 @@ func init() {
 	// "Glow Classic" cli arguments
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
+	rootCmd.Flags().BoolVarP(&tui, "tui", "t", false, "display with tui")
 	rootCmd.Flags().StringVarP(&style, "style", "s", styles.AutoStyle, "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width (set to 0 to disable)")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
@@ -379,6 +389,8 @@ func init() {
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
+	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
+	_ = viper.BindPFlag("tui", rootCmd.Flags().Lookup("tui"))
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
