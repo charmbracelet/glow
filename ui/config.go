@@ -11,8 +11,8 @@ type Config struct {
 	EnableMouse      bool
 	PreserveNewLines bool
 
-	// Which directory should we start from?
-	WorkingDirectory string
+	// Working directory or file path
+	Path string
 
 	// For debugging the UI
 	HighPerformancePager bool `env:"GLOW_HIGH_PERFORMANCE_PAGER" envDefault:"true"`
