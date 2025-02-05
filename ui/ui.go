@@ -144,17 +144,50 @@ func newModel(cfg Config) tea.Model {
 		cfg: cfg,
 	}
 
-	return model{
+	m := model{
 		common: &common,
 		state:  stateShowStash,
 		pager:  newPagerModel(&common),
 		stash:  newStashModel(&common),
 	}
+
+	info, err := os.Stat(cfg.Path)
+	if err != nil {
+		log.Error("unable to stat file", "file", m.common.cfg.Path, "error", err)
+		m.fatalErr = err
+		return m
+	}
+	if info.IsDir() {
+		m.state = stateShowStash
+	} else {
+		cwd, _ := os.Getwd()
+		m.state = stateShowDocument
+		m.pager.currentDocument = markdown{
+			localPath: cfg.Path,
+			Note:      stripAbsolutePath(cfg.Path, cwd),
+			Modtime:   info.ModTime(),
+		}
+	}
+
+	return m
 }
 
 func (m model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.stash.spinner.Tick}
-	cmds = append(cmds, findLocalFiles(*m.common))
+
+	switch m.state {
+	case stateShowStash:
+		cmds = append(cmds, findLocalFiles(*m.common))
+	case stateShowDocument:
+		content, err := os.ReadFile(m.common.cfg.Path)
+		if err != nil {
+			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
+			return func() tea.Msg { return errMsg{err} }
+		}
+		body := string(utils.RemoveFrontmatter(content))
+		cmds = append(cmds, renderWithGlamour(m.pager, body))
+	}
+
 	return tea.Batch(cmds...)
 }
 
@@ -314,7 +347,7 @@ func findLocalFiles(m commonModel) tea.Cmd {
 	return func() tea.Msg {
 		log.Info("findLocalFiles")
 		var (
-			cwd = m.cfg.WorkingDirectory
+			cwd = m.cfg.Path
 			err error
 		)
 
@@ -380,17 +413,16 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 // document. Note that we could be doing things like checking if the file is
 // a directory, but we trust that gitcha has already done that.
 func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
-	md := &markdown{
+	return &markdown{
 		localPath: res.Path,
 		Note:      stripAbsolutePath(res.Path, cwd),
 		Modtime:   res.Info.ModTime(),
 	}
-
-	return md
 }
 
 func stripAbsolutePath(fullPath, cwd string) string {
-	return strings.ReplaceAll(fullPath, cwd+string(os.PathSeparator), "")
+	path, _ := filepath.Rel(cwd, fullPath)
+	return path
 }
 
 // Lightweight version of reflow's indent function.
