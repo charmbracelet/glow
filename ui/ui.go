@@ -151,9 +151,13 @@ func newModel(cfg Config) tea.Model {
 		stash:  newStashModel(&common),
 	}
 
-	info, err := os.Stat(cfg.Path)
+	path := cfg.Path
+	if path == "" {
+		path = "."
+	}
+	info, err := os.Stat(path)
 	if err != nil {
-		log.Error("unable to stat file", "file", m.common.cfg.Path, "error", err)
+		log.Error("unable to stat file", "file", path, "error", err)
 		m.fatalErr = err
 		return m
 	}
@@ -163,8 +167,8 @@ func newModel(cfg Config) tea.Model {
 		cwd, _ := os.Getwd()
 		m.state = stateShowDocument
 		m.pager.currentDocument = markdown{
-			localPath: cfg.Path,
-			Note:      stripAbsolutePath(cfg.Path, cwd),
+			localPath: path,
+			Note:      stripAbsolutePath(path, cwd),
 			Modtime:   info.ModTime(),
 		}
 	}
