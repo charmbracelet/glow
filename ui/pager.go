@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/charmbracelet/glow/v2/utils"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/fsnotify/fsnotify"
 	runewidth "github.com/mattn/go-runewidth"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
@@ -78,6 +80,7 @@ var (
 
 type (
 	contentRenderedMsg string
+	reloadMsg          struct{}
 )
 
 type pagerState int
@@ -99,6 +102,8 @@ type pagerModel struct {
 	// Current document being rendered, sans-glamour rendering. We cache
 	// it here so we can re-render it on resize.
 	currentDocument markdown
+
+	watcher *fsnotify.Watcher
 }
 
 func newPagerModel(common *commonModel) pagerModel {
@@ -107,11 +112,13 @@ func newPagerModel(common *commonModel) pagerModel {
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
 
-	return pagerModel{
+	m := pagerModel{
 		common:   common,
 		state:    pagerStateBrowse,
 		viewport: vp,
 	}
+	m.initWatcher()
+	return m
 }
 
 func (m *pagerModel) setSize(w, h int) {
@@ -159,6 +166,7 @@ func (m *pagerModel) showStatusMessage(msg pagerStatusMessage) tea.Cmd {
 }
 
 func (m *pagerModel) unload() {
+	log.Debug("unload")
 	if m.showHelp {
 		m.toggleHelp()
 	}
@@ -168,6 +176,7 @@ func (m *pagerModel) unload() {
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
 	m.viewport.YOffset = 0
+	m.unwatchFile()
 }
 
 func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
@@ -226,10 +235,17 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	// Glow has rendered the content
 	case contentRenderedMsg:
+		log.Info("content rendered", "state", m.state)
+
 		m.setContent(string(msg))
 		if m.viewport.HighPerformanceRendering {
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
+		cmds = append(cmds, m.watchFile)
+
+	// The file was changed on disk and we're reloading it
+	case reloadMsg:
+		return m, loadLocalMarkdown(&m.currentDocument)
 
 	// We've finished editing the document, potentially making changes. Let's
 	// retrieve the latest version of the document so that we display
@@ -450,4 +466,55 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 
 	return content.String(), nil
+}
+
+func (m *pagerModel) initWatcher() {
+	var err error
+	m.watcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		log.Error("error creating fsnotify watcher", "error", err)
+	}
+}
+
+func (m *pagerModel) watchFile() tea.Msg {
+	path := m.relFilePath()
+
+	if err := m.watcher.Add(path); err != nil {
+		log.Error("error adding file to fsnotify watcher", "error", err)
+		return nil
+	}
+
+	log.Info("fsnotify watching file", "file", path)
+
+	for {
+		select {
+		case event, ok := <-m.watcher.Events:
+			if !ok || !event.Has(fsnotify.Write) {
+				continue
+			}
+			log.Debug("fsnotify event", "file", path, "event", event.Op)
+			return reloadMsg{}
+		case err, ok := <-m.watcher.Errors:
+			if !ok {
+				continue
+			}
+			log.Debug("fsnotify error", "file", path, "error", err)
+		}
+	}
+}
+
+func (m *pagerModel) unwatchFile() {
+	path := m.relFilePath()
+
+	err := m.watcher.Remove(path)
+	if err == nil {
+		log.Debug("fsnotify file unwatched", "file", path)
+	} else {
+		log.Error("fsnotify fail to unwatch file", "file", path, "error", err)
+	}
+}
+
+func (m *pagerModel) relFilePath() string {
+	wd, _ := os.Getwd()
+	return stripAbsolutePath(m.currentDocument.localPath, wd)
 }
