@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -146,7 +147,7 @@ func sourceFromArg(arg string) (*source, error) {
 func validateStyle(style string) error {
 	if style != "auto" && styles.DefaultStyles[style] == nil {
 		style = utils.ExpandPath(style)
-		if _, err := os.Stat(style); os.IsNotExist(err) {
+		if _, err := os.Stat(style); errors.Is(err, fs.ErrNotExist) {
 			return fmt.Errorf("Specified style does not exist: %s", style)
 		} else if err != nil {
 			return err
