@@ -421,8 +421,9 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 }
 
 func stripAbsolutePath(fullPath, cwd string) string {
-	path, _ := filepath.Rel(cwd, fullPath)
-	return path
+	fp, _ := filepath.EvalSymlinks(fullPath)
+	cp, _ := filepath.EvalSymlinks(cwd)
+	return strings.ReplaceAll(fp, cp+string(os.PathSeparator), "")
 }
 
 // Lightweight version of reflow's indent function.
