@@ -226,7 +226,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	// TUI running on cwd
 	case 0:
-		return runTUI("")
+		return runTUI("", "")
 
 	// TUI with possible dir argument
 	case 1:
@@ -236,7 +236,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		if err == nil && info.IsDir() {
 			p, err := filepath.Abs(args[0])
 			if err == nil {
-				return runTUI(p)
+				return runTUI(p, "")
 			}
 		}
 		fallthrough
@@ -318,14 +318,14 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		c.Stdout = os.Stdout
 		return c.Run()
 	case tui || cmd.Flags().Changed("tui"):
-		return runTUI(src.URL)
+		return runTUI(src.URL, s)
 	default:
 		_, err = fmt.Fprint(w, out)
 		return err
 	}
 }
 
-func runTUI(path string) error {
+func runTUI(path string, s string) error {
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
 	if err != nil {
@@ -345,7 +345,7 @@ func runTUI(path string) error {
 	cfg.PreserveNewLines = preserveNewLines
 
 	// Run Bubble Tea program
-	if _, err := ui.NewProgram(cfg).Run(); err != nil {
+	if _, err := ui.NewProgram(cfg, s).Run(); err != nil {
 		return err
 	}
 
