@@ -29,7 +29,7 @@ var (
 )
 
 // NewProgram returns a new Tea program.
-func NewProgram(cfg Config) *tea.Program {
+func NewProgram(cfg Config, s string) *tea.Program {
 	log.Debug(
 		"Starting glow",
 		"high_perf_pager",
@@ -43,7 +43,7 @@ func NewProgram(cfg Config) *tea.Program {
 	if cfg.EnableMouse {
 		opts = append(opts, tea.WithMouseCellMotion())
 	}
-	m := newModel(cfg)
+	m := newModel(cfg, s)
 	return tea.NewProgram(m, opts...)
 }
 
@@ -129,7 +129,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 	return batch
 }
 
-func newModel(cfg Config) tea.Model {
+func newModel(cfg Config, s string) tea.Model {
 	initSections()
 
 	if cfg.GlamourStyle == styles.AutoStyle {
@@ -152,6 +152,14 @@ func newModel(cfg Config) tea.Model {
 	}
 
 	path := cfg.Path
+	if path == "" && s != "" {
+		m.state = stateShowDocument
+		m.pager.currentDocument = markdown{
+			Body: s,
+		}
+		return m
+	}
+
 	if path == "" {
 		path = "."
 	}
