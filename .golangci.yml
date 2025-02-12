@@ -16,7 +16,6 @@ linters:
   enable:
     - bodyclose
     - dupl
-    - exportloopref
     - goconst
     - godot
     - godox
@@ -24,7 +23,6 @@ linters:
     - goimports
     - goprintffuncname
     - gosec
-    # - ifshort
     - misspell
     - prealloc
     - revive

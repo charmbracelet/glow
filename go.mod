@@ -1,6 +1,6 @@
 module github.com/charmbracelet/glow/v2
 
-go 1.21.4
+go 1.23.6
 
 require (
 	github.com/atotto/clipboard v0.1.4
