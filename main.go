@@ -293,13 +293,13 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return err
 	}
 
-	s := string(b)
+	content := string(b)
 	ext := filepath.Ext(src.URL)
 	if isCode {
-		s = utils.WrapCodeBlock(string(b), ext)
+		content = utils.WrapCodeBlock(string(b), ext)
 	}
 
-	out, err := r.Render(s)
+	out, err := r.Render(content)
 	if err != nil {
 		return err
 	}
@@ -318,14 +318,14 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		c.Stdout = os.Stdout
 		return c.Run()
 	case tui || cmd.Flags().Changed("tui"):
-		return runTUI(src.URL, s)
+		return runTUI(src.URL, content)
 	default:
 		_, err = fmt.Fprint(w, out)
 		return err
 	}
 }
 
-func runTUI(path string, s string) error {
+func runTUI(path string, content string) error {
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
 	if err != nil {
@@ -345,7 +345,7 @@ func runTUI(path string, s string) error {
 	cfg.PreserveNewLines = preserveNewLines
 
 	// Run Bubble Tea program
-	if _, err := ui.NewProgram(cfg, s).Run(); err != nil {
+	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
 		return err
 	}
 
