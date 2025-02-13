@@ -299,7 +299,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		content = utils.WrapCodeBlock(string(b), ext)
 	}
 
-	if content == "" {
+	if content == "" || content == "\n" {
 		content = "[glow: empty content]"
 	}
 
