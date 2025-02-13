@@ -172,10 +172,16 @@ func newModel(cfg Config, content string) tea.Model {
 	} else {
 		cwd, _ := os.Getwd()
 		m.state = stateShowDocument
-		m.pager.currentDocument = markdown{
-			localPath: path,
-			Note:      stripAbsolutePath(path, cwd),
-			Modtime:   info.ModTime(),
+		if info.Size() == 0 {
+			m.pager.currentDocument = markdown{
+				Body: "[glow: empty content]",
+			}
+		} else {
+			m.pager.currentDocument = markdown{
+				localPath: path,
+				Note:      stripAbsolutePath(path, cwd),
+				Modtime:   info.ModTime(),
+			}
 		}
 	}
 

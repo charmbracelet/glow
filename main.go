@@ -299,6 +299,10 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		content = utils.WrapCodeBlock(string(b), ext)
 	}
 
+	if content == "" {
+		content = "[glow: empty content]"
+	}
+
 	out, err := r.Render(content)
 	if err != nil {
 		return err
