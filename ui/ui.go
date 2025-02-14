@@ -246,8 +246,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "left", "h", "delete":
-			yes, _ := utils.StdinIsPipe()
-			if m.state == stateShowDocument && !yes {
+			isPipe, _ := utils.StdinIsPipe()
+			path := m.common.cfg.Path
+			if path == "" {
+				path = "."
+			}
+			isDir := false
+			info, err := os.Stat(path)
+			if err == nil && info.IsDir() {
+				isDir = true
+			}
+			if m.state == stateShowDocument && !isPipe && isDir {
 				cmds = append(cmds, m.unloadDocument()...)
 				return m, tea.Batch(cmds...)
 			}
