@@ -12,7 +12,7 @@ require (
 	github.com/charmbracelet/log v0.4.0
 	github.com/charmbracelet/x/editor v0.1.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/fsnotify/fsnotify v1.6.0
+	github.com/fsnotify/fsnotify v1.8.0
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/gitcha v0.3.0
