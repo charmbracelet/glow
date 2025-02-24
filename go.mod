@@ -20,7 +20,7 @@ require (
 	github.com/muesli/mango-cobra v1.2.0
 	github.com/muesli/reflow v0.3.0
 	github.com/muesli/roff v0.1.0
-	github.com/muesli/termenv v0.15.3-0.20240618155329-98d742f6907a
+	github.com/muesli/termenv v0.16.0
 	github.com/sahilm/fuzzy v0.1.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
