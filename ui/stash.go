@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -888,7 +889,9 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 
 		for i, md := range mds {
 			md.Matches = nil
-			str, _ := script.File(md.localPath).Match(m.filterInput.Value()).First(3).String()
+			r := regexp.MustCompile("(?i)" + regexp.QuoteMeta(m.filterInput.Value()))
+			md.TotalMatchesCount, _ = script.File(md.localPath).MatchRegexp(r).CountLines()
+			str, _ := script.File(md.localPath).MatchRegexp(r).First(3).String()
 			if str != "" {
 				var fz = fuzzy.Match{Str: str, Index: i}
 				md.Matches = append(md.Matches, strings.Split(strings.TrimSpace(str), "\n")...)
