@@ -42,7 +42,7 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 		return nil, err
 	}
 
-	readmeRawURL := strings.Replace(result.ReadmeURL, "blob", "raw", -1)
+	readmeRawURL := strings.ReplaceAll(result.ReadmeURL, "blob", "raw")
 
 	if res.StatusCode == http.StatusOK {
 		// nolint:bodyclose

@@ -234,8 +234,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			var cmd tea.Cmd
 
-			switch m.state {
-			case stateShowStash:
+			if m.state == stateShowStash {
 				// pass through all keys if we're editing the filter
 				if m.stash.filterState == filtering {
 					m.stash, cmd = m.stash.update(msg)

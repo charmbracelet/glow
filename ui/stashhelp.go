@@ -22,7 +22,7 @@ func newHelpColumn(pairs ...string) (h helpColumn) {
 		panic("help text group must have an even number of items")
 	}
 
-	for i := 0; i < len(pairs); i = i + 2 {
+	for i := 0; i < len(pairs); i += 2 {
 		h = append(h, helpEntry{key: pairs[i], val: pairs[i+1]})
 	}
 
@@ -191,7 +191,7 @@ func (m stashModel) miniHelpView(entries ...string) string {
 		s = leftGutter
 	)
 
-	for i := 0; i < len(entries); i = i + 2 {
+	for i := 0; i < len(entries); i += 2 {
 		k := entries[i]
 		v := entries[i+1]
 

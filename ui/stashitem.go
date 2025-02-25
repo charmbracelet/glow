@@ -84,6 +84,21 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 	fmt.Fprintf(b, "%s %s%s%s%s\n", gutter, icon, separator, separator, title)
 	fmt.Fprintf(b, "%s %s", gutter, date)
+	if md.Match != "" {
+		s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff5050", Dark: "#ff5050"})
+		fmt.Fprintf(b, "\n%s ", gutter)
+		var index int = strings.Index(md.Match, m.filterInput.Value())
+		if index != -1 {
+			for i := 0; i < len(md.Match); i++ {
+				if i >= index && i < index+len(m.filterInput.Value()) {
+					// fmt.Fprintf(b, "%s", fmt.Sprintf(bold, string(md.Match[i])))
+					b.WriteString(s.Render(string(md.Match[i])))
+				} else {
+					fmt.Fprintf(b, "%s", string(md.Match[i]))
+				}
+			}
+		}
+	}
 	if hasEditedBy {
 		fmt.Fprintf(b, " %s", editedBy)
 	}

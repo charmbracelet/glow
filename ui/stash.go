@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitfield/script"
 	"github.com/charmbracelet/bubbles/paginator"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -21,7 +22,7 @@ import (
 
 const (
 	stashIndent                = 1
-	stashViewItemHeight        = 3 // height of stash entry, including gap
+	stashViewItemHeight        = 4 // height of stash entry, including gap
 	stashViewTopPadding        = 5 // logo, status bar, gaps
 	stashViewBottomPadding     = 3 // pagination and gaps, but not help
 	stashViewHorizontalPadding = 6
@@ -216,6 +217,9 @@ func (m *stashModel) setSize(width, height int) {
 }
 
 func (m *stashModel) resetFiltering() {
+	for _, md := range m.markdowns {
+		md.Match = ""
+	}
 	m.filterState = unfiltered
 	m.filterInput.Reset()
 	m.filteredMarkdowns = nil
@@ -861,7 +865,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 
 func filterMarkdowns(m stashModel) tea.Cmd {
 	return func() tea.Msg {
-		if m.filterInput.Value() == "" || !m.filterApplied() {
+		if len(m.filterInput.Value()) < 3 || !m.filterApplied() {
 			return filteredMarkdownMsg(m.markdowns) // return everything
 		}
 
@@ -873,6 +877,17 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 		}
 
 		ranks := fuzzy.Find(m.filterInput.Value(), targets)
+
+		for i, md := range mds {
+			str, _ := script.File(md.localPath).Match(m.filterInput.Value()).First(1).String()
+			if str != "" {
+				var fz = fuzzy.Match{Str: str, Index: i}
+				md.Match = str
+				ranks = append(ranks, fz)
+			} else {
+				md.Match = ""
+			}
+		}
 		sort.Stable(ranks)
 
 		filtered := []*markdown{}
