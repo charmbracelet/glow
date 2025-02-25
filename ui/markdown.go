@@ -24,7 +24,7 @@ type markdown struct {
 
 	Body    string
 	Note    string
-	Match   string
+	Matches []string
 	Modtime time.Time
 }
 

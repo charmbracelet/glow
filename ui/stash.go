@@ -22,17 +22,16 @@ import (
 
 const (
 	stashIndent                = 1
-	stashViewItemHeight        = 4 // height of stash entry, including gap
 	stashViewTopPadding        = 5 // logo, status bar, gaps
 	stashViewBottomPadding     = 3 // pagination and gaps, but not help
 	stashViewHorizontalPadding = 6
 )
 
-var stashingStatusMessage = statusMessage{normalStatusMessage, "Stashing..."}
-
 var (
-	dividerDot = darkGrayFg.SetString(" • ")
-	dividerBar = darkGrayFg.SetString(" │ ")
+	stashingStatusMessage = statusMessage{normalStatusMessage, "Stashing..."}
+	stashViewItemHeight   = 3 // height of stash entry, including gap
+	dividerDot            = darkGrayFg.SetString(" • ")
+	dividerBar            = darkGrayFg.SetString(" │ ")
 
 	logoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ECFD65")).
@@ -162,6 +161,8 @@ type stashModel struct {
 	// The master set of markdown documents we're working with.
 	markdowns []*markdown
 
+	totalSearchMatches int
+
 	// Markdown documents we're currently displaying. Filtering, toggles and so
 	// on will alter this slice so we can show what is relevant. For that
 	// reason, this field should be considered ephemeral.
@@ -217,8 +218,10 @@ func (m *stashModel) setSize(width, height int) {
 }
 
 func (m *stashModel) resetFiltering() {
+	m.totalSearchMatches = 0
+	stashViewItemHeight = 3
 	for _, md := range m.markdowns {
-		md.Match = ""
+		md.Matches = nil
 	}
 	m.filterState = unfiltered
 	m.filterInput.Reset()
@@ -866,6 +869,9 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 func filterMarkdowns(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		if len(m.filterInput.Value()) < 3 || !m.filterApplied() {
+			for _, md := range m.markdowns {
+				md.Matches = nil
+			}
 			return filteredMarkdownMsg(m.markdowns) // return everything
 		}
 
@@ -879,15 +885,20 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 		ranks := fuzzy.Find(m.filterInput.Value(), targets)
 
 		for i, md := range mds {
-			str, _ := script.File(md.localPath).Match(m.filterInput.Value()).First(1).String()
+			md.Matches = nil
+			str, _ := script.File(md.localPath).Match(m.filterInput.Value()).First(3).String()
 			if str != "" {
 				var fz = fuzzy.Match{Str: str, Index: i}
-				md.Match = str
+				md.Matches = append(md.Matches, strings.Split(strings.TrimSpace(str), "\n")...)
 				ranks = append(ranks, fz)
-			} else {
-				md.Match = ""
 			}
+			m.totalSearchMatches += len(md.Matches)
 		}
+
+		if m.totalSearchMatches > 0 {
+			stashViewItemHeight = 7
+		}
+
 		sort.Stable(ranks)
 
 		filtered := []*markdown{}
