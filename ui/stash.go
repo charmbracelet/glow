@@ -217,12 +217,16 @@ func (m *stashModel) setSize(width, height int) {
 	m.updatePagination()
 }
 
-func (m *stashModel) resetFiltering() {
-	m.totalSearchMatches = 0
-	stashViewItemHeight = 3
+func (m *stashModel) resetMatches() {
 	for _, md := range m.markdowns {
 		md.Matches = nil
 	}
+}
+
+func (m *stashModel) resetFiltering() {
+	m.totalSearchMatches = 0
+	stashViewItemHeight = 3
+	m.resetMatches()
 	m.filterState = unfiltered
 	m.filterInput.Reset()
 	m.filteredMarkdowns = nil
@@ -869,9 +873,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 func filterMarkdowns(m stashModel) tea.Cmd {
 	return func() tea.Msg {
 		if len(m.filterInput.Value()) < 3 || !m.filterApplied() {
-			for _, md := range m.markdowns {
-				md.Matches = nil
-			}
+			m.resetMatches()
 			return filteredMarkdownMsg(m.markdowns) // return everything
 		}
 
