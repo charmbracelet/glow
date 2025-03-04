@@ -307,10 +307,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	// display
 	switch {
 	case pager || cmd.Flags().Changed("pager"):
-		pagerCmd := os.Getenv("PAGER")
-		if pagerCmd == "" {
-			pagerCmd = "less -r"
-		}
+		pagerCmd := utils.Getenv("PAGER", "less -r")
 
 		pa := strings.Split(pagerCmd, " ")
 		c := exec.Command(pa[0], pa[1:]...) // nolint:gosec
@@ -332,15 +329,11 @@ func runTUI(path string, content string) error {
 		return fmt.Errorf("error parsing config: %v", err)
 	}
 
-	// use style set in env, or auto if unset
-	if err := validateStyle(cfg.GlamourStyle); err != nil {
-		cfg.GlamourStyle = style
-	}
-
 	cfg.Path = path
 	cfg.ShowAllFiles = showAllFiles
 	cfg.ShowLineNumbers = showLineNumbers
 	cfg.GlamourMaxWidth = width
+	cfg.GlamourStyle = style
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
 
@@ -400,7 +393,7 @@ func init() {
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
-	viper.SetDefault("style", styles.AutoStyle)
+	viper.SetDefault("style", utils.Getenv("GLAMOUR_STYLE", styles.AutoStyle))
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
