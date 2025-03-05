@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/bitfield/script"
 	"github.com/charmbracelet/bubbles/paginator"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -21,17 +23,16 @@ import (
 
 const (
 	stashIndent                = 1
-	stashViewItemHeight        = 3 // height of stash entry, including gap
 	stashViewTopPadding        = 5 // logo, status bar, gaps
 	stashViewBottomPadding     = 3 // pagination and gaps, but not help
 	stashViewHorizontalPadding = 6
 )
 
-var stashingStatusMessage = statusMessage{normalStatusMessage, "Stashing..."}
-
 var (
-	dividerDot = darkGrayFg.SetString(" • ")
-	dividerBar = darkGrayFg.SetString(" │ ")
+	stashingStatusMessage = statusMessage{normalStatusMessage, "Stashing..."}
+	stashViewItemHeight   = 3 // height of stash entry, including gap
+	dividerDot            = darkGrayFg.SetString(" • ")
+	dividerBar            = darkGrayFg.SetString(" │ ")
 
 	logoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#ECFD65")).
@@ -161,6 +162,8 @@ type stashModel struct {
 	// The master set of markdown documents we're working with.
 	markdowns []*markdown
 
+	totalSearchMatches int
+
 	// Markdown documents we're currently displaying. Filtering, toggles and so
 	// on will alter this slice so we can show what is relevant. For that
 	// reason, this field should be considered ephemeral.
@@ -215,7 +218,16 @@ func (m *stashModel) setSize(width, height int) {
 	m.updatePagination()
 }
 
+func (m *stashModel) resetMatches() {
+	for _, md := range m.markdowns {
+		md.Matches = nil
+	}
+}
+
 func (m *stashModel) resetFiltering() {
+	m.totalSearchMatches = 0
+	stashViewItemHeight = 3
+	m.resetMatches()
 	m.filterState = unfiltered
 	m.filterInput.Reset()
 	m.filteredMarkdowns = nil
@@ -861,7 +873,8 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 
 func filterMarkdowns(m stashModel) tea.Cmd {
 	return func() tea.Msg {
-		if m.filterInput.Value() == "" || !m.filterApplied() {
+		if len(m.filterInput.Value()) < 3 || !m.filterApplied() {
+			m.resetMatches()
 			return filteredMarkdownMsg(m.markdowns) // return everything
 		}
 
@@ -873,6 +886,24 @@ func filterMarkdowns(m stashModel) tea.Cmd {
 		}
 
 		ranks := fuzzy.Find(m.filterInput.Value(), targets)
+
+		for i, md := range mds {
+			md.Matches = nil
+			r := regexp.MustCompile("(?i)" + regexp.QuoteMeta(m.filterInput.Value()))
+			md.TotalMatchesCount, _ = script.File(md.localPath).MatchRegexp(r).CountLines()
+			str, _ := script.File(md.localPath).MatchRegexp(r).First(3).String()
+			if str != "" {
+				var fz = fuzzy.Match{Str: str, Index: i}
+				md.Matches = append(md.Matches, strings.Split(strings.TrimSpace(str), "\n")...)
+				ranks = append(ranks, fz)
+			}
+			m.totalSearchMatches += len(md.Matches)
+		}
+
+		if m.totalSearchMatches > 0 {
+			stashViewItemHeight = 7
+		}
+
 		sort.Stable(ranks)
 
 		filtered := []*markdown{}

@@ -20,6 +20,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 		truncateTo  = uint(m.common.width - stashViewHorizontalPadding*2)
 		gutter      string
 		title       = truncate.StringWithTail(md.Note, truncateTo, ellipsis)
+		matchString = "Filter Matches"
 		date        = md.relativeTime()
 		editedBy    = ""
 		hasEditedBy = false
@@ -41,6 +42,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			icon = dimGreenFg(icon)
 			title = greenFg(title)
 			date = semiDimGreenFg(date)
+			matchString = semiDimGreenFg(matchString)
 			editedBy = semiDimGreenFg(editedBy)
 			separator = semiDimGreenFg(separator)
 		} else {
@@ -54,6 +56,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 				icon = fuchsiaFg(icon)
 			}
 			date = dimFuchsiaFg(date)
+			matchString = dimFuchsiaFg(matchString)
 			editedBy = dimDullFuchsiaFg(editedBy)
 			separator = dullFuchsiaFg(separator)
 		}
@@ -63,12 +66,14 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			icon = dimGreenFg(icon)
 			title = greenFg(title)
 			date = semiDimGreenFg(date)
+			matchString = semiDimGreenFg(matchString)
 			editedBy = semiDimGreenFg(editedBy)
 			separator = semiDimGreenFg(separator)
 		} else if isFiltering && m.filterInput.Value() == "" {
 			icon = dimGreenFg(icon)
 			title = dimNormalFg(title)
 			date = dimBrightGrayFg(date)
+			matchString = dimBrightGrayFg(matchString)
 			editedBy = dimBrightGrayFg(editedBy)
 			separator = dimBrightGrayFg(separator)
 		} else {
@@ -77,6 +82,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 			s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
 			title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline(true))
 			date = grayFg(date)
+			matchString = greenFg(matchString)
 			editedBy = midGrayFg(editedBy)
 			separator = brightGrayFg(separator)
 		}
@@ -84,6 +90,28 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 
 	fmt.Fprintf(b, "%s %s%s%s%s\n", gutter, icon, separator, separator, title)
 	fmt.Fprintf(b, "%s %s", gutter, date)
+	if len(md.Matches) > 0 {
+		s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#ff5050", Dark: "#ff5050"})
+		fmt.Fprintf(b, "\n%s %s (Showing %d out of %d): ", gutter, matchString, len(md.Matches), md.TotalMatchesCount)
+		for _, match := range md.Matches {
+			var termIndex int = strings.Index(strings.ToLower(match), strings.ToLower(m.filterInput.Value()))
+			if termIndex != -1 {
+				availableWidth := m.common.width - stashViewHorizontalPadding*2
+				if len(match) > availableWidth {
+					match = fmt.Sprintf("%s %s", "...", match[termIndex:len(match)])
+					termIndex = strings.Index(strings.ToLower(match), strings.ToLower(m.filterInput.Value()))
+				}
+				fmt.Fprintf(b, "\n%s   ", gutter)
+				for i := 0; i < len(match); i++ {
+					if i >= termIndex && i < termIndex+len(m.filterInput.Value()) {
+						b.WriteString(s.Render(string(match[i])))
+					} else {
+						fmt.Fprintf(b, "%s", string(match[i]))
+					}
+				}
+			}
+		}
+	}
 	if hasEditedBy {
 		fmt.Fprintf(b, " %s", editedBy)
 	}

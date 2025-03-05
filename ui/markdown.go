@@ -22,9 +22,11 @@ type markdown struct {
 	// field is ephemeral, and should only be referenced during filtering.
 	filterValue string
 
-	Body    string
-	Note    string
-	Modtime time.Time
+	Body              string
+	Note              string
+	Matches           []string
+	TotalMatchesCount int
+	Modtime           time.Time
 }
 
 // Generate the value we're doing to filter against.
