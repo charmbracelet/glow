@@ -8,7 +8,7 @@ includes:
 
 variables:
   description: "Render markdown on the CLI, with pizzazz!"
-  github_url: "https://github.com/charmbracelet/soft-serve"
+  github_url: "https://github.com/charmbracelet/glow"
   maintainer: "Christian Muehlhaeuser <muesli@charm.sh>"
   brew_commit_author_name: "Christian Muehlhaeuser"
   brew_commit_author_email: "muesli@charm.sh"
