@@ -201,21 +201,10 @@ func validateOptions(cmd *cobra.Command) error {
 	return nil
 }
 
-func stdinIsPipe() (bool, error) {
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return false, err
-	}
-	if stat.Mode()&os.ModeCharDevice == 0 || stat.Size() > 0 {
-		return true, nil
-	}
-	return false, nil
-}
-
 func execute(cmd *cobra.Command, args []string) error {
 	// if stdin is a pipe then use stdin for input. note that you can also
 	// explicitly use a - to read from stdin.
-	if yes, err := stdinIsPipe(); err != nil {
+	if yes, err := utils.StdinIsPipe(); err != nil {
 		return err
 	} else if yes {
 		src := &source{reader: os.Stdin}

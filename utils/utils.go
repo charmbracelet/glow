@@ -110,3 +110,14 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 
 	return glamour.WithStyles(styleConfig)
 }
+
+func StdinIsPipe() (bool, error) {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return false, err
+	}
+	if stat.Mode()&os.ModeCharDevice == 0 || stat.Size() > 0 {
+		return true, nil
+	}
+	return false, nil
+}
