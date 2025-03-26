@@ -82,7 +82,7 @@ packages. ARM builds are also available for macOS, Linux, FreeBSD and OpenBSD.
 Or just install it with `go`:
 
 ```bash
-go install github.com/charmbracelet/glow@latest
+go install github.com/charmbracelet/glow/v2@latest
 ```
 
 ### Build (requires Go 1.21+)
