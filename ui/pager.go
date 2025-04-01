@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"math"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -477,44 +476,44 @@ func (m *pagerModel) initWatcher() {
 }
 
 func (m *pagerModel) watchFile() tea.Msg {
-	path := m.relFilePath()
+	pathDir := filepath.Dir(m.currentDocument.localPath)
 
-	if err := m.watcher.Add(path); err != nil {
+	if err := m.watcher.Add(pathDir); err != nil {
 		log.Error("error adding file to fsnotify watcher", "error", err)
 		return nil
 	}
 
-	log.Info("fsnotify watching file", "file", path)
+	log.Info("fsnotify watching file", "file", pathDir)
 
 	for {
 		select {
 		case event, ok := <-m.watcher.Events:
-			if !ok || !event.Has(fsnotify.Write) {
+			if !ok || event.Name != m.currentDocument.localPath {
 				continue
 			}
-			log.Debug("fsnotify event", "file", path, "event", event.Op)
+
+			if !event.Has(fsnotify.Write) && !event.Has(fsnotify.Create) {
+				continue
+			}
+
+			log.Debug("fsnotify event", "file", event.Name, "event", event.Op)
 			return reloadMsg{}
 		case err, ok := <-m.watcher.Errors:
 			if !ok {
 				continue
 			}
-			log.Debug("fsnotify error", "file", path, "error", err)
+			log.Debug("fsnotify error", "file", pathDir, "error", err)
 		}
 	}
 }
 
 func (m *pagerModel) unwatchFile() {
-	path := m.relFilePath()
+	pathDir := filepath.Dir(m.currentDocument.localPath)
 
-	err := m.watcher.Remove(path)
+	err := m.watcher.Remove(pathDir)
 	if err == nil {
-		log.Debug("fsnotify file unwatched", "file", path)
+		log.Debug("fsnotify file unwatched", "file", pathDir)
 	} else {
-		log.Error("fsnotify fail to unwatch file", "file", path, "error", err)
+		log.Error("fsnotify fail to unwatch file", "file", pathDir, "error", err)
 	}
-}
-
-func (m *pagerModel) relFilePath() string {
-	wd, _ := os.Getwd()
-	return stripAbsolutePath(m.currentDocument.localPath, wd)
 }
