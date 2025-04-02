@@ -1,0 +1,23 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  lint:
+    desc: Run base linters
+    cmds:
+      - golangci-lint run
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./... {{.CLI_ARGS}}
+
+  log:
+    desc: Watch for glow logs
+    aliases: [tail]
+    cmds:
+      - cmd: tail -f ~/Library/Caches/glow/glow.log
+        platforms: [darwin]
+      - cmd: tail -f ~/.cache/glow/glow.log
+        platforms: [linux, windows]
