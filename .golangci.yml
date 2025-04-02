@@ -1,33 +1,41 @@
+version: "2"
 run:
   tests: false
-
-issues:
-  include:
-    - EXC0001
-    - EXC0005
-    - EXC0011
-    - EXC0012
-    - EXC0013
-
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
 linters:
   enable:
     - bodyclose
-    - dupl
+    - exhaustive
     - goconst
     - godot
     - godox
-    - gofumpt
-    - goimports
+    - gomoddirectives
     - goprintffuncname
     - gosec
     - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - noctx
+    - nolintlint
     - prealloc
     - revive
     - rowserrcheck
     - sqlclosecheck
+    - tparallel
     - unconvert
     - unparam
     - whitespace
+    - wrapcheck
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
