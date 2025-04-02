@@ -476,14 +476,14 @@ func (m *pagerModel) initWatcher() {
 }
 
 func (m *pagerModel) watchFile() tea.Msg {
-	pathDir := filepath.Dir(m.currentDocument.localPath)
+	dir := m.localDir()
 
-	if err := m.watcher.Add(pathDir); err != nil {
-		log.Error("error adding file to fsnotify watcher", "error", err)
+	if err := m.watcher.Add(dir); err != nil {
+		log.Error("error adding dir to fsnotify watcher", "error", err)
 		return nil
 	}
 
-	log.Info("fsnotify watching file", "file", pathDir)
+	log.Info("fsnotify watching dir", "dir", dir)
 
 	for {
 		select {
@@ -502,18 +502,22 @@ func (m *pagerModel) watchFile() tea.Msg {
 			if !ok {
 				continue
 			}
-			log.Debug("fsnotify error", "file", pathDir, "error", err)
+			log.Debug("fsnotify error", "dir", dir, "error", err)
 		}
 	}
 }
 
 func (m *pagerModel) unwatchFile() {
-	pathDir := filepath.Dir(m.currentDocument.localPath)
+	dir := m.localDir()
 
-	err := m.watcher.Remove(pathDir)
+	err := m.watcher.Remove(dir)
 	if err == nil {
-		log.Debug("fsnotify file unwatched", "file", pathDir)
+		log.Debug("fsnotify dir unwatched", "dir", dir)
 	} else {
-		log.Error("fsnotify fail to unwatch file", "file", pathDir, "error", err)
+		log.Error("fsnotify fail to unwatch dir", "dir", dir, "error", err)
 	}
+}
+
+func (m *pagerModel) localDir() string {
+	return filepath.Dir(m.currentDocument.localPath)
 }
