@@ -23,29 +23,29 @@ func findGitHubREADME(u *url.URL) (*source, error) {
 
 	apiURL := fmt.Sprintf("https://api.%s/repos/%s/%s/readme", u.Hostname(), owner, repo)
 
-	// nolint:bodyclose
+	//nolint:bodyclose
 	// it is closed on the caller
-	res, err := http.Get(apiURL) // nolint: gosec
+	res, err := http.Get(apiURL) //nolint: gosec,noctx
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get url: %w", err)
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to read http response body: %w", err)
 	}
 
 	var result readme
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse json: %w", err)
 	}
 
 	if res.StatusCode == http.StatusOK {
-		// nolint:bodyclose
+		//nolint:bodyclose
 		// it is closed on the caller
-		resp, err := http.Get(result.DownloadURL)
+		resp, err := http.Get(result.DownloadURL) //nolint: noctx
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to get url: %w", err)
 		}
 
 		if resp.StatusCode == http.StatusOK {

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"math"
 	"time"
 	"unicode"
@@ -48,7 +49,10 @@ func (m markdown) relativeTime() string {
 func normalize(in string) (string, error) {
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	out, _, err := transform.String(t, in)
-	return out, err
+	if err != nil {
+		return "", fmt.Errorf("error normalizing: %w", err)
+	}
+	return out, nil
 }
 
 // Return the time in a human-readable format relative to the current time.

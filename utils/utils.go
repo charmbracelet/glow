@@ -1,3 +1,4 @@
+// Package utils provides utility functions.
 package utils
 
 import (
@@ -30,7 +31,7 @@ func detectFrontmatter(c []byte) []int {
 	return []int{-1, -1}
 }
 
-// Expands tilde and all environment variables from the given path.
+// ExpandPath expands tilde and all environment variables from the given path.
 func ExpandPath(path string) string {
 	s, err := homedir.Expand(path)
 	if err == nil {
@@ -68,13 +69,13 @@ func IsMarkdownFile(filename string) bool {
 	return false
 }
 
+// GlamourStyle returns a glamour.TermRendererOption based on the given style.
 func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	if !isCode {
 		if style == styles.AutoStyle {
 			return glamour.WithAutoStyle()
-		} else {
-			return glamour.WithStylePath(style)
 		}
+		return glamour.WithStylePath(style)
 	}
 
 	// If we are rendering a pure code block, we need to modify the style to

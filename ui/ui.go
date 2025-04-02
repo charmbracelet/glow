@@ -1,3 +1,4 @@
+// Package ui provides the main UI for the glow application.
 package ui
 
 import (
@@ -120,7 +121,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 
 	var batch []tea.Cmd
 	if m.pager.viewport.HighPerformanceRendering {
-		batch = append(batch, tea.ClearScrollArea)
+		batch = append(batch, tea.ClearScrollArea) //nolint:staticcheck
 	}
 
 	if !m.stash.shouldSpin() {
@@ -234,7 +235,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q":
 			var cmd tea.Cmd
 
-			switch m.state {
+			switch m.state { //nolint:exhaustive
 			case stateShowStash:
 				// pass through all keys if we're editing the filter
 				if m.stash.filterState == filtering {
@@ -328,7 +329,7 @@ func (m model) View() string {
 		return errorView(m.fatalErr, true)
 	}
 
-	switch m.state {
+	switch m.state { //nolint:exhaustive
 	case stateShowDocument:
 		return m.pager.View()
 	default:
@@ -448,18 +449,4 @@ func indent(s string, n int) string {
 		fmt.Fprintf(&b, "%s%s\n", i, v)
 	}
 	return b.String()
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
