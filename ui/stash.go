@@ -126,7 +126,7 @@ func initSections() {
 // String returns a styled version of the status message appropriate for the
 // given context.
 func (s statusMessage) String() string {
-	switch s.status {
+	switch s.status { //nolint:exhaustive
 	case subtleStatusMessage:
 		return dimGreenFg(s.message)
 	case errorStatusMessage:
@@ -444,7 +444,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 	}
 
 	// Updates per the current state
-	switch m.viewState {
+	switch m.viewState { //nolint:exhaustive
 	case stashStateReady:
 		cmds = append(cmds, m.handleDocumentBrowsing(msg))
 	case stashStateShowingError:
@@ -596,7 +596,7 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 
 	// Handle keys
-	if msg, ok := msg.(tea.KeyMsg); ok {
+	if msg, ok := msg.(tea.KeyMsg); ok { //nolint:nestif
 		switch msg.String() {
 		case keyEsc:
 			// Cancel filtering
@@ -690,7 +690,7 @@ func (m stashModel) view() string {
 				logoOrFilter += "  " + m.statusMessage.String()
 			}
 		}
-		logoOrFilter = truncate.StringWithTail(logoOrFilter, uint(m.common.width-1), ellipsis)
+		logoOrFilter = truncate.StringWithTail(logoOrFilter, uint(m.common.width-1), ellipsis) //nolint:gosec
 
 		help, helpHeight := m.helpView()
 

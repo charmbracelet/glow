@@ -25,31 +25,31 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 
 	apiURL := fmt.Sprintf("https://%s/api/v4/projects/%s", u.Hostname(), projectPath)
 
-	// nolint:bodyclose
+	//nolint:bodyclose
 	// it is closed on the caller
-	res, err := http.Get(apiURL) // nolint: gosec
+	res, err := http.Get(apiURL) //nolint: gosec,noctx
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get url: %w", err)
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to read http response body: %w", err)
 	}
 
 	var result readme
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse json: %w", err)
 	}
 
-	readmeRawURL := strings.Replace(result.ReadmeURL, "blob", "raw", -1)
+	readmeRawURL := strings.ReplaceAll(result.ReadmeURL, "blob", "raw")
 
 	if res.StatusCode == http.StatusOK {
-		// nolint:bodyclose
+		//nolint:bodyclose
 		// it is closed on the caller
-		resp, err := http.Get(readmeRawURL) // nolint: gosec
+		resp, err := http.Get(readmeRawURL) //nolint: gosec,noctx
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unable to get url: %w", err)
 		}
 
 		if resp.StatusCode == http.StatusOK {

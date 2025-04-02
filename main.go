@@ -1,3 +1,4 @@
+// Package main provides the entry point for the Glow CLI application.
 package main
 
 import (
@@ -83,15 +84,15 @@ func sourceFromArg(arg string) (*source, error) {
 	}
 
 	// HTTP(S) URLs:
-	if u, err := url.ParseRequestURI(arg); err == nil && strings.Contains(arg, "://") {
+	if u, err := url.ParseRequestURI(arg); err == nil && strings.Contains(arg, "://") { //nolint:nestif
 		if u.Scheme != "" {
 			if u.Scheme != "http" && u.Scheme != "https" {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
 			}
 			// consumer of the source is responsible for closing the ReadCloser.
-			resp, err := http.Get(u.String()) // nolint:bodyclose
+			resp, err := http.Get(u.String()) //nolint: noctx,bodyclose
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("unable to get url: %w", err)
 			}
 			if resp.StatusCode != http.StatusOK {
 				return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
@@ -106,7 +107,7 @@ func sourceFromArg(arg string) (*source, error) {
 		arg = "."
 	}
 	st, err := os.Stat(arg)
-	if err == nil && st.IsDir() {
+	if err == nil && st.IsDir() { //nolint:nestif
 		var src *source
 		_ = filepath.Walk(arg, func(path string, _ os.FileInfo, err error) error {
 			if err != nil {
@@ -136,10 +137,15 @@ func sourceFromArg(arg string) (*source, error) {
 		return nil, errors.New("missing markdown source")
 	}
 
-	// a file:
 	r, err := os.Open(arg)
-	u, _ := filepath.Abs(arg)
-	return &source{r, u}, err
+	if err != nil {
+		return nil, fmt.Errorf("unable to open file: %w", err)
+	}
+	u, err := filepath.Abs(arg)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get absolute path: %w", err)
+	}
+	return &source{r, u}, nil
 }
 
 // validateStyle checks if the style is a default style, if not, checks that
@@ -148,9 +154,9 @@ func validateStyle(style string) error {
 	if style != "auto" && styles.DefaultStyles[style] == nil {
 		style = utils.ExpandPath(style)
 		if _, err := os.Stat(style); errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("Specified style does not exist: %s", style)
+			return fmt.Errorf("specified style does not exist: %s", style)
 		} else if err != nil {
-			return err
+			return fmt.Errorf("unable to stat file: %w", err)
 		}
 	}
 	return nil
@@ -166,7 +172,7 @@ func validateOptions(cmd *cobra.Command) error {
 	preserveNewLines = viper.GetBool("preserveNewLines")
 
 	if pager && tui {
-		return errors.New("glow: cannot use both pager and tui")
+		return errors.New("cannot use both pager and tui")
 	}
 
 	// validate the glamour style
@@ -183,11 +189,11 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	// Detect terminal width
-	if !cmd.Flags().Changed("width") {
+	if !cmd.Flags().Changed("width") { //nolint:nestif
 		if isTerminal && width == 0 {
 			w, _, err := term.GetSize(int(os.Stdout.Fd()))
 			if err == nil {
-				width = uint(w)
+				width = uint(w) //nolint:gosec
 			}
 
 			if width > 120 {
@@ -204,7 +210,7 @@ func validateOptions(cmd *cobra.Command) error {
 func stdinIsPipe() (bool, error) {
 	stat, err := os.Stdin.Stat()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("unable to open file: %w", err)
 	}
 	if stat.Mode()&os.ModeCharDevice == 0 || stat.Size() > 0 {
 		return true, nil
@@ -266,7 +272,7 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	b, err := io.ReadAll(src.reader)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to read from reader: %w", err)
 	}
 
 	b = utils.RemoveFrontmatter(b)
@@ -285,12 +291,12 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	r, err := glamour.NewTermRenderer(
 		glamour.WithColorProfile(lipgloss.ColorProfile()),
 		utils.GlamourStyle(style, isCode),
-		glamour.WithWordWrap(int(width)),
+		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create renderer: %w", err)
 	}
 
 	content := string(b)
@@ -301,7 +307,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	out, err := r.Render(content)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to render markdown: %w", err)
 	}
 
 	// display
@@ -313,15 +319,20 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 
 		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...) // nolint:gosec
+		c := exec.Command(pa[0], pa[1:]...) //nolint:gosec
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
-		return c.Run()
+		if err := c.Run(); err != nil {
+			return fmt.Errorf("unable to run command: %w", err)
+		}
+		return nil
 	case tui || cmd.Flags().Changed("tui"):
 		return runTUI(src.URL, content)
 	default:
-		_, err = fmt.Fprint(w, out)
-		return err
+		if _, err = fmt.Fprint(w, out); err != nil {
+			return fmt.Errorf("unable to write to writer: %w", err)
+		}
+		return nil
 	}
 }
 
@@ -346,7 +357,7 @@ func runTUI(path string, content string) error {
 
 	// Run Bubble Tea program
 	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
-		return err
+		return fmt.Errorf("unable to run tui program: %w", err)
 	}
 
 	return nil

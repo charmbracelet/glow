@@ -317,7 +317,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	} else {
 		note = m.currentDocument.Note
 	}
-	note = truncate.StringWithTail(" "+note+" ", uint(max(0,
+	note = truncate.StringWithTail(" "+note+" ", uint(max(0, //nolint:gosec
 		m.common.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(scrollPercent)-
@@ -415,7 +415,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 
 	isCode := !utils.IsMarkdownFile(m.currentDocument.Note)
-	width := max(0, min(int(m.common.cfg.GlamourMaxWidth), m.viewport.Width))
+	width := max(0, min(int(m.common.cfg.GlamourMaxWidth), m.viewport.Width)) //nolint:gosec
 	if isCode {
 		width = 0
 	}
@@ -430,7 +430,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 	r, err := glamour.NewTermRenderer(options...)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error creating glamour renderer: %w", err)
 	}
 
 	if isCode {
@@ -439,7 +439,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	out, err := r.Render(markdown)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error rendering markdown: %w", err)
 	}
 
 	if isCode {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -44,7 +45,7 @@ func readmeURL(path string) (*source, error) {
 	}
 	u, err := url.Parse(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse url: %w", err)
 	}
 
 	switch {

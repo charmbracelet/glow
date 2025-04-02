@@ -19,9 +19,11 @@ var manCmd = &cobra.Command{
 	RunE: func(*cobra.Command, []string) error {
 		manPage, err := mcobra.NewManPage(1, rootCmd)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to instantiate man page: %w", err)
 		}
-		_, err = fmt.Fprint(os.Stdout, manPage.Build(roff.NewDocument()))
-		return err
+		if _, err := fmt.Fprint(os.Stdout, manPage.Build(roff.NewDocument())); err != nil {
+			return fmt.Errorf("unable to build man page: %w", err)
+		}
+		return nil
 	},
 }

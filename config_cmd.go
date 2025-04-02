@@ -39,13 +39,13 @@ var configCmd = &cobra.Command{
 
 		c, err := editor.Cmd("Glow", configFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to set config file: %w", err)
 		}
 		c.Stdin = os.Stdin
 		c.Stdout = os.Stdout
 		c.Stderr = os.Stderr
 		if err := c.Run(); err != nil {
-			return err
+			return fmt.Errorf("unable to run command: %w", err)
 		}
 
 		fmt.Println("Wrote config file to:", configFile)
@@ -56,7 +56,7 @@ var configCmd = &cobra.Command{
 func ensureConfigFile() error {
 	if configFile == "" {
 		configFile = viper.GetViper().ConfigFileUsed()
-		if err := os.MkdirAll(filepath.Dir(configFile), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(configFile), 0o755); err != nil { //nolint:gosec
 			return fmt.Errorf("could not write configuration file: %w", err)
 		}
 	}
@@ -69,20 +69,20 @@ func ensureConfigFile() error {
 		// File doesn't exist yet, create all necessary directories and
 		// write the default config file
 		if err := os.MkdirAll(filepath.Dir(configFile), 0o700); err != nil {
-			return err
+			return fmt.Errorf("unable create directory: %w", err)
 		}
 
 		f, err := os.Create(configFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to create config file: %w", err)
 		}
 		defer func() { _ = f.Close() }()
 
 		if _, err := f.WriteString(defaultConfig); err != nil {
-			return err
+			return fmt.Errorf("unable to write config file: %w", err)
 		}
 	} else if err != nil { // some other error occurred
-		return err
+		return fmt.Errorf("unable to stat config file: %w", err)
 	}
 	return nil
 }

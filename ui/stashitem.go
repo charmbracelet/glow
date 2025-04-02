@@ -17,7 +17,7 @@ const (
 
 func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	var (
-		truncateTo  = uint(m.common.width - stashViewHorizontalPadding*2)
+		truncateTo  = uint(m.common.width - stashViewHorizontalPadding*2) //nolint:gosec
 		gutter      string
 		title       = truncate.StringWithTail(md.Note, truncateTo, ellipsis)
 		date        = md.relativeTime()
@@ -34,7 +34,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	// If there are multiple items being filtered don't highlight a selected
 	// item in the results. If we've filtered down to one item, however,
 	// highlight that first item since pressing return will open it.
-	if isSelected && !isFiltering || singleFilteredItem {
+	if isSelected && !isFiltering || singleFilteredItem { //nolint:nestif
 		// Selected item
 		if m.statusMessage == stashingStatusMessage {
 			gutter = greenFg(verticalLine)
