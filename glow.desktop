@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Glow
+GenericName=Markdown Reader
+Comment=Render markdown on the CLI, with pizzazz!
+Exec=-e glow -p %F
+Terminal=true
+Type=Application
+Keywords=Text;Markdown;Reader;Editor;Charm;Gum;Go;
+Icon=markdown
+Categories=Utility;ConsoleOnly;TextEditor;
+StartupNotify=false
