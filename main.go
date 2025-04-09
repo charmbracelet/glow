@@ -328,11 +328,9 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return nil
 	case tui || cmd.Flags().Changed("tui"):
 		path := ""
-		if _, err := url.ParseRequestURI(src.URL); err != nil || !strings.Contains(src.URL, "://") {
-			// It's a local file, so we can pass the path
+		if !isURL(src.URL) {
 			path = src.URL
 		}
-		// Always pass the content, which we've already loaded
 		return runTUI(path, content)
 	default:
 		if _, err = fmt.Fprint(w, out); err != nil {

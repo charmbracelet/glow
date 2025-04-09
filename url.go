@@ -79,3 +79,8 @@ func gitlabReadmeURL(path string) *url.URL {
 	u, _ := url.Parse(gitlabURL.String())
 	return u.JoinPath(path)
 }
+
+func isURL(path string) bool {
+	_, err := url.ParseRequestURI(path)
+	return err == nil && strings.Contains(path, "://")
+}
