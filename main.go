@@ -327,7 +327,11 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 		return nil
 	case tui || cmd.Flags().Changed("tui"):
-		return runTUI(src.URL, content)
+		path := ""
+		if !isURL(src.URL) {
+			path = src.URL
+		}
+		return runTUI(path, content)
 	default:
 		if _, err = fmt.Fprint(w, out); err != nil {
 			return fmt.Errorf("unable to write to writer: %w", err)
