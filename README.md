@@ -30,39 +30,64 @@ Git repository.
 ```bash
 # macOS or Linux
 brew install glow
+```
 
+```bash
 # macOS (with MacPorts)
 sudo port install glow
+```
 
+```bash
 # Arch Linux (btw)
 pacman -S glow
+```
 
+```bash
 # Void Linux
 xbps-install -S glow
+```
 
+```bash
 # Nix shell
 nix-shell -p glow --command glow
+```
 
+```bash
 # FreeBSD
 pkg install glow
+```
 
+```bash
 # Solus
 eopkg install glow
+```
 
+```bash
 # Windows (with Chocolatey, Scoop, or Winget)
 choco install glow
 scoop install glow
 winget install charmbracelet.glow
+```
 
+```bash
 # Android (with termux)
 pkg install glow
+```
 
+```bash
+# Ubuntu (Snapcraft)
+sudo snap install glow
+```
+
+```bash
 # Debian/Ubuntu
 sudo mkdir -p /etc/apt/keyrings
 curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
 echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
 sudo apt update && sudo apt install glow
+```
 
+```bash
 # Fedora/RHEL
 echo '[charm]
 name=Charm
