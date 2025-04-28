@@ -203,6 +203,18 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 
+		case "d":
+			m.viewport.HalfViewDown()
+			if m.viewport.HighPerformanceRendering {
+				cmds = append(cmds, viewport.Sync(m.viewport))
+			}
+
+		case "u":
+			m.viewport.HalfViewUp()
+			if m.viewport.HighPerformanceRendering {
+				cmds = append(cmds, viewport.Sync(m.viewport))
+			}
+
 		case "e":
 			lineno := int(math.RoundToEven(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
 			if m.viewport.AtTop() {
