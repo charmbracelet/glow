@@ -6,59 +6,35 @@ import (
 	"time"
 )
 
-type SortType int
-type SortOrder int
+type sortOrder bool
 
 const (
-	SortByNote SortType = iota
-	SortByDate
-	SortByTitle
+	ascending  sortOrder = true
+	descending sortOrder = false
 )
 
-const (
-	SortAscending SortOrder = iota
-	SortDescending
-)
-
-type SortState struct {
-	Type  SortType
-	Order SortOrder
-}
-
-func (s *SortState) Toggle(newType SortType) {
-	if s.Type == newType {
-		// Toggle order if same type
-		if s.Order == SortAscending {
-			s.Order = SortDescending
+func sortMarkdowns(mds []*markdown, byDate bool, ascending sortOrder) {
+	if byDate {
+		if ascending {
+			slices.SortStableFunc(mds, func(a, b *markdown) int {
+				return compareTime(a.Modtime, b.Modtime)
+			})
 		} else {
-			s.Order = SortAscending
+			slices.SortStableFunc(mds, func(a, b *markdown) int {
+				return -compareTime(a.Modtime, b.Modtime)
+			})
 		}
 	} else {
-		// Set new type with default ascending order
-		s.Type = newType
-		s.Order = SortAscending
+		if ascending {
+			slices.SortStableFunc(mds, func(a, b *markdown) int {
+				return cmp.Compare(a.Note, b.Note)
+			})
+		} else {
+			slices.SortStableFunc(mds, func(a, b *markdown) int {
+				return -cmp.Compare(a.Note, b.Note)
+			})
+		}
 	}
-}
-
-func sortMarkdowns(mds []*markdown, state SortState) {
-	slices.SortStableFunc(mds, func(a, b *markdown) int {
-		var comparison int
-
-		switch state.Type {
-		case SortByDate:
-			comparison = compareTime(a.Modtime, b.Modtime)
-		case SortByTitle:
-			comparison = cmp.Compare(a.Note, b.Note)
-		default: // SortByNote
-			comparison = cmp.Compare(a.Note, b.Note)
-		}
-
-		if state.Order == SortDescending {
-			comparison = -comparison
-		}
-
-		return comparison
-	})
 }
 
 func compareTime(a, b time.Time) int {
