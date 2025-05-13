@@ -113,7 +113,8 @@ func (m stashModel) helpView() (string, int) {
 		navHelp = []string{"enter", "open", "j/k ↑/↓", "choose"}
 	}
 
-	if numDocs > 0 {
+	// Only show sort help in full help view
+	if numDocs > 0 && m.showFullHelp {
 		sortHelp = []string{
 			"y", "toggle date sort",
 			"t", "toggle title sort",
@@ -160,7 +161,7 @@ func (m stashModel) helpView() (string, int) {
 	if m.filterState != filtering {
 		appHelp = append(appHelp, "?", "more")
 	}
-	return m.renderHelp(navHelp, sortHelp, filterHelp, selectionHelp, editHelp, sectionHelp, appHelp)
+	return m.renderHelp(navHelp, filterHelp, selectionHelp, editHelp, sectionHelp, appHelp)
 }
 
 const minHelpViewHeight = 5
