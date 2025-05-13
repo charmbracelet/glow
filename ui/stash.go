@@ -147,6 +147,7 @@ type stashModel struct {
 	showStatusMessage  bool
 	statusMessage      statusMessage
 	statusMessageTimer *time.Timer
+	sortState          SortState // Add sort state
 
 	// Available document sections we can cycle through. We use a slice, rather
 	// than a map, because order is important.
@@ -220,7 +221,7 @@ func (m *stashModel) resetFiltering() {
 	m.filterInput.Reset()
 	m.filteredMarkdowns = nil
 
-	sortMarkdowns(m.markdowns)
+	sortMarkdowns(m.markdowns, m.sortState)
 
 	// If the filtered section is present (it's always at the end) slice it out
 	// of the sections slice to remove it from the UI.
@@ -293,15 +294,9 @@ func (m stashModel) selectedMarkdown() *markdown {
 
 // Adds markdown documents to the model.
 func (m *stashModel) addMarkdowns(mds ...*markdown) {
-	if len(mds) == 0 {
-		return
-	}
-
 	m.markdowns = append(m.markdowns, mds...)
-	if !m.filterApplied() {
-		sortMarkdowns(m.markdowns)
-	}
-
+	m.filteredMarkdowns = m.markdowns
+	sortMarkdowns(m.filteredMarkdowns, m.sortState)
 	m.updatePagination()
 }
 
@@ -394,6 +389,7 @@ func newStashModel(common *commonModel) stashModel {
 		filterInput: si,
 		serverPage:  1,
 		sections:    s,
+		sortState:   SortState{Type: SortByNote, Order: SortAscending}, // Initialize sort state
 	}
 
 	return m
@@ -562,6 +558,40 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				m.viewState = stashStateShowingError
 				return nil
 			}
+
+		case "d":
+			m.sortState.Toggle(SortByDate)
+			sortMarkdowns(m.filteredMarkdowns, m.sortState)
+			m.statusMessage = statusMessage{
+				status: normalStatusMessage,
+				message: fmt.Sprintf("Sorted by date %s",
+					map[SortOrder]string{
+						SortAscending:  "(oldest first)",
+						SortDescending: "(newest first)",
+					}[m.sortState.Order],
+				),
+			}
+			m.showStatusMessage = true
+			cmds = append(cmds, func() tea.Msg {
+				return statusMessageTimeoutMsg(stashContext)
+			})
+
+		case "t":
+			m.sortState.Toggle(SortByTitle)
+			sortMarkdowns(m.filteredMarkdowns, m.sortState)
+			m.statusMessage = statusMessage{
+				status: normalStatusMessage,
+				message: fmt.Sprintf("Sorted by title %s",
+					map[SortOrder]string{
+						SortAscending:  "(A to Z)",
+						SortDescending: "(Z to A)",
+					}[m.sortState.Order],
+				),
+			}
+			m.showStatusMessage = true
+			cmds = append(cmds, func() tea.Msg {
+				return statusMessageTimeoutMsg(stashContext)
+			})
 		}
 	}
 
@@ -577,7 +607,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		switch key.String() {
 		case "b", "u":
 			m.paginator().PrevPage()
-		case "f", "d":
+		case "f":
 			m.paginator().NextPage()
 		}
 	}
@@ -861,8 +891,10 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 
 func filterMarkdowns(m stashModel) tea.Cmd {
 	return func() tea.Msg {
-		if m.filterInput.Value() == "" || !m.filterApplied() {
-			return filteredMarkdownMsg(m.markdowns) // return everything
+		if m.filterInput.Value() == "" {
+			m.filteredMarkdowns = m.markdowns
+			sortMarkdowns(m.filteredMarkdowns, m.sortState)
+			return filteredMarkdownMsg(m.filteredMarkdowns)
 		}
 
 		targets := []string{}
