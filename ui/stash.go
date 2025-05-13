@@ -559,7 +559,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 				return nil
 			}
 
-		case "d":
+		case "y":
 			m.sortState.Toggle(SortByDate)
 			sortMarkdowns(m.filteredMarkdowns, m.sortState)
 			m.statusMessage = statusMessage{
@@ -607,7 +607,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 		switch key.String() {
 		case "b", "u":
 			m.paginator().PrevPage()
-		case "f":
+		case "d", "f":
 			m.paginator().NextPage()
 		}
 	}

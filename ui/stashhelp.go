@@ -115,7 +115,7 @@ func (m stashModel) helpView() (string, int) {
 
 	if numDocs > 0 {
 		sortHelp = []string{
-			"d", "toggle date sort",
+			"y", "toggle date sort",
 			"t", "toggle title sort",
 		}
 	}
