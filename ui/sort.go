@@ -13,8 +13,8 @@ const (
 	descending sortOrder = false
 )
 
-func sortMarkdowns(mds []*markdown, byDate bool, ascending sortOrder) {
-	if byDate {
+func sortMarkdowns(mds []*markdown, sortByDate bool, ascending sortOrder) {
+	if sortByDate {
 		if ascending {
 			slices.SortStableFunc(mds, func(a, b *markdown) int {
 				return compareTime(a.Modtime, b.Modtime)
