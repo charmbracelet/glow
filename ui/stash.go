@@ -390,8 +390,8 @@ func newStashModel(common *commonModel) stashModel {
 		filterInput:   si,
 		serverPage:    1,
 		sections:      s,
-		sortAscending: true,  // Initialize with sortAscending sort
-		sortByDate:    false, // Initialize with title sort
+		sortAscending: true,
+		sortByDate:    false,
 	}
 
 	return m
