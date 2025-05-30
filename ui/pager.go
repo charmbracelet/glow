@@ -463,12 +463,36 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	var content strings.Builder
 	for i, s := range lines {
+		var lineContent string
 		if isCode || m.common.cfg.ShowLineNumbers {
-			content.WriteString(lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
-			content.WriteString(trunc(s))
+			lineContent = lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)) + trunc(s)
 		} else {
-			content.WriteString(s)
+			lineContent = s
 		}
+
+		// Apply center justification in zen mode
+		if m.common.cfg.ZenMode && !isCode {
+			// Remove line numbers for zen mode centering calculation
+			textContent := s
+			if m.common.cfg.ShowLineNumbers {
+				textContent = trunc(s)
+			}
+			
+			// Calculate padding for centering
+			contentWidth := runewidth.StringWidth(textContent)
+			if contentWidth < m.viewport.Width {
+				leftPadding := (m.viewport.Width - contentWidth) / 2
+				centerPadding := strings.Repeat(" ", leftPadding)
+				
+				if m.common.cfg.ShowLineNumbers {
+					lineContent = lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)) + centerPadding + trunc(s)
+				} else {
+					lineContent = centerPadding + textContent
+				}
+			}
+		}
+
+		content.WriteString(lineContent)
 
 		// don't add an artificial newline after the last split
 		if i+1 < len(lines) {

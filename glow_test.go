@@ -27,6 +27,18 @@ func TestGlowFlags(t *testing.T) {
 				return width == 40
 			},
 		},
+		{
+			args: []string{"-z"},
+			check: func() bool {
+				return zenMode
+			},
+		},
+		{
+			args: []string{"--zen"},
+			check: func() bool {
+				return zenMode
+			},
+		},
 	}
 
 	for _, v := range tt {
