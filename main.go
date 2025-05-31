@@ -316,7 +316,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		if autoMargin > 50 {
 			autoMargin = 50  // Cap for very large margins
 		}
-		glamourOptions = append(glamourOptions, glamour.WithMargins(autoMargin, autoMargin))
+		glamourOptions = append(glamourOptions, glamour.WithZenMode(autoMargin))
 	}
 
 	r, err := glamour.NewTermRenderer(glamourOptions...)
