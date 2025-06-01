@@ -205,15 +205,24 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	// Detect terminal width
-	if !cmd.Flags().Changed("width") { //nolint:nestif
-		if isTerminal && width == 0 {
+	// In zen mode, always detect actual terminal width regardless of config
+	// In normal mode, respect explicit width settings (flag or config)
+	if !cmd.Flags().Changed("width") || zenMode { //nolint:nestif
+		if isTerminal {
 			w, _, err := term.GetSize(int(os.Stdout.Fd()))
 			if err == nil {
-				width = uint(w) //nolint:gosec
-			}
-
-			if width > 120 {
-				width = 120  // Standard cap for non-zen mode (zen-mode handled later)
+				detectedWidth := uint(w) //nolint:gosec
+				
+				if zenMode {
+					// In zen mode, always use detected terminal width for margin calculations
+					width = detectedWidth
+				} else if width == 0 {
+					// In normal mode, only use detected width if no width was set
+					width = detectedWidth
+					if width > 120 {
+						width = 120  // Standard cap for non-zen mode
+					}
+				}
 			}
 		}
 		if width == 0 {
