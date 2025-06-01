@@ -264,7 +264,13 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	// validate the glamour style
-	style = viper.GetString("style")
+	if zenMode && cmd.Flags().Changed("style") {
+		// In zen mode, get style directly from flag to avoid config persistence
+		style, _ = cmd.Flags().GetString("style")
+	} else {
+		// Normal mode, use viper (which may read from config)
+		style = viper.GetString("style")
+	}
 	if err := validateStyle(style); err != nil {
 		return err
 	}
@@ -490,17 +496,22 @@ func init() {
 	rootCmd.Flags().UintVar(&zenMarginPercent, "zen-margin", 20, "margin percentage for zen-mode (e.g., 20 = 20% margins on each side)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
-	// Config bindings
+	// Config bindings - conditional based on zen mode
+	// When zen mode is enabled, we skip certain bindings to prevent config persistence
+	if !zenFlag.enabled {
+		_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
+		_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
+	}
+	
+	// Always bind these flags regardless of zen mode
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
 	_ = viper.BindPFlag("tui", rootCmd.Flags().Lookup("tui"))
-	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
-	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
-	_ = viper.BindPFlag("zenMode", rootCmd.Flags().Lookup("zen"))
+	// Note: zenMode is handled by custom zenFlagValue, not bound to viper
 	_ = viper.BindPFlag("zenWidth", rootCmd.Flags().Lookup("zen-width"))
 	_ = viper.BindPFlag("zenMarginPercent", rootCmd.Flags().Lookup("zen-margin"))
 
