@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
@@ -25,6 +26,59 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
+
+// zenFlagValue implements a flag that can be used as -z (boolean) or -z=12 (with margin value)
+type zenFlagValue struct {
+	enabled bool
+	margin  *uint // nil means use default/config, non-nil means explicit margin
+}
+
+// String returns the string representation of the zen flag value
+func (z *zenFlagValue) String() string {
+	if !z.enabled {
+		return "false"
+	}
+	if z.margin != nil {
+		return fmt.Sprintf("%d", *z.margin)
+	}
+	return "true"
+}
+
+// Set parses the flag value - handles both boolean and integer forms
+func (z *zenFlagValue) Set(value string) error {
+	// Handle the case where -z is used without a value (boolean usage)
+	if value == "" || value == "true" {
+		z.enabled = true
+		z.margin = nil
+		return nil
+	}
+	if value == "false" {
+		z.enabled = false
+		z.margin = nil
+		return nil
+	}
+	
+	// Try to parse as integer margin value (e.g., -z=12)
+	margin, err := strconv.ParseUint(value, 10, 32)
+	if err != nil {
+		return fmt.Errorf("zen flag must be a boolean or positive integer, got: %s", value)
+	}
+	
+	z.enabled = true
+	marginUint := uint(margin)
+	z.margin = &marginUint
+	return nil
+}
+
+// Type returns the type of the flag for help text
+func (z *zenFlagValue) Type() string {
+	return "zen"
+}
+
+// IsBoolFlag indicates this flag can work without an explicit value (for -z syntax)
+func (z *zenFlagValue) IsBoolFlag() bool {
+	return true
+}
 
 var (
 	// Version as provided by goreleaser.
@@ -45,6 +99,9 @@ var (
 	zenMode          bool
 	zenWidth         uint
 	zenMarginPercent uint
+
+	// zenFlag represents a flag that can be used as -z (boolean) or -z=12 (with value)
+	zenFlag = &zenFlagValue{}
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -173,22 +230,37 @@ func validateOptions(cmd *cobra.Command) error {
 	tui = viper.GetBool("tui")
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
-	zenMode = viper.GetBool("zenMode")
-	zenWidth = viper.GetUint("zenWidth")
-	zenMarginPercent = viper.GetUint("zenMarginPercent")
-
-	// Apply zen-mode width settings (after all viper values are read)
+	// Handle zen flag integration with config
+	zenMode = zenFlag.enabled
 	if zenMode {
-		// If zen-width is explicitly set, use it (overrides everything)
+		// Priority: CLI -z=12 > CLI -z + config margin > CLI -z + default margin
+		if zenFlag.margin != nil {
+			// Explicit margin from CLI (e.g., -z=12)
+			zenMarginPercent = *zenFlag.margin
+		} else {
+			// Use config margin or default
+			configMargin := viper.GetUint("zenMarginPercent")
+			if configMargin > 0 {
+				zenMarginPercent = configMargin
+			} else {
+				zenMarginPercent = 20 // default margin
+			}
+		}
+		
+		// Handle zen width
+		zenWidth = viper.GetUint("zenWidth")
 		if cmd.Flags().Changed("zen-width") && zenWidth > 0 {
 			width = zenWidth
 		}
-		// Otherwise, zen-mode just uses whatever width was detected/set
-		// The magic is in the margin percentage applied to that width
 	}
 
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
+	}
+
+	// Guard against conflicting width settings
+	if zenMode && cmd.Flags().Changed("width") {
+		return errors.New("cannot use --width with --zen: zen mode automatically detects terminal width for proper centering")
 	}
 
 	// validate the glamour style
@@ -205,24 +277,15 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	// Detect terminal width
-	// In zen mode, always detect actual terminal width regardless of config
-	// In normal mode, respect explicit width settings (flag or config)
-	if !cmd.Flags().Changed("width") || zenMode { //nolint:nestif
-		if isTerminal {
+	if !cmd.Flags().Changed("width") { //nolint:nestif
+		if isTerminal && width == 0 {
 			w, _, err := term.GetSize(int(os.Stdout.Fd()))
 			if err == nil {
-				detectedWidth := uint(w) //nolint:gosec
-				
-				if zenMode {
-					// In zen mode, always use detected terminal width for margin calculations
-					width = detectedWidth
-				} else if width == 0 {
-					// In normal mode, only use detected width if no width was set
-					width = detectedWidth
-					if width > 120 {
-						width = 120  // Standard cap for non-zen mode
-					}
-				}
+				width = uint(w) //nolint:gosec
+			}
+
+			if width > 120 {
+				width = 120  // Standard cap for non-zen mode (zen-mode handled later)
 			}
 		}
 		if width == 0 {
@@ -421,7 +484,8 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
-	rootCmd.Flags().BoolVarP(&zenMode, "zen", "z", false, "zen-mode reading with justified text and auto margins (overrides other alignment settings)")
+	zenFlagRef := rootCmd.Flags().VarPF(zenFlag, "zen", "z", "zen-mode reading with auto margins or fixed margin value (e.g., -z=12 for 12% margins). Overrides config file width setting.")
+	zenFlagRef.NoOptDefVal = "true" // Allow -z without value
 	rootCmd.Flags().UintVar(&zenWidth, "zen-width", 0, "line width for zen-mode (0 = auto based on terminal)")
 	rootCmd.Flags().UintVar(&zenMarginPercent, "zen-margin", 20, "margin percentage for zen-mode (e.g., 20 = 20% margins on each side)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
