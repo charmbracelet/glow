@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
@@ -25,6 +26,59 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
+
+// zenFlagValue implements a flag that can be used as -z (boolean) or -z=12 (with margin value)
+type zenFlagValue struct {
+	enabled bool
+	margin  *uint // nil means use default/config, non-nil means explicit margin
+}
+
+// String returns the string representation of the zen flag value
+func (z *zenFlagValue) String() string {
+	if !z.enabled {
+		return "false"
+	}
+	if z.margin != nil {
+		return fmt.Sprintf("%d", *z.margin)
+	}
+	return "true"
+}
+
+// Set parses the flag value - handles both boolean and integer forms
+func (z *zenFlagValue) Set(value string) error {
+	// Handle the case where -z is used without a value (boolean usage)
+	if value == "" || value == "true" {
+		z.enabled = true
+		z.margin = nil
+		return nil
+	}
+	if value == "false" {
+		z.enabled = false
+		z.margin = nil
+		return nil
+	}
+	
+	// Try to parse as integer margin value (e.g., -z=12)
+	margin, err := strconv.ParseUint(value, 10, 32)
+	if err != nil {
+		return fmt.Errorf("zen flag must be a boolean or positive integer, got: %s", value)
+	}
+	
+	z.enabled = true
+	marginUint := uint(margin)
+	z.margin = &marginUint
+	return nil
+}
+
+// Type returns the type of the flag for help text
+func (z *zenFlagValue) Type() string {
+	return "zen"
+}
+
+// IsBoolFlag indicates this flag can work without an explicit value (for -z syntax)
+func (z *zenFlagValue) IsBoolFlag() bool {
+	return true
+}
 
 var (
 	// Version as provided by goreleaser.
@@ -42,6 +96,12 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	zenMode          bool
+	zenWidth         uint
+	zenMarginPercent uint
+
+	// zenFlag represents a flag that can be used as -z (boolean) or -z=12 (with value)
+	zenFlag = &zenFlagValue{}
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -52,24 +112,25 @@ var (
 		SilenceErrors:    false,
 		SilenceUsage:     true,
 		TraverseChildren: true,
-		Args:             cobra.MaximumNArgs(1),
+		RunE:             execute,
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return nil, cobra.ShellCompDirectiveDefault
+			return nil, cobra.ShellCompDirectiveNoFileComp
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := initConfig(); err != nil {
+				return err
+			}
 			return validateOptions(cmd)
 		},
-		RunE: execute,
 	}
 )
 
-// source provides a readable markdown source.
+// source provides a readable source for markdown content.
 type source struct {
 	reader io.ReadCloser
 	URL    string
 }
 
-// sourceFromArg parses an argument and creates a readable source for it.
 func sourceFromArg(arg string) (*source, error) {
 	// from stdin
 	if arg == "-" {
@@ -137,14 +198,13 @@ func sourceFromArg(arg string) (*source, error) {
 		return nil, errors.New("missing markdown source")
 	}
 
+	// a regular file
 	r, err := os.Open(arg)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open file: %w", err)
+		return nil, err
 	}
-	u, err := filepath.Abs(arg)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get absolute path: %w", err)
-	}
+
+	u, _ := filepath.Abs(arg)
 	return &source{r, u}, nil
 }
 
@@ -170,13 +230,47 @@ func validateOptions(cmd *cobra.Command) error {
 	tui = viper.GetBool("tui")
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
+	// Handle zen flag integration with config
+	zenMode = zenFlag.enabled
+	if zenMode {
+		// Priority: CLI -z=12 > CLI -z + config margin > CLI -z + default margin
+		if zenFlag.margin != nil {
+			// Explicit margin from CLI (e.g., -z=12)
+			zenMarginPercent = *zenFlag.margin
+		} else {
+			// Use config margin or default
+			configMargin := viper.GetUint("zenMarginPercent")
+			if configMargin > 0 {
+				zenMarginPercent = configMargin
+			} else {
+				zenMarginPercent = 20 // default margin
+			}
+		}
+		
+		// Handle zen width
+		zenWidth = viper.GetUint("zenWidth")
+		if cmd.Flags().Changed("zen-width") && zenWidth > 0 {
+			width = zenWidth
+		}
+	}
 
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
 	}
 
+	// Guard against conflicting width settings
+	if zenMode && cmd.Flags().Changed("width") {
+		return errors.New("cannot use --width with --zen: zen mode automatically detects terminal width for proper centering")
+	}
+
 	// validate the glamour style
-	style = viper.GetString("style")
+	if zenMode && cmd.Flags().Changed("style") {
+		// In zen mode, get style directly from flag to avoid config persistence
+		style, _ = cmd.Flags().GetString("style")
+	} else {
+		// Normal mode, use viper (which may read from config)
+		style = viper.GetString("style")
+	}
 	if err := validateStyle(style); err != nil {
 		return err
 	}
@@ -197,7 +291,7 @@ func validateOptions(cmd *cobra.Command) error {
 			}
 
 			if width > 120 {
-				width = 120
+				width = 120  // Standard cap for non-zen mode (zen-mode handled later)
 			}
 		}
 		if width == 0 {
@@ -237,64 +331,73 @@ func execute(cmd *cobra.Command, args []string) error {
 	// TUI with possible dir argument
 	case 1:
 		// Validate that the argument is a directory. If it's not treat it as
-		// an argument to the non-TUI version of Glow (via fallthrough).
-		info, err := os.Stat(args[0])
-		if err == nil && info.IsDir() {
-			p, err := filepath.Abs(args[0])
-			if err == nil {
-				return runTUI(p, "")
-			}
+		// markdown source.
+		if isDir(args[0]) {
+			return runTUI(args[0], "")
 		}
-		fallthrough
+		return executeArg(cmd, args[0], os.Stdout)
 
-	// CLI
+	// Execute file
 	default:
-		for _, arg := range args {
-			if err := executeArg(cmd, arg, os.Stdout); err != nil {
-				return err
-			}
-		}
+		return executeArg(cmd, args[0], os.Stdout)
 	}
-
-	return nil
 }
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
-	// create an io.Reader from the markdown source in cli-args
 	src, err := sourceFromArg(arg)
 	if err != nil {
 		return err
 	}
 	defer src.reader.Close() //nolint:errcheck
+
 	return executeCLI(cmd, src, w)
 }
 
 func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	b, err := io.ReadAll(src.reader)
 	if err != nil {
-		return fmt.Errorf("unable to read from reader: %w", err)
+		return fmt.Errorf("unable to read source: %w", err)
 	}
-
-	b = utils.RemoveFrontmatter(b)
 
 	// render
 	var baseURL string
 	u, err := url.ParseRequestURI(src.URL)
-	if err == nil {
+	if err == nil && u.IsAbs() {
 		u.Path = filepath.Dir(u.Path)
 		baseURL = u.String() + "/"
+	} else {
+		if err == nil {
+			u.Path = filepath.Dir(u.Path)
+			baseURL = u.String() + "/"
+		}
 	}
 
 	isCode := !utils.IsMarkdownFile(src.URL)
 
 	// initialize glamour
-	r, err := glamour.NewTermRenderer(
+	glamourOptions := []glamour.TermRendererOption{
 		glamour.WithColorProfile(lipgloss.ColorProfile()),
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
-	)
+	}
+	
+	// Handle zen-mode margins
+	if zenMode {
+		// Zen mode: centered column with clean margins (like VSCode/Neovim zen-mode)
+		// Use configurable margin percentage for comfortable zen reading
+		autoMargin := width * zenMarginPercent / 100
+		if autoMargin < 10 {
+			autoMargin = 10  // Minimum margin for readability
+		}
+		if autoMargin > 50 {
+			autoMargin = 50  // Cap for very large margins
+		}
+		glamourOptions = append(glamourOptions, glamour.WithZenMode(autoMargin))
+	}
+
+	r, err := glamour.NewTermRenderer(glamourOptions...)
 	if err != nil {
 		return fmt.Errorf("unable to create renderer: %w", err)
 	}
@@ -307,49 +410,51 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	out, err := r.Render(content)
 	if err != nil {
-		return fmt.Errorf("unable to render markdown: %w", err)
+		return fmt.Errorf("unable to render source: %w", err)
 	}
 
-	// display
-	switch {
-	case pager || cmd.Flags().Changed("pager"):
+	if pager {
+		// Respect PAGER environment variable, fall back to less -r if not set
 		pagerCmd := os.Getenv("PAGER")
 		if pagerCmd == "" {
 			pagerCmd = "less -r"
 		}
-
-		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...) //nolint:gosec
-		c.Stdin = strings.NewReader(out)
-		c.Stdout = os.Stdout
-		if err := c.Run(); err != nil {
-			return fmt.Errorf("unable to run command: %w", err)
+		
+		// Parse pager command to handle arguments
+		parts := strings.Fields(pagerCmd)
+		var cmd *exec.Cmd
+		if len(parts) > 1 {
+			cmd = exec.Command(parts[0], parts[1:]...)
+		} else {
+			cmd = exec.Command(parts[0])
 		}
-		return nil
-	case tui || cmd.Flags().Changed("tui"):
-		path := ""
-		if !isURL(src.URL) {
-			path = src.URL
-		}
-		return runTUI(path, content)
-	default:
-		if _, err = fmt.Fprint(w, out); err != nil {
-			return fmt.Errorf("unable to write to writer: %w", err)
+		
+		cmd.Stdin = strings.NewReader(out)
+		cmd.Stdout = os.Stdout
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(w, "%s", out)
 		}
 		return nil
 	}
+
+	fmt.Fprintf(w, "%s", out)
+	return nil
+}
+
+func isDir(path string) bool {
+	f, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return f.IsDir()
 }
 
 func runTUI(path string, content string) error {
-	// Read environment to get debugging stuff
-	cfg, err := env.ParseAs[ui.Config]()
-	if err != nil {
-		return fmt.Errorf("error parsing config: %v", err)
-	}
-
-	// use style set in env, or auto if unset
-	if err := validateStyle(cfg.GlamourStyle); err != nil {
-		cfg.GlamourStyle = style
+	cfg := ui.Config{}
+	if err := env.ParseWithOptions(&cfg, env.Options{
+		Prefix: "GLOW_",
+	}); err != nil {
+		return fmt.Errorf("unable to parse environment: %w", err)
 	}
 
 	cfg.Path = path
@@ -368,30 +473,13 @@ func runTUI(path string, content string) error {
 }
 
 func main() {
-	closer, err := setupLog()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
 	if err := rootCmd.Execute(); err != nil {
-		_ = closer()
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 		os.Exit(1)
 	}
-	_ = closer()
 }
 
 func init() {
-	tryLoadConfigFromDefaultPlaces()
-	if len(CommitSHA) >= 7 {
-		vt := rootCmd.VersionTemplate()
-		rootCmd.SetVersionTemplate(vt[:len(vt)-1] + " (" + CommitSHA[0:7] + ")\n")
-	}
-	if Version == "" {
-		Version = "unknown (built from source)"
-	}
-	rootCmd.Version = Version
-	rootCmd.InitDefaultCompletionCmd()
-
 	// "Glow Classic" cli arguments
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
@@ -402,18 +490,30 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	zenFlagRef := rootCmd.Flags().VarPF(zenFlag, "zen", "z", "zen-mode reading with auto margins or fixed margin value (e.g., -z=12 for 12% margins). Overrides config file width setting.")
+	zenFlagRef.NoOptDefVal = "true" // Allow -z without value
+	rootCmd.Flags().UintVar(&zenWidth, "zen-width", 0, "line width for zen-mode (0 = auto based on terminal)")
+	rootCmd.Flags().UintVar(&zenMarginPercent, "zen-margin", 20, "margin percentage for zen-mode (e.g., 20 = 20% margins on each side)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
-	// Config bindings
+	// Config bindings - conditional based on zen mode
+	// When zen mode is enabled, we skip certain bindings to prevent config persistence
+	if !zenFlag.enabled {
+		_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
+		_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
+	}
+	
+	// Always bind these flags regardless of zen mode
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
 	_ = viper.BindPFlag("tui", rootCmd.Flags().Lookup("tui"))
-	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
-	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
+	// Note: zenMode is handled by custom zenFlagValue, not bound to viper
+	_ = viper.BindPFlag("zenWidth", rootCmd.Flags().Lookup("zen-width"))
+	_ = viper.BindPFlag("zenMarginPercent", rootCmd.Flags().Lookup("zen-margin"))
 
 	viper.SetDefault("style", styles.AutoStyle)
 	viper.SetDefault("width", 0)
@@ -423,45 +523,43 @@ func init() {
 }
 
 func tryLoadConfigFromDefaultPlaces() {
+	for _, v := range []func(){
+		func() { viper.SetConfigName(".glow") },
+		func() { viper.SetConfigName("glow") },
+	} {
+		v()
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+		if appPath := getConfigPath(); appPath != "" {
+			viper.AddConfigPath(appPath)
+		}
+		if err := viper.ReadInConfig(); err == nil {
+			break
+		}
+	}
+}
+
+func getConfigPath() string {
 	scope := gap.NewScope(gap.User, "glow")
 	dirs, err := scope.ConfigDirs()
 	if err != nil {
-		fmt.Println("Could not load find configuration directory.")
-		os.Exit(1)
+		log.Debug("unable to get config directory", "error", err)
+		return ""
 	}
-
-	if c := os.Getenv("XDG_CONFIG_HOME"); c != "" {
-		dirs = append([]string{filepath.Join(c, "glow")}, dirs...)
+	if len(dirs) > 0 {
+		return dirs[0]
 	}
+	return ""
+}
 
-	if c := os.Getenv("GLOW_CONFIG_HOME"); c != "" {
-		dirs = append([]string{c}, dirs...)
-	}
-
-	for _, v := range dirs {
-		viper.AddConfigPath(v)
-	}
-
-	viper.SetConfigName("glow")
-	viper.SetConfigType("yaml")
-	viper.SetEnvPrefix("glow")
-	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			log.Warn("Could not parse configuration file", "err", err)
+func initConfig() error {
+	if configFile != "" {
+		viper.SetConfigFile(configFile)
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("unable to use config file: %w", err)
 		}
+	} else {
+		tryLoadConfigFromDefaultPlaces()
 	}
-
-	if used := viper.ConfigFileUsed(); used != "" {
-		log.Debug("Using configuration file", "path", viper.ConfigFileUsed())
-		return
-	}
-
-	if viper.ConfigFileUsed() == "" {
-		configFile = filepath.Join(dirs[0], "glow.yml")
-	}
-	if err := ensureConfigFile(); err != nil {
-		log.Error("Could not create default configuration", "error", err)
-	}
+	return nil
 }
