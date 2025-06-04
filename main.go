@@ -170,6 +170,7 @@ func validateOptions(cmd *cobra.Command) error {
 	tui = viper.GetBool("tui")
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
+	showLineNumbers = viper.GetBool("showLineNumbers")
 
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
