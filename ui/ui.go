@@ -148,10 +148,10 @@ func newModel(cfg Config) tea.Model {
 	}
 }
 
-func (m model) Init() (tea.Model, tea.Cmd) {
+func (m model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.stash.spinner.Tick}
 	cmds = append(cmds, findLocalFiles(*m.common))
-	return m, tea.Batch(cmds...)
+	return tea.Batch(cmds...)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -175,7 +175,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "r":
 			if m.state == stateShowStash {
 				m.stash.markdowns = nil
-				return m.Init()
+				return m, m.Init()
 			}
 
 		case "q":
