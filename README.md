@@ -215,6 +215,12 @@ showLineNumbers: false
 preserveNewLines: false
 ```
 
+## Contributing
+
+See [contributing][contribute].
+
+[contribute]: https://github.com/charmbracelet/glow/contribute
+
 ## Feedback
 
 We’d love to hear your thoughts on this project. Feel free to drop us a note!
