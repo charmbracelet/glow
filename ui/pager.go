@@ -150,7 +150,7 @@ type pagerStatusMessage struct {
 }
 
 // Perform stuff that needs to happen after a successful markdown stash. Note
-// that the the returned command should be sent back the through the pager
+// that the returned command should be sent back the through the pager
 // update function.
 func (m *pagerModel) showStatusMessage(msg pagerStatusMessage) tea.Cmd {
 	// Show a success message to the user
