@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/charmbracelet/fang"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/v2/ui"
@@ -44,11 +46,9 @@ var (
 	mouse            bool
 
 	rootCmd = &cobra.Command{
-		Use:   "glow [SOURCE|DIR]",
-		Short: "Render markdown on the CLI, with pizzazz!",
-		Long: paragraph(
-			fmt.Sprintf("\nRender markdown on the CLI, %s!", keyword("with pizzazz")),
-		),
+		Use:              "glow [SOURCE|DIR]",
+		Short:            "Render markdown on the CLI, with pizzazz!",
+		Long:             fmt.Sprintf("Render markdown on the CLI, %s!", keyword("with pizzazz")),
 		SilenceErrors:    false,
 		SilenceUsage:     true,
 		TraverseChildren: true,
@@ -374,7 +374,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if err := rootCmd.Execute(); err != nil {
+	if err := fang.Execute(context.Background(), rootCmd); err != nil {
 		_ = closer()
 		os.Exit(1)
 	}
@@ -383,16 +383,6 @@ func main() {
 
 func init() {
 	tryLoadConfigFromDefaultPlaces()
-	if len(CommitSHA) >= 7 {
-		vt := rootCmd.VersionTemplate()
-		rootCmd.SetVersionTemplate(vt[:len(vt)-1] + " (" + CommitSHA[0:7] + ")\n")
-	}
-	if Version == "" {
-		Version = "unknown (built from source)"
-	}
-	rootCmd.Version = Version
-	rootCmd.InitDefaultCompletionCmd()
-
 	// "Glow Classic" cli arguments
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
@@ -420,7 +410,7 @@ func init() {
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
-	rootCmd.AddCommand(configCmd, manCmd)
+	rootCmd.AddCommand(configCmd)
 }
 
 func tryLoadConfigFromDefaultPlaces() {
