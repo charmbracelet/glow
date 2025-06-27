@@ -175,6 +175,7 @@ func newModel(cfg Config, content string) tea.Model {
 		m.state = stateShowDocument
 		m.pager.currentDocument = markdown{
 			localPath: path,
+			Body:      content,
 			Note:      stripAbsolutePath(path, cwd),
 			Modtime:   info.ModTime(),
 		}
