@@ -68,14 +68,14 @@ type source struct {
 }
 
 // sourceFromArg parses an argument and creates a readable source for it.
-func sourceFromArg(arg string) (*source, error) {
+func sourceFromArg(ctx context.Context, arg string) (*source, error) {
 	// from stdin
 	if arg == "-" {
 		return &source{reader: os.Stdin}, nil
 	}
 
 	// a GitHub or GitLab URL (even without the protocol):
-	src, err := readmeURL(arg)
+	src, err := readmeURL(ctx, arg)
 	if src != nil && err == nil {
 		// if there's an error, try next methods...
 		return src, nil
@@ -88,7 +88,11 @@ func sourceFromArg(arg string) (*source, error) {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
 			}
 			// consumer of the source is responsible for closing the ReadCloser.
-			resp, err := http.Get(u.String()) //nolint: noctx,bodyclose
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+			if err != nil {
+				return nil, fmt.Errorf("unable to create request: %w", err)
+			}
+			resp, err := http.DefaultClient.Do(req) //nolint:bodyclose
 			if err != nil {
 				return nil, fmt.Errorf("unable to get url: %w", err)
 			}
@@ -260,7 +264,7 @@ func execute(cmd *cobra.Command, args []string) error {
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	// create an io.Reader from the markdown source in cli-args
-	src, err := sourceFromArg(arg)
+	src, err := sourceFromArg(cmd.Context(), arg)
 	if err != nil {
 		return err
 	}
