@@ -49,8 +49,6 @@ var (
 		Use:              "glow [SOURCE|DIR]",
 		Short:            "Render markdown on the CLI, with pizzazz!",
 		Long:             fmt.Sprintf("Render markdown on the CLI, %s!", keyword("with pizzazz")),
-		SilenceErrors:    false,
-		SilenceUsage:     true,
 		TraverseChildren: true,
 		Args:             cobra.MaximumNArgs(1),
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
@@ -233,7 +231,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	// TUI running on cwd
 	case 0:
-		return runTUI("", "")
+		return runTUI(cmd.Context(), "", "")
 
 	// TUI with possible dir argument
 	case 1:
@@ -243,7 +241,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		if err == nil && info.IsDir() {
 			p, err := filepath.Abs(args[0])
 			if err == nil {
-				return runTUI(p, "")
+				return runTUI(cmd.Context(), p, "")
 			}
 		}
 		fallthrough
@@ -320,7 +318,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 
 		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...) //nolint:gosec
+		c := exec.CommandContext(cmd.Context(), pa[0], pa[1:]...) //nolint:gosec
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
 		if err := c.Run(); err != nil {
@@ -332,7 +330,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		if !isURL(src.URL) {
 			path = src.URL
 		}
-		return runTUI(path, content)
+		return runTUI(cmd.Context(), path, content)
 	default:
 		if _, err = fmt.Fprint(w, out); err != nil {
 			return fmt.Errorf("unable to write to writer: %w", err)
@@ -341,7 +339,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 }
 
-func runTUI(path string, content string) error {
+func runTUI(ctx context.Context, path string, content string) error {
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
 	if err != nil {
@@ -361,7 +359,7 @@ func runTUI(path string, content string) error {
 	cfg.PreserveNewLines = preserveNewLines
 
 	// Run Bubble Tea program
-	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
+	if _, err := ui.NewProgram(ctx, cfg, content).Run(); err != nil {
 		return fmt.Errorf("unable to run tui program: %w", err)
 	}
 
