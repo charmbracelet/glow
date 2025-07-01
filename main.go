@@ -189,22 +189,6 @@ func validateOptions(cmd *cobra.Command) error {
 		style = "notty"
 	}
 
-	// Detect terminal width
-	if !cmd.Flags().Changed("width") { //nolint:nestif
-		if isTerminal && width == 0 {
-			w, _, err := term.GetSize(int(os.Stdout.Fd()))
-			if err == nil {
-				width = uint(w) //nolint:gosec
-			}
-
-			if width > 120 {
-				width = 120
-			}
-		}
-		if width == 0 {
-			width = 80
-		}
-	}
 	return nil
 }
 
