@@ -43,6 +43,8 @@ var (
 	preserveNewLines bool
 	mouse            bool
 
+	flow bool
+
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
 		Short: "Render markdown on the CLI, with pizzazz!",
@@ -271,6 +273,9 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 }
 
 func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
+	if flow {
+		return executeWithFlow(cmd, src, w)
+	}
 	b, err := io.ReadAll(src.reader)
 	if err != nil {
 		return fmt.Errorf("unable to read from reader: %w", err)
@@ -403,6 +408,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	rootCmd.Flags().BoolVar(&flow, "flow", false, "render flow input on terminal")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
