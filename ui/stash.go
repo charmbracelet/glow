@@ -380,8 +380,11 @@ func newStashModel(common *commonModel) stashModel {
 
 	si := textinput.New()
 	si.Prompt = "Find:"
-	si.PromptStyle = stashInputPromptStyle
-	si.Cursor.Style = stashInputCursorStyle
+	styles := si.Styles()
+	styles.Focused.Prompt = stashInputPromptStyle
+	styles.Blurred.Prompt = stashInputPromptStyle
+	styles.Cursor.Color = fuchsia
+	si.SetStyles(styles)
 	si.Focus()
 
 	s := []section{
