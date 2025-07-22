@@ -32,13 +32,7 @@ func executeWithFlow(cmd *cobra.Command, src *source, w io.Writer) error {
 				if n == 0 {
 					if len(line) > 0 {
 						out := renderString(line, "NOT USED NOW", TextStart)
-						if strings.HasPrefix(line, "\n") {
-							fmt.Fprint(w, "\n")
-						}
-						fmt.Fprint(w, "\r"+out)
-						if strings.HasSuffix(line, "\n") {
-							fmt.Fprint(w, "\n")
-						}
+						writeRendered(w, &line, &out)
 						line = ""
 					}
 					if nextLine == "" {
@@ -80,13 +74,7 @@ func executeWithFlow(cmd *cobra.Command, src *source, w io.Writer) error {
 
 		if strings.HasSuffix(line, "\n") {
 
-			if strings.HasPrefix(line, "\n") {
-				fmt.Fprint(w, "\n")
-			}
-			fmt.Fprint(w, "\r"+out)
-			if strings.HasSuffix(line, "\n") {
-				fmt.Fprint(w, "\n")
-			}
+			writeRendered(w, &line, &out)
 
 			line = ""
 			continue
@@ -94,13 +82,7 @@ func executeWithFlow(cmd *cobra.Command, src *source, w io.Writer) error {
 		if len(line) > int(width) {
 			continue
 		}
-		if strings.HasPrefix(line, "\n") {
-			fmt.Fprint(w, "\n")
-		}
-		fmt.Fprint(w, "\r"+out)
-		if strings.HasSuffix(line, "\n") {
-			fmt.Fprint(w, "\n")
-		}
+		writeRendered(w, &line, &out)
 	}
 }
 
@@ -127,7 +109,7 @@ func renderString(in string, style string, position TextPosition) string {
 	)
 
 	if err != nil {
-		panic("ERRRORRR")
+		panic(err)
 	}
 
 	out, _ := r.Render(in)
@@ -135,6 +117,13 @@ func renderString(in string, style string, position TextPosition) string {
 	return out
 }
 
-func writeRendered(w io.Writer, line, out string) {
-	// TODO: move write code here
+func writeRendered(w io.Writer, line, out *string) {
+	if strings.HasPrefix(*line, "\n") {
+		fmt.Fprint(w, "\n")
+	}
+	fmt.Fprint(w, "\r", strings.Repeat(" ", int(width)))
+	fmt.Fprint(w, "\r"+(*out))
+	if strings.HasSuffix(*line, "\n") {
+		fmt.Fprint(w, "\n")
+	}
 }
