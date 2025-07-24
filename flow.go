@@ -13,17 +13,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type TextPosition int
-
-const (
-	TextStart TextPosition = iota
-	TextMiddle
-	TextEnd
-)
+var newLinePrinted = false
 
 func executeWithFlow(cmd *cobra.Command, src *source, w io.Writer) error {
 	var line string
 	var nextLine string
+
+	// print line before markdown
+	fmt.Fprint(w, "\n")
 	for {
 		b := make([]byte, 1024)
 		n, err := src.reader.Read(b)
@@ -31,11 +28,16 @@ func executeWithFlow(cmd *cobra.Command, src *source, w io.Writer) error {
 			if err == io.EOF {
 				if n == 0 {
 					if len(line) > 0 {
-						out := renderString(line, "NOT USED NOW", TextStart)
+						out := renderString(line)
 						writeRendered(w, &line, &out)
 						line = ""
 					}
+
+					// Prevent % symbol print on terminal if response not contains \n at the end
 					if nextLine == "" {
+						if !newLinePrinted {
+							fmt.Fprint(w, "\n")
+						}
 						return nil
 					}
 				}
@@ -70,7 +72,7 @@ func executeWithFlow(cmd *cobra.Command, src *source, w io.Writer) error {
 			line = fullLine
 		}
 
-		out := renderString(line, "NOT USED NOW", TextStart)
+		out := renderString(line)
 
 		if strings.HasSuffix(line, "\n") {
 
@@ -86,7 +88,7 @@ func executeWithFlow(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 }
 
-func renderString(in string, style string, position TextPosition) string {
+func renderString(in string) string {
 
 	var styleConfig ansi.StyleConfig
 
@@ -118,6 +120,7 @@ func renderString(in string, style string, position TextPosition) string {
 }
 
 func writeRendered(w io.Writer, line, out *string) {
+	newLinePrinted = false
 	if strings.HasPrefix(*line, "\n") {
 		fmt.Fprint(w, "\n")
 	}
@@ -125,5 +128,6 @@ func writeRendered(w io.Writer, line, out *string) {
 	fmt.Fprint(w, "\r"+(*out))
 	if strings.HasSuffix(*line, "\n") {
 		fmt.Fprint(w, "\n")
+		newLinePrinted = true
 	}
 }
