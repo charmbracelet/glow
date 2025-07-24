@@ -1,5 +1,7 @@
 # Glow
 
+[![RepoMapr](https://img.shields.io/badge/RepoMapr-View_Interactive_Diagram-blue?style=flat&logo=github)](https://repomapr.com/charmbracelet/glow)
+
 Render markdown on the CLI, with _pizzazz_!
 
 <p align="center">
