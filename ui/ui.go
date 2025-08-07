@@ -173,10 +173,16 @@ func newModel(cfg Config, content string) tea.Model {
 	} else {
 		cwd, _ := os.Getwd()
 		m.state = stateShowDocument
-		m.pager.currentDocument = markdown{
-			localPath: path,
-			Note:      stripAbsolutePath(path, cwd),
-			Modtime:   info.ModTime(),
+		if info.Size() == 0 {
+			m.pager.currentDocument = markdown{
+				Body: "[glow: empty content]",
+			}
+		} else {
+			m.pager.currentDocument = markdown{
+				localPath: path,
+				Note:      stripAbsolutePath(path, cwd),
+				Modtime:   info.ModTime(),
+			}
 		}
 	}
 
@@ -195,7 +201,12 @@ func (m model) Init() tea.Cmd {
 			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
 			return func() tea.Msg { return errMsg{err} }
 		}
-		body := string(utils.RemoveFrontmatter(content))
+		body := string(content)
+		if body == "" || body == "\n" {
+			body = "[glow: empty content]"
+		} else {
+			body = string(utils.RemoveFrontmatter(content))
+		}
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
 	}
 
