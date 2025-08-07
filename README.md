@@ -98,6 +98,11 @@ gpgkey=https://repo.charm.sh/yum/gpg.key' | sudo tee /etc/yum.repos.d/charm.repo
 sudo yum install glow
 ```
 
+```bash
+# conda-forge (cross platform Linux, macOS and Windows)
+pixi global install glow-md
+```
+
 Or download a binary from the [releases][releases] page. MacOS, Linux, Windows,
 FreeBSD and OpenBSD binaries are available, as well as Debian, RPM, and Alpine
 packages. ARM builds are also available for macOS, Linux, FreeBSD and OpenBSD.
