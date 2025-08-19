@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glow/v2/utils"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/ansi"
@@ -860,7 +861,7 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 			log.Debug("error reading local file", "error", err)
 			return errMsg{err}
 		}
-		md.Body = string(data)
+		md.Body = string(utils.RemoveFrontmatter(data))
 		return fetchedMarkdownMsg(md)
 	}
 }
