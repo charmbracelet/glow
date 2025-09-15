@@ -7,7 +7,7 @@ type Config struct {
 	Gopath           string `env:"GOPATH"`
 	HomeDir          string `env:"HOME"`
 	GlamourMaxWidth  uint
-	GlamourStyle     string `env:"GLAMOUR_STYLE"`
+	GlamourStyle     string
 	EnableMouse      bool
 	PreserveNewLines bool
 
