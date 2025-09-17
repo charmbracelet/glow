@@ -179,6 +179,25 @@ Alternatively you can also supply a custom JSON stylesheet:
 glow -s mystyle.json
 ```
 
+### Streaming
+
+For large markdown files, use the `--flow` flag to enable memory-efficient streaming:
+
+```bash
+# Buffer mode - wait for complete content (default)
+cat large-file.md | glow --flow=0
+
+# Window mode - 1KB window for responsive rendering
+cat large-file.md | glow --flow=1024
+
+# Stream mode - start rendering immediately
+cat large-file.md | glow --flow=-1
+```
+
+Streaming mode processes markdown progressively, making large files responsive while preserving output quality.
+
+**Note**: Streaming mode may not resolve reference links (e.g., `[text][ref]`) if the link definitions appear later in the document. For documents with reference links, use `--flow=0` (block mode) to ensure proper link resolution.
+
 For additional usage details see:
 
 ```bash

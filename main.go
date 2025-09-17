@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,12 +11,15 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/styles"
+	"github.com/charmbracelet/glow/v2/flow"
 	"github.com/charmbracelet/glow/v2/ui"
 	"github.com/charmbracelet/glow/v2/utils"
 	"github.com/charmbracelet/lipgloss"
@@ -25,6 +29,37 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/term"
 )
+
+const (
+	// ExitCodeTimeout is the exit code for timeout (used by timeout command)
+	ExitCodeTimeout = 124
+
+	// ExitCodeSIGPIPE is the exit code for SIGPIPE (when downstream closes)
+	ExitCodeSIGPIPE = 141
+
+	// ExitCodeSIGINT is the signal offset for SIGINT (Ctrl+C)
+	ExitCodeSIGINT = 128 + 2
+
+	// ExitCodeSIGTERM is the signal offset for SIGTERM
+	ExitCodeSIGTERM = 128 + 15
+)
+
+// ExitError represents an error that should cause the program to exit with a specific code
+type ExitError struct {
+	Code int
+	Err  error
+}
+
+func (e *ExitError) Error() string {
+	if e.Err != nil {
+		return e.Err.Error()
+	}
+	return fmt.Sprintf("exit with code %d", e.Code)
+}
+
+func (e *ExitError) Unwrap() error {
+	return e.Err
+}
 
 var (
 	// Version as provided by goreleaser.
@@ -36,6 +71,7 @@ var (
 	configFile       string
 	pager            bool
 	tui              bool
+	window           int64
 	style            string
 	width            uint
 	showAllFiles     bool
@@ -168,6 +204,7 @@ func validateOptions(cmd *cobra.Command) error {
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
 	tui = viper.GetBool("tui")
+	window = viper.GetInt64("flow")
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
@@ -197,9 +234,6 @@ func validateOptions(cmd *cobra.Command) error {
 				width = uint(w) //nolint:gosec
 			}
 
-			if width > 120 {
-				width = 120
-			}
 		}
 		if width == 0 {
 			width = 80
@@ -226,13 +260,17 @@ func execute(cmd *cobra.Command, args []string) error {
 		return err
 	} else if yes {
 		src := &source{reader: os.Stdin}
-		defer src.reader.Close() //nolint:errcheck
+		// DO NOT close stdin - it's not ours to close and causes race conditions
 		return executeCLI(cmd, src, os.Stdout)
 	}
 
 	switch len(args) {
 	// TUI running on cwd
 	case 0:
+		if cmd.Flags().Changed("flow") {
+			// --flow flag was explicitly provided, incompatible with directories
+			return fmt.Errorf("--flow is not compatible with directory input")
+		}
 		return runTUI("", "")
 
 	// TUI with possible dir argument
@@ -241,11 +279,19 @@ func execute(cmd *cobra.Command, args []string) error {
 		// an argument to the non-TUI version of Glow (via fallthrough).
 		info, err := os.Stat(args[0])
 		if err == nil && info.IsDir() {
-			p, err := filepath.Abs(args[0])
-			if err == nil {
-				return runTUI(p, "")
+			// Directory input detected
+			if cmd.Flags().Changed("flow") {
+				// --flow flag was explicitly provided, incompatible with directories
+				return fmt.Errorf("--flow is not compatible with directory input")
 			}
+			// No --flow specified, launch TUI for directory
+			p, err := filepath.Abs(args[0])
+			if err != nil {
+				return fmt.Errorf("could not resolve directory path: %w", err)
+			}
+			return runTUI(p, "")
 		}
+		// Not a directory, treat as regular file argument
 		fallthrough
 
 	// CLI
@@ -266,17 +312,14 @@ func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer src.reader.Close() //nolint:errcheck
+	// Only close if it's not stdin (stdin is not ours to close)
+	if src.reader != os.Stdin {
+		defer src.reader.Close() //nolint:errcheck
+	}
 	return executeCLI(cmd, src, w)
 }
 
 func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
-	b, err := io.ReadAll(src.reader)
-	if err != nil {
-		return fmt.Errorf("unable to read from reader: %w", err)
-	}
-
-	b = utils.RemoveFrontmatter(b)
 
 	// render
 	var baseURL string
@@ -300,17 +343,6 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to create renderer: %w", err)
 	}
 
-	content := string(b)
-	ext := filepath.Ext(src.URL)
-	if isCode {
-		content = utils.WrapCodeBlock(string(b), ext)
-	}
-
-	out, err := r.Render(content)
-	if err != nil {
-		return fmt.Errorf("unable to render markdown: %w", err)
-	}
-
 	// display
 	switch {
 	case pager || cmd.Flags().Changed("pager"):
@@ -320,22 +352,122 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 
 		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...) //nolint:gosec
-		c.Stdin = strings.NewReader(out)
-		c.Stdout = os.Stdout
-		if err := c.Run(); err != nil {
-			return fmt.Errorf("unable to run command: %w", err)
+		c := exec.CommandContext(cmd.Context(), pa[0], pa[1:]...) //nolint:gosec
+		pw, err := c.StdinPipe()
+		if err != nil {
+			return fmt.Errorf("unable to create stdin pipe: %w", err)
 		}
-		return nil
+		c.Stdout = w
+		c.Stderr = os.Stderr
+
+		// Start the pager process
+		if err := c.Start(); err != nil {
+			pw.Close() //nolint:errcheck
+			return fmt.Errorf("unable to start pager: %w", err)
+		}
+
+		// Create cancellable context for pager operations
+		pagerCtx, pagerCancel := context.WithCancel(cmd.Context())
+		defer pagerCancel()
+
+		// Launch Flow goroutine with cancellable context
+		flowDone := make(chan error, 1)
+		go func() {
+			defer pw.Close() // CRITICAL: Always close pipe when Flow exits
+			flowDone <- flow.Flow(pagerCtx, src.reader, pw, window, r.RenderBytes)
+		}()
+
+		// Launch pager monitor goroutine
+		pagerDone := make(chan error, 1)
+		go func() {
+			err := c.Wait()
+			pagerCancel() // KEY: Cancel Flow when pager exits
+			pagerDone <- err
+		}()
+
+		// Select on first completion - pager exit wins, cancels context
+		select {
+		case flowErr := <-flowDone:
+			// Flow completed first - pipe already closed via defer, wait for pager
+			pagerErr := <-pagerDone
+			if pagerErr != nil && flowErr != nil {
+				return fmt.Errorf("flow error: %w, pager error: %w", flowErr, pagerErr)
+			}
+			if pagerErr != nil {
+				return fmt.Errorf("pager error: %w", pagerErr)
+			}
+			// Handle EPIPE in non-pager mode too (e.g., when piped to head)
+			if flowErr != nil && errors.Is(flowErr, syscall.EPIPE) {
+				// EPIPE is expected when downstream closes pipe
+				flowErr = nil
+			}
+			return flowErr
+
+		case pagerErr := <-pagerDone:
+			// Pager exited first - context already cancelled in goroutine
+			// Wait for Flow to finish (will exit quickly due to context cancellation)
+			flowErr := <-flowDone
+
+			// Handle expected flow errors
+			if flowErr != nil {
+				if errors.Is(flowErr, context.Canceled) {
+					// Context cancellation is expected when pager exits
+					flowErr = nil
+				} else if errors.Is(flowErr, syscall.EPIPE) {
+					// EPIPE is expected when pager closes pipe
+					flowErr = nil
+				}
+			}
+
+			// Check if pager error is actually a normal termination
+			if pagerErr != nil {
+				// Check for expected exit codes that aren't really errors
+				if exitErr, ok := pagerErr.(*exec.ExitError); ok {
+					exitCode := exitErr.ExitCode()
+					if exitCode == ExitCodeTimeout {
+						// Timeout is normal for streaming when pager exits early
+						// Propagate the exit code by returning ExitError
+						return &ExitError{Code: ExitCodeTimeout, Err: flowErr}
+					}
+					if exitCode == ExitCodeSIGPIPE {
+						// SIGPIPE is normal when pager closes early
+						return flowErr
+					}
+					// For other exit codes, propagate them directly
+					// This includes SIGTERM (143), SIGINT (130), etc.
+					return &ExitError{Code: exitCode, Err: flowErr}
+				}
+				return fmt.Errorf("pager error: %w", pagerErr)
+			}
+			return flowErr
+		}
 	case tui || cmd.Flags().Changed("tui"):
+		// Read all content for TUI
+		b, err := io.ReadAll(src.reader)
+		if err != nil {
+			return fmt.Errorf("unable to read markdown: %w", err)
+		}
+
+		b = utils.RemoveFrontmatter(b)
+		content := string(b)
+		ext := filepath.Ext(src.URL)
+		if isCode {
+			content = utils.WrapCodeBlock(string(b), ext)
+		}
+
 		path := ""
 		if !isURL(src.URL) {
 			path = src.URL
 		}
 		return runTUI(path, content)
 	default:
-		if _, err = fmt.Fprint(w, out); err != nil {
-			return fmt.Errorf("unable to write to writer: %w", err)
+		// Stream directly to writer
+		if err := flow.Flow(cmd.Context(), src.reader, w, window, r.RenderBytes); err != nil {
+			// Handle EPIPE gracefully (e.g., when piped to head)
+			if errors.Is(err, syscall.EPIPE) {
+				return nil
+			}
+			return fmt.Errorf("unable to flow markdown: %w", err)
 		}
 		return nil
 	}
@@ -369,16 +501,90 @@ func runTUI(path string, content string) error {
 }
 
 func main() {
+	// CRITICAL: Signal handling MUST be set up FIRST before any defers
+	// This ensures all cleanup happens properly when signals are received
+	var sig os.Signal
+	var err error
+
+	// Create context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Ignore SIGPIPE to prevent process termination with exit 141
+	// Instead we'll detect EPIPE errors in write operations
+	signal.Ignore(syscall.SIGPIPE)
+
+	// Set up signal notification channel for other signals
+	notify := make(chan os.Signal, 1)
+	signal.Notify(notify, syscall.SIGTERM, syscall.SIGINT)
+	// Note: SIGPIPE is ignored, not handled as a signal
+
+	// Start signal handler goroutine BEFORE any defers
+	go func() {
+		for {
+			select {
+			case s := <-notify:
+				sig = s
+				cancel()
+				// Let the defer handle the exit code
+				// NO os.Exit() here - avoid double exit!
+				return
+			case <-ctx.Done():
+				// Context cancelled, exit goroutine
+				return
+			}
+		}
+	}()
+
+	// NOW set up defers - they will run properly even if signals are received
+	defer func() {
+		// Clean up signal handling
+		signal.Stop(notify)
+		cancel()
+
+		// Convert signals to exit codes through error bubbling
+		if sig != nil {
+			switch sig {
+			case syscall.SIGINT:
+				if err == nil {
+					err = &ExitError{Code: ExitCodeSIGINT, Err: errors.New("interrupted")}
+				}
+			case syscall.SIGTERM:
+				if err == nil {
+					err = &ExitError{Code: ExitCodeSIGTERM, Err: errors.New("terminated")}
+				}
+			}
+		}
+
+		// Unified exit point with proper error code
+		if err != nil {
+			var exitErr *ExitError
+			if errors.As(err, &exitErr) {
+				os.Exit(exitErr.Code)
+			} else if errors.Is(err, syscall.EPIPE) {
+				// EPIPE is normal when downstream closes pipe - exit cleanly
+				os.Exit(0)
+			} else if errors.Is(err, context.Canceled) {
+				// Context cancellation should exit cleanly
+				if sig == nil {
+					os.Exit(0) // Clean cancellation without signal
+				}
+			} else {
+				os.Exit(1)
+			}
+		}
+	}()
+
+	// Set up logging
 	closer, err := setupLog()
 	if err != nil {
+		// Deferred func handles exit code
 		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
-	if err := rootCmd.Execute(); err != nil {
-		_ = closer()
-		os.Exit(1)
-	}
-	_ = closer()
+	defer closer()
+
+	// Execute root command with context
+	err = rootCmd.ExecuteContext(ctx)
 }
 
 func init() {
@@ -403,11 +609,14 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	rootCmd.Flags().Int64VarP(&window, "flow", "f", flow.Buffered, fmt.Sprintf("flow window size (-1: block, 0: stream, 1-%d: bytes)", flow.Windowed))
+	rootCmd.Flags().Lookup("flow").NoOptDefVal = fmt.Sprintf("%d", flow.Unbuffered)
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
 	_ = viper.BindPFlag("tui", rootCmd.Flags().Lookup("tui"))
+	_ = viper.BindPFlag("flow", rootCmd.Flags().Lookup("flow"))
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
@@ -417,6 +626,7 @@ func init() {
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
 	viper.SetDefault("style", styles.AutoStyle)
+	viper.SetDefault("flow", flow.Buffered)
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
@@ -427,8 +637,9 @@ func tryLoadConfigFromDefaultPlaces() {
 	scope := gap.NewScope(gap.User, "glow")
 	dirs, err := scope.ConfigDirs()
 	if err != nil {
-		fmt.Println("Could not load find configuration directory.")
-		os.Exit(1)
+		// Log error but don't exit - config is optional
+		fmt.Fprintf(os.Stderr, "Warning: Could not load configuration directory: %v\n", err)
+		return
 	}
 
 	if c := os.Getenv("XDG_CONFIG_HOME"); c != "" {
