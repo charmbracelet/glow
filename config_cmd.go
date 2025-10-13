@@ -20,7 +20,7 @@ mouse: false
 # use pager to display markdown
 pager: false
 # word-wrap at width
-width: 80
+width: 0
 # show all files, including hidden and ignored.
 all: false
 `
