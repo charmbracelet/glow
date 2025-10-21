@@ -1,9 +1,6 @@
 package main
 
-import (
-	"context"
-	"testing"
-)
+import "testing"
 
 func TestURLParser(t *testing.T) {
 	for path, url := range map[string]string{
@@ -18,7 +15,7 @@ func TestURLParser(t *testing.T) {
 	} {
 		t.Run(path, func(t *testing.T) {
 			t.Skip("test uses network, sometimes fails for no reason")
-			got, err := readmeURL(context.Background(), path)
+			got, err := readmeURL(t.Context(), path)
 			if err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}
