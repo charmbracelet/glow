@@ -110,13 +110,20 @@ Or just install it with `go`:
 go install github.com/charmbracelet/glow/v2@latest
 ```
 
-### Build (requires Go 1.21+)
+## Quickstart
+
+Requirements: Go 1.21+.
 
 ```bash
 git clone https://github.com/charmbracelet/glow.git
 cd glow
-go build
-```
+go version        # confirm >= 1.21
+go build          # produces ./glow
+./glow            # TUI: browse Markdown in the current repo/dir
+./glow README.md  # render a single file
+
+### Build (requires Go 1.21+)
+
 
 [releases]: https://github.com/charmbracelet/glow/releases
 
@@ -214,12 +221,28 @@ showLineNumbers: false
 # preserve newlines in the output
 preserveNewLines: false
 ```
+## Keybindings (TUI)
+
+| Action | Key |
+|---|---|
+| Quit | `q` |
+| Up/Down | `↑ / ↓` |
+| Page Up/Down | `PgUp / PgDn` |
+| Open Link | `Enter` |
 
 ## Contributing
 
 See [contributing][contribute].
 
 [contribute]: https://github.com/charmbracelet/glow/contribute
+
+## Testing
+
+Runs all packages with go
+
+```bash
+go test .
+```
 
 ## Feedback
 
@@ -228,6 +251,16 @@ We’d love to hear your thoughts on this project. Feel free to drop us a note!
 - [Twitter](https://twitter.com/charmcli)
 - [The Fediverse](https://mastodon.social/@charmcli)
 - [Discord](https://charm.sh/chat)
+
+
+---
+
+## Troubleshooting
+
+- **Build fails:** Confirm `go version` is ≥ 1.21, then `go clean -modcache && go mod tidy`.
+- **“Undefined symbols when testing:** Use `go test .`, not `go test file_test.go`.
+- **No files in TUI:** Run `glow` from a directiory actually containing Markdown or a git repo; try `glow README.md` to verify/
+
 
 ## License
 
