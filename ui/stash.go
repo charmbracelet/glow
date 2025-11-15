@@ -860,7 +860,11 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 			log.Debug("error reading local file", "error", err)
 			return errMsg{err}
 		}
-		md.Body = string(data)
+		body := string(data)
+		if body == "" || body == "\n" {
+			body = "[glow: empty content]"
+		}
+		md.Body = body
 		return fetchedMarkdownMsg(md)
 	}
 }

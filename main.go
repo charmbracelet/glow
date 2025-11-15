@@ -306,6 +306,10 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		content = utils.WrapCodeBlock(string(b), ext)
 	}
 
+	if content == "" || content == "\n" {
+		content = "[glow: empty content]"
+	}
+
 	out, err := r.Render(content)
 	if err != nil {
 		return fmt.Errorf("unable to render markdown: %w", err)
