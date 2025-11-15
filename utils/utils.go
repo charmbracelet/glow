@@ -40,6 +40,15 @@ func ExpandPath(path string) string {
 	return os.ExpandEnv(path)
 }
 
+// Getenv retrieves the value of the environment variable named by the key.
+// It returns the value, or fallback value if the variable is not present.
+func Getenv(key string, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
 // WrapCodeBlock wraps a string in a code block with the given language.
 func WrapCodeBlock(s, language string) string {
 	return "```" + language + "\n" + s + "```"
