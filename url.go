@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -26,16 +27,16 @@ func init() {
 	})
 }
 
-func readmeURL(path string) (*source, error) {
+func readmeURL(ctx context.Context, path string) (*source, error) {
 	switch {
 	case strings.HasPrefix(path, protoGithub):
 		if u := githubReadmeURL(path); u != nil {
-			return readmeURL(u.String())
+			return readmeURL(ctx, u.String())
 		}
 		return nil, nil
 	case strings.HasPrefix(path, protoGitlab):
 		if u := gitlabReadmeURL(path); u != nil {
-			return readmeURL(u.String())
+			return readmeURL(ctx, u.String())
 		}
 		return nil, nil
 	}
@@ -50,9 +51,9 @@ func readmeURL(path string) (*source, error) {
 
 	switch {
 	case u.Hostname() == githubURL.Hostname():
-		return findGitHubREADME(u)
+		return findGitHubREADME(ctx, u)
 	case u.Hostname() == gitlabURL.Hostname():
-		return findGitLabREADME(u)
+		return findGitLabREADME(ctx, u)
 	}
 
 	return nil, nil
