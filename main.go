@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/charmbracelet/fang"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/v2/ui"
@@ -44,13 +46,9 @@ var (
 	mouse            bool
 
 	rootCmd = &cobra.Command{
-		Use:   "glow [SOURCE|DIR]",
-		Short: "Render markdown on the CLI, with pizzazz!",
-		Long: paragraph(
-			fmt.Sprintf("\nRender markdown on the CLI, %s!", keyword("with pizzazz")),
-		),
-		SilenceErrors:    false,
-		SilenceUsage:     true,
+		Use:              "glow [SOURCE|DIR]",
+		Short:            "Render markdown on the CLI, with pizzazz!",
+		Long:             fmt.Sprintf("Render markdown on the CLI, %s!", keyword("with pizzazz")),
 		TraverseChildren: true,
 		Args:             cobra.MaximumNArgs(1),
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
@@ -70,14 +68,14 @@ type source struct {
 }
 
 // sourceFromArg parses an argument and creates a readable source for it.
-func sourceFromArg(arg string) (*source, error) {
+func sourceFromArg(ctx context.Context, arg string) (*source, error) {
 	// from stdin
 	if arg == "-" {
 		return &source{reader: os.Stdin}, nil
 	}
 
 	// a GitHub or GitLab URL (even without the protocol):
-	src, err := readmeURL(arg)
+	src, err := readmeURL(ctx, arg)
 	if src != nil && err == nil {
 		// if there's an error, try next methods...
 		return src, nil
@@ -90,7 +88,11 @@ func sourceFromArg(arg string) (*source, error) {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
 			}
 			// consumer of the source is responsible for closing the ReadCloser.
-			resp, err := http.Get(u.String()) //nolint: noctx,bodyclose
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+			if err != nil {
+				return nil, fmt.Errorf("unable to create request: %w", err)
+			}
+			resp, err := http.DefaultClient.Do(req) //nolint:bodyclose
 			if err != nil {
 				return nil, fmt.Errorf("unable to get url: %w", err)
 			}
@@ -233,7 +235,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	// TUI running on cwd
 	case 0:
-		return runTUI("", "")
+		return runTUI(cmd.Context(), "", "")
 
 	// TUI with possible dir argument
 	case 1:
@@ -243,7 +245,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		if err == nil && info.IsDir() {
 			p, err := filepath.Abs(args[0])
 			if err == nil {
-				return runTUI(p, "")
+				return runTUI(cmd.Context(), p, "")
 			}
 		}
 		fallthrough
@@ -262,7 +264,7 @@ func execute(cmd *cobra.Command, args []string) error {
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
 	// create an io.Reader from the markdown source in cli-args
-	src, err := sourceFromArg(arg)
+	src, err := sourceFromArg(cmd.Context(), arg)
 	if err != nil {
 		return err
 	}
@@ -320,7 +322,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 
 		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...) //nolint:gosec
+		c := exec.CommandContext(cmd.Context(), pa[0], pa[1:]...) //nolint:gosec
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
 		if err := c.Run(); err != nil {
@@ -332,7 +334,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		if !isURL(src.URL) {
 			path = src.URL
 		}
-		return runTUI(path, content)
+		return runTUI(cmd.Context(), path, content)
 	default:
 		if _, err = fmt.Fprint(w, out); err != nil {
 			return fmt.Errorf("unable to write to writer: %w", err)
@@ -341,7 +343,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 }
 
-func runTUI(path string, content string) error {
+func runTUI(ctx context.Context, path string, content string) error {
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
 	if err != nil {
@@ -361,7 +363,7 @@ func runTUI(path string, content string) error {
 	cfg.PreserveNewLines = preserveNewLines
 
 	// Run Bubble Tea program
-	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
+	if _, err := ui.NewProgram(ctx, cfg, content).Run(); err != nil {
 		return fmt.Errorf("unable to run tui program: %w", err)
 	}
 
@@ -374,7 +376,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	if err := rootCmd.Execute(); err != nil {
+	if err := fang.Execute(context.Background(), rootCmd); err != nil {
 		_ = closer()
 		os.Exit(1)
 	}
@@ -383,16 +385,6 @@ func main() {
 
 func init() {
 	tryLoadConfigFromDefaultPlaces()
-	if len(CommitSHA) >= 7 {
-		vt := rootCmd.VersionTemplate()
-		rootCmd.SetVersionTemplate(vt[:len(vt)-1] + " (" + CommitSHA[0:7] + ")\n")
-	}
-	if Version == "" {
-		Version = "unknown (built from source)"
-	}
-	rootCmd.Version = Version
-	rootCmd.InitDefaultCompletionCmd()
-
 	// "Glow Classic" cli arguments
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
@@ -420,7 +412,7 @@ func init() {
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
-	rootCmd.AddCommand(configCmd, manCmd)
+	rootCmd.AddCommand(configCmd)
 }
 
 func tryLoadConfigFromDefaultPlaces() {
