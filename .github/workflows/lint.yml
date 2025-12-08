@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9.1.0
+        uses: golangci/golangci-lint-action@v9.2.0
         with:
           # Optional: golangci-lint command line arguments.
           args: --issues-exit-code=0
