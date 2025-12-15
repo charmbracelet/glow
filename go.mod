@@ -4,6 +4,8 @@ go 1.24.0
 
 toolchain go1.24.1
 
+replace github.com/charmbracelet/glamour => github.com/jmylchreest/glamour v0.0.0-20251215015519-908bc26b2d55
+
 require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/caarlos0/env/v11 v11.3.1
