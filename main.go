@@ -15,6 +15,7 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glamour/ansi"
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/v2/ui"
 	"github.com/charmbracelet/glow/v2/utils"
@@ -42,6 +43,10 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+
+	// Image rendering options
+	imageProtocol    string
+	imageFetchRemote bool
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -172,6 +177,10 @@ func validateOptions(cmd *cobra.Command) error {
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
 
+	// Image rendering options
+	imageProtocol = viper.GetString("imageProtocol")
+	imageFetchRemote = viper.GetBool("imageFetchRemote")
+
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
 	}
@@ -295,6 +304,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
+		glamour.WithImageProtocol(ansi.ImageProtocol(imageProtocol)),
+		glamour.WithImageFetchRemote(imageFetchRemote),
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create renderer: %w", err)
@@ -359,6 +370,8 @@ func runTUI(path string, content string) error {
 	cfg.GlamourMaxWidth = width
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
+	cfg.ImageProtocol = imageProtocol
+	cfg.ImageFetchRemote = imageFetchRemote
 
 	// Run Bubble Tea program
 	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
@@ -405,6 +418,10 @@ func init() {
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
+	// Image rendering options
+	rootCmd.Flags().StringVar(&imageProtocol, "image-protocol", "auto", "image rendering protocol: auto, kitty, iterm, sixel, none")
+	rootCmd.Flags().BoolVar(&imageFetchRemote, "image-fetch-remote", false, "fetch remote images via HTTP (disabled by default for security)")
+
 	// Config bindings
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
 	_ = viper.BindPFlag("tui", rootCmd.Flags().Lookup("tui"))
@@ -415,8 +432,11 @@ func init() {
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
+	_ = viper.BindPFlag("imageProtocol", rootCmd.Flags().Lookup("image-protocol"))
+	_ = viper.BindPFlag("imageFetchRemote", rootCmd.Flags().Lookup("image-fetch-remote"))
 
 	viper.SetDefault("style", styles.AutoStyle)
+	viper.SetDefault("imageProtocol", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
