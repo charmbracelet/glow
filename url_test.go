@@ -15,7 +15,7 @@ func TestURLParser(t *testing.T) {
 	} {
 		t.Run(path, func(t *testing.T) {
 			t.Skip("test uses network, sometimes fails for no reason")
-			got, err := readmeURL(path)
+			got, err := readmeURL(t.Context(), path)
 			if err != nil {
 				t.Fatalf("expected no error, got %v", err)
 			}

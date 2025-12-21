@@ -2,6 +2,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,7 +31,7 @@ var (
 )
 
 // NewProgram returns a new Tea program.
-func NewProgram(cfg Config, content string) *tea.Program {
+func NewProgram(ctx context.Context, cfg Config, content string) *tea.Program {
 	log.Debug(
 		"Starting glow",
 		"high_perf_pager",
@@ -40,7 +41,7 @@ func NewProgram(cfg Config, content string) *tea.Program {
 	)
 
 	config = cfg
-	opts := []tea.ProgramOption{tea.WithAltScreen()}
+	opts := []tea.ProgramOption{tea.WithAltScreen(), tea.WithContext(ctx)}
 	if cfg.EnableMouse {
 		opts = append(opts, tea.WithMouseCellMotion())
 	}

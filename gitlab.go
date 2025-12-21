@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,7 @@ import (
 )
 
 // findGitLabREADME tries to find the correct README filename in a repository using GitLab API.
-func findGitLabREADME(u *url.URL) (*source, error) {
+func findGitLabREADME(ctx context.Context, u *url.URL) (*source, error) {
 	owner, repo, ok := strings.Cut(strings.TrimPrefix(u.Path, "/"), "/")
 	if !ok {
 		return nil, fmt.Errorf("invalid url: %s", u.String())
@@ -25,12 +26,15 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 
 	apiURL := fmt.Sprintf("https://%s/api/v4/projects/%s", u.Hostname(), projectPath)
 
-	//nolint:bodyclose
-	// it is closed on the caller
-	res, err := http.Get(apiURL) //nolint: gosec,noctx
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create request: %w", err)
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get url: %w", err)
 	}
+	defer res.Body.Close() //nolint:errcheck
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -45,9 +49,12 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 	readmeRawURL := strings.ReplaceAll(result.ReadmeURL, "blob", "raw")
 
 	if res.StatusCode == http.StatusOK {
-		//nolint:bodyclose
-		// it is closed on the caller
-		resp, err := http.Get(readmeRawURL) //nolint: gosec,noctx
+		// consumer of the source is responsible for closing the ReadCloser.
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, readmeRawURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create request: %w", err)
+		}
+		resp, err := http.DefaultClient.Do(req) //nolint:bodyclose
 		if err != nil {
 			return nil, fmt.Errorf("unable to get url: %w", err)
 		}
