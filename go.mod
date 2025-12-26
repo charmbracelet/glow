@@ -4,7 +4,7 @@ go 1.24.0
 
 toolchain go1.24.1
 
-replace github.com/charmbracelet/glamour => github.com/jmylchreest/glamour v0.0.0-20251215015519-908bc26b2d55
+replace github.com/charmbracelet/glamour => github.com/jmylchreest/glamour v0.0.0-20251226110118-ebf3b1efb20e
 
 require (
 	github.com/atotto/clipboard v0.1.4
@@ -30,11 +30,11 @@ require (
 	github.com/spf13/viper v1.21.0
 	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.37.0
-	golang.org/x/text v0.31.0
+	golang.org/x/text v0.32.0
 )
 
 require (
-	github.com/BourgeoisBear/rasterm v1.1.1 // indirect
+	github.com/BourgeoisBear/rasterm v1.1.2 // indirect
 	github.com/alecthomas/chroma/v2 v2.20.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
@@ -73,6 +73,7 @@ require (
 	github.com/yuin/goldmark-emoji v1.0.6 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect
+	golang.org/x/image v0.34.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
