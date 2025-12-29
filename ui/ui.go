@@ -290,7 +290,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case foundLocalFileMsg:
-		newMd := localFileToMarkdown(m.common.cwd, gitcha.SearchResult(msg))
+		res := gitcha.SearchResult(msg)
+		// Skip broken symlinks: if the file is a symlink, verify the target exists
+		if res.Info.Mode()&os.ModeSymlink != 0 {
+			if _, err := os.Stat(res.Path); err != nil {
+				// Target doesn't exist or is inaccessible, skip this file
+				log.Debug("skipping broken symlink", "path", res.Path, "error", err)
+				cmds = append(cmds, findNextLocalFile(m))
+				break
+			}
+		}
+		newMd := localFileToMarkdown(m.common.cwd, res)
 		m.stash.addMarkdowns(newMd)
 		if m.stash.filterApplied() {
 			newMd.buildFilterValue()
