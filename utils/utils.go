@@ -71,17 +71,8 @@ func IsMarkdownFile(filename string) bool {
 
 // GlamourStyle returns a glamour.TermRendererOption based on the given style.
 func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
-	if !isCode {
-		if style == styles.AutoStyle {
-			return glamour.WithAutoStyle()
-		}
-		return glamour.WithStylePath(style)
-	}
-
-	// If we are rendering a pure code block, we need to modify the style to
-	// remove the indentation.
-
 	var styleConfig ansi.StyleConfig
+	var useBuiltinStyle bool
 
 	switch style {
 	case styles.AutoStyle:
@@ -90,24 +81,44 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 		} else {
 			styleConfig = styles.LightStyleConfig
 		}
+		useBuiltinStyle = true
 	case styles.DarkStyle:
 		styleConfig = styles.DarkStyleConfig
+		useBuiltinStyle = true
 	case styles.LightStyle:
 		styleConfig = styles.LightStyleConfig
+		useBuiltinStyle = true
 	case styles.PinkStyle:
 		styleConfig = styles.PinkStyleConfig
+		useBuiltinStyle = true
 	case styles.NoTTYStyle:
 		styleConfig = styles.NoTTYStyleConfig
+		useBuiltinStyle = true
 	case styles.DraculaStyle:
 		styleConfig = styles.DraculaStyleConfig
+		useBuiltinStyle = true
 	case styles.TokyoNightStyle:
 		styleConfig = styles.DraculaStyleConfig
+		useBuiltinStyle = true
 	default:
 		return glamour.WithStylesFromJSONFile(style)
 	}
 
-	var margin uint
-	styleConfig.CodeBlock.Margin = &margin
+	if useBuiltinStyle {
+		// Fix link color for better contrast against H1 background.
+		// The default link colors (e.g. "30" for dark) have poor contrast
+		// against the H1 background color ("63").
+		// Using "123" provides better readability.
+		linkColor := "123"
+		styleConfig.Link.Color = &linkColor
+	}
+
+	if isCode {
+		// If we are rendering a pure code block, we need to modify the style
+		// to remove the indentation.
+		var margin uint
+		styleConfig.CodeBlock.Margin = &margin
+	}
 
 	return glamour.WithStyles(styleConfig)
 }
