@@ -276,7 +276,9 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to read from reader: %w", err)
 	}
 
-	b = utils.RemoveFrontmatter(b)
+	// Convert to UTF-8 (handles UTF-16 LE/BE with BOM)
+	content := utils.ToUTF8String(b)
+	content = string(utils.RemoveFrontmatter([]byte(content)))
 
 	// render
 	var baseURL string
@@ -300,10 +302,9 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to create renderer: %w", err)
 	}
 
-	content := string(b)
 	ext := filepath.Ext(src.URL)
 	if isCode {
-		content = utils.WrapCodeBlock(string(b), ext)
+		content = utils.WrapCodeBlock(content, ext)
 	}
 
 	out, err := r.Render(content)

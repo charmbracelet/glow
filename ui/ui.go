@@ -195,7 +195,9 @@ func (m model) Init() tea.Cmd {
 			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
 			return func() tea.Msg { return errMsg{err} }
 		}
-		body := string(utils.RemoveFrontmatter(content))
+		// Convert to UTF-8 (handles UTF-16 LE/BE with BOM)
+		utf8Content := utils.ToUTF8String(content)
+		body := string(utils.RemoveFrontmatter([]byte(utf8Content)))
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
 	}
 

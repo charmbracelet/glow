@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,7 +13,47 @@ import (
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/text/encoding/unicode"
+	"golang.org/x/text/transform"
 )
+
+// UTF-8 BOM bytes.
+var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
+
+// ToUTF8String converts bytes to a UTF-8 string, handling UTF-16 LE/BE with BOM
+// and UTF-8 with BOM. If no BOM is detected, the bytes are assumed to be UTF-8.
+func ToUTF8String(data []byte) string {
+	if len(data) < 2 {
+		return string(data)
+	}
+
+	// UTF-16 LE BOM: 0xFF 0xFE
+	if data[0] == 0xFF && data[1] == 0xFE {
+		decoder := unicode.UTF16(unicode.LittleEndian, unicode.ExpectBOM).NewDecoder()
+		result, _, err := transform.Bytes(decoder, data)
+		if err == nil {
+			return string(result)
+		}
+		// Fall through to return as-is on error
+	}
+
+	// UTF-16 BE BOM: 0xFE 0xFF
+	if data[0] == 0xFE && data[1] == 0xFF {
+		decoder := unicode.UTF16(unicode.BigEndian, unicode.ExpectBOM).NewDecoder()
+		result, _, err := transform.Bytes(decoder, data)
+		if err == nil {
+			return string(result)
+		}
+		// Fall through to return as-is on error
+	}
+
+	// UTF-8 BOM: 0xEF 0xBB 0xBF - just strip it
+	if bytes.HasPrefix(data, utf8BOM) {
+		return string(data[3:])
+	}
+
+	return string(data)
+}
 
 // RemoveFrontmatter removes the front matter header of a markdown file.
 func RemoveFrontmatter(content []byte) []byte {
