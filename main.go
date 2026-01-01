@@ -289,13 +289,16 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	isCode := !utils.IsMarkdownFile(src.URL)
 
 	// initialize glamour
-	r, err := glamour.NewTermRenderer(
+	options := []glamour.TermRendererOption{
 		glamour.WithColorProfile(lipgloss.ColorProfile()),
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
-		glamour.WithPreservedNewLines(),
-	)
+	}
+	if preserveNewLines {
+		options = append(options, glamour.WithPreservedNewLines())
+	}
+	r, err := glamour.NewTermRenderer(options...)
 	if err != nil {
 		return fmt.Errorf("unable to create renderer: %w", err)
 	}
