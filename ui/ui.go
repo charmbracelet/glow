@@ -31,14 +31,6 @@ var (
 
 // NewProgram returns a new Tea program.
 func NewProgram(cfg Config, content string) *tea.Program {
-	log.Debug(
-		"Starting glow",
-		"high_perf_pager",
-		cfg.HighPerformancePager,
-		"glamour",
-		cfg.GlamourEnabled,
-	)
-
 	config = cfg
 	opts := []tea.ProgramOption{tea.WithAltScreen()}
 	if cfg.EnableMouse {
@@ -216,6 +208,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
+			// If pager has active search or is in search mode, let pager handle Esc first
+			if m.state == stateShowDocument && (m.pager.searchActive || m.pager.state == pagerStateSearch) {
+				// Let the pager handle it - will be processed below
+				break
+			}
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {
 				batch := m.unloadDocument()
 				return m, tea.Batch(batch...)
@@ -378,8 +375,6 @@ func findLocalFiles(m commonModel) tea.Cmd {
 			return errMsg{err}
 		}
 
-		log.Debug("local directory is", "cwd", cwd)
-
 		// Switch between FindFiles and FindAllFiles to bypass .gitignore rules
 		var ch chan gitcha.SearchResult
 		if m.cfg.ShowAllFiles {
@@ -406,7 +401,6 @@ func findNextLocalFile(m model) tea.Cmd {
 			return foundLocalFileMsg(res)
 		}
 		// We're done
-		log.Debug("local file search finished")
 		return localFileSearchFinished{}
 	}
 }

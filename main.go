@@ -455,7 +455,6 @@ func tryLoadConfigFromDefaultPlaces() {
 	}
 
 	if used := viper.ConfigFileUsed(); used != "" {
-		log.Debug("Using configuration file", "path", viper.ConfigFileUsed())
 		return
 	}
 

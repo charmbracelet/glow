@@ -35,6 +35,5 @@ func setupLog() (func() error, error) {
 		return func() error { return nil }, nil //nolint:nilerr
 	}
 	log.SetOutput(f)
-	log.SetLevel(log.DebugLevel)
 	return f.Close, nil
 }
