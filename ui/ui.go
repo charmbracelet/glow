@@ -162,10 +162,14 @@ func newModel(cfg Config, content string) tea.Model {
 		m.state = stateShowStash
 	} else {
 		cwd, _ := os.Getwd()
+		m.common.cwd = cwd
+		if rel, err := filepath.Rel(m.common.cwd, path); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			m.common.cwd = filepath.Dir(path)
+		}
 		m.state = stateShowDocument
 		m.pager.currentDocument = markdown{
 			localPath: path,
-			Note:      stripAbsolutePath(path, cwd),
+			Note:      stripAbsolutePath(path, m.common.cwd),
 			Modtime:   info.ModTime(),
 		}
 		content, err := os.ReadFile(path)
@@ -187,7 +191,22 @@ func (m model) Init() tea.Cmd {
 	case stateShowStash:
 		cmds = append(cmds, findLocalFiles(*m.common))
 	case stateShowDocument:
-		cmds = append(cmds, renderWithGlamour(m.pager, m.pager.currentDocument.Body))
+		content, err := os.ReadFile(m.common.cfg.Path)
+		if err != nil {
+			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
+			return func() tea.Msg { return errMsg{err} }
+		}
+		body := string(utils.RemoveFrontmatter(content))
+		m.pager.currentDocument.Body = body
+		if m.pager.currentDocument.localPath != "" && m.common.cwd != "" {
+			links, err := followableLinksForDocument(m.common.cwd, m.pager.currentDocument.localPath, body)
+			if err != nil {
+				log.Debug("error extracting followable links", "error", err)
+			}
+			m.pager.links = links
+			m.pager.focusedLink = -1
+		}
+		cmds = append(cmds, renderWithGlamour(m.pager, body))
 	}
 
 	return tea.Batch(cmds...)
@@ -270,6 +289,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// We've loaded a markdown file's contents for rendering
 		m.pager.currentDocument = *msg
 		body := string(utils.RemoveFrontmatter([]byte(msg.Body)))
+		m.pager.currentDocument.Body = body
+		if m.pager.currentDocument.localPath != "" && m.common.cwd != "" {
+			links, err := followableLinksForDocument(m.common.cwd, m.pager.currentDocument.localPath, body)
+			if err != nil {
+				log.Debug("error extracting followable links", "error", err)
+			}
+			m.pager.links = links
+			m.pager.focusedLink = -1
+		} else {
+			m.pager.links = nil
+			m.pager.focusedLink = -1
+		}
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
 
 	case contentRenderedMsg:
