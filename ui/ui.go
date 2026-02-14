@@ -172,10 +172,14 @@ func newModel(cfg Config, content string) tea.Model {
 		m.state = stateShowStash
 	} else {
 		cwd, _ := os.Getwd()
+		m.common.cwd = cwd
+		if rel, err := filepath.Rel(m.common.cwd, path); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			m.common.cwd = filepath.Dir(path)
+		}
 		m.state = stateShowDocument
 		m.pager.currentDocument = markdown{
 			localPath: path,
-			Note:      stripAbsolutePath(path, cwd),
+			Note:      stripAbsolutePath(path, m.common.cwd),
 			Modtime:   info.ModTime(),
 		}
 	}
@@ -196,6 +200,15 @@ func (m model) Init() tea.Cmd {
 			return func() tea.Msg { return errMsg{err} }
 		}
 		body := string(utils.RemoveFrontmatter(content))
+		m.pager.currentDocument.Body = body
+		if m.pager.currentDocument.localPath != "" && m.common.cwd != "" {
+			links, err := followableLinksForDocument(m.common.cwd, m.pager.currentDocument.localPath, body)
+			if err != nil {
+				log.Debug("error extracting followable links", "error", err)
+			}
+			m.pager.links = links
+			m.pager.focusedLink = -1
+		}
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
 	}
 
@@ -276,6 +289,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// We've loaded a markdown file's contents for rendering
 		m.pager.currentDocument = *msg
 		body := string(utils.RemoveFrontmatter([]byte(msg.Body)))
+		m.pager.currentDocument.Body = body
+		if m.pager.currentDocument.localPath != "" && m.common.cwd != "" {
+			links, err := followableLinksForDocument(m.common.cwd, m.pager.currentDocument.localPath, body)
+			if err != nil {
+				log.Debug("error extracting followable links", "error", err)
+			}
+			m.pager.links = links
+			m.pager.focusedLink = -1
+		} else {
+			m.pager.links = nil
+			m.pager.focusedLink = -1
+		}
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
 
 	case contentRenderedMsg:
