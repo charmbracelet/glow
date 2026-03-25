@@ -150,16 +150,16 @@ func sourceFromArg(arg string) (*source, error) {
 
 // validateStyle checks if the style is a default style, if not, checks that
 // the custom style exists.
-func validateStyle(style string) error {
+func validateStyle(style string) (string, error) {
 	if style != "auto" && styles.DefaultStyles[style] == nil {
 		style = utils.ExpandPath(style)
 		if _, err := os.Stat(style); errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("specified style does not exist: %s", style)
+			return style, fmt.Errorf("specified style does not exist: %s", style)
 		} else if err != nil {
-			return fmt.Errorf("unable to stat file: %w", err)
+			return style, fmt.Errorf("unable to stat file: %w", err)
 		}
 	}
-	return nil
+	return style, nil
 }
 
 func validateOptions(cmd *cobra.Command) error {
@@ -178,7 +178,8 @@ func validateOptions(cmd *cobra.Command) error {
 
 	// validate the glamour style
 	style = viper.GetString("style")
-	if err := validateStyle(style); err != nil {
+	var err error
+	if style, err = validateStyle(style); err != nil {
 		return err
 	}
 
@@ -349,8 +350,10 @@ func runTUI(path string, content string) error {
 	}
 
 	// use style set in env, or auto if unset
-	if err := validateStyle(cfg.GlamourStyle); err != nil {
+	if s, err := validateStyle(cfg.GlamourStyle); err != nil {
 		cfg.GlamourStyle = style
+	} else {
+		cfg.GlamourStyle = s
 	}
 
 	cfg.Path = path
