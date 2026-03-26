@@ -23,6 +23,8 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# render mermaid diagrams as ASCII art
+mermaid: true
 `
 
 var configCmd = &cobra.Command{
