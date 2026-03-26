@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/glow/v2/mermaid"
 	"github.com/charmbracelet/glow/v2/utils"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
@@ -447,6 +448,8 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	if isCode {
 		markdown = utils.WrapCodeBlock(markdown, filepath.Ext(m.currentDocument.Note))
+	} else {
+		markdown = mermaid.Process(markdown, m.common.cfg.MermaidEnabled)
 	}
 
 	out, err := r.Render(markdown)

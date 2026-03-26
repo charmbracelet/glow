@@ -10,6 +10,7 @@ type Config struct {
 	GlamourStyle     string `env:"GLAMOUR_STYLE"`
 	EnableMouse      bool
 	PreserveNewLines bool
+	MermaidEnabled   bool
 
 	// Working directory or file path
 	Path string
