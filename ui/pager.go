@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
@@ -87,6 +88,7 @@ type pagerState int
 const (
 	pagerStateBrowse pagerState = iota
 	pagerStateStatusMessage
+	pagerStateSearch
 )
 
 type pagerModel struct {
@@ -103,6 +105,12 @@ type pagerModel struct {
 	currentDocument markdown
 
 	watcher *fsnotify.Watcher
+
+	// Search
+	searchInput       textinput.Model
+	searchMatches     []int // line numbers (0-indexed) where matches occur
+	currentMatchIndex int   // index into searchMatches
+	lastSearchQuery   string
 }
 
 func newPagerModel(common *commonModel) pagerModel {
@@ -111,10 +119,17 @@ func newPagerModel(common *commonModel) pagerModel {
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
 
+	si := textinput.New()
+	si.Prompt = "/"
+	si.PromptStyle = lipgloss.NewStyle().Foreground(mintGreen)
+	si.CharLimit = 256
+
 	m := pagerModel{
-		common:   common,
-		state:    pagerStateBrowse,
-		viewport: vp,
+		common:            common,
+		state:             pagerStateBrowse,
+		viewport:          vp,
+		searchInput:       si,
+		currentMatchIndex: -1,
 	}
 	m.initWatcher()
 	return m
@@ -186,12 +201,78 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Handle search input mode separately
+		if m.state == pagerStateSearch {
+			switch msg.String() {
+			case keyEnter:
+				query := m.searchInput.Value()
+				if query != "" {
+					m.lastSearchQuery = query
+					m.performSearch(query)
+					if len(m.searchMatches) > 0 {
+						m.currentMatchIndex = 0
+						m.gotoMatch(m.currentMatchIndex)
+						cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{
+							fmt.Sprintf("Match %d of %d", m.currentMatchIndex+1, len(m.searchMatches)),
+							false,
+						}))
+					} else {
+						cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{
+							fmt.Sprintf("Pattern not found: %s", query),
+							true,
+						}))
+					}
+				}
+				m.state = pagerStateBrowse
+				m.searchInput.Blur()
+				return m, tea.Batch(cmds...)
+			case keyEsc:
+				m.state = pagerStateBrowse
+				m.searchInput.Blur()
+				return m, nil
+			default:
+				m.searchInput, cmd = m.searchInput.Update(msg)
+				cmds = append(cmds, cmd)
+				return m, tea.Batch(cmds...)
+			}
+		}
+
 		switch msg.String() {
 		case "q", keyEsc:
 			if m.state != pagerStateBrowse {
 				m.state = pagerStateBrowse
 				return m, nil
 			}
+
+		case "/":
+			m.state = pagerStateSearch
+			m.searchInput.SetValue("")
+			m.searchInput.Focus()
+			return m, textinput.Blink
+
+		case "n":
+			if m.lastSearchQuery != "" && len(m.searchMatches) > 0 {
+				m.currentMatchIndex = (m.currentMatchIndex + 1) % len(m.searchMatches)
+				m.gotoMatch(m.currentMatchIndex)
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{
+					fmt.Sprintf("Match %d of %d", m.currentMatchIndex+1, len(m.searchMatches)),
+					false,
+				}))
+			}
+
+		case "N":
+			if m.lastSearchQuery != "" && len(m.searchMatches) > 0 {
+				m.currentMatchIndex--
+				if m.currentMatchIndex < 0 {
+					m.currentMatchIndex = len(m.searchMatches) - 1
+				}
+				m.gotoMatch(m.currentMatchIndex)
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{
+					fmt.Sprintf("Match %d of %d", m.currentMatchIndex+1, len(m.searchMatches)),
+					false,
+				}))
+			}
+
 		case "home", "g":
 			m.viewport.GotoTop()
 			if m.viewport.HighPerformanceRendering {
@@ -283,8 +364,13 @@ func (m pagerModel) View() string {
 	var b strings.Builder
 	fmt.Fprint(&b, m.viewport.View()+"\n")
 
-	// Footer
-	m.statusBarView(&b)
+	if m.state == pagerStateSearch {
+		// Show search input in place of status bar
+		fmt.Fprint(&b, m.searchInput.View())
+	} else {
+		// Footer
+		m.statusBarView(&b)
+	}
 
 	if m.showHelp {
 		fmt.Fprint(&b, "\n"+m.helpView())
@@ -372,6 +458,8 @@ func (m pagerModel) helpView() (s string) {
 		"c       copy contents",
 		"e       edit this document",
 		"r       reload this document",
+		"/       search",
+		"n/N     next/prev match",
 		"esc     back to files",
 		"q       quit",
 	}
@@ -382,10 +470,12 @@ func (m pagerModel) helpView() (s string) {
 	s += "b/pgup   page up             " + col1[2] + "\n"
 	s += "f/pgdn   page down           " + col1[3] + "\n"
 	s += "u        ½ page up           " + col1[4] + "\n"
-	s += "d        ½ page down         "
+	s += "d        ½ page down         " + col1[5] + "\n"
+	s += "                             " + col1[6] + "\n"
+	s += "                             "
 
-	if len(col1) > 5 {
-		s += col1[5]
+	if len(col1) > 7 {
+		s += col1[7]
 	}
 
 	s = indent(s, 2)
@@ -403,6 +493,54 @@ func (m pagerModel) helpView() (s string) {
 	}
 
 	return helpViewStyle(s)
+}
+
+// performSearch searches the viewport content for the given query
+// (case-insensitive) and populates searchMatches with matching line numbers.
+func (m *pagerModel) performSearch(query string) {
+	m.searchMatches = nil
+	m.currentMatchIndex = -1
+
+	content := m.viewport.View()
+	lines := strings.Split(content, "\n")
+	lowerQuery := strings.ToLower(query)
+
+	for i, line := range lines {
+		// Strip ANSI escape sequences for matching
+		stripped := stripAnsi(line)
+		if strings.Contains(strings.ToLower(stripped), lowerQuery) {
+			m.searchMatches = append(m.searchMatches, i)
+		}
+	}
+}
+
+// gotoMatch scrolls the viewport to the line of the given match index.
+func (m *pagerModel) gotoMatch(index int) {
+	if index < 0 || index >= len(m.searchMatches) {
+		return
+	}
+	lineNum := m.searchMatches[index]
+	m.viewport.SetYOffset(lineNum)
+}
+
+// stripAnsi removes ANSI escape sequences from a string for plain-text matching.
+func stripAnsi(s string) string {
+	var result strings.Builder
+	inEscape := false
+	for _, r := range s {
+		if r == '\x1b' {
+			inEscape = true
+			continue
+		}
+		if inEscape {
+			if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || r == '~' {
+				inEscape = false
+			}
+			continue
+		}
+		result.WriteRune(r)
+	}
+	return result.String()
 }
 
 // COMMANDS
