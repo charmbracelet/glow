@@ -319,7 +319,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 			pagerCmd = "less -r"
 		}
 
-		pa := strings.Split(pagerCmd, " ")
+		pa := parsePagerCommand(pagerCmd)
 		c := exec.Command(pa[0], pa[1:]...) //nolint:gosec
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
@@ -421,6 +421,41 @@ func init() {
 	viper.SetDefault("all", true)
 
 	rootCmd.AddCommand(configCmd, manCmd)
+}
+
+// parsePagerCommand splits a pager command string into executable and arguments,
+// handling quoted paths that contain spaces (e.g. "C:\Program Files\Git\usr\bin\less.exe" -r).
+func parsePagerCommand(cmd string) []string {
+	var parts []string
+	var current strings.Builder
+	inQuote := false
+	quoteChar := byte(0)
+
+	for i := 0; i < len(cmd); i++ {
+		ch := cmd[i]
+		switch {
+		case !inQuote && (ch == '"' || ch == '\''):
+			inQuote = true
+			quoteChar = ch
+		case inQuote && ch == quoteChar:
+			inQuote = false
+		case !inQuote && ch == ' ':
+			if current.Len() > 0 {
+				parts = append(parts, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteByte(ch)
+		}
+	}
+	if current.Len() > 0 {
+		parts = append(parts, current.String())
+	}
+
+	if len(parts) == 0 {
+		return []string{"less", "-r"}
+	}
+	return parts
 }
 
 func tryLoadConfigFromDefaultPlaces() {
