@@ -225,6 +225,16 @@ func execute(cmd *cobra.Command, args []string) error {
 	if yes, err := stdinIsPipe(); err != nil {
 		return err
 	} else if yes {
+		// If the user explicitly requested TUI mode, read stdin content
+		// and display it in the TUI instead of plain CLI output.
+		if tui || cmd.Flags().Changed("tui") {
+			b, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("unable to read from stdin: %w", err)
+			}
+			content := string(utils.RemoveFrontmatter(b))
+			return runTUI("", content)
+		}
 		src := &source{reader: os.Stdin}
 		defer src.reader.Close() //nolint:errcheck
 		return executeCLI(cmd, src, os.Stdout)
