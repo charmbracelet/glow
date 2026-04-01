@@ -248,7 +248,19 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case contentRenderedMsg:
 		log.Info("content rendered", "state", m.state)
 
+		// Preserve scroll position when re-rendering (e.g., after reload)
+		prevOffset := m.viewport.YOffset
 		m.setContent(string(msg))
+		if prevOffset > 0 {
+			maxOffset := m.viewport.TotalLineCount() - m.viewport.Height
+			if maxOffset < 0 {
+				maxOffset = 0
+			}
+			if prevOffset > maxOffset {
+				prevOffset = maxOffset
+			}
+			m.viewport.YOffset = prevOffset
+		}
 		if m.viewport.HighPerformanceRendering {
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
