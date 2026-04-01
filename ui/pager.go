@@ -184,38 +184,41 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	km := m.common.cfg.KeyMap
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", keyEsc:
+		key := msg.String()
+		switch {
+		case key == "q" || key == keyEsc:
 			if m.state != pagerStateBrowse {
 				m.state = pagerStateBrowse
 				return m, nil
 			}
-		case "home", "g":
+		case matchesKey(key, km.GoToTop):
 			m.viewport.GotoTop()
 			if m.viewport.HighPerformanceRendering {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
-		case "end", "G":
+		case matchesKey(key, km.GoToEnd):
 			m.viewport.GotoBottom()
 			if m.viewport.HighPerformanceRendering {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 
-		case "d":
+		case matchesKey(key, km.HalfDown):
 			m.viewport.HalfViewDown()
 			if m.viewport.HighPerformanceRendering {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 
-		case "u":
+		case matchesKey(key, km.HalfUp):
 			m.viewport.HalfViewUp()
 			if m.viewport.HighPerformanceRendering {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 
-		case "e":
+		case matchesKey(key, km.Edit):
 			lineno := int(math.RoundToEven(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
 			if m.viewport.AtTop() {
 				lineno = 0
@@ -227,17 +230,17 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			)
 			return m, openEditor(m.currentDocument.localPath, lineno)
 
-		case "c":
+		case matchesKey(key, km.Copy):
 			// Copy using OSC 52
 			termenv.Copy(m.currentDocument.Body)
 			// Copy using native system clipboard
 			_ = clipboard.WriteAll(m.currentDocument.Body)
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Copied contents", false}))
 
-		case "r":
+		case matchesKey(key, km.Reload):
 			return m, loadLocalMarkdown(&m.currentDocument)
 
-		case "?":
+		case matchesKey(key, km.Help):
 			m.toggleHelp()
 			if m.viewport.HighPerformanceRendering {
 				cmds = append(cmds, viewport.Sync(m.viewport))

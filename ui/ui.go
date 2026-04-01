@@ -212,15 +212,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmds []tea.Cmd
 
+	km := m.common.cfg.KeyMap
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc":
+		key := msg.String()
+		switch {
+		case key == "esc":
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {
 				batch := m.unloadDocument()
 				return m, tea.Batch(batch...)
 			}
-		case "r":
+		case matchesKey(key, km.Reload):
 			var cmd tea.Cmd
 			if m.state == stateShowStash {
 				// pass through all keys if we're editing the filter
@@ -232,7 +235,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.Init()
 			}
 
-		case "q":
+		case matchesKey(key, km.Quit):
 			var cmd tea.Cmd
 
 			switch m.state { //nolint:exhaustive
@@ -246,17 +249,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, tea.Quit
 
-		case "left", "h", "delete":
+		case matchesKey(key, km.Back):
 			if m.state == stateShowDocument {
 				cmds = append(cmds, m.unloadDocument()...)
 				return m, tea.Batch(cmds...)
 			}
 
-		case "ctrl+z":
+		case key == "ctrl+z":
 			return m, tea.Suspend
 
 		// Ctrl+C always quits no matter where in the application you are.
-		case "ctrl+c":
+		case key == "ctrl+c":
 			return m, tea.Quit
 		}
 

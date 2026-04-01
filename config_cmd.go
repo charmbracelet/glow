@@ -23,6 +23,24 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# custom key mappings (uncomment and modify to remap keys)
+# keymap:
+#   up: ["k", "up"]
+#   down: ["j", "down"]
+#   pageUp: ["b", "pgup"]
+#   pageDown: ["f", "pgdn"]
+#   halfUp: ["u"]
+#   halfDown: ["d"]
+#   goToTop: ["home", "g"]
+#   goToEnd: ["end", "G"]
+#   quit: ["q"]
+#   back: ["esc", "left", "h", "delete"]
+#   help: ["?"]
+#   edit: ["e"]
+#   copy: ["c"]
+#   reload: ["r"]
+#   open: ["enter"]
+#   filter: ["/"]
 `
 
 var configCmd = &cobra.Command{

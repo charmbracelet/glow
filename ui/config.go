@@ -14,6 +14,9 @@ type Config struct {
 	// Working directory or file path
 	Path string
 
+	// Custom key bindings
+	KeyMap KeyMap
+
 	// For debugging the UI
 	HighPerformancePager bool `env:"GLOW_HIGH_PERFORMANCE_PAGER" envDefault:"true"`
 	GlamourEnabled       bool `env:"GLOW_ENABLE_GLAMOUR"         envDefault:"true"`
