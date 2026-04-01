@@ -14,6 +14,10 @@ type Config struct {
 	// Working directory or file path
 	Path string
 
+	// InitialFiles is an optional list of file paths to display in the TUI,
+	// provided via stdin with --file-list flag.
+	InitialFiles []string
+
 	// For debugging the UI
 	HighPerformancePager bool `env:"GLOW_HIGH_PERFORMANCE_PAGER" envDefault:"true"`
 	GlamourEnabled       bool `env:"GLOW_ENABLE_GLAMOUR"         envDefault:"true"`

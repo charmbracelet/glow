@@ -188,7 +188,11 @@ func (m model) Init() tea.Cmd {
 
 	switch m.state {
 	case stateShowStash:
-		cmds = append(cmds, findLocalFiles(*m.common))
+		if len(m.common.cfg.InitialFiles) > 0 {
+			cmds = append(cmds, loadInitialFiles(*m.common))
+		} else {
+			cmds = append(cmds, findLocalFiles(*m.common))
+		}
 	case stateShowDocument:
 		content, err := os.ReadFile(m.common.cfg.Path)
 		if err != nil {
@@ -408,6 +412,42 @@ func findNextLocalFile(m model) tea.Cmd {
 		// We're done
 		log.Debug("local file search finished")
 		return localFileSearchFinished{}
+	}
+}
+
+func loadInitialFiles(m commonModel) tea.Cmd {
+	return func() tea.Msg {
+		cwd, err := os.Getwd()
+		if err != nil {
+			log.Error("error getting cwd", "error", err)
+			return errMsg{err}
+		}
+
+		ch := make(chan gitcha.SearchResult, len(m.cfg.InitialFiles))
+		go func() {
+			defer close(ch)
+			for _, f := range m.cfg.InitialFiles {
+				absPath, err := filepath.Abs(f)
+				if err != nil {
+					log.Debug("skipping invalid path", "path", f, "error", err)
+					continue
+				}
+				info, err := os.Stat(absPath)
+				if err != nil {
+					log.Debug("skipping inaccessible file", "path", absPath, "error", err)
+					continue
+				}
+				if info.IsDir() {
+					continue
+				}
+				ch <- gitcha.SearchResult{
+					Path: absPath,
+					Info: info,
+				}
+			}
+		}()
+
+		return initLocalFileSearchMsg{ch: ch, cwd: cwd}
 	}
 }
 

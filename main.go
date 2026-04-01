@@ -42,6 +42,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	fileList         bool
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -225,6 +226,23 @@ func execute(cmd *cobra.Command, args []string) error {
 	if yes, err := stdinIsPipe(); err != nil {
 		return err
 	} else if yes {
+		// If --file-list is set, read file paths from stdin and show
+		// them in the TUI file listing.
+		if fileList {
+			b, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("unable to read file list from stdin: %w", err)
+			}
+			paths := strings.Split(strings.TrimSpace(string(b)), "\n")
+			var validPaths []string
+			for _, p := range paths {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					validPaths = append(validPaths, p)
+				}
+			}
+			return runTUIWithFiles(validPaths)
+		}
 		src := &source{reader: os.Stdin}
 		defer src.reader.Close() //nolint:errcheck
 		return executeCLI(cmd, src, os.Stdout)
@@ -341,6 +359,30 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 }
 
+func runTUIWithFiles(files []string) error {
+	cfg, err := env.ParseAs[ui.Config]()
+	if err != nil {
+		return fmt.Errorf("error parsing config: %v", err)
+	}
+
+	if err := validateStyle(cfg.GlamourStyle); err != nil {
+		cfg.GlamourStyle = style
+	}
+
+	cfg.ShowAllFiles = showAllFiles
+	cfg.ShowLineNumbers = showLineNumbers
+	cfg.GlamourMaxWidth = width
+	cfg.EnableMouse = mouse
+	cfg.PreserveNewLines = preserveNewLines
+	cfg.InitialFiles = files
+
+	if _, err := ui.NewProgram(cfg, "").Run(); err != nil {
+		return fmt.Errorf("unable to run tui program: %w", err)
+	}
+
+	return nil
+}
+
 func runTUI(path string, content string) error {
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
@@ -404,6 +446,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
+	rootCmd.Flags().BoolVar(&fileList, "file-list", false, "read a list of file paths from stdin (one per line) for TUI mode")
 
 	// Config bindings
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
