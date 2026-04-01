@@ -276,6 +276,15 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to read from reader: %w", err)
 	}
 
+	// Convert HTML to markdown if the source is an HTML file or has HTML content
+	if utils.IsHTMLFile(src.URL) || utils.IsHTMLContent(string(b)) {
+		converted, convErr := utils.ConvertHTMLToMarkdown(string(b))
+		if convErr != nil {
+			return fmt.Errorf("unable to convert HTML to markdown: %w", convErr)
+		}
+		b = []byte(converted)
+	}
+
 	b = utils.RemoveFrontmatter(b)
 
 	// render
@@ -286,7 +295,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		baseURL = u.String() + "/"
 	}
 
-	isCode := !utils.IsMarkdownFile(src.URL)
+	// HTML files are converted to markdown above, so treat them as markdown
+	isCode := !utils.IsMarkdownFile(src.URL) && !utils.IsHTMLFile(src.URL)
 
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(

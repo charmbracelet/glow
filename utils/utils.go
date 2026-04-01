@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/ansi"
 	"github.com/charmbracelet/glamour/styles"
@@ -43,6 +44,38 @@ func ExpandPath(path string) string {
 // WrapCodeBlock wraps a string in a code block with the given language.
 func WrapCodeBlock(s, language string) string {
 	return "```" + language + "\n" + s + "```"
+}
+
+var htmlExtensions = []string{
+	".html", ".htm", ".xhtml",
+}
+
+// IsHTMLFile returns whether the filename has an HTML extension.
+func IsHTMLFile(filename string) bool {
+	ext := filepath.Ext(filename)
+	for _, v := range htmlExtensions {
+		if strings.EqualFold(ext, v) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsHTMLContent checks if the content appears to be HTML by looking for
+// common HTML tags at the beginning.
+func IsHTMLContent(content string) bool {
+	trimmed := strings.TrimSpace(content)
+	lower := strings.ToLower(trimmed)
+	return strings.HasPrefix(lower, "<!doctype html") ||
+		strings.HasPrefix(lower, "<html") ||
+		strings.HasPrefix(lower, "<head") ||
+		strings.HasPrefix(lower, "<body")
+}
+
+// ConvertHTMLToMarkdown converts HTML content to markdown using
+// html-to-markdown.
+func ConvertHTMLToMarkdown(html string) (string, error) {
+	return htmltomarkdown.ConvertString(html)
 }
 
 var markdownExtensions = []string{
