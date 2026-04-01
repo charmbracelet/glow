@@ -4,9 +4,12 @@
 package ui
 
 func ignorePatterns(m commonModel) []string {
-	return []string{
+	patterns := []string{
 		m.cfg.Gopath,
 		"node_modules",
-		".*",
 	}
+	if !m.cfg.ShowHiddenFiles {
+		patterns = append(patterns, ".*")
+	}
+	return patterns
 }

@@ -23,6 +23,8 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# show hidden (dot) files and directories while still respecting .gitignore.
+showHidden: false
 `
 
 var configCmd = &cobra.Command{
