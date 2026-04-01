@@ -42,6 +42,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	clearScreen      bool
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -169,6 +170,7 @@ func validateOptions(cmd *cobra.Command) error {
 	pager = viper.GetBool("pager")
 	tui = viper.GetBool("tui")
 	showAllFiles = viper.GetBool("all")
+	clearScreen = viper.GetBool("clear")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
 
@@ -311,6 +313,11 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to render markdown: %w", err)
 	}
 
+	// Clear screen before displaying if requested (similar to less -c)
+	if clearScreen {
+		fmt.Fprint(os.Stdout, "\033[2J\033[H") //nolint:errcheck
+	}
+
 	// display
 	switch {
 	case pager || cmd.Flags().Changed("pager"):
@@ -404,6 +411,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
+	rootCmd.Flags().BoolVarP(&clearScreen, "clear", "c", false, "clear the screen before rendering (like less -c)")
 
 	// Config bindings
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
@@ -415,6 +423,7 @@ func init() {
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
+	_ = viper.BindPFlag("clear", rootCmd.Flags().Lookup("clear"))
 
 	viper.SetDefault("style", styles.AutoStyle)
 	viper.SetDefault("width", 0)
