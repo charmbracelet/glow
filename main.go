@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
@@ -319,12 +320,16 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 			pagerCmd = "less -r"
 		}
 
-		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...) //nolint:gosec
+		var c *exec.Cmd
+		if runtime.GOOS == "windows" {
+			c = exec.Command("cmd", "/c", pagerCmd) //nolint:gosec
+		} else {
+			c = exec.Command("sh", "-c", pagerCmd) //nolint:gosec
+		}
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
 		if err := c.Run(); err != nil {
-			return fmt.Errorf("unable to run command: %w", err)
+			return fmt.Errorf("unable to run pager command: %w", err)
 		}
 		return nil
 	case tui || cmd.Flags().Changed("tui"):
