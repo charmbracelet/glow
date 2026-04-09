@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"mvdan.cc/sh/v3/shell"
+
 	"github.com/caarlos0/env/v11"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/styles"
@@ -319,8 +321,11 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 			pagerCmd = "less -r"
 		}
 
-		pa := strings.Split(pagerCmd, " ")
-		c := exec.Command(pa[0], pa[1:]...) //nolint:gosec
+		fields, err := shell.Fields(pagerCmd, os.Getenv)
+		if err != nil || len(fields) == 0 {
+			return fmt.Errorf("unable to parse PAGER command: %s", pagerCmd)
+		}
+		c := exec.Command(fields[0], fields[1:]...) //nolint:gosec
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
 		if err := c.Run(); err != nil {
