@@ -190,7 +190,7 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	// Detect terminal width
-	if !cmd.Flags().Changed("width") && !viper.IsSet("width") { //nolint:nestif
+	if !cmd.Flags().Changed("width") && !viper.InConfig("width") { //nolint:nestif
 		if isTerminal && width == 0 {
 			w, _, err := term.GetSize(int(os.Stdout.Fd()))
 			if err == nil {
