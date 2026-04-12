@@ -48,6 +48,11 @@ xbps-install -S glow
 ```
 
 ```bash
+# Mise https://github.com/jdx/mise
+mise -g glow@latest
+```
+
+```bash
 # Nix shell
 nix-shell -p glow --command glow
 ```
