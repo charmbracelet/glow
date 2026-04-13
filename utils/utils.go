@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,7 +13,37 @@ import (
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mitchellh/go-homedir"
+	"golang.org/x/text/encoding/unicode"
 )
+
+var (
+	utf8BOM    = []byte{0xEF, 0xBB, 0xBF}
+	utf16LEBOM = []byte{0xFF, 0xFE}
+	utf16BEBOM = []byte{0xFE, 0xFF}
+)
+
+// ToUTF8 converts UTF-16 LE/BE encoded bytes (detected via BOM) to UTF-8.
+// If the input is already UTF-8 (with or without BOM), it is returned as-is
+// (with the BOM stripped if present).
+func ToUTF8(b []byte) []byte {
+	switch {
+	case bytes.HasPrefix(b, utf8BOM):
+		return b[len(utf8BOM):]
+	case bytes.HasPrefix(b, utf16LEBOM):
+		dec := unicode.UTF16(unicode.LittleEndian, unicode.ExpectBOM).NewDecoder()
+		out, err := dec.Bytes(b)
+		if err == nil {
+			return out
+		}
+	case bytes.HasPrefix(b, utf16BEBOM):
+		dec := unicode.UTF16(unicode.BigEndian, unicode.ExpectBOM).NewDecoder()
+		out, err := dec.Bytes(b)
+		if err == nil {
+			return out
+		}
+	}
+	return b
+}
 
 // RemoveFrontmatter removes the front matter header of a markdown file.
 func RemoveFrontmatter(content []byte) []byte {

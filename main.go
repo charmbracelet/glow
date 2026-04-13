@@ -278,6 +278,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to read from reader: %w", err)
 	}
 
+	b = utils.ToUTF8(b)
 	b = utils.RemoveFrontmatter(b)
 
 	// render
