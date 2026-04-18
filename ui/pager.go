@@ -109,7 +109,6 @@ func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
 	vp := viewport.New(0, 0)
 	vp.YPosition = 0
-	vp.HighPerformanceRendering = config.HighPerformancePager
 
 	m := pagerModel{
 		common:   common,
@@ -194,26 +193,14 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 		case "home", "g":
 			m.viewport.GotoTop()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
 		case "end", "G":
 			m.viewport.GotoBottom()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
 
 		case "d":
-			m.viewport.HalfViewDown()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+			m.viewport.HalfPageDown()
 
 		case "u":
-			m.viewport.HalfViewUp()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+			m.viewport.HalfPageUp()
 
 		case "e":
 			lineno := int(math.RoundToEven(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
@@ -239,9 +226,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 		case "?":
 			m.toggleHelp()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
 		}
 
 	// Glow has rendered the content
@@ -249,9 +233,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		log.Info("content rendered", "state", m.state)
 
 		m.setContent(string(msg))
-		if m.viewport.HighPerformanceRendering {
-			cmds = append(cmds, viewport.Sync(m.viewport))
-		}
 		cmds = append(cmds, m.watchFile)
 
 	// The file was changed on disk and we're reloading it
