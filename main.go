@@ -23,6 +23,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	gap "github.com/muesli/go-app-paths"
+	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
@@ -210,6 +211,19 @@ func validateOptions(cmd *cobra.Command) error {
 	return nil
 }
 
+func chromaFormatter(p termenv.Profile) string {
+	switch p {
+	case termenv.TrueColor:
+		return "terminal16m"
+	case termenv.ANSI256:
+		return "terminal256"
+	case termenv.ANSI:
+		return "terminal16"
+	default:
+		return "terminal"
+	}
+}
+
 func stdinIsPipe() (bool, error) {
 	stat, err := os.Stdin.Stat()
 	if err != nil {
@@ -291,8 +305,10 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	isCode := !utils.IsMarkdownFile(src.URL)
 
 	// initialize glamour
+	colorProfile := lipgloss.ColorProfile()
 	r, err := glamour.NewTermRenderer(
-		glamour.WithColorProfile(lipgloss.ColorProfile()),
+		glamour.WithColorProfile(colorProfile),
+		glamour.WithChromaFormatter(chromaFormatter(colorProfile)),
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
