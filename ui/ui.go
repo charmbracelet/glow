@@ -95,6 +95,9 @@ type commonModel struct {
 	cwd    string
 	width  int
 	height int
+
+	// pendingBody holds markdown content to render once the window size is known.
+	pendingBody *string
 }
 
 type model struct {
@@ -196,7 +199,7 @@ func (m model) Init() tea.Cmd {
 			return func() tea.Msg { return errMsg{err} }
 		}
 		body := string(utils.RemoveFrontmatter(content))
-		cmds = append(cmds, renderWithGlamour(m.pager, body))
+		m.common.pendingBody = &body
 	}
 
 	return tea.Batch(cmds...)
@@ -266,6 +269,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.common.height = msg.Height
 		m.stash.setSize(msg.Width, msg.Height)
 		m.pager.setSize(msg.Width, msg.Height)
+		if m.common.pendingBody != nil {
+			m.pager.currentDocument.Body = *m.common.pendingBody
+			m.common.pendingBody = nil
+		}
 
 	case initLocalFileSearchMsg:
 		m.localFileFinder = msg.ch
