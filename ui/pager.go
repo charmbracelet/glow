@@ -89,6 +89,11 @@ const (
 	pagerStateStatusMessage
 )
 
+type navEntry struct {
+	Path    string
+	YOffset int
+}
+
 type pagerModel struct {
 	common   *commonModel
 	viewport viewport.Model
@@ -102,19 +107,29 @@ type pagerModel struct {
 	// it here so we can re-render it on resize.
 	currentDocument markdown
 
-	watcher *fsnotify.Watcher
+	rendered string
+
+	links       []followableLink
+	focusedLink int
+	history     []navEntry
+
+	pendingRestoreYOffset *int
+
+	watcher     *fsnotify.Watcher
+	watchedDir  string
+	watchCancel chan struct{}
 }
 
 func newPagerModel(common *commonModel) pagerModel {
-	// Init viewport
 	vp := viewport.New(0, 0)
 	vp.YPosition = 0
-	vp.HighPerformanceRendering = config.HighPerformancePager
+	vp.HighPerformanceRendering = common.cfg.HighPerformancePager
 
 	m := pagerModel{
-		common:   common,
-		state:    pagerStateBrowse,
-		viewport: vp,
+		common:      common,
+		state:       pagerStateBrowse,
+		viewport:    vp,
+		focusedLink: -1,
 	}
 	m.initWatcher()
 	return m
@@ -134,6 +149,14 @@ func (m *pagerModel) setSize(w, h int) {
 
 func (m *pagerModel) setContent(s string) {
 	m.viewport.SetContent(s)
+}
+
+func (m *pagerModel) applyRenderedContent() {
+	content := m.rendered
+	if m.focusedLink >= 0 {
+		content = highlightFocusedLink(content, m.links, m.focusedLink)
+	}
+	m.setContent(content)
 }
 
 func (m *pagerModel) toggleHelp() {
@@ -175,7 +198,12 @@ func (m *pagerModel) unload() {
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
 	m.viewport.YOffset = 0
-	m.unwatchFile()
+	m.rendered = ""
+	m.links = nil
+	m.focusedLink = -1
+	m.history = nil
+	m.pendingRestoreYOffset = nil
+	m.stopWatching()
 }
 
 func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
@@ -192,26 +220,56 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				m.state = pagerStateBrowse
 				return m, nil
 			}
+		case keyTab:
+			if len(m.links) == 0 {
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"No followable links", false}))
+				break
+			}
+			if m.focusedLink < 0 {
+				m.focusedLink = 0
+			} else {
+				m.focusedLink = (m.focusedLink + 1) % len(m.links)
+			}
+			m.applyRenderedContent()
+			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Open: " + m.links[m.focusedLink].ResolvedNote, false}))
+		case keyShiftTab, "backtab":
+			if len(m.links) == 0 {
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"No followable links", false}))
+				break
+			}
+			if m.focusedLink < 0 {
+				m.focusedLink = len(m.links) - 1
+			} else {
+				m.focusedLink--
+				if m.focusedLink < 0 {
+					m.focusedLink = len(m.links) - 1
+				}
+			}
+			m.applyRenderedContent()
+			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Open: " + m.links[m.focusedLink].ResolvedNote, false}))
+
+		case keyEnter:
+			if m.focusedLink >= 0 && m.focusedLink < len(m.links) {
+				cmd := m.followFocusedLink()
+				return m, cmd
+			}
+			if len(m.links) > 0 {
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Tab to select a link", false}))
+			}
+
+		case keyBackspace:
+			if len(m.history) > 0 {
+				cmd := m.goBack()
+				return m, cmd
+			}
 		case "home", "g":
 			m.viewport.GotoTop()
-			if m.viewport.HighPerformanceRendering {
+			if m.common != nil && m.common.cfg.HighPerformancePager {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 		case "end", "G":
 			m.viewport.GotoBottom()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
-
-		case "d":
-			m.viewport.HalfViewDown()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
-
-		case "u":
-			m.viewport.HalfViewUp()
-			if m.viewport.HighPerformanceRendering {
+			if m.common != nil && m.common.cfg.HighPerformancePager {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 
@@ -239,20 +297,32 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 		case "?":
 			m.toggleHelp()
-			if m.viewport.HighPerformanceRendering {
+			if m.common != nil && m.common.cfg.HighPerformancePager {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 		}
+
+	case errMsg:
+		m.pendingRestoreYOffset = nil
+		cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{msg.Error(), true}))
 
 	// Glow has rendered the content
 	case contentRenderedMsg:
 		log.Info("content rendered", "state", m.state)
 
-		m.setContent(string(msg))
-		if m.viewport.HighPerformanceRendering {
+		m.rendered = string(msg)
+		m.applyRenderedContent()
+		if m.pendingRestoreYOffset != nil {
+			m.viewport.YOffset = *m.pendingRestoreYOffset
+			if m.viewport.PastBottom() {
+				m.viewport.GotoBottom()
+			}
+			m.pendingRestoreYOffset = nil
+		}
+		if m.common != nil && m.common.cfg.HighPerformancePager {
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
-		cmds = append(cmds, m.watchFile)
+		cmds = append(cmds, m.startWatching())
 
 	// The file was changed on disk and we're reloading it
 	case reloadMsg:
@@ -366,26 +436,30 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 }
 
 func (m pagerModel) helpView() (s string) {
-	col1 := []string{
-		"g/home  go to top",
-		"G/end   go to bottom",
-		"c       copy contents",
-		"e       edit this document",
-		"r       reload this document",
-		"esc     back to files",
-		"q       quit",
+	rows := [][2]string{
+		{"k/↑      up", "g/home  go to top"},
+		{"j/↓      down", "G/end   go to bottom"},
+		{"b/pgup   page up", "tab     next link"},
+		{"f/pgdn   page down", "⇧tab    prev link"},
+		{"u        ½ page up", "enter   follow link"},
+		{"d        ½ page down", "⌫       go back"},
+		{"", "c       copy contents"},
+		{"", "e       edit this document"},
+		{"", "r       reload this document"},
+		{"", "esc     back to files"},
+		{"", "q       quit"},
 	}
 
 	s += "\n"
-	s += "k/↑      up                  " + col1[0] + "\n"
-	s += "j/↓      down                " + col1[1] + "\n"
-	s += "b/pgup   page up             " + col1[2] + "\n"
-	s += "f/pgdn   page down           " + col1[3] + "\n"
-	s += "u        ½ page up           " + col1[4] + "\n"
-	s += "d        ½ page down         "
-
-	if len(col1) > 5 {
-		s += col1[5]
+	for _, row := range rows {
+		left := row[0]
+		right := row[1]
+		if left != "" {
+			left = fmt.Sprintf("%-24s", left)
+		} else {
+			left = strings.Repeat(" ", 24)
+		}
+		s += left + right + "\n"
 	}
 
 	s = indent(s, 2)
@@ -487,20 +561,37 @@ func (m *pagerModel) initWatcher() {
 	}
 }
 
-func (m *pagerModel) watchFile() tea.Msg {
-	dir := m.localDir()
+func (m *pagerModel) startWatching() tea.Cmd {
+	if m.watcher == nil || m.currentDocument.localPath == "" {
+		return nil
+	}
 
+	m.stopWatching()
+
+	dir := m.localDir()
 	if err := m.watcher.Add(dir); err != nil {
 		log.Error("error adding dir to fsnotify watcher", "error", err)
 		return nil
 	}
+	m.watchedDir = dir
+	m.watchCancel = make(chan struct{})
 
-	log.Info("fsnotify watching dir", "dir", dir)
+	cancel := m.watchCancel
+	return func() tea.Msg { return m.watchFile(cancel) }
+}
+
+func (m *pagerModel) watchFile(cancel <-chan struct{}) tea.Msg {
+	log.Info("fsnotify watching dir", "dir", m.watchedDir)
 
 	for {
 		select {
+		case <-cancel:
+			return nil
 		case event, ok := <-m.watcher.Events:
-			if !ok || event.Name != m.currentDocument.localPath {
+			if !ok {
+				return nil
+			}
+			if event.Name != m.currentDocument.localPath {
 				continue
 			}
 
@@ -512,24 +603,72 @@ func (m *pagerModel) watchFile() tea.Msg {
 			return reloadMsg{}
 		case err, ok := <-m.watcher.Errors:
 			if !ok {
-				continue
+				return nil
 			}
-			log.Debug("fsnotify error", "dir", dir, "error", err)
+			log.Debug("fsnotify error", "dir", m.watchedDir, "error", err)
 		}
 	}
 }
 
-func (m *pagerModel) unwatchFile() {
-	dir := m.localDir()
-
-	err := m.watcher.Remove(dir)
-	if err == nil {
-		log.Debug("fsnotify dir unwatched", "dir", dir)
-	} else {
-		log.Error("fsnotify fail to unwatch dir", "dir", dir, "error", err)
+func (m *pagerModel) stopWatching() {
+	if m.watchCancel != nil {
+		close(m.watchCancel)
+		m.watchCancel = nil
 	}
+
+	if m.watcher == nil || m.watchedDir == "" {
+		return
+	}
+
+	err := m.watcher.Remove(m.watchedDir)
+	if err == nil {
+		log.Debug("fsnotify dir unwatched", "dir", m.watchedDir)
+	} else {
+		log.Error("fsnotify fail to unwatch dir", "dir", m.watchedDir, "error", err)
+	}
+	m.watchedDir = ""
 }
 
 func (m *pagerModel) localDir() string {
 	return filepath.Dir(m.currentDocument.localPath)
+}
+
+func (m *pagerModel) followFocusedLink() tea.Cmd {
+	l := m.links[m.focusedLink]
+	if l.ResolvedPath == "" {
+		return nil
+	}
+	if m.currentDocument.localPath != "" {
+		m.history = append(m.history, navEntry{Path: m.currentDocument.localPath, YOffset: m.viewport.YOffset})
+	}
+
+	m.focusedLink = -1
+	m.viewport.GotoTop()
+	m.pendingRestoreYOffset = nil
+
+	md := &markdown{
+		localPath: l.ResolvedPath,
+		Note:      l.ResolvedNote,
+	}
+	return loadLocalMarkdown(md)
+}
+
+func (m *pagerModel) goBack() tea.Cmd {
+	if len(m.history) == 0 {
+		return nil
+	}
+
+	last := m.history[len(m.history)-1]
+	m.history = m.history[:len(m.history)-1]
+
+	m.focusedLink = -1
+	y := last.YOffset
+	m.pendingRestoreYOffset = &y
+	m.viewport.GotoTop()
+
+	md := &markdown{
+		localPath: last.Path,
+		Note:      stripAbsolutePath(last.Path, m.common.cwd),
+	}
+	return loadLocalMarkdown(md)
 }
