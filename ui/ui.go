@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/muesli/gitcha"
 	te "github.com/muesli/termenv"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -196,6 +197,7 @@ func (m model) Init() tea.Cmd {
 			return func() tea.Msg { return errMsg{err} }
 		}
 		body := string(utils.RemoveFrontmatter(content))
+		m.pager.setSize(viper.GetInt("width"), 0);
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
 	}
 
