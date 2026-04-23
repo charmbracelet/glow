@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -44,6 +45,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	fromList         bool
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -227,6 +229,37 @@ func execute(cmd *cobra.Command, args []string) error {
 	if yes, err := stdinIsPipe(); err != nil {
 		return err
 	} else if yes {
+		// if --from-list flag is set, read file paths from stdin and open in TUI
+		fromListFlag := viper.GetBool("fromList")
+		if fromListFlag {
+			// Read file paths from stdin
+			var files []string
+			scanner := bufio.NewScanner(os.Stdin)
+			for scanner.Scan() {
+				line := strings.TrimSpace(scanner.Text())
+				if line != "" {
+					files = append(files, line)
+				}
+			}
+			if err := scanner.Err(); err != nil {
+				return fmt.Errorf("error reading from stdin: %w", err)
+			}
+
+			if len(files) == 0 {
+				return errors.New("no files provided via stdin")
+			}
+
+			// Get the directory of the first file
+			firstFileDir := filepath.Dir(files[0])
+			p, err := filepath.Abs(firstFileDir)
+			if err != nil {
+				p = firstFileDir
+			}
+
+			return runTUI(p, "")
+		}
+
+		// Default behavior: treat piped input as markdown content for CLI mode
 		src := &source{reader: os.Stdin}
 		defer src.reader.Close() //nolint:errcheck
 		return executeCLI(cmd, src, os.Stdout)
@@ -408,6 +441,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	rootCmd.Flags().BoolVar(&fromList, "from-list", false, "treat piped input as a list of file paths (for TUI mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
@@ -420,6 +454,7 @@ func init() {
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
+	_ = viper.BindPFlag("fromList", rootCmd.Flags().Lookup("from-list"))
 
 	viper.SetDefault("style", styles.AutoStyle)
 	viper.SetDefault("width", 0)
