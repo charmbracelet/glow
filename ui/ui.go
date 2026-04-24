@@ -120,10 +120,6 @@ func (m *model) unloadDocument() []tea.Cmd {
 	m.pager.showHelp = false
 
 	var batch []tea.Cmd
-	if m.pager.viewport.HighPerformanceRendering {
-		batch = append(batch, tea.ClearScrollArea) //nolint:staticcheck
-	}
-
 	if !m.stash.shouldSpin() {
 		batch = append(batch, m.stash.spinner.Tick)
 	}
