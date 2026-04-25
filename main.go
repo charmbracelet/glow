@@ -199,9 +199,7 @@ func validateOptions(cmd *cobra.Command) error {
 				width = uint(w) //nolint:gosec
 			}
 
-			if width > 120 {
-				width = 120
-			}
+
 		}
 		if width == 0 {
 			width = 80

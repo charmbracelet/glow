@@ -438,7 +438,11 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 
 	isCode := !utils.IsMarkdownFile(m.currentDocument.Note)
-	width := max(0, min(int(m.common.cfg.GlamourMaxWidth), m.viewport.Width)) //nolint:gosec
+	viewportWidth := m.viewport.Width
+	if viewportWidth == 0 {
+		viewportWidth = int(m.common.cfg.GlamourMaxWidth) //nolint:gosec
+	}
+	width := max(0, viewportWidth)
 	if isCode {
 		width = 0
 	}
@@ -478,7 +482,8 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 			content.WriteString(lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
 			content.WriteString(trunc(s))
 		} else {
-			content.WriteString(s)
+			wrapped := softWrapLine(s, m.viewport.Width, 10)
+			content.WriteString(wrapped)
 		}
 
 		// don't add an artificial newline after the last split
@@ -488,6 +493,132 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 
 	return content.String(), nil
+}
+
+// softWrapLine wraps a single line (which may contain ANSI escape sequences)
+// at maxWidth. When the limit is reached it searches backwards up to threshold
+// visible characters for a whitespace or punctuation character and breaks after
+// it. Leading whitespace on continuation lines is stripped.
+func softWrapLine(line string, maxWidth, threshold int) string {
+	if maxWidth <= 0 || ansi.PrintableRuneWidth(line) <= maxWidth {
+		return line
+	}
+
+	type segment struct {
+		raw     string
+		visible int // 0 for ANSI escape sequences
+	}
+
+	// Parse into segments: ANSI escapes (visible=0) and individual runes.
+	segments := make([]segment, 0, len(line))
+	for i := 0; i < len(line); {
+		if line[i] == '\x1b' && i+1 < len(line) && line[i+1] == '[' {
+			j := i + 2
+			for j < len(line) && !((line[j] >= 'A' && line[j] <= 'Z') || (line[j] >= 'a' && line[j] <= 'z')) {
+				j++
+			}
+			if j < len(line) {
+				j++
+			}
+			segments = append(segments, segment{raw: line[i:j], visible: 0})
+			i = j
+			continue
+		}
+		var r rune
+		var size int
+		for _, ch := range line[i:] {
+			r = ch
+			size = len(string(ch))
+			break
+		}
+		segments = append(segments, segment{raw: line[i : i+size], visible: runewidth.RuneWidth(r)})
+		i += size
+	}
+
+	isBreakable := func(s string) bool {
+		if s == " " || s == "\t" {
+			return true
+		}
+		r := rune(s[0])
+		return r == '-' || r == '/' || r == '_' || r == '.' || r == ',' || r == ';' || r == ':'
+	}
+
+	// visCols records, for each visible segment, its segments-index and the
+	// cumulative visible column after it (relative to the current line start).
+	type segCol struct {
+		segIdx int
+		col    int
+	}
+
+	var result strings.Builder
+	lineStart := 0
+	col := 0
+	visCols := make([]segCol, 0, maxWidth)
+
+	for idx := 0; idx < len(segments); idx++ {
+		seg := segments[idx]
+		if seg.visible == 0 {
+			continue
+		}
+		col += seg.visible
+		visCols = append(visCols, segCol{segIdx: idx, col: col})
+
+		if col < maxWidth {
+			continue
+		}
+
+		// First: search backwards within threshold of maxWidth for a breakable
+		// character (preferred break point close to the margin).
+		breakAt := -1
+		nextStart := -1
+		for b := len(visCols) - 1; b >= 0; b-- {
+			if visCols[b].col < maxWidth-threshold {
+				break
+			}
+			si := visCols[b].segIdx
+			if isBreakable(segments[si].raw) {
+				breakAt = si + 1
+				nextStart = si + 1
+				break
+			}
+		}
+		// Fallback: no breakpoint in threshold window — search further back for
+		// any whitespace to avoid splitting mid-word.
+		if breakAt < 0 {
+			for b := len(visCols) - 1; b >= 0; b-- {
+				si := visCols[b].segIdx
+				if segments[si].raw == " " || segments[si].raw == "\t" {
+					breakAt = si + 1
+					nextStart = si + 1
+					break
+				}
+			}
+		}
+		// Last resort: hard break before the current segment.
+		if breakAt < 0 {
+			breakAt = idx
+			nextStart = idx
+		}
+
+		for _, s := range segments[lineStart:breakAt] {
+			result.WriteString(s.raw)
+		}
+		result.WriteByte('\n')
+
+		// Strip leading whitespace on the continuation line.
+		for nextStart < len(segments) && (segments[nextStart].raw == " " || segments[nextStart].raw == "\t") {
+			nextStart++
+		}
+		lineStart = nextStart
+		idx = lineStart - 1 // loop will increment
+		col = 0
+		visCols = visCols[:0]
+	}
+
+	for _, seg := range segments[lineStart:] {
+		result.WriteString(seg.raw)
+	}
+	return result.String()
 }
 
 func (m *pagerModel) initWatcher() {
