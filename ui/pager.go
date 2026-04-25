@@ -78,8 +78,11 @@ var (
 )
 
 type (
-	contentRenderedMsg string
-	reloadMsg          struct{}
+	contentRenderedMsg struct {
+		content string
+		body    string // original markdown body, cached for re-render on resize
+	}
+	reloadMsg struct{}
 )
 
 type pagerState int
@@ -248,7 +251,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case contentRenderedMsg:
 		log.Info("content rendered", "state", m.state)
 
-		m.setContent(string(msg))
+		if msg.body != "" {
+			m.currentDocument.Body = msg.body
+		}
+		m.setContent(msg.content)
 		if m.viewport.HighPerformanceRendering {
 			cmds = append(cmds, viewport.Sync(m.viewport))
 		}
@@ -267,7 +273,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	// We've received terminal dimensions, either for the first time or
 	// after a resize
 	case tea.WindowSizeMsg:
-		return m, renderWithGlamour(m, m.currentDocument.Body)
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
+		if m.currentDocument.Body != "" {
+			cmds = append(cmds, renderWithGlamour(m, m.currentDocument.Body))
+		}
 
 	case statusMessageTimeoutMsg:
 		m.state = pagerStateBrowse
@@ -414,7 +425,7 @@ func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 			log.Error("error rendering with Glamour", "error", err)
 			return errMsg{err}
 		}
-		return contentRenderedMsg(s)
+		return contentRenderedMsg{content: s, body: md}
 	}
 }
 
