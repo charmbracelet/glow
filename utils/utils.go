@@ -42,6 +42,9 @@ func ExpandPath(path string) string {
 
 // WrapCodeBlock wraps a string in a code block with the given language.
 func WrapCodeBlock(s, language string) string {
+	if !strings.HasSuffix(s, "\n") {
+		s += "\n"
+	}
 	return "```" + language + "\n" + s + "```"
 }
 
