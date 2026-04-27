@@ -16,6 +16,7 @@ import (
 	"mvdan.cc/sh/v3/shell"
 
 	"github.com/caarlos0/env/v11"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/v2/ui"
@@ -44,6 +45,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	stream           bool
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -222,6 +224,13 @@ func stdinIsPipe() (bool, error) {
 }
 
 func execute(cmd *cobra.Command, args []string) error {
+	// Stream mode takes precedence over all other input modes.
+	// In this mode we launch the TUI and continuously read from stdin,
+	// rendering markdown incrementally as data arrives.
+	if stream {
+		return runTUIStream()
+	}
+
 	// if stdin is a pipe then use stdin for input. note that you can also
 	// explicitly use a - to read from stdin.
 	if yes, err := stdinIsPipe(); err != nil {
@@ -260,6 +269,30 @@ func execute(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// runTUIStream runs the Bubble Tea streaming model for --stream
+func runTUIStream() error {
+	cfg, err := env.ParseAs[ui.Config]()
+	if err != nil {
+		return fmt.Errorf("error parsing config: %v", err)
+	}
+
+	if err := validateStyle(cfg.GlamourStyle); err != nil {
+		cfg.GlamourStyle = style
+	}
+
+	cfg.GlamourMaxWidth = width
+	cfg.EnableMouse = mouse
+	cfg.PreserveNewLines = preserveNewLines
+
+	p := tea.NewProgram(
+		ui.NewStreamModel(cfg),
+		tea.WithoutSignalHandler(), // we handle Ctrl+C in Update
+	)
+
+	_, err = p.Run()
+	return err
 }
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
@@ -402,6 +435,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().BoolVarP(&tui, "tui", "t", false, "display with tui")
+	rootCmd.Flags().BoolVarP(&stream, "stream", "S", false, "stream markdown from stdin (live)")
 	rootCmd.Flags().StringVarP(&style, "style", "s", styles.AutoStyle, "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width (set to 0 to disable)")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
@@ -413,6 +447,7 @@ func init() {
 	// Config bindings
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
 	_ = viper.BindPFlag("tui", rootCmd.Flags().Lookup("tui"))
+	_ = viper.BindPFlag("stream", rootCmd.Flags().Lookup("stream"))
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
