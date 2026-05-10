@@ -313,12 +313,10 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to render markdown: %w", err)
 	}
 
-	// display
-	switch {
-	case pager || cmd.Flags().Changed("pager"):
+	runPager := func() error {
 		pagerCmd := os.Getenv("PAGER")
 		if pagerCmd == "" {
-			pagerCmd = "less -r"
+			pagerCmd = "less -r -F -X"
 		}
 
 		fields, err := shell.Fields(pagerCmd, os.Getenv)
@@ -332,6 +330,12 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 			return fmt.Errorf("unable to run command: %w", err)
 		}
 		return nil
+	}
+
+	// display
+	switch {
+	case pager || cmd.Flags().Changed("pager"):
+		return runPager()
 	case tui || cmd.Flags().Changed("tui"):
 		path := ""
 		if !isURL(src.URL) {
@@ -339,6 +343,13 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 		return runTUI(path, content)
 	default:
+		// Auto-page if writing to a terminal and content exceeds terminal height
+		if f, ok := w.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
+			_, height, err := term.GetSize(int(f.Fd()))
+			if err == nil && strings.Count(out, "\n") > height {
+				return runPager()
+			}
+		}
 		if _, err = fmt.Fprint(w, out); err != nil {
 			return fmt.Errorf("unable to write to writer: %w", err)
 		}
