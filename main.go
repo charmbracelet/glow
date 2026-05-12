@@ -346,7 +346,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		// Auto-page if writing to a terminal and content exceeds terminal height
 		if f, ok := w.(*os.File); ok && term.IsTerminal(int(f.Fd())) {
 			_, height, err := term.GetSize(int(f.Fd()))
-			if err == nil && strings.Count(out, "\n")+1 > height {
+			if err == nil && strings.Count(out, "\n") > height {
 				return runPager()
 			}
 		}
