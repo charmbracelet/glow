@@ -265,8 +265,13 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		return m, loadLocalMarkdown(&m.currentDocument)
 
 	// We've received terminal dimensions, either for the first time or
-	// after a resize
+	// after a resize (SIGWINCH). Skip re-rendering until the document body
+	// has been loaded, otherwise the in-flight load would race with an empty
+	// re-render that clears the viewport.
 	case tea.WindowSizeMsg:
+		if m.currentDocument.Body == "" {
+			return m, nil
+		}
 		return m, renderWithGlamour(m, m.currentDocument.Body)
 
 	case statusMessageTimeoutMsg:
