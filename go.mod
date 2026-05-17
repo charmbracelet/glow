@@ -1,6 +1,6 @@
 module github.com/cnhegu/glow
 
-go 1.25.9
+go 1.23
 
 require (
 	github.com/atotto/clipboard v0.1.4
