@@ -1,6 +1,6 @@
-module github.com/charmbracelet/glow/v2
+module github.com/cnhegu/glow
 
-go 1.25.9
+go 1.23
 
 require (
 	github.com/atotto/clipboard v0.1.4
@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/glamour v0.10.0
+	github.com/charmbracelet/glow/v2 v2.1.2
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834
 	github.com/charmbracelet/log v0.4.2
 	github.com/charmbracelet/x/editor v0.1.0
@@ -69,5 +70,4 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect
 	golang.org/x/net v0.40.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
