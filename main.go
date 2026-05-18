@@ -164,6 +164,22 @@ func validateStyle(style string) error {
 	return nil
 }
 
+func resolveWidth(isTerminal bool, configuredWidth uint, widthFlagChanged bool, getTerminalWidth func() (int, error)) uint {
+	width := configuredWidth
+	if !widthFlagChanged {
+		if isTerminal && width == 0 {
+			w, err := getTerminalWidth()
+			if err == nil && w > 0 {
+				width = uint(w) //nolint:gosec
+			}
+		}
+		if width == 0 {
+			width = 80
+		}
+	}
+	return width
+}
+
 func validateOptions(cmd *cobra.Command) error {
 	// grab config values from Viper
 	width = viper.GetUint("width")
@@ -191,22 +207,13 @@ func validateOptions(cmd *cobra.Command) error {
 		style = "notty"
 	}
 
-	// Detect terminal width
-	if !cmd.Flags().Changed("width") { //nolint:nestif
-		if isTerminal && width == 0 {
-			w, _, err := term.GetSize(int(os.Stdout.Fd()))
-			if err == nil {
-				width = uint(w) //nolint:gosec
-			}
-
-			if width > 120 {
-				width = 120
-			}
+	width = resolveWidth(isTerminal, width, cmd.Flags().Changed("width"), func() (int, error) {
+		w, _, err := term.GetSize(int(os.Stdout.Fd()))
+		if err != nil {
+			return 0, err
 		}
-		if width == 0 {
-			width = 80
-		}
-	}
+		return w, nil
+	})
 	return nil
 }
 
