@@ -23,6 +23,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	gap "github.com/muesli/go-app-paths"
+	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
@@ -44,6 +45,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	colorMode        string
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -164,8 +166,36 @@ func validateStyle(style string) error {
 	return nil
 }
 
+func validateColorMode(mode string) error {
+	switch mode {
+	case "auto", "always":
+		return nil
+	default:
+		return fmt.Errorf("invalid color mode %q: must be one of auto or always", mode)
+	}
+}
+
+func resolveStyleForColorMode(mode string, currentStyle string, isTerminal bool, styleFlagChanged bool) string {
+	if mode != "always" || styleFlagChanged || currentStyle != styles.AutoStyle || isTerminal {
+		return currentStyle
+	}
+	if lipgloss.HasDarkBackground() {
+		return styles.DarkStyle
+	}
+	return styles.LightStyle
+}
+
+func shouldUseNoTTYStyle(mode string, isTerminal bool, styleFlagChanged bool) bool {
+	return mode != "always" && !isTerminal && !styleFlagChanged
+}
+
 func validateOptions(cmd *cobra.Command) error {
 	// grab config values from Viper
+	colorMode = viper.GetString("color")
+	if err := validateColorMode(colorMode); err != nil {
+		return err
+	}
+
 	width = viper.GetUint("width")
 	mouse = viper.GetBool("mouse")
 	pager = viper.GetBool("pager")
@@ -185,10 +215,12 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
+	styleFlagChanged := cmd.Flags().Changed("style")
+	style = resolveStyleForColorMode(colorMode, style, isTerminal, styleFlagChanged)
 	// We want to use a special no-TTY style, when stdout is not a terminal
-	// and there was no specific style passed by arg
-	if !isTerminal && !cmd.Flags().Changed("style") {
-		style = "notty"
+	// and there was no specific style passed by arg.
+	if shouldUseNoTTYStyle(colorMode, isTerminal, styleFlagChanged) {
+		style = styles.NoTTYStyle
 	}
 
 	// Detect terminal width
@@ -290,9 +322,14 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	isCode := !utils.IsMarkdownFile(src.URL)
 
+	colorProfile := lipgloss.ColorProfile()
+	if colorMode == "always" {
+		colorProfile = termenv.TrueColor
+	}
+
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(
-		glamour.WithColorProfile(lipgloss.ColorProfile()),
+		glamour.WithColorProfile(colorProfile),
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
@@ -403,6 +440,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().BoolVarP(&tui, "tui", "t", false, "display with tui")
 	rootCmd.Flags().StringVarP(&style, "style", "s", styles.AutoStyle, "style name or JSON path")
+	rootCmd.Flags().StringVar(&colorMode, "color", "auto", "when to enable colors (auto|always)")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width (set to 0 to disable)")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
@@ -414,6 +452,7 @@ func init() {
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
 	_ = viper.BindPFlag("tui", rootCmd.Flags().Lookup("tui"))
 	_ = viper.BindPFlag("style", rootCmd.Flags().Lookup("style"))
+	_ = viper.BindPFlag("color", rootCmd.Flags().Lookup("color"))
 	_ = viper.BindPFlag("width", rootCmd.Flags().Lookup("width"))
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
@@ -422,6 +461,7 @@ func init() {
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
 	viper.SetDefault("style", styles.AutoStyle)
+	viper.SetDefault("color", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
