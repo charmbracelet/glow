@@ -44,6 +44,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	editorOverride   string
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -173,6 +174,15 @@ func validateOptions(cmd *cobra.Command) error {
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
+	editorOverride = viper.GetString("editor")
+
+	// Apply the configured editor to this process so the embedded x/editor
+	// package (used by `glow config` and the in-TUI editor key) picks it up.
+	// The override only affects this glow invocation and does not leak into
+	// the user's shell environment.
+	if editorOverride != "" {
+		_ = os.Setenv("EDITOR", editorOverride)
+	}
 
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
