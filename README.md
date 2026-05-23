@@ -173,6 +173,12 @@ either the `dark` or the `light` style for you.
 glow -s [dark|light]
 ```
 
+For piped output, use `--color=always` to keep colorized output even when stdout is not a terminal.
+
+```bash
+glow --color=always
+```
+
 Alternatively you can also supply a custom JSON stylesheet:
 
 ```bash
@@ -201,6 +207,8 @@ Here's an example config:
 ```yaml
 # style name or JSON path (default "auto")
 style: "light"
+# colorize output when piped (auto|always)
+color: "auto"
 # mouse wheel support (TUI-mode only)
 mouse: true
 # use pager to display markdown
