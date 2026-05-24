@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -67,8 +68,9 @@ var (
 
 // source provides a readable markdown source.
 type source struct {
-	reader io.ReadCloser
-	URL    string
+	reader      io.ReadCloser
+	URL         string
+	contentType string
 }
 
 // sourceFromArg parses an argument and creates a readable source for it.
@@ -99,7 +101,11 @@ func sourceFromArg(arg string) (*source, error) {
 			if resp.StatusCode != http.StatusOK {
 				return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
 			}
-			return &source{resp.Body, u.String()}, nil
+			return &source{
+				reader:      resp.Body,
+				URL:         u.String(),
+				contentType: resp.Header.Get("Content-Type"),
+			}, nil
 		}
 	}
 
@@ -123,7 +129,7 @@ func sourceFromArg(arg string) (*source, error) {
 					}
 
 					u, _ := filepath.Abs(path)
-					src = &source{r, u}
+					src = &source{reader: r, URL: u}
 
 					// abort filepath.Walk
 					return errors.New("source found")
@@ -147,7 +153,34 @@ func sourceFromArg(arg string) (*source, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to get absolute path: %w", err)
 	}
-	return &source{r, u}, nil
+	return &source{reader: r, URL: u}, nil
+}
+
+func (s source) isCode() bool {
+	if !utils.IsMarkdownFile(s.URL) {
+		return true
+	}
+	return filepath.Ext(s.URL) == "" && s.codeBlockLanguage() != ""
+}
+
+func (s source) codeBlockLanguage() string {
+	if ext := filepath.Ext(s.URL); ext != "" {
+		return ext
+	}
+	return codeBlockLanguageFromContentType(s.contentType)
+}
+
+func codeBlockLanguageFromContentType(contentType string) string {
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		mediaType = strings.TrimSpace(strings.Split(contentType, ";")[0])
+	}
+	mediaType = strings.ToLower(mediaType)
+
+	if mediaType == "application/json" || strings.HasSuffix(mediaType, "+json") {
+		return ".json"
+	}
+	return ""
 }
 
 // validateStyle checks if the style is a default style, if not, checks that
@@ -288,7 +321,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		baseURL = u.String() + "/"
 	}
 
-	isCode := !utils.IsMarkdownFile(src.URL)
+	isCode := src.isCode()
 
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(
@@ -303,7 +336,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 
 	content := string(b)
-	ext := filepath.Ext(src.URL)
+	ext := src.codeBlockLanguage()
 	if isCode {
 		content = utils.WrapCodeBlock(string(b), ext)
 	}
