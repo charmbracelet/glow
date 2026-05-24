@@ -124,7 +124,9 @@ func (m *model) unloadDocument() []tea.Cmd {
 		batch = append(batch, tea.ClearScrollArea) //nolint:staticcheck
 	}
 
-	if !m.stash.shouldSpin() {
+	if !m.stash.loadingDone() && m.localFileFinder == nil {
+		batch = append(batch, findLocalFiles(*m.common), m.stash.spinner.Tick)
+	} else if !m.stash.shouldSpin() {
 		batch = append(batch, m.stash.spinner.Tick)
 	}
 	return batch
@@ -362,15 +364,7 @@ func findLocalFiles(m commonModel) tea.Cmd {
 			err error
 		)
 
-		if cwd == "" {
-			cwd, err = os.Getwd()
-		} else {
-			var info os.FileInfo
-			info, err = os.Stat(cwd)
-			if err == nil && info.IsDir() {
-				cwd, err = filepath.Abs(cwd)
-			}
-		}
+		cwd, err = localFileSearchRoot(cwd)
 
 		// Note that this is one error check for both cases above
 		if err != nil {
@@ -395,6 +389,21 @@ func findLocalFiles(m commonModel) tea.Cmd {
 
 		return initLocalFileSearchMsg{ch: ch, cwd: cwd}
 	}
+}
+
+func localFileSearchRoot(path string) (string, error) {
+	if path == "" {
+		return os.Getwd()
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+	if !info.IsDir() {
+		path = filepath.Dir(path)
+	}
+	return filepath.Abs(path)
 }
 
 func findNextLocalFile(m model) tea.Cmd {
