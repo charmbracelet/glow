@@ -164,6 +164,16 @@ func validateStyle(style string) error {
 	return nil
 }
 
+// resolveTUIStyle picks the glamour style for the TUI. An explicit --style
+// flag wins over GLAMOUR_STYLE; otherwise a valid env value wins; otherwise
+// we fall back to the viper-resolved CLI style.
+func resolveTUIStyle(envStyle, cliStyle string, cliChanged bool) string {
+	if cliChanged || validateStyle(envStyle) != nil {
+		return cliStyle
+	}
+	return envStyle
+}
+
 func validateOptions(cmd *cobra.Command) error {
 	// grab config values from Viper
 	width = viper.GetUint("width")
@@ -235,7 +245,7 @@ func execute(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	// TUI running on cwd
 	case 0:
-		return runTUI("", "")
+		return runTUI(cmd, "", "")
 
 	// TUI with possible dir argument
 	case 1:
@@ -245,7 +255,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		if err == nil && info.IsDir() {
 			p, err := filepath.Abs(args[0])
 			if err == nil {
-				return runTUI(p, "")
+				return runTUI(cmd, p, "")
 			}
 		}
 		fallthrough
@@ -337,7 +347,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		if !isURL(src.URL) {
 			path = src.URL
 		}
-		return runTUI(path, content)
+		return runTUI(cmd, path, content)
 	default:
 		if _, err = fmt.Fprint(w, out); err != nil {
 			return fmt.Errorf("unable to write to writer: %w", err)
@@ -346,17 +356,14 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 }
 
-func runTUI(path string, content string) error {
+func runTUI(cmd *cobra.Command, path string, content string) error {
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
 	if err != nil {
 		return fmt.Errorf("error parsing config: %v", err)
 	}
 
-	// use style set in env, or auto if unset
-	if err := validateStyle(cfg.GlamourStyle); err != nil {
-		cfg.GlamourStyle = style
-	}
+	cfg.GlamourStyle = resolveTUIStyle(cfg.GlamourStyle, style, cmd.Flags().Changed("style"))
 
 	cfg.Path = path
 	cfg.ShowAllFiles = showAllFiles
