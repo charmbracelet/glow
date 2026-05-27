@@ -14,7 +14,7 @@ func TestNewModelLoadsDocumentBody(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m := newModel(Config{Path: path}, "").(model)
+	m := newModel(Config{Path: path}, "")
 	if m.state != stateShowDocument {
 		t.Fatalf("expected stateShowDocument, got %s", m.state)
 	}
