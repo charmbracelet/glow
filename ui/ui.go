@@ -130,7 +130,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 	return batch
 }
 
-func newModel(cfg Config, content string) tea.Model {
+func newModel(cfg Config, content string) *model {
 	initSections()
 
 	if cfg.GlamourStyle == styles.AutoStyle {
@@ -156,7 +156,7 @@ func newModel(cfg Config, content string) tea.Model {
 	if path == "" && content != "" {
 		m.state = stateShowDocument
 		m.pager.currentDocument = markdown{Body: content}
-		return m
+		return &m
 	}
 
 	if path == "" {
@@ -166,7 +166,7 @@ func newModel(cfg Config, content string) tea.Model {
 	if err != nil {
 		log.Error("unable to stat file", "file", path, "error", err)
 		m.fatalErr = err
-		return m
+		return &m
 	}
 	if info.IsDir() {
 		m.state = stateShowStash
@@ -184,22 +184,27 @@ func newModel(cfg Config, content string) tea.Model {
 		}
 	}
 
-	return m
+	return &m
 }
 
-func (m model) Init() tea.Cmd {
+func (m *model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.stash.spinner.Tick}
 
 	switch m.state {
 	case stateShowStash:
 		cmds = append(cmds, findLocalFiles(*m.common))
 	case stateShowDocument:
-		content, err := os.ReadFile(m.common.cfg.Path)
-		if err != nil {
-			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
-			return func() tea.Msg { return errMsg{err} }
+		var body string
+		if m.pager.currentDocument.localPath != "" {
+			content, err := os.ReadFile(m.pager.currentDocument.localPath)
+			if err != nil {
+				log.Error("unable to read file", "file", m.pager.currentDocument.localPath, "error", err)
+				return func() tea.Msg { return errMsg{err} }
+			}
+			body = string(utils.RemoveFrontmatter(content))
+		} else {
+			body = string(utils.RemoveFrontmatter([]byte(m.pager.currentDocument.Body)))
 		}
-		body := string(utils.RemoveFrontmatter(content))
 		m.pager.currentDocument.Body = body
 		if m.pager.currentDocument.localPath != "" && m.common.cwd != "" {
 			links, err := followableLinksForDocument(m.common.cwd, m.pager.currentDocument.localPath, body)
@@ -209,13 +214,12 @@ func (m model) Init() tea.Cmd {
 			m.pager.links = links
 			m.pager.focusedLink = -1
 		}
-		cmds = append(cmds, renderWithGlamour(m.pager, body))
 	}
 
 	return tea.Batch(cmds...)
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// If there's been an error, any key exits
 	if m.fatalErr != nil {
 		if _, ok := msg.(tea.KeyMsg); ok {
@@ -349,7 +353,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m model) View() string {
+func (m *model) View() string {
 	if m.fatalErr != nil {
 		return errorView(m.fatalErr, true)
 	}
@@ -422,7 +426,7 @@ func findLocalFiles(m commonModel) tea.Cmd {
 	}
 }
 
-func findNextLocalFile(m model) tea.Cmd {
+func findNextLocalFile(m *model) tea.Cmd {
 	return func() tea.Msg {
 		res, ok := <-m.localFileFinder
 
