@@ -117,6 +117,7 @@ type model struct {
 func (m *model) unloadDocument() []tea.Cmd {
 	m.state = stateShowStash
 	m.stash.viewState = stashStateReady
+	m.stash.markdowns = nil
 	m.pager.unload()
 	m.pager.showHelp = false
 
@@ -128,6 +129,12 @@ func (m *model) unloadDocument() []tea.Cmd {
 	if !m.stash.shouldSpin() {
 		batch = append(batch, m.stash.spinner.Tick)
 	}
+
+	// If we are transitioning from a document to the stash, we need to populate the stash.
+	if m.common.cwd != "" {
+		batch = append(batch, findLocalFiles(*m.common))
+	}
+
 	return batch
 }
 
@@ -396,6 +403,9 @@ func findLocalFiles(m commonModel) tea.Cmd {
 			var info os.FileInfo
 			info, err = os.Stat(cwd)
 			if err == nil && info.IsDir() {
+				cwd, err = filepath.Abs(cwd)
+			} else if err == nil {
+				cwd = filepath.Dir(cwd)
 				cwd, err = filepath.Abs(cwd)
 			}
 		}
