@@ -527,7 +527,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 			return openEditor(md.localPath, 0)
 
 		// Open document
-		case keyEnter:
+		case keyEnter, "right":
 			m.hideStatusMessage()
 
 			if numDocs == 0 {

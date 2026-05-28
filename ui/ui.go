@@ -63,6 +63,7 @@ type (
 	foundLocalFileMsg       gitcha.SearchResult
 	localFileSearchFinished struct{}
 	statusMessageTimeoutMsg applicationContext
+	goBackToStashMsg        struct{}
 )
 
 // applicationContext indicates the area of the application something applies
@@ -104,7 +105,7 @@ type model struct {
 
 	// Sub-models
 	stash stashModel
-	pager pagerModel
+	pager  *pagerModel
 
 	// Channel that receives paths to local markdown files
 	// (via the github.com/muesli/gitcha package)
@@ -263,12 +264,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, tea.Quit
 
-		case "left", "h", "delete":
-			if m.state == stateShowDocument {
-				cmds = append(cmds, m.unloadDocument()...)
-				return m, tea.Batch(cmds...)
-			}
-
 		case "ctrl+z":
 			return m, tea.Suspend
 
@@ -309,6 +304,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case contentRenderedMsg:
 		m.state = stateShowDocument
+
+	case goBackToStashMsg:
+		batch := m.unloadDocument()
+		return m, tea.Batch(batch...)
 
 	case localFileSearchFinished:
 		// Always pass these messages to the stash so we can keep it updated

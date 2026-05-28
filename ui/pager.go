@@ -120,7 +120,7 @@ type pagerModel struct {
 	watchCancel chan struct{}
 }
 
-func newPagerModel(common *commonModel) pagerModel {
+func newPagerModel(common *commonModel) *pagerModel {
 	vp := viewport.New(0, 0)
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = common.cfg.HighPerformancePager
@@ -132,7 +132,7 @@ func newPagerModel(common *commonModel) pagerModel {
 		focusedLink: -1,
 	}
 	m.initWatcher()
-	return m
+	return &m
 }
 
 func (m *pagerModel) setSize(w, h int) {
@@ -206,7 +206,7 @@ func (m *pagerModel) unload() {
 	m.stopWatching()
 }
 
-func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
+func (m *pagerModel) update(msg tea.Msg) (*pagerModel, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
 		cmds []tea.Cmd
@@ -220,7 +220,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				m.state = pagerStateBrowse
 				return m, nil
 			}
-		case keyTab:
+		case keyTab, "down":
 			if len(m.links) == 0 {
 				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"No followable links", false}))
 				break
@@ -235,7 +235,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				cmds = append(cmds, viewport.Sync(m.viewport))
 			}
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Open: " + m.links[m.focusedLink].ResolvedNote, false}))
-		case keyShiftTab, "backtab":
+		case keyShiftTab, "backtab", "up":
 			if len(m.links) == 0 {
 				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"No followable links", false}))
 				break
@@ -254,7 +254,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Open: " + m.links[m.focusedLink].ResolvedNote, false}))
 
-		case keyEnter:
+		case keyEnter, "right":
 			if m.focusedLink >= 0 && m.focusedLink < len(m.links) {
 				cmd := m.followFocusedLink()
 				return m, cmd
@@ -273,11 +273,24 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Tab to select a link", false}))
 			}
 
-		case keyBackspace:
+		case keyBackspace, "left", "h", "delete":
 			if len(m.history) > 0 {
-				cmd := m.goBack()
-				return m, cmd
+				last := m.history[len(m.history)-1]
+				m.history = m.history[:len(m.history)-1]
+
+				m.focusedLink = -1
+				y := last.YOffset
+				m.pendingRestoreYOffset = &y
+				m.viewport.GotoTop()
+
+				md := &markdown{
+					localPath: last.Path,
+					Note:      stripAbsolutePath(last.Path, m.common.cwd),
+				}
+				return m, loadLocalMarkdown(md)
 			}
+			m.focusedLink = -1
+			return m, func() tea.Msg { return goBackToStashMsg{} }
 		case "home", "g":
 			m.viewport.GotoTop()
 			if m.common != nil && m.common.cfg.HighPerformancePager {
@@ -365,7 +378,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m pagerModel) View() string {
+func (m *pagerModel) View() string {
 	var b strings.Builder
 	fmt.Fprint(&b, m.viewport.View()+"\n")
 
@@ -497,7 +510,7 @@ func (m pagerModel) helpView() (s string) {
 
 // COMMANDS
 
-func renderWithGlamour(m pagerModel, md string) tea.Cmd {
+func renderWithGlamour(m *pagerModel, md string) tea.Cmd {
 	return func() tea.Msg {
 		s, err := glamourRender(m, md)
 		if err != nil {
@@ -509,7 +522,7 @@ func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 }
 
 // This is where the magic happens.
-func glamourRender(m pagerModel, markdown string) (string, error) {
+func glamourRender(m *pagerModel, markdown string) (string, error) {
 	trunc := lipgloss.NewStyle().MaxWidth(m.viewport.Width - lineNumberWidth).Render
 
 	if !config.GlamourEnabled {
@@ -669,22 +682,3 @@ func (m *pagerModel) followFocusedLink() tea.Cmd {
 	return loadLocalMarkdown(md)
 }
 
-func (m *pagerModel) goBack() tea.Cmd {
-	if len(m.history) == 0 {
-		return nil
-	}
-
-	last := m.history[len(m.history)-1]
-	m.history = m.history[:len(m.history)-1]
-
-	m.focusedLink = -1
-	y := last.YOffset
-	m.pendingRestoreYOffset = &y
-	m.viewport.GotoTop()
-
-	md := &markdown{
-		localPath: last.Path,
-		Note:      stripAbsolutePath(last.Path, m.common.cwd),
-	}
-	return loadLocalMarkdown(md)
-}
