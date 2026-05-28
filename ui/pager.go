@@ -231,6 +231,9 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				m.focusedLink = (m.focusedLink + 1) % len(m.links)
 			}
 			m.applyRenderedContent()
+			if m.common != nil && m.common.cfg.HighPerformancePager {
+				cmds = append(cmds, viewport.Sync(m.viewport))
+			}
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Open: " + m.links[m.focusedLink].ResolvedNote, false}))
 		case keyShiftTab, "backtab":
 			if len(m.links) == 0 {
@@ -246,6 +249,9 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				}
 			}
 			m.applyRenderedContent()
+			if m.common != nil && m.common.cfg.HighPerformancePager {
+				cmds = append(cmds, viewport.Sync(m.viewport))
+			}
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Open: " + m.links[m.focusedLink].ResolvedNote, false}))
 
 		case keyEnter:
