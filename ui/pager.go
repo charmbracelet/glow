@@ -222,7 +222,7 @@ func (m *pagerModel) update(msg tea.Msg) (*pagerModel, tea.Cmd) {
 			}
 		case keyTab, "down":
 			if len(m.links) == 0 {
-				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"No followable links", false}))
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"No local links", false}))
 				break
 			}
 			if m.focusedLink < 0 {
@@ -237,7 +237,7 @@ func (m *pagerModel) update(msg tea.Msg) (*pagerModel, tea.Cmd) {
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Open: " + m.links[m.focusedLink].ResolvedNote, false}))
 		case keyShiftTab, "backtab", "up":
 			if len(m.links) == 0 {
-				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"No followable links", false}))
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"No local links", false}))
 				break
 			}
 			if m.focusedLink < 0 {
