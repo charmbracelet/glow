@@ -254,6 +254,16 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				return m, cmd
 			}
 			if len(m.links) > 0 {
+				// No link selected. Just visit the nearest visible link.
+				body := strings.TrimSpace(m.currentDocument.Body)
+				for i, l := range m.links {
+					if strings.Contains(body, l.Label) {
+						m.focusedLink = i
+						cmd := m.followFocusedLink()
+                        return m, cmd
+					}
+				}
+
 				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Tab to select a link", false}))
 			}
 
