@@ -432,7 +432,7 @@ func tryLoadConfigFromDefaultPlaces() {
 	scope := gap.NewScope(gap.User, "glow")
 	dirs, err := scope.ConfigDirs()
 	if err != nil {
-		fmt.Println("Could not load find configuration directory.")
+		fmt.Println("Could not find configuration directory.")
 		os.Exit(1)
 	}
 
