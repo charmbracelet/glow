@@ -179,7 +179,16 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	// validate the glamour style
+	// via cfg, mirroring the TUI path
+	cfg, err := env.ParseAs[ui.Config]()
+	if err != nil {
+		return fmt.Errorf("error parsing config: %v", err)
+	}
+
 	style = viper.GetString("style")
+	if cfg.GlamourStyle != "" {
+		style = cfg.GlamourStyle
+	}
 	if err := validateStyle(style); err != nil {
 		return err
 	}
@@ -189,6 +198,10 @@ func validateOptions(cmd *cobra.Command) error {
 	// and there was no specific style passed by arg
 	if !isTerminal && !cmd.Flags().Changed("style") {
 		style = "notty"
+	}
+
+	if cfg.GlamourMaxWidth != 0 {
+		width = cfg.GlamourMaxWidth
 	}
 
 	// Detect terminal width
