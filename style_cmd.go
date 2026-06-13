@@ -11,7 +11,6 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -80,11 +79,7 @@ func init() {
 }
 
 type keyMap struct {
-	Up     key.Binding
-	Down   key.Binding
-	Enter  key.Binding
-	Random key.Binding
-	Quit   key.Binding
+	Up, Down, Enter, Random, Quit key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
@@ -109,40 +104,14 @@ type model struct {
 	result   *result
 	quitting bool
 	help     help.Model
-	preview  string
 }
-
-const sampleMD = "# Hello World\n\nThis is **bold** and *italic* text. Here is `inline code`.\n\n> A blockquote with style\n\n```\n$ glow README.md\n```\n\n[Link to somewhere](https://example.com)"
 
 type result struct {
 	styleJSON []byte
 	themeName string
 }
 
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) renderPreview(t theme) string {
-	data, err := json.MarshalIndent(buildStyle(t.Doc, t.H1, t.H1Bg, t.H1Bold, t.H2, t.H3, t.H6,
-		t.Code, t.CodeBg, t.CodeBlock, t.Link, t.LinkUnder, t.HR, t.BqToken), "", "  ")
-	if err != nil {
-		return "  (preview unavailable)"
-	}
-	r, err := glamour.NewTermRenderer(
-		glamour.WithStylesFromJSONBytes(data),
-		glamour.WithWordWrap(60),
-	)
-	if err != nil {
-		return "  (preview unavailable)"
-	}
-	defer r.Close()
-	out, err := r.Render(sampleMD)
-	if err != nil {
-		return "  (preview unavailable)"
-	}
-	return strings.TrimRight(out, "\n")
-}
+func (m model) Init() tea.Cmd { return nil }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -159,18 +128,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < 0 {
 				m.cursor = len(m.themes) - 1
 			}
-			m.preview = m.renderPreview(m.themes[m.cursor])
 		case key.Matches(msg, keys.Down):
 			m.cursor++
 			if m.cursor >= len(m.themes) {
 				m.cursor = 0
 			}
-			m.preview = m.renderPreview(m.themes[m.cursor])
 		case key.Matches(msg, keys.Random):
 			rt := randomTheme()
 			m.themes = append(m.themes[:len(m.themes)-1], rt)
 			m.cursor = len(m.themes) - 1
-			m.preview = m.renderPreview(m.themes[m.cursor])
 		case key.Matches(msg, keys.Enter):
 			t := m.themes[m.cursor]
 			data, _ := json.MarshalIndent(buildStyle(t.Doc, t.H1, t.H1Bg, t.H1Bold, t.H2, t.H3, t.H6,
@@ -187,36 +153,59 @@ func (m model) View() string {
 	if m.quitting {
 		return ""
 	}
+	t := m.themes[m.cursor]
+	div := strings.Repeat("─", 70)
 
-	title := lipStyles.title.Render("Pick a theme")
-	divider := strings.Repeat("─", 70)
-
-	var listRows []string
+	listRows := make([]string, len(m.themes))
 	for i, th := range m.themes {
 		prefix := "  "
-		nameStyle := lipStyles.item
+		var row string
 		if i == m.cursor {
-			prefix = lipStyles.cursor.Render("▸")
-			nameStyle = lipStyles.selected
+			prefix = cBg("#04B575").Render("▸")
+			sel := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FFFDF5"))
+			row = sel.Render(th.Name)
+		} else {
+			row = cFg("#A49FA5").Render(th.Name)
 		}
-		row := fmt.Sprintf("%s %s", prefix, nameStyle.Render(th.Name))
-		listRows = append(listRows, row)
+		listRows[i] = fmt.Sprintf("%s %s", prefix, row)
 	}
-	themeList := lipgloss.JoinVertical(lipgloss.Left, listRows...)
 
-	helpView := m.help.View(keys)
+	square := func(color string) string {
+		return cBg(color).Render("  ")
+	}
 
-	content := fmt.Sprintf(
-		"%s\n%s\n\n%s\n\n  %s\n%s\n\n%s\n",
-		title,
-		divider,
-		themeList,
-		lipStyles.previewTitle.Render("Preview"),
-		m.preview,
-		helpView,
+	palette := fmt.Sprintf(
+		"  %s %-6s %-4s    %s %-6s %-4s    %s %-6s %-4s\n  %s %-6s %-4s    %s %-6s %-4s    %s %-6s %-4s",
+		square(t.Doc), "Text", t.Doc,
+		square(t.H1), "H1", t.H1,
+		square(t.Code), "Code", t.Code,
+		square(t.Link), "Link", t.Link,
+		square(t.HR), "HR", t.HR,
+		square(t.H1Bg), "H1Bg", t.H1Bg,
 	)
 
-	return lipStyles.app.Render(content)
+	sample := fmt.Sprintf(
+		"  %s\n  %s\n  %s\n  %s %s",
+		cBoth(t.H1, t.H1Bg).Render(" Heading 1 (H1) "),
+		cFg(t.H2).Render("  ## Heading 2 (H2)"),
+		cFg(t.Doc).Render("  Normal text with ")+cBoth(t.Code, t.CodeBg).Render(" inline code ")+cFg(t.Doc).Render(" here."),
+		cFg(t.Link).Render("  > Link hover preview"),
+		cFg(t.HR).Render("  ─────────────"),
+	)
+
+	content := fmt.Sprintf(
+		"%s\n%s\n\n%s\n\n  %s\n%s\n\n  %s\n%s\n\n%s\n",
+		lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#04B575")).Render("Pick a theme"),
+		div,
+		strings.Join(listRows, "\n"),
+		lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#777777")).Render("Palette"),
+		palette,
+		lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#777777")).Render("Sample"),
+		sample,
+		m.help.View(keys),
+	)
+
+	return lipgloss.NewStyle().Padding(1, 2).Render(content)
 }
 
 func runStyleInitTUI() error {
@@ -228,12 +217,7 @@ func runStyleInitTUI() error {
 		outputPath = filepath.Join(home, ".config", "glow", "style.json")
 	}
 
-	m := model{
-		themes:  themes,
-		help:    help.New(),
-		preview: (&model{}).renderPreview(themes[0]),
-	}
-
+	m := model{themes: themes, help: help.New()}
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	final, err := p.Run()
 	if err != nil {
@@ -258,39 +242,16 @@ func runStyleInitTUI() error {
 	return nil
 }
 
-type styleSet struct {
-	app          lipgloss.Style
-	title        lipgloss.Style
-	item         lipgloss.Style
-	selected     lipgloss.Style
-	cursor       lipgloss.Style
-	previewTitle lipgloss.Style
-	swatchLabel  lipgloss.Style
+func cFg(color string) lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(lipgloss.Color(color))
 }
 
-var lipStyles styleSet
+func cBg(color string) lipgloss.Style {
+	return lipgloss.NewStyle().Background(lipgloss.Color(color))
+}
 
-func init() {
-	lipStyles = styleSet{
-		app: lipgloss.NewStyle().
-			Padding(1, 2),
-		title: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#04B575")).
-			Padding(0, 0, 1, 0),
-		item: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#A49FA5")),
-		selected: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#FFFDF5")),
-		cursor: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#04B575")),
-		previewTitle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#777777")),
-		swatchLabel: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#979797")),
-	}
+func cBoth(fg, bg string) lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(lipgloss.Color(fg)).Background(lipgloss.Color(bg))
 }
 
 func randomTheme() theme {
@@ -299,21 +260,9 @@ func randomTheme() theme {
 		colors[i] = fmt.Sprintf("%d", rand.Intn(256))
 	}
 	return theme{
-		Name:      "Surprise Me",
-		Doc:       colors[0],
-		H1:        colors[1],
-		H1Bg:      colors[2],
-		H1Bold:    true,
-		H2:        colors[3],
-		H3:        colors[4],
-		H6:        colors[5],
-		Code:      colors[6],
-		CodeBg:    colors[7],
-		CodeBlock: colors[8],
-		Link:      colors[9],
-		LinkUnder: true,
-		HR:        colors[0],
-		BqToken:   "│ ",
+		Name: "Surprise Me", Doc: colors[0], H1: colors[1], H1Bg: colors[2], H1Bold: true,
+		H2: colors[3], H3: colors[4], H6: colors[5], Code: colors[6], CodeBg: colors[7],
+		CodeBlock: colors[8], Link: colors[9], LinkUnder: true, HR: colors[0], BqToken: "│ ",
 	}
 }
 
@@ -321,20 +270,12 @@ func buildStyle(docColor, h1Color, h1Bg string, h1Bold bool, h2Color, h3Color, h
 	codeColor, codeBg, codeBlockColor, linkColor string, linkUnderline bool, hrColor, blockQuoteToken string) map[string]interface{} {
 
 	return map[string]interface{}{
-		"document": map[string]interface{}{
-			"block_prefix": "\n", "block_suffix": "\n", "color": docColor, "margin": 2,
-		},
-		"block_quote": map[string]interface{}{
-			"indent": 1, "indent_token": blockQuoteToken,
-		},
-		"paragraph": map[string]interface{}{},
-		"list":      map[string]interface{}{"level_indent": 2},
-		"heading": map[string]interface{}{
-			"block_suffix": "\n", "color": h2Color, "bold": true,
-		},
-		"h1": map[string]interface{}{
-			"prefix": " ", "suffix": " ", "color": h1Color, "background_color": h1Bg, "bold": h1Bold,
-		},
+		"document":      map[string]interface{}{"block_prefix": "\n", "block_suffix": "\n", "color": docColor, "margin": 2},
+		"block_quote":   map[string]interface{}{"indent": 1, "indent_token": blockQuoteToken},
+		"paragraph":     map[string]interface{}{},
+		"list":          map[string]interface{}{"level_indent": 2},
+		"heading":       map[string]interface{}{"block_suffix": "\n", "color": h2Color, "bold": true},
+		"h1":            map[string]interface{}{"prefix": " ", "suffix": " ", "color": h1Color, "background_color": h1Bg, "bold": h1Bold},
 		"h2":            map[string]interface{}{"prefix": "## "},
 		"h3":            map[string]interface{}{"prefix": "### ", "color": h3Color},
 		"h4":            map[string]interface{}{"prefix": "#### "},
@@ -352,9 +293,7 @@ func buildStyle(docColor, h1Color, h1Bg string, h1Bold bool, h2Color, h3Color, h
 		"link_text":     map[string]interface{}{"color": "35", "bold": true},
 		"image":         map[string]interface{}{"color": "212", "underline": true},
 		"image_text":    map[string]interface{}{"color": "243", "format": "Image: {{.text}} →"},
-		"code": map[string]interface{}{
-			"prefix": "\u00a0", "suffix": "\u00a0", "color": codeColor, "background_color": codeBg,
-		},
+		"code":          map[string]interface{}{"prefix": "\u00a0", "suffix": "\u00a0", "color": codeColor, "background_color": codeBg},
 		"code_block": map[string]interface{}{
 			"color": codeBlockColor, "margin": 2,
 			"chroma": map[string]interface{}{
