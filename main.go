@@ -425,7 +425,7 @@ func init() {
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
-	rootCmd.AddCommand(configCmd, manCmd)
+	rootCmd.AddCommand(configCmd, manCmd, styleCmd)
 }
 
 func tryLoadConfigFromDefaultPlaces() {
