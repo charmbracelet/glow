@@ -3,13 +3,48 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
+
+type theme struct {
+	Name        string
+	Description string
+	Doc         string
+	H1          string
+	H1Bg        string
+	H1Bold      bool
+	H2          string
+	H3          string
+	H6          string
+	Code        string
+	CodeBg      string
+	CodeBlock   string
+	Link        string
+	LinkUnder   bool
+	HR          string
+	BqToken     string
+}
+
+var themes = []theme{
+	{Name: "Catppuccin Mocha", Description: "Dark, warm purple-pink tones", Doc: "252", H1: "228", H1Bg: "63", H1Bold: true, H2: "39", H3: "39", H6: "35", Code: "203", CodeBg: "236", CodeBlock: "244", Link: "30", LinkUnder: true, HR: "240", BqToken: "│ "},
+	{Name: "Catppuccin Latte", Description: "Light, warm purple-pink tones", Doc: "234", H1: "228", H1Bg: "63", H1Bold: true, H2: "27", H3: "27", H6: "35", Code: "203", CodeBg: "254", CodeBlock: "242", Link: "36", LinkUnder: true, HR: "249", BqToken: "│ "},
+	{Name: "Nord", Description: "Dark, arctic blue tones", Doc: "252", H1: "228", H1Bg: "67", H1Bold: true, H2: "110", H3: "110", H6: "150", Code: "203", CodeBg: "236", CodeBlock: "244", Link: "110", LinkUnder: true, HR: "240", BqToken: "│ "},
+	{Name: "Gruvbox Dark", Description: "Dark, retro warm tones", Doc: "223", H1: "228", H1Bg: "88", H1Bold: true, H2: "214", H3: "214", H6: "108", Code: "203", CodeBg: "237", CodeBlock: "244", Link: "109", LinkUnder: true, HR: "240", BqToken: "│ "},
+	{Name: "Gruvbox Light", Description: "Light, retro warm tones", Doc: "237", H1: "228", H1Bg: "88", H1Bold: true, H2: "214", H3: "214", H6: "108", Code: "203", CodeBg: "254", CodeBlock: "242", Link: "109", LinkUnder: true, HR: "249", BqToken: "│ "},
+	{Name: "Solarized Dark", Description: "Dark, sepia-toned", Doc: "252", H1: "228", H1Bg: "33", H1Bold: true, H2: "37", H3: "37", H6: "64", Code: "203", CodeBg: "236", CodeBlock: "244", Link: "33", LinkUnder: true, HR: "240", BqToken: "│ "},
+	{Name: "Solarized Light", Description: "Light, sepia-toned", Doc: "234", H1: "228", H1Bg: "33", H1Bold: true, H2: "37", H3: "37", H6: "64", Code: "203", CodeBg: "254", CodeBlock: "242", Link: "33", LinkUnder: true, HR: "249", BqToken: "│ "},
+	{Name: "Tokyo Night", Description: "Dark, vibrant neon", Doc: "252", H1: "228", H1Bg: "99", H1Bold: true, H2: "147", H3: "147", H6: "150", Code: "203", CodeBg: "236", CodeBlock: "244", Link: "147", LinkUnder: true, HR: "240", BqToken: "│ "},
+	{Name: "Dracula", Description: "Dark, purple accents", Doc: "252", H1: "228", H1Bg: "99", H1Bold: true, H2: "212", H3: "212", H6: "150", Code: "203", CodeBg: "236", CodeBlock: "244", Link: "212", LinkUnder: true, HR: "240", BqToken: "│ "},
+	{Name: "One Dark", Description: "Dark, balanced blue-gray", Doc: "252", H1: "228", H1Bg: "67", H1Bold: true, H2: "75", H3: "75", H6: "150", Code: "203", CodeBg: "236", CodeBlock: "244", Link: "75", LinkUnder: true, HR: "240", BqToken: "│ "},
+	{Name: "Random", Description: "Surprise me — auto-generated palette", Doc: "252", H1: "228", H1Bg: "63", H1Bold: true, H2: "39", H3: "39", H6: "35", Code: "203", CodeBg: "236", CodeBlock: "244", Link: "30", LinkUnder: true, HR: "240", BqToken: "│ "},
+}
 
 var styleOutputPath string
 
@@ -24,10 +59,9 @@ var styleCmd = &cobra.Command{
 
 var styleInitCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Create a custom color style interactively",
+	Short: "Create a color style from a theme palette",
 	Long: paragraph(fmt.Sprintf(
-		"\nWalk through interactive prompts to create a custom %s JSON stylesheet with your preferred colors.\n\nThe generated file can be used with %s.",
-		keyword("glamour"),
+		"\nChoose from preset color themes or generate a random palette. Preview the result and save it.\n\nThe generated file can be used with %s.",
 		keyword("glow -s path/to/style.json"),
 	)),
 	Example: paragraph("  glow style init\n  glow style init -o ~/mytheme.json"),
@@ -51,65 +85,128 @@ func runStyleInit() error {
 		styleOutputPath = filepath.Join(home, ".config", "glow", "style.json")
 	}
 
-	fmt.Println()
-	fmt.Println("  " + keyword("glow style init"))
-	fmt.Println("  " + strings.Repeat("─", 40))
-	fmt.Println("  Press Enter to accept the default value shown in brackets.")
-	fmt.Println()
+	for {
+		fmt.Println()
+		fmt.Println("  " + keyword("Pick a theme"))
+		fmt.Println("  " + strings.Repeat("─", 50))
+		for i, t := range themes {
+			fmt.Printf("  %2d) %-20s %s\n", i+1, t.Name, t.Description)
+		}
+		fmt.Printf("  %2d) %-20s %s\n", 0, "Quit", "exit without saving")
+		fmt.Print("\n  Your choice [1]: ")
 
-	isDark := promptChoose("Base scheme", "1", []string{
-		"Dark background",
-		"Light background",
-	}) == "1"
+		var choice int
+		input := ""
+		_, _ = fmt.Scanln(&input)
+		input = strings.TrimSpace(input)
+		if input == "" {
+			choice = 1
+		} else {
+			_, err := fmt.Sscanf(input, "%d", &choice)
+			if err != nil || choice < 0 || choice > len(themes) {
+				fmt.Println("  Invalid choice. Try again.")
+				continue
+			}
+		}
+		if choice == 0 {
+			fmt.Println("  " + keyword("Bye!"))
+			return nil
+		}
 
-	docColor := promptColor("Document text color", "252", isDark)
-	h1Color := promptColor("H1 text color", "228", isDark)
-	h1Bg := promptColor("H1 background color", "63", isDark)
-	h1Bold := promptBool("H1 bold", true)
-	h2Color := promptColor("H2 text color", "39", isDark)
-	h3Color := promptColor("H3 text color", "39", isDark)
-	h6Color := promptColor("H6 text color", "35", isDark)
-	codeColor := promptColor("Inline code text color", "203", isDark)
-	codeBg := promptColor("Inline code background color", "236", isDark)
-	codeBlockColor := promptColor("Code block text color", "244", isDark)
-	linkColor := promptColor("Link color", "30", isDark)
-	linkUnderline := promptBool("Underline links", true)
-	hrColor := promptColor("Horizontal rule color", "240", isDark)
-	blockQuoteToken := prompt("Blockquote indent token", "│ ")
+		t := themes[choice-1]
+		if t.Name == "Random" {
+			t = randomTheme()
+		}
 
-	style := buildStyle(docColor, h1Color, h1Bg, h1Bold, h2Color, h3Color, h6Color,
-		codeColor, codeBg, codeBlockColor, linkColor, linkUnderline, hrColor, blockQuoteToken)
+		style := buildStyle(t.Doc, t.H1, t.H1Bg, t.H1Bold, t.H2, t.H3, t.H6,
+			t.Code, t.CodeBg, t.CodeBlock, t.Link, t.LinkUnder, t.HR, t.BqToken)
 
-	data, err := json.MarshalIndent(style, "", "  ")
-	if err != nil {
-		return fmt.Errorf("unable to marshal style: %w", err)
+		data, err := json.MarshalIndent(style, "", "  ")
+		if err != nil {
+			return fmt.Errorf("unable to marshal style: %w", err)
+		}
+
+		fmt.Println()
+		fmt.Println("  " + keyword(t.Name))
+		fmt.Println("  " + strings.Repeat("─", 50))
+
+		showPreview(data)
+
+		fmt.Println()
+		fmt.Println("  " + strings.Repeat("─", 50))
+		fmt.Print("  [S]ave  [R]andomize  [Q]uit [S]: ")
+
+		var action string
+		_, _ = fmt.Scanln(&action)
+		action = strings.TrimSpace(strings.ToLower(action))
+
+		switch action {
+		case "", "s", "save":
+			if err := os.MkdirAll(filepath.Dir(styleOutputPath), 0o700); err != nil {
+				return fmt.Errorf("unable to create directory: %w", err)
+			}
+			if err := os.WriteFile(styleOutputPath, data, 0o600); err != nil {
+				return fmt.Errorf("unable to write style file: %w", err)
+			}
+			fmt.Println()
+			fmt.Println("  ✓ Style saved to: " + styleOutputPath)
+			fmt.Println("  Use it with: " + keyword("glow -s "+styleOutputPath))
+			fmt.Println()
+			return nil
+		case "r", "random", "rand":
+			continue
+		case "q", "quit":
+			fmt.Println("  " + keyword("Bye!"))
+			return nil
+		default:
+			continue
+		}
 	}
-
-	if err := os.MkdirAll(filepath.Dir(styleOutputPath), 0o700); err != nil {
-		return fmt.Errorf("unable to create directory: %w", err)
-	}
-
-	if err := os.WriteFile(styleOutputPath, data, 0o600); err != nil {
-		return fmt.Errorf("unable to write style file: %w", err)
-	}
-
-	fmt.Println()
-	fmt.Println("  ✓ Style saved to: " + styleOutputPath)
-	fmt.Println("  Use it with: " + keyword("glow -s "+styleOutputPath))
-	fmt.Println()
-
-	return nil
 }
 
-func prompt(label, defaultVal string) string {
-	fmt.Printf("  %s [%s]: ", label, defaultVal)
-	var input string
-	_, _ = fmt.Scanln(&input)
-	input = strings.TrimSpace(input)
-	if input == "" {
-		return defaultVal
+func showPreview(data []byte) {
+	sample := "# Hello World\n\nThis is **bold** and *italic* text. Here is `inline code`.\n\n## Code Block\n\n```go\nfunc hello() {\n\tfmt.Println(\"Hello, World!\")\n}\n```\n\n> A wise blockquote once said...\n\n---\n\n[Link to somewhere](https://example.com)"
+
+	r, err := glamour.NewTermRenderer(
+		glamour.WithStylesFromJSONBytes(data),
+		glamour.WithWordWrap(60),
+	)
+	if err != nil {
+		fmt.Println("  (preview unavailable)")
+		return
 	}
-	return input
+	defer r.Close() //nolint:errcheck
+
+	out, err := r.Render(sample)
+	if err != nil {
+		fmt.Println("  (preview unavailable)")
+		return
+	}
+	fmt.Println(out)
+}
+
+func randomTheme() theme {
+	colors := make([]string, 10)
+	for i := range colors {
+		colors[i] = fmt.Sprintf("%d", rand.Intn(256))
+	}
+	return theme{
+		Name:      "Random",
+		Doc:       colors[0],
+		H1:        colors[1],
+		H1Bg:      colors[2],
+		H1Bold:    true,
+		H2:        colors[3],
+		H3:        colors[4],
+		H6:        colors[5],
+		Code:      colors[6],
+		CodeBg:    colors[7],
+		CodeBlock: colors[8],
+		Link:      colors[9],
+		LinkUnder: true,
+		HR:        colors[0],
+		BqToken:   "│ ",
+	}
 }
 
 func promptColor(label, defaultColor string, isDark bool) string {
@@ -124,40 +221,10 @@ func promptColor(label, defaultColor string, isDark bool) string {
 	return input
 }
 
-func promptBool(label string, defaultVal bool) bool {
-	defaultStr := "y"
-	if !defaultVal {
-		defaultStr = "n"
-	}
-	fmt.Printf("  %s? [%s]: ", label, defaultStr)
-	var input string
-	_, _ = fmt.Scanln(&input)
-	input = strings.TrimSpace(strings.ToLower(input))
-	if input == "" {
-		return defaultVal
-	}
-	return input == "y" || input == "yes"
-}
-
-func promptChoose(label, defaultVal string, options []string) string {
-	fmt.Println("  " + label + ":")
-	for i, opt := range options {
-		fmt.Printf("    %d) %s\n", i+1, opt)
-	}
-	fmt.Printf("  Enter 1-%d [%s]: ", len(options), defaultVal)
-	var input string
-	_, _ = fmt.Scanln(&input)
-	input = strings.TrimSpace(input)
-	if input == "" {
-		return defaultVal
-	}
-	return input
-}
-
 func buildStyle(docColor, h1Color, h1Bg string, h1Bold bool, h2Color, h3Color, h6Color string,
 	codeColor, codeBg, codeBlockColor, linkColor string, linkUnderline bool, hrColor, blockQuoteToken string) map[string]interface{} {
 
-	style := map[string]interface{}{
+	return map[string]interface{}{
 		"document": map[string]interface{}{
 			"block_prefix": "\n",
 			"block_suffix": "\n",
@@ -202,26 +269,16 @@ func buildStyle(docColor, h1Color, h1Bg string, h1Bold bool, h2Color, h3Color, h
 			"color":  h6Color,
 			"bold":   false,
 		},
-		"text": map[string]interface{}{},
-		"strikethrough": map[string]interface{}{
-			"crossed_out": true,
-		},
-		"emph": map[string]interface{}{
-			"italic": true,
-		},
-		"strong": map[string]interface{}{
-			"bold": true,
-		},
+		"text":          map[string]interface{}{},
+		"strikethrough": map[string]interface{}{"crossed_out": true},
+		"emph":          map[string]interface{}{"italic": true},
+		"strong":        map[string]interface{}{"bold": true},
 		"hr": map[string]interface{}{
 			"color":  hrColor,
 			"format": "\n--------\n",
 		},
-		"item": map[string]interface{}{
-			"block_prefix": "• ",
-		},
-		"enumeration": map[string]interface{}{
-			"block_prefix": ". ",
-		},
+		"item":        map[string]interface{}{"block_prefix": "• "},
+		"enumeration": map[string]interface{}{"block_prefix": ". "},
 		"task": map[string]interface{}{
 			"ticked":   "[✓] ",
 			"unticked": "[ ] ",
@@ -280,15 +337,11 @@ func buildStyle(docColor, h1Color, h1Bg string, h1Bold bool, h2Color, h3Color, h
 				"background":            map[string]interface{}{"background_color": "#373737"},
 			},
 		},
-		"table":           map[string]interface{}{},
-		"definition_list": map[string]interface{}{},
-		"definition_term": map[string]interface{}{},
-		"definition_description": map[string]interface{}{
-			"block_prefix": "\n🠶 ",
-		},
-		"html_block": map[string]interface{}{},
-		"html_span":  map[string]interface{}{},
+		"table":                  map[string]interface{}{},
+		"definition_list":        map[string]interface{}{},
+		"definition_term":        map[string]interface{}{},
+		"definition_description": map[string]interface{}{"block_prefix": "\n🠶 "},
+		"html_block":             map[string]interface{}{},
+		"html_span":              map[string]interface{}{},
 	}
-
-	return style
 }
