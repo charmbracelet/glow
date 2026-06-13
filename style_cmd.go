@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -108,7 +109,10 @@ type model struct {
 	result   *result
 	quitting bool
 	help     help.Model
+	preview  string
 }
+
+const sampleMD = "# Hello World\n\nThis is **bold** and *italic* text. Here is `inline code`.\n\n> A blockquote with style\n\n```\n$ glow README.md\n```\n\n[Link to somewhere](https://example.com)"
 
 type result struct {
 	styleJSON []byte
@@ -117,6 +121,27 @@ type result struct {
 
 func (m model) Init() tea.Cmd {
 	return nil
+}
+
+func (m model) renderPreview(t theme) string {
+	data, err := json.MarshalIndent(buildStyle(t.Doc, t.H1, t.H1Bg, t.H1Bold, t.H2, t.H3, t.H6,
+		t.Code, t.CodeBg, t.CodeBlock, t.Link, t.LinkUnder, t.HR, t.BqToken), "", "  ")
+	if err != nil {
+		return "  (preview unavailable)"
+	}
+	r, err := glamour.NewTermRenderer(
+		glamour.WithStylesFromJSONBytes(data),
+		glamour.WithWordWrap(60),
+	)
+	if err != nil {
+		return "  (preview unavailable)"
+	}
+	defer r.Close()
+	out, err := r.Render(sampleMD)
+	if err != nil {
+		return "  (preview unavailable)"
+	}
+	return strings.TrimRight(out, "\n")
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -134,15 +159,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < 0 {
 				m.cursor = len(m.themes) - 1
 			}
+			m.preview = m.renderPreview(m.themes[m.cursor])
 		case key.Matches(msg, keys.Down):
 			m.cursor++
 			if m.cursor >= len(m.themes) {
 				m.cursor = 0
 			}
+			m.preview = m.renderPreview(m.themes[m.cursor])
 		case key.Matches(msg, keys.Random):
 			rt := randomTheme()
 			m.themes = append(m.themes[:len(m.themes)-1], rt)
 			m.cursor = len(m.themes) - 1
+			m.preview = m.renderPreview(m.themes[m.cursor])
 		case key.Matches(msg, keys.Enter):
 			t := m.themes[m.cursor]
 			data, _ := json.MarshalIndent(buildStyle(t.Doc, t.H1, t.H1Bg, t.H1Bold, t.H2, t.H3, t.H6,
@@ -160,8 +188,6 @@ func (m model) View() string {
 		return ""
 	}
 
-	t := m.themes[m.cursor]
-
 	title := lipStyles.title.Render("Pick a theme")
 	divider := strings.Repeat("─", 70)
 
@@ -178,29 +204,15 @@ func (m model) View() string {
 	}
 	themeList := lipgloss.JoinVertical(lipgloss.Left, listRows...)
 
-	swatch := func(label, color string) string {
-		block := lipgloss.NewStyle().Background(lipgloss.Color(color)).Render("  ")
-		return lipStyles.swatchLabel.Render(fmt.Sprintf("%s %s", block, label))
-	}
-	swatchRow := fmt.Sprintf(
-		"  %s  %s  %s  %s  %s  %s",
-		swatch("Text", t.Doc),
-		swatch("H1", t.H1),
-		swatch("H1 Bg", t.H1Bg),
-		swatch("H2", t.H2),
-		swatch("Code", t.Code),
-		swatch("Link", t.Link),
-	)
-
 	helpView := m.help.View(keys)
 
 	content := fmt.Sprintf(
-		"%s\n%s\n\n%s\n\n  %s\n  %s\n\n%s\n",
+		"%s\n%s\n\n%s\n\n  %s\n%s\n\n%s\n",
 		title,
 		divider,
 		themeList,
-		lipStyles.previewTitle.Render("Colors"),
-		swatchRow,
+		lipStyles.previewTitle.Render("Preview"),
+		m.preview,
 		helpView,
 	)
 
@@ -217,8 +229,9 @@ func runStyleInitTUI() error {
 	}
 
 	m := model{
-		themes: themes,
-		help:   help.New(),
+		themes:  themes,
+		help:    help.New(),
+		preview: (&model{}).renderPreview(themes[0]),
 	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
