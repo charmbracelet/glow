@@ -101,7 +101,7 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	case styles.DraculaStyle:
 		styleConfig = styles.DraculaStyleConfig
 	case styles.TokyoNightStyle:
-		styleConfig = styles.DraculaStyleConfig
+		styleConfig = styles.TokyoNightStyleConfig
 	default:
 		return glamour.WithStylesFromJSONFile(style)
 	}
