@@ -25,7 +25,7 @@ var (
 	config Config
 
 	markdownExtensions = []string{
-		"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown",
+		"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown", "*.mmd",
 	}
 )
 
