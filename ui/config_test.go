@@ -7,6 +7,10 @@ import (
 )
 
 func TestConfig_HighPerformancePagerDefault(t *testing.T) {
+	// caarlos0/env treats a set-but-empty var the same as unset when a
+	// default exists (env.getOr: `exists && value == "" && defExists`),
+	// so setting "" here exercises the same envDefault path as a truly
+	// unset var.
 	t.Setenv("GLOW_HIGH_PERFORMANCE_PAGER", "")
 
 	cfg, err := env.ParseAs[Config]()
