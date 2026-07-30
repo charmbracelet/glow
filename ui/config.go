@@ -15,6 +15,11 @@ type Config struct {
 	Path string
 
 	// For debugging the UI
-	HighPerformancePager bool `env:"GLOW_HIGH_PERFORMANCE_PAGER" envDefault:"true"`
+	//
+	// Defaults to false: bubbletea's high-performance/scroll-region
+	// rendering is deprecated upstream and known to corrupt output on
+	// several terminals (e.g. kitty) during scroll. See #554. Users can
+	// still opt in via GLOW_HIGH_PERFORMANCE_PAGER=true.
+	HighPerformancePager bool `env:"GLOW_HIGH_PERFORMANCE_PAGER" envDefault:"false"`
 	GlamourEnabled       bool `env:"GLOW_ENABLE_GLAMOUR"         envDefault:"true"`
 }
