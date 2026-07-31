@@ -778,8 +778,11 @@ func (m stashModel) headerView() string {
 
 		switch v.key {
 		case documentsSection:
-			s = fmt.Sprintf("%d documents", localCount)
-
+			if localCount == 1 {
+				s = fmt.Sprintf("%d document", localCount)
+			} else {
+				s = fmt.Sprintf("%d documents", localCount)
+			}
 		case filterSection:
 			s = fmt.Sprintf("%d “%s”", len(m.filteredMarkdowns), m.filterInput.Value())
 		}
