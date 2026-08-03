@@ -7,10 +7,10 @@ import (
 	"regexp"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/glamour/ansi"
 	"github.com/charmbracelet/glamour/styles"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -85,7 +85,7 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 
 	switch style {
 	case styles.AutoStyle:
-		if lipgloss.HasDarkBackground() {
+		if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
 			styleConfig = styles.DarkStyleConfig
 		} else {
 			styleConfig = styles.LightStyleConfig

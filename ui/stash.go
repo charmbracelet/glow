@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/paginator"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/paginator"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
@@ -42,9 +42,6 @@ var (
 				Foreground(gray)
 	stashInputPromptStyle = lipgloss.NewStyle().
 				Foreground(yellowGreen).
-				MarginRight(1)
-	stashInputCursorStyle = lipgloss.NewStyle().
-				Foreground(fuchsia).
 				MarginRight(1)
 )
 
@@ -208,9 +205,9 @@ func (m *stashModel) setSize(width, height int) {
 	m.common.width = width
 	m.common.height = height
 
-	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(
+	m.filterInput.SetWidth(width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(
 		m.filterInput.Prompt,
-	)
+	))
 
 	m.updatePagination()
 }
@@ -380,8 +377,14 @@ func newStashModel(common *commonModel) stashModel {
 
 	si := textinput.New()
 	si.Prompt = "Find:"
-	si.PromptStyle = stashInputPromptStyle
-	si.Cursor.Style = stashInputCursorStyle
+	// The filter input is rendered inline into the larger stash view, so draw
+	// the cursor as part of the string rather than moving the real one.
+	si.SetVirtualCursor(true)
+	styles := si.Styles()
+	styles.Focused.Prompt = stashInputPromptStyle
+	styles.Blurred.Prompt = stashInputPromptStyle
+	styles.Cursor.Color = fuchsia
+	si.SetStyles(styles)
 	si.Focus()
 
 	s := []section{
@@ -449,7 +452,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		cmds = append(cmds, m.handleDocumentBrowsing(msg))
 	case stashStateShowingError:
 		// Any key exists the error view
-		if _, ok := msg.(tea.KeyMsg); ok {
+		if _, ok := msg.(tea.KeyPressMsg); ok {
 			m.viewState = stashStateReady
 		}
 	}
@@ -465,7 +468,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 	switch msg := msg.(type) {
 	// Handle keys
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "k", "ctrl+k", "up":
 			m.moveCursorUp()
@@ -579,7 +582,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 	cmds = append(cmds, cmd)
 
 	// Extra paginator keystrokes
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "b", "u":
 			m.paginator().PrevPage()
@@ -602,7 +605,7 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 
 	// Handle keys
-	if msg, ok := msg.(tea.KeyMsg); ok { //nolint:nestif
+	if msg, ok := msg.(tea.KeyPressMsg); ok { //nolint:nestif
 		switch msg.String() {
 		case keyEsc:
 			// Cancel filtering

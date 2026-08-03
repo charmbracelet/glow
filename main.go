@@ -20,9 +20,9 @@ import (
 	"github.com/charmbracelet/glamour/styles"
 	"github.com/charmbracelet/glow/v2/ui"
 	"github.com/charmbracelet/glow/v2/utils"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	gap "github.com/muesli/go-app-paths"
+	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/term"
@@ -292,7 +292,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(
-		glamour.WithColorProfile(lipgloss.ColorProfile()),
+		glamour.WithColorProfile(termenv.ColorProfile()),
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
