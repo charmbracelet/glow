@@ -24,6 +24,7 @@ import (
 const (
 	statusBarHeight = 1
 	lineNumberWidth = 4
+	spacebar        = " "
 )
 
 var (
@@ -80,6 +81,10 @@ var (
 type (
 	contentRenderedMsg string
 	reloadMsg          struct{}
+
+	// renderedMsg reports that a high performance render command has reached
+	// the renderer. See pagerModel.render.
+	renderedMsg struct{ seq int }
 )
 
 type pagerState int
@@ -102,6 +107,15 @@ type pagerModel struct {
 	// it here so we can re-render it on resize.
 	currentDocument markdown
 
+	// State of the high performance renderer. renderPending is true while a
+	// render command is on its way to the renderer, renderStale is true when
+	// the viewport moved while one was in flight, and renderSeq identifies the
+	// pending command so that one left over from a document we've since closed
+	// can't be mistaken for it. See render.
+	renderPending bool
+	renderStale   bool
+	renderSeq     int
+
 	watcher *fsnotify.Watcher
 }
 
@@ -110,6 +124,13 @@ func newPagerModel(common *commonModel) pagerModel {
 	vp := viewport.New(0, 0)
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
+
+	// The pager scrolls the viewport itself, so disable the viewport's own
+	// input handling. Otherwise a key the viewport also binds, like u and d,
+	// gets acted on twice: once here and once in the viewport's update, moving
+	// the viewport two half pages while only one of the two movements is drawn.
+	vp.KeyMap = viewport.KeyMap{}
+	vp.MouseWheelEnabled = false
 
 	m := pagerModel{
 		common:   common,
@@ -134,6 +155,70 @@ func (m *pagerModel) setSize(w, h int) {
 
 func (m *pagerModel) setContent(s string) {
 	m.viewport.SetContent(s)
+}
+
+// render hands a high performance render command to the renderer, making sure
+// only one of them is ever in flight.
+//
+// High performance rendering writes to the terminal directly, outside of the
+// Bubble Tea renderer, so its commands only produce a correct screen if the
+// terminal sees them in the order the viewport moved. Bubble Tea runs every
+// command in its own goroutine though, so two commands issued in quick
+// succession, say by holding down a scroll key or spinning the mouse wheel,
+// reach the renderer in whatever order the scheduler happens to run them in.
+// Since each one is a scroll delta applied to whatever is on screen, swapping
+// two of them leaves the terminal showing lines from two different scroll
+// positions, interleaved.
+//
+// So we keep at most one command on its way to the renderer and only note that
+// the viewport moved on in the meantime. Once the in-flight command lands we
+// redraw the viewport in full, which is correct no matter how many deltas were
+// dropped along the way.
+func (m *pagerModel) render(cmd tea.Cmd) tea.Cmd {
+	if !m.viewport.HighPerformanceRendering || cmd == nil {
+		return nil
+	}
+	if m.renderPending {
+		m.renderStale = true
+		return nil
+	}
+	m.renderPending = true
+	m.renderSeq++
+	seq := m.renderSeq
+	return tea.Sequence(cmd, func() tea.Msg { return renderedMsg{seq} })
+}
+
+// sync redraws the entire viewport.
+func (m *pagerModel) sync() tea.Cmd {
+	return m.render(viewport.Sync(m.viewport))
+}
+
+// scroll moves the viewport by n lines, negative for up, and draws the lines
+// that scrolled into view.
+func (m *pagerModel) scroll(n int) tea.Cmd {
+	before := m.viewport.YOffset
+
+	var lines []string
+	if n > 0 {
+		lines = m.viewport.ScrollDown(n)
+	} else {
+		lines = m.viewport.ScrollUp(-n)
+	}
+
+	switch moved := m.viewport.YOffset - before; {
+	case moved == 0:
+		return nil
+	case moved != n:
+		// We ran into the top or the bottom of the document and moved by less
+		// than we asked for. The viewport still hands back n lines in that
+		// case, which would scroll the terminal further than the viewport
+		// actually went, so redraw everything instead.
+		return m.sync()
+	case n > 0:
+		return m.render(viewport.ViewDown(m.viewport, lines))
+	default:
+		return m.render(viewport.ViewUp(m.viewport, lines))
+	}
 }
 
 func (m *pagerModel) toggleHelp() {
@@ -175,6 +260,9 @@ func (m *pagerModel) unload() {
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
 	m.viewport.YOffset = 0
+	m.renderPending = false
+	m.renderStale = false
+	m.renderSeq++
 	m.unwatchFile()
 }
 
@@ -192,28 +280,37 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				m.state = pagerStateBrowse
 				return m, nil
 			}
+		// Scrolling. Note that all of it happens here rather than in the
+		// viewport's own update: see newPagerModel.
 		case "home", "g":
-			m.viewport.GotoTop()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
+			if !m.viewport.AtTop() {
+				m.viewport.GotoTop()
+				cmds = append(cmds, m.sync())
 			}
+
 		case "end", "G":
-			m.viewport.GotoBottom()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
+			if !m.viewport.AtBottom() {
+				m.viewport.GotoBottom()
+				cmds = append(cmds, m.sync())
 			}
 
-		case "d":
-			m.viewport.HalfViewDown()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+		case "down", "j":
+			cmds = append(cmds, m.scroll(1))
 
-		case "u":
-			m.viewport.HalfViewUp()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+		case "up", "k":
+			cmds = append(cmds, m.scroll(-1))
+
+		case "pgdown", spacebar, "f":
+			cmds = append(cmds, m.scroll(m.viewport.Height))
+
+		case "pgup", "b":
+			cmds = append(cmds, m.scroll(-m.viewport.Height))
+
+		case "d", "ctrl+d":
+			cmds = append(cmds, m.scroll(m.viewport.Height/2))
+
+		case "u", "ctrl+u":
+			cmds = append(cmds, m.scroll(-m.viewport.Height/2))
 
 		case "e":
 			lineno := int(math.RoundToEven(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
@@ -239,9 +336,30 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 		case "?":
 			m.toggleHelp()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+			cmds = append(cmds, m.sync())
+		}
+
+	case tea.MouseMsg:
+		if msg.Action != tea.MouseActionPress {
+			break
+		}
+		switch msg.Button { //nolint:exhaustive
+		case tea.MouseButtonWheelUp:
+			cmds = append(cmds, m.scroll(-m.viewport.MouseWheelDelta))
+		case tea.MouseButtonWheelDown:
+			cmds = append(cmds, m.scroll(m.viewport.MouseWheelDelta))
+		}
+
+	// A high performance render command reached the renderer. If the viewport
+	// moved while it was in flight we dropped those movements, so redraw.
+	case renderedMsg:
+		if msg.seq != m.renderSeq {
+			break
+		}
+		m.renderPending = false
+		if m.renderStale {
+			m.renderStale = false
+			cmds = append(cmds, m.sync())
 		}
 
 	// Glow has rendered the content
@@ -249,9 +367,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		log.Info("content rendered", "state", m.state)
 
 		m.setContent(string(msg))
-		if m.viewport.HighPerformanceRendering {
-			cmds = append(cmds, viewport.Sync(m.viewport))
-		}
+		cmds = append(cmds, m.sync())
 		cmds = append(cmds, m.watchFile)
 
 	// The file was changed on disk and we're reloading it
