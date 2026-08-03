@@ -190,12 +190,14 @@ func (m model) Init() tea.Cmd {
 	case stateShowStash:
 		cmds = append(cmds, findLocalFiles(*m.common))
 	case stateShowDocument:
-		content, err := os.ReadFile(m.common.cfg.Path)
-		if err != nil {
-			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
-			return func() tea.Msg { return errMsg{err} }
+		if m.pager.currentDocument.localPath != "" {
+			// Load through the usual path so the document body is kept in the
+			// model. Otherwise re-renders (on resize, for instance) would have
+			// nothing to render.
+			cmds = append(cmds, loadLocalMarkdown(&m.pager.currentDocument))
+			break
 		}
-		body := string(utils.RemoveFrontmatter(content))
+		body := string(utils.RemoveFrontmatter([]byte(m.pager.currentDocument.Body)))
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
 	}
 
@@ -262,6 +264,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Window size is received when starting up and on every resize
 	case tea.WindowSizeMsg:
+		if m.common.width == msg.Width && m.common.height == msg.Height {
+			// Bubble Tea re-sends the window size after running an external
+			// process, such as the editor. Nothing changed, so there's no need
+			// to re-render, and re-rendering here would race with the reload
+			// of the document we're already doing.
+			return m, nil
+		}
 		m.common.width = msg.Width
 		m.common.height = msg.Height
 		m.stash.setSize(msg.Width, msg.Height)

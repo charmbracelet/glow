@@ -133,6 +133,17 @@ func (m *pagerModel) setSize(w, h int) {
 }
 
 func (m *pagerModel) setContent(s string) {
+	// In high performance mode the viewport paints by inserting its visible
+	// lines at the top of the scroll area, which pushes whatever was painted
+	// before down instead of replacing it. Pad the content to the height of
+	// the viewport so that a repaint always covers the whole scroll area,
+	// otherwise documents shorter than the window would be shown once per
+	// render (i.e. twice after coming back from the editor).
+	if m.viewport.HighPerformanceRendering {
+		if lines := strings.Count(s, "\n") + 1; lines < m.viewport.Height {
+			s += strings.Repeat("\n", m.viewport.Height-lines)
+		}
+	}
 	m.viewport.SetContent(s)
 }
 
