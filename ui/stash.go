@@ -13,7 +13,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
 	"github.com/sahilm/fuzzy"
@@ -857,7 +856,6 @@ func loadLocalMarkdown(md *markdown) tea.Cmd {
 
 		data, err := os.ReadFile(md.localPath)
 		if err != nil {
-			log.Debug("error reading local file", "error", err)
 			return errMsg{err}
 		}
 		md.Body = string(data)
