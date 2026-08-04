@@ -121,6 +121,7 @@ func (m *model) unloadDocument() []tea.Cmd {
 }
 
 func newModel(cfg Config, content string) tea.Model {
+	initStyles()
 	initSections()
 
 	if cfg.GlamourStyle == styles.AutoStyle {
@@ -174,7 +175,7 @@ func newModel(cfg Config, content string) tea.Model {
 }
 
 func (m model) Init() tea.Cmd {
-	cmds := []tea.Cmd{m.stash.spinner.Tick}
+	cmds := []tea.Cmd{m.stash.spinner.Tick, tea.RequestBackgroundColor}
 
 	switch m.state {
 	case stateShowStash:
@@ -203,6 +204,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case tea.BackgroundColorMsg:
+		lightDark = lipgloss.LightDark(msg.IsDark())
+		initStyles()
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc":

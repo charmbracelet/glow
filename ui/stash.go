@@ -12,7 +12,6 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
@@ -29,21 +28,7 @@ const (
 
 var stashingStatusMessage = statusMessage{normalStatusMessage, "Stashing..."}
 
-var (
-	dividerDot = darkGrayFg.SetString(" • ")
-	dividerBar = darkGrayFg.SetString(" │ ")
-
-	logoStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#ECFD65")).
-			Background(fuchsia).
-			Bold(true)
-
-	stashSpinnerStyle = lipgloss.NewStyle().
-				Foreground(gray)
-	stashInputPromptStyle = lipgloss.NewStyle().
-				Foreground(yellowGreen).
-				MarginRight(1)
-)
+// Style variables are initialized in initStyles().
 
 // MSG
 

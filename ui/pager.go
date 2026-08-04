@@ -26,56 +26,7 @@ const (
 	lineNumberWidth = 4
 )
 
-var (
-	pagerHelpHeight int
-
-	mintGreen = adaptive("#89F0CB", "#89F0CB")
-	darkGreen = adaptive("#1C8760", "#1C8760")
-
-	lineNumberFg = adaptive("#656565", "#7D7D7D")
-
-	statusBarNoteFg = adaptive("#656565", "#7D7D7D")
-	statusBarBg     = adaptive("#E6E6E6", "#242424")
-
-	statusBarScrollPosStyle = lipgloss.NewStyle().
-				Foreground(adaptive("#949494", "#5A5A5A")).
-				Background(statusBarBg).
-				Render
-
-	statusBarNoteStyle = lipgloss.NewStyle().
-				Foreground(statusBarNoteFg).
-				Background(statusBarBg).
-				Render
-
-	statusBarHelpStyle = lipgloss.NewStyle().
-				Foreground(statusBarNoteFg).
-				Background(adaptive("#DCDCDC", "#323232")).
-				Render
-
-	statusBarMessageStyle = lipgloss.NewStyle().
-				Foreground(mintGreen).
-				Background(darkGreen).
-				Render
-
-	statusBarMessageScrollPosStyle = lipgloss.NewStyle().
-					Foreground(mintGreen).
-					Background(darkGreen).
-					Render
-
-	statusBarMessageHelpStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#B6FFE4")).
-					Background(green).
-					Render
-
-	helpViewStyle = lipgloss.NewStyle().
-			Foreground(statusBarNoteFg).
-			Background(adaptive("#f2f2f2", "#1B1B1B")).
-			Render
-
-	lineNumberStyle = lipgloss.NewStyle().
-			Foreground(lineNumberFg).
-			Render
-)
+var pagerHelpHeight int
 
 type (
 	contentRenderedMsg string
