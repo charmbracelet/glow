@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/ansi"
-	"github.com/charmbracelet/glamour/styles"
+	"charm.land/glamour/v2"
+	"charm.land/glamour/v2/ansi"
+	"charm.land/glamour/v2/styles"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -72,8 +72,8 @@ func IsMarkdownFile(filename string) bool {
 // GlamourStyle returns a glamour.TermRendererOption based on the given style.
 func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	if !isCode {
-		if style == styles.AutoStyle {
-			return glamour.WithAutoStyle()
+		if style == "auto" {
+			return glamour.WithStandardStyle("dark")
 		}
 		return glamour.WithStylePath(style)
 	}
@@ -84,7 +84,7 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	var styleConfig ansi.StyleConfig
 
 	switch style {
-	case styles.AutoStyle:
+	case "auto":
 		if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
 			styleConfig = styles.DarkStyleConfig
 		} else {

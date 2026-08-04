@@ -10,7 +10,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/glamour/styles"
+	"charm.land/glamour/v2/styles"
 	"github.com/charmbracelet/glow/v2/utils"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/gitcha"
@@ -124,7 +124,7 @@ func newModel(cfg Config, content string) tea.Model {
 	initStyles()
 	initSections()
 
-	if cfg.GlamourStyle == styles.AutoStyle {
+	if cfg.GlamourStyle == "auto" {
 		if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
 			cfg.GlamourStyle = styles.DarkStyle
 		} else {
