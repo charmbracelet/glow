@@ -92,7 +92,7 @@ func sourceFromArg(arg string) (*source, error) {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
 			}
 			// consumer of the source is responsible for closing the ReadCloser.
-			resp, err := http.Get(u.String()) //nolint: noctx,bodyclose
+			resp, err := httpClient.Get(u.String()) //nolint: noctx,bodyclose
 			if err != nil {
 				return nil, fmt.Errorf("unable to get url: %w", err)
 			}
