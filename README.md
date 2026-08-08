@@ -43,6 +43,11 @@ pacman -S glow
 ```
 
 ```bash
+# openSUSE
+sudo zypper install glow
+```
+
+```bash
 # Void Linux
 xbps-install -S glow
 ```
