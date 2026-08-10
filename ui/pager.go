@@ -9,9 +9,9 @@ import (
 
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/atotto/clipboard"
-	"charm.land/glamour/v2"
 	"github.com/charmbracelet/glow/v2/utils"
 	"github.com/charmbracelet/log"
 	"github.com/fsnotify/fsnotify"
@@ -232,25 +232,26 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	)
 
 	showStatusMessage := m.state == pagerStateStatusMessage
+	styles := m.common.styles
 
 	// Logo
-	logo := glowLogoView()
+	logo := glowLogoView(m.common.styles)
 
 	// Scroll percent
 	percent := math.Max(minPercent, math.Min(maxPercent, m.viewport.ScrollPercent()))
 	scrollPercent := fmt.Sprintf(" %3.f%% ", percent*percentToStringMagnitude)
 	if showStatusMessage {
-		scrollPercent = statusBarMessageScrollPosStyle(scrollPercent)
+		scrollPercent = styles.statusBarMessageScrollPosStyle(scrollPercent)
 	} else {
-		scrollPercent = statusBarScrollPosStyle(scrollPercent)
+		scrollPercent = styles.statusBarScrollPosStyle(scrollPercent)
 	}
 
 	// "Help" note
 	var helpNote string
 	if showStatusMessage {
-		helpNote = statusBarMessageHelpStyle(" ? Help ")
+		helpNote = styles.statusBarMessageHelpStyle(" ? Help ")
 	} else {
-		helpNote = statusBarHelpStyle(" ? Help ")
+		helpNote = styles.statusBarHelpStyle(" ? Help ")
 	}
 
 	// Note
@@ -267,9 +268,9 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 			ansi.PrintableRuneWidth(helpNote),
 	)), ellipsis)
 	if showStatusMessage {
-		note = statusBarMessageStyle(note)
+		note = styles.statusBarMessageStyle(note)
 	} else {
-		note = statusBarNoteStyle(note)
+		note = styles.statusBarNoteStyle(note)
 	}
 
 	// Empty space
@@ -282,9 +283,9 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	)
 	emptySpace := strings.Repeat(" ", padding)
 	if showStatusMessage {
-		emptySpace = statusBarMessageStyle(emptySpace)
+		emptySpace = styles.statusBarMessageStyle(emptySpace)
 	} else {
-		emptySpace = statusBarNoteStyle(emptySpace)
+		emptySpace = styles.statusBarNoteStyle(emptySpace)
 	}
 
 	fmt.Fprintf(b, "%s%s%s%s%s",
@@ -333,7 +334,7 @@ func (m pagerModel) helpView() (s string) {
 		s = strings.Join(lines, "\n")
 	}
 
-	return helpViewStyle(s)
+	return m.common.styles.helpViewStyle(s)
 }
 
 // COMMANDS
@@ -353,7 +354,7 @@ func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 func glamourRender(m pagerModel, markdown string) (string, error) {
 	trunc := lipgloss.NewStyle().MaxWidth(m.viewport.Width() - lineNumberWidth).Render
 
-	if !config.GlamourEnabled {
+	if !m.common.cfg.GlamourEnabled {
 		return markdown, nil
 	}
 
@@ -395,7 +396,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	var content strings.Builder
 	for i, s := range lines {
 		if isCode || m.common.cfg.ShowLineNumbers {
-			content.WriteString(lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
+			content.WriteString(m.common.styles.lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
 			content.WriteString(trunc(s))
 		} else {
 			content.WriteString(s)

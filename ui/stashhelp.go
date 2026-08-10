@@ -30,7 +30,7 @@ func newHelpColumn(pairs ...string) (h helpColumn) {
 }
 
 // render returns styled and formatted rows from keys and values.
-func (h helpColumn) render(height int) (rows []string) {
+func (h helpColumn) render(styles Styles, height int) (rows []string) {
 	keyWidth, valWidth := h.maxWidths()
 
 	for i := 0; i < height; i++ {
@@ -44,11 +44,11 @@ func (h helpColumn) render(height int) (rows []string) {
 
 			switch k {
 			case "s":
-				k = greenFg(k)
-				v = semiDimGreenFg(v)
+				k = styles.greenFg(k)
+				v = styles.semiDimGreenFg(v)
 			default:
-				k = grayFg(k)
-				v = midGrayFg(v)
+				k = styles.grayFg(k)
+				v = styles.midGrayFg(v)
 			}
 		}
 		b.WriteString(k)
@@ -181,7 +181,7 @@ func (m stashModel) miniHelpView(entries ...string) string {
 	}
 
 	var (
-		truncationChar  = subtleStyle.Render("…")
+		truncationChar  = m.common.styles.subtleStyle.Render("…")
 		truncationWidth = ansi.PrintableRuneWidth(truncationChar)
 	)
 
@@ -199,13 +199,13 @@ func (m stashModel) miniHelpView(entries ...string) string {
 		k := entries[i]
 		v := entries[i+1]
 
-		k = grayFg(k)
-		v = midGrayFg(v)
+		k = m.common.styles.grayFg(k)
+		v = m.common.styles.midGrayFg(v)
 
 		next = fmt.Sprintf("%s %s", k, v)
 
 		if i < len(entries)-2 {
-			next += dividerDot.String()
+			next += m.common.styles.dividerDot.String()
 		}
 
 		// Only this (and the following) help text items if we have the
@@ -243,7 +243,7 @@ func (m stashModel) fullHelpView(groups ...[]string) string {
 
 	// Build columns
 	for _, c := range columns {
-		renderedCols = append(renderedCols, c.render(tallestCol))
+		renderedCols = append(renderedCols, c.render(m.common.styles, tallestCol))
 	}
 
 	// Merge columns

@@ -6,154 +6,15 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// lightDark resolves light/dark color pairs based on terminal background.
-// It is initialized with a default dark background and updated when
-// tea.BackgroundColorMsg is received.
-var lightDark = lipgloss.LightDark(true)
+// Styles contains all styles used in the UI. They are resolved from light and
+// dark color variants according to the terminal's background color, which
+// Bubble Tea reports via tea.BackgroundColorMsg. Until then, we default to
+// a dark background.
+type Styles struct {
+	lightDark lipgloss.LightDarkFunc
 
-// adaptive returns a color appropriate for the current terminal background.
-func adaptive(light, dark string) color.Color {
-	return lightDark(lipgloss.Color(light), lipgloss.Color(dark))
-}
+	fuchsia color.Color
 
-// initStyles rebuilds all styles that depend on adaptive colors.
-// Call this after updating lightDark.
-func initStyles() {
-	// Colors
-	normalDim = adaptive("#A49FA5", "#777777")
-	gray = adaptive("#909090", "#626262")
-	midGray = adaptive("#B2B2B2", "#4A4A4A")
-	darkGray = adaptive("#DDDADA", "#3C3C3C")
-	brightGray = adaptive("#847A85", "#979797")
-	dimBrightGray = adaptive("#C2B8C2", "#4D4D4D")
-	cream = adaptive("#FFFDF5", "#FFFDF5")
-	yellowGreen = adaptive("#04B575", "#ECFD65")
-	fuchsia = adaptive("#EE6FF8", "#EE6FF8")
-	dimFuchsia = adaptive("#F1A8FF", "#99519E")
-	dullFuchsia = adaptive("#F793FF", "#AD58B4")
-	dimDullFuchsia = adaptive("#F6C9FF", "#7B4380")
-	green = lipgloss.Color("#04B575")
-	red = adaptive("#FF4672", "#ED567A")
-	semiDimGreen = adaptive("#35D79C", "#036B46")
-	dimGreen = adaptive("#72D2B0", "#0B5137")
-
-	// Pager colors
-	mintGreen = adaptive("#89F0CB", "#89F0CB")
-	darkGreenAdaptive = adaptive("#1C8760", "#1C8760")
-	lineNumberFg = adaptive("#656565", "#7D7D7D")
-	statusBarNoteFg = adaptive("#656565", "#7D7D7D")
-	statusBarBg = adaptive("#E6E6E6", "#242424")
-
-	// Render-func styles
-	dimNormalFg = lipgloss.NewStyle().Foreground(normalDim).Render
-	brightGrayFg = lipgloss.NewStyle().Foreground(brightGray).Render
-	dimBrightGrayFg = lipgloss.NewStyle().Foreground(dimBrightGray).Render
-	grayFg = lipgloss.NewStyle().Foreground(gray).Render
-	midGrayFg = lipgloss.NewStyle().Foreground(midGray).Render
-	darkGrayFg = lipgloss.NewStyle().Foreground(darkGray)
-	greenFg = lipgloss.NewStyle().Foreground(green).Render
-	semiDimGreenFg = lipgloss.NewStyle().Foreground(semiDimGreen).Render
-	dimGreenFg = lipgloss.NewStyle().Foreground(dimGreen).Render
-	fuchsiaFg = lipgloss.NewStyle().Foreground(fuchsia).Render
-	dimFuchsiaFg = lipgloss.NewStyle().Foreground(dimFuchsia).Render
-	dullFuchsiaFg = lipgloss.NewStyle().Foreground(dullFuchsia).Render
-	dimDullFuchsiaFg = lipgloss.NewStyle().Foreground(dimDullFuchsia).Render
-	redFg = lipgloss.NewStyle().Foreground(red).Render
-
-	// Named styles
-	tabStyle = lipgloss.NewStyle().Foreground(adaptive("#909090", "#626262"))
-	selectedTabStyle = lipgloss.NewStyle().Foreground(adaptive("#333333", "#979797"))
-	errorTitleStyle = lipgloss.NewStyle().Foreground(cream).Background(red).Padding(0, 1)
-	subtleStyle = lipgloss.NewStyle().Foreground(adaptive("#9B9B9B", "#5C5C5C"))
-	paginationStyle = subtleStyle
-
-	// Pager styles
-	statusBarScrollPosStyle = lipgloss.NewStyle().
-					Foreground(adaptive("#949494", "#5A5A5A")).
-					Background(statusBarBg).
-					Render
-
-	statusBarNoteStyle = lipgloss.NewStyle().
-				Foreground(statusBarNoteFg).
-				Background(statusBarBg).
-				Render
-
-	statusBarHelpStyle = lipgloss.NewStyle().
-				Foreground(statusBarNoteFg).
-				Background(adaptive("#DCDCDC", "#323232")).
-				Render
-
-	statusBarMessageStyle = lipgloss.NewStyle().
-				Foreground(mintGreen).
-				Background(darkGreenAdaptive).
-				Render
-
-	statusBarMessageScrollPosStyle = lipgloss.NewStyle().
-						Foreground(mintGreen).
-						Background(darkGreenAdaptive).
-						Render
-
-	statusBarMessageHelpStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#B6FFE4")).
-					Background(green).
-					Render
-
-	helpViewStyle = lipgloss.NewStyle().
-			Foreground(statusBarNoteFg).
-			Background(adaptive("#f2f2f2", "#1B1B1B")).
-			Render
-
-	lineNumberStyle = lipgloss.NewStyle().
-			Foreground(lineNumberFg).
-			Render
-
-	// Stash styles
-	dividerDot = darkGrayFg.SetString(" • ")
-	dividerBar = darkGrayFg.SetString(" │ ")
-
-	logoStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#ECFD65")).
-			Background(fuchsia).
-			Bold(true)
-
-	stashSpinnerStyle = lipgloss.NewStyle().
-				Foreground(gray)
-	stashInputPromptStyle = lipgloss.NewStyle().
-				Foreground(yellowGreen).
-				MarginRight(1)
-}
-
-// Colors.
-var (
-	normalDim      color.Color
-	gray           color.Color
-	midGray        color.Color
-	darkGray       color.Color
-	brightGray     color.Color
-	dimBrightGray  color.Color
-	cream          color.Color
-	yellowGreen    color.Color
-	fuchsia        color.Color
-	dimFuchsia     color.Color
-	dullFuchsia    color.Color
-	dimDullFuchsia color.Color
-	green          color.Color
-	red            color.Color
-	semiDimGreen   color.Color
-	dimGreen       color.Color
-)
-
-// Pager colors.
-var (
-	mintGreen       color.Color
-	darkGreenAdaptive color.Color
-	lineNumberFg    color.Color
-	statusBarNoteFg color.Color
-	statusBarBg     color.Color
-)
-
-// Render-func styles.
-var (
 	dimNormalFg      func(...string) string
 	brightGrayFg     func(...string) string
 	dimBrightGrayFg  func(...string) string
@@ -168,19 +29,13 @@ var (
 	dullFuchsiaFg    func(...string) string
 	dimDullFuchsiaFg func(...string) string
 	redFg            func(...string) string
-)
 
-// Named styles.
-var (
 	tabStyle         lipgloss.Style
 	selectedTabStyle lipgloss.Style
 	errorTitleStyle  lipgloss.Style
 	subtleStyle      lipgloss.Style
 	paginationStyle  lipgloss.Style
-)
 
-// Pager styles.
-var (
 	statusBarScrollPosStyle        func(...string) string
 	statusBarNoteStyle             func(...string) string
 	statusBarHelpStyle             func(...string) string
@@ -189,13 +44,125 @@ var (
 	statusBarMessageHelpStyle      func(...string) string
 	helpViewStyle                  func(...string) string
 	lineNumberStyle                func(...string) string
-)
 
-// Stash styles.
-var (
 	dividerDot            lipgloss.Style
 	dividerBar            lipgloss.Style
 	logoStyle             lipgloss.Style
 	stashSpinnerStyle     lipgloss.Style
 	stashInputPromptStyle lipgloss.Style
-)
+}
+
+// newStyles builds all styles for the given terminal background.
+func newStyles(isDark bool) Styles {
+	s := Styles{lightDark: lipgloss.LightDark(isDark)}
+
+	// Colors
+	normalDim := s.adaptive("#A49FA5", "#777777")
+	gray := s.adaptive("#909090", "#626262")
+	midGray := s.adaptive("#B2B2B2", "#4A4A4A")
+	darkGray := s.adaptive("#DDDADA", "#3C3C3C")
+	brightGray := s.adaptive("#847A85", "#979797")
+	dimBrightGray := s.adaptive("#C2B8C2", "#4D4D4D")
+	cream := s.adaptive("#FFFDF5", "#FFFDF5")
+	yellowGreen := s.adaptive("#04B575", "#ECFD65")
+	s.fuchsia = s.adaptive("#EE6FF8", "#EE6FF8")
+	dimFuchsia := s.adaptive("#F1A8FF", "#99519E")
+	dullFuchsia := s.adaptive("#F793FF", "#AD58B4")
+	dimDullFuchsia := s.adaptive("#F6C9FF", "#7B4380")
+	green := lipgloss.Color("#04B575")
+	red := s.adaptive("#FF4672", "#ED567A")
+	semiDimGreen := s.adaptive("#35D79C", "#036B46")
+	dimGreen := s.adaptive("#72D2B0", "#0B5137")
+
+	// Pager colors
+	mintGreen := s.adaptive("#89F0CB", "#89F0CB")
+	darkGreen := s.adaptive("#1C8760", "#1C8760")
+	lineNumberFg := s.adaptive("#656565", "#7D7D7D")
+	statusBarNoteFg := s.adaptive("#656565", "#7D7D7D")
+	statusBarBg := s.adaptive("#E6E6E6", "#242424")
+
+	// Render-func styles
+	s.dimNormalFg = lipgloss.NewStyle().Foreground(normalDim).Render
+	s.brightGrayFg = lipgloss.NewStyle().Foreground(brightGray).Render
+	s.dimBrightGrayFg = lipgloss.NewStyle().Foreground(dimBrightGray).Render
+	s.grayFg = lipgloss.NewStyle().Foreground(gray).Render
+	s.midGrayFg = lipgloss.NewStyle().Foreground(midGray).Render
+	s.darkGrayFg = lipgloss.NewStyle().Foreground(darkGray)
+	s.greenFg = lipgloss.NewStyle().Foreground(green).Render
+	s.semiDimGreenFg = lipgloss.NewStyle().Foreground(semiDimGreen).Render
+	s.dimGreenFg = lipgloss.NewStyle().Foreground(dimGreen).Render
+	s.fuchsiaFg = lipgloss.NewStyle().Foreground(s.fuchsia).Render
+	s.dimFuchsiaFg = lipgloss.NewStyle().Foreground(dimFuchsia).Render
+	s.dullFuchsiaFg = lipgloss.NewStyle().Foreground(dullFuchsia).Render
+	s.dimDullFuchsiaFg = lipgloss.NewStyle().Foreground(dimDullFuchsia).Render
+	s.redFg = lipgloss.NewStyle().Foreground(red).Render
+
+	// Named styles
+	s.tabStyle = lipgloss.NewStyle().Foreground(s.adaptive("#909090", "#626262"))
+	s.selectedTabStyle = lipgloss.NewStyle().Foreground(s.adaptive("#333333", "#979797"))
+	s.errorTitleStyle = lipgloss.NewStyle().Foreground(cream).Background(red).Padding(0, 1)
+	s.subtleStyle = lipgloss.NewStyle().Foreground(s.adaptive("#9B9B9B", "#5C5C5C"))
+	s.paginationStyle = s.subtleStyle
+
+	// Pager styles
+	s.statusBarScrollPosStyle = lipgloss.NewStyle().
+		Foreground(s.adaptive("#949494", "#5A5A5A")).
+		Background(statusBarBg).
+		Render
+
+	s.statusBarNoteStyle = lipgloss.NewStyle().
+		Foreground(statusBarNoteFg).
+		Background(statusBarBg).
+		Render
+
+	s.statusBarHelpStyle = lipgloss.NewStyle().
+		Foreground(statusBarNoteFg).
+		Background(s.adaptive("#DCDCDC", "#323232")).
+		Render
+
+	s.statusBarMessageStyle = lipgloss.NewStyle().
+		Foreground(mintGreen).
+		Background(darkGreen).
+		Render
+
+	s.statusBarMessageScrollPosStyle = lipgloss.NewStyle().
+		Foreground(mintGreen).
+		Background(darkGreen).
+		Render
+
+	s.statusBarMessageHelpStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#B6FFE4")).
+		Background(green).
+		Render
+
+	s.helpViewStyle = lipgloss.NewStyle().
+		Foreground(statusBarNoteFg).
+		Background(s.adaptive("#f2f2f2", "#1B1B1B")).
+		Render
+
+	s.lineNumberStyle = lipgloss.NewStyle().
+		Foreground(lineNumberFg).
+		Render
+
+	// Stash styles
+	s.dividerDot = s.darkGrayFg.SetString(" • ")
+	s.dividerBar = s.darkGrayFg.SetString(" │ ")
+
+	s.logoStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#ECFD65")).
+		Background(s.fuchsia).
+		Bold(true)
+
+	s.stashSpinnerStyle = lipgloss.NewStyle().
+		Foreground(gray)
+	s.stashInputPromptStyle = lipgloss.NewStyle().
+		Foreground(yellowGreen).
+		MarginRight(1)
+
+	return s
+}
+
+// adaptive returns a color appropriate for the current terminal background.
+func (s Styles) adaptive(light, dark string) color.Color {
+	return s.lightDark(lipgloss.Color(light), lipgloss.Color(dark))
+}

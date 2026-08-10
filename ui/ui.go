@@ -9,8 +9,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
-	"charm.land/glamour/v2/styles"
 	"github.com/charmbracelet/glow/v2/utils"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/gitcha"
@@ -21,13 +19,9 @@ const (
 	ellipsis             = "…"
 )
 
-var (
-	config Config
-
-	markdownExtensions = []string{
-		"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown",
-	}
-)
+var markdownExtensions = []string{
+	"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown",
+}
 
 // NewProgram returns a new Tea program.
 func NewProgram(cfg Config, content string) *tea.Program {
@@ -37,7 +31,6 @@ func NewProgram(cfg Config, content string) *tea.Program {
 		cfg.GlamourEnabled,
 	)
 
-	config = cfg
 	m := newModel(cfg, content)
 	return tea.NewProgram(m)
 }
@@ -89,6 +82,7 @@ type commonModel struct {
 	cwd    string
 	width  int
 	height int
+	styles Styles
 }
 
 type model struct {
@@ -121,19 +115,9 @@ func (m *model) unloadDocument() []tea.Cmd {
 }
 
 func newModel(cfg Config, content string) tea.Model {
-	initStyles()
-	initSections()
-
-	if cfg.GlamourStyle == "auto" {
-		if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
-			cfg.GlamourStyle = styles.DarkStyle
-		} else {
-			cfg.GlamourStyle = styles.LightStyle
-		}
-	}
-
 	common := commonModel{
-		cfg: cfg,
+		cfg:    cfg,
+		styles: newStyles(true),
 	}
 
 	m := model{
@@ -205,8 +189,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.BackgroundColorMsg:
-		lightDark = lipgloss.LightDark(msg.IsDark())
-		initStyles()
+		m.common.styles = newStyles(msg.IsDark())
+		m.stash.stylePaginators(m.common.styles)
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc":
@@ -322,7 +306,7 @@ func (m model) View() tea.View {
 	var content string
 	switch {
 	case m.fatalErr != nil:
-		content = errorView(m.fatalErr, true)
+		content = errorView(m.common.styles, m.fatalErr, true)
 	case m.state == stateShowDocument:
 		content = m.pager.View()
 	default:
@@ -337,7 +321,7 @@ func (m model) View() tea.View {
 	return v
 }
 
-func errorView(err error, fatal bool) string {
+func errorView(styles Styles, err error, fatal bool) string {
 	exitMsg := "press any key to "
 	if fatal {
 		exitMsg += "exit"
@@ -345,9 +329,9 @@ func errorView(err error, fatal bool) string {
 		exitMsg += "return"
 	}
 	s := fmt.Sprintf("%s\n\n%v\n\n%s",
-		errorTitleStyle.Render("ERROR"),
+		styles.errorTitleStyle.Render("ERROR"),
 		err,
-		subtleStyle.Render(exitMsg),
+		styles.subtleStyle.Render(exitMsg),
 	)
 	return "\n" + indent(s, 3)
 }
