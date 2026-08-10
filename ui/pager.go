@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
@@ -87,6 +89,8 @@ type pagerState int
 const (
 	pagerStateBrowse pagerState = iota
 	pagerStateStatusMessage
+	pagerStateSearch
+	pagerStateJumpToLine
 )
 
 type pagerModel struct {
@@ -102,6 +106,15 @@ type pagerModel struct {
 	// it here so we can re-render it on resize.
 	currentDocument markdown
 
+	// Search
+	searchInput   textinput.Model
+	searchQuery   string // active search term (persists after input is confirmed)
+	searchMatches []int  // line numbers with matches (0-indexed into raw Body lines)
+	searchIndex   int    // current match index (-1 = none)
+
+	// Jump to line
+	lineInput textinput.Model
+
 	watcher *fsnotify.Watcher
 }
 
@@ -111,10 +124,23 @@ func newPagerModel(common *commonModel) pagerModel {
 	vp.YPosition = 0
 	vp.HighPerformanceRendering = config.HighPerformancePager
 
+	si := textinput.New()
+	si.Prompt = "/"
+	si.PromptStyle = lipgloss.NewStyle().Foreground(yellowGreen)
+	si.Focus()
+
+	li := textinput.New()
+	li.Prompt = ":"
+	li.PromptStyle = lipgloss.NewStyle().Foreground(yellowGreen)
+	li.Focus()
+
 	m := pagerModel{
-		common:   common,
-		state:    pagerStateBrowse,
-		viewport: vp,
+		common:      common,
+		state:       pagerStateBrowse,
+		viewport:    vp,
+		searchInput: si,
+		searchIndex: -1,
+		lineInput:   li,
 	}
 	m.initWatcher()
 	return m
@@ -164,6 +190,21 @@ func (m *pagerModel) showStatusMessage(msg pagerStatusMessage) tea.Cmd {
 	return waitForStatusMessageTimeout(pagerContext, m.statusMessageTimer)
 }
 
+// inInputMode returns true when the pager is in a state that consumes
+// arbitrary key input (search prompt, jump prompt) or has active search
+// results that esc should clear before unloading the document.
+func (m pagerModel) inInputMode() bool {
+	return m.state == pagerStateSearch ||
+		m.state == pagerStateJumpToLine ||
+		m.searchQuery != ""
+}
+
+func (m *pagerModel) clearSearch() {
+	m.searchQuery = ""
+	m.searchMatches = nil
+	m.searchIndex = -1
+}
+
 func (m *pagerModel) unload() {
 	log.Debug("unload")
 	if m.showHelp {
@@ -173,9 +214,24 @@ func (m *pagerModel) unload() {
 		m.statusMessageTimer.Stop()
 	}
 	m.state = pagerStateBrowse
+	m.clearSearch()
 	m.viewport.SetContent("")
 	m.viewport.YOffset = 0
 	m.unwatchFile()
+}
+
+// findMatches finds all line numbers in content that contain the query
+// (case-insensitive). Returns 0-indexed line numbers.
+func findMatches(content string, query string) []int {
+	lines := strings.Split(content, "\n")
+	lowerQuery := strings.ToLower(query)
+	var matches []int
+	for i, line := range lines {
+		if strings.Contains(strings.ToLower(line), lowerQuery) {
+			matches = append(matches, i)
+		}
+	}
+	return matches
 }
 
 func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
@@ -186,62 +242,22 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", keyEsc:
-			if m.state != pagerStateBrowse {
-				m.state = pagerStateBrowse
-				return m, nil
-			}
-		case "home", "g":
-			m.viewport.GotoTop()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
-		case "end", "G":
-			m.viewport.GotoBottom()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+		switch m.state {
+		case pagerStateSearch:
+			cmds = append(cmds, m.handleSearchInput(msg))
+			return m, tea.Batch(cmds...)
 
-		case "d":
-			m.viewport.HalfViewDown()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+		case pagerStateJumpToLine:
+			cmds = append(cmds, m.handleJumpInput(msg))
+			return m, tea.Batch(cmds...)
 
-		case "u":
-			m.viewport.HalfViewUp()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+		case pagerStateStatusMessage:
+			// Any key returns to browse
+			m.state = pagerStateBrowse
+			return m, nil
 
-		case "e":
-			lineno := int(math.RoundToEven(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
-			if m.viewport.AtTop() {
-				lineno = 0
-			}
-			log.Info(
-				"opening editor",
-				"file", m.currentDocument.localPath,
-				"line", fmt.Sprintf("%d/%d", lineno, m.viewport.TotalLineCount()),
-			)
-			return m, openEditor(m.currentDocument.localPath, lineno)
-
-		case "c":
-			// Copy using OSC 52
-			termenv.Copy(m.currentDocument.Body)
-			// Copy using native system clipboard
-			_ = clipboard.WriteAll(m.currentDocument.Body)
-			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Copied contents", false}))
-
-		case "r":
-			return m, loadLocalMarkdown(&m.currentDocument)
-
-		case "?":
-			m.toggleHelp()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+		case pagerStateBrowse:
+			cmds = append(cmds, m.handleBrowseKeys(msg))
 		}
 
 	// Glow has rendered the content
@@ -270,13 +286,218 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		return m, renderWithGlamour(m, m.currentDocument.Body)
 
 	case statusMessageTimeoutMsg:
-		m.state = pagerStateBrowse
+		// Only transition to browse if we're actually showing a status message.
+		// Ignore if in search/jump input mode.
+		if m.state == pagerStateStatusMessage {
+			m.state = pagerStateBrowse
+		}
 	}
 
 	m.viewport, cmd = m.viewport.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *pagerModel) handleBrowseKeys(msg tea.KeyMsg) tea.Cmd {
+	var cmds []tea.Cmd
+
+	switch msg.String() {
+	case keyEsc:
+		// If search results are active, clear them
+		if m.searchQuery != "" {
+			m.clearSearch()
+			return nil
+		}
+
+	case "home", "g":
+		m.viewport.GotoTop()
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
+	case "end", "G":
+		m.viewport.GotoBottom()
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
+
+	case "d":
+		m.viewport.HalfViewDown()
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
+
+	case "u":
+		m.viewport.HalfViewUp()
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
+
+	case "right":
+		m.viewport.ViewDown()
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
+
+	case "left":
+		m.viewport.ViewUp()
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
+
+	case "e":
+		lineno := int(math.RoundToEven(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
+		if m.viewport.AtTop() {
+			lineno = 0
+		}
+		log.Info(
+			"opening editor",
+			"file", m.currentDocument.localPath,
+			"line", fmt.Sprintf("%d/%d", lineno, m.viewport.TotalLineCount()),
+		)
+		return openEditor(m.currentDocument.localPath, lineno)
+
+	case "c":
+		// Copy using OSC 52
+		termenv.Copy(m.currentDocument.Body)
+		// Copy using native system clipboard
+		_ = clipboard.WriteAll(m.currentDocument.Body)
+		cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Copied contents", false}))
+
+	case "r":
+		return loadLocalMarkdown(&m.currentDocument)
+
+	case "?":
+		m.toggleHelp()
+		if m.viewport.HighPerformanceRendering {
+			cmds = append(cmds, viewport.Sync(m.viewport))
+		}
+
+	case "/":
+		m.state = pagerStateSearch
+		m.searchInput.SetValue("")
+		m.searchInput.Focus()
+		return textinput.Blink
+
+	case ":":
+		m.state = pagerStateJumpToLine
+		m.lineInput.SetValue("")
+		m.lineInput.Focus()
+		return textinput.Blink
+
+	case "n":
+		if m.searchQuery != "" && len(m.searchMatches) > 0 {
+			m.searchIndex++
+			if m.searchIndex >= len(m.searchMatches) {
+				m.searchIndex = 0
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"search wrapped", false}))
+			}
+			m.viewport.SetYOffset(m.searchMatches[m.searchIndex])
+			if m.viewport.HighPerformanceRendering {
+				cmds = append(cmds, viewport.Sync(m.viewport))
+			}
+		}
+
+	case "N":
+		if m.searchQuery != "" && len(m.searchMatches) > 0 {
+			m.searchIndex--
+			if m.searchIndex < 0 {
+				m.searchIndex = len(m.searchMatches) - 1
+				cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"search wrapped", false}))
+			}
+			m.viewport.SetYOffset(m.searchMatches[m.searchIndex])
+			if m.viewport.HighPerformanceRendering {
+				cmds = append(cmds, viewport.Sync(m.viewport))
+			}
+		}
+	}
+
+	return tea.Batch(cmds...)
+}
+
+func (m *pagerModel) handleSearchInput(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case keyEnter:
+		query := m.searchInput.Value()
+		if query == "" {
+			m.state = pagerStateBrowse
+			return m.showStatusMessage(pagerStatusMessage{"no pattern", false})
+		}
+		m.searchQuery = query
+		m.searchMatches = findMatches(m.currentDocument.Body, query)
+		if len(m.searchMatches) == 0 {
+			m.searchQuery = ""
+			m.state = pagerStateBrowse
+			return m.showStatusMessage(pagerStatusMessage{"no matches", false})
+		}
+		m.searchIndex = 0
+		m.viewport.SetYOffset(m.searchMatches[0])
+		m.state = pagerStateBrowse
+		if m.viewport.HighPerformanceRendering {
+			return viewport.Sync(m.viewport)
+		}
+		return nil
+
+	case keyEsc:
+		m.clearSearch()
+		m.state = pagerStateBrowse
+		return nil
+	}
+
+	// Delegate to the text input
+	var cmd tea.Cmd
+	m.searchInput, cmd = m.searchInput.Update(msg)
+	return cmd
+}
+
+func (m *pagerModel) handleJumpInput(msg tea.KeyMsg) tea.Cmd {
+	switch msg.String() {
+	case keyEnter:
+		input := m.lineInput.Value()
+		m.state = pagerStateBrowse
+		if input == "" {
+			return nil
+		}
+
+		// Check for percentage jump (e.g., "50%")
+		if strings.HasSuffix(input, "%") {
+			pct, err := strconv.Atoi(strings.TrimSuffix(input, "%"))
+			if err != nil {
+				return m.showStatusMessage(pagerStatusMessage{"invalid number", false})
+			}
+			pct = max(0, min(100, pct))
+			if pct == 0 {
+				m.viewport.GotoTop()
+			} else if pct == 100 {
+				m.viewport.GotoBottom()
+			} else {
+				totalLines := m.viewport.TotalLineCount()
+				target := int(math.Round(float64(totalLines) * float64(pct) / 100))
+				m.viewport.SetYOffset(target)
+			}
+		} else {
+			n, err := strconv.Atoi(input)
+			if err != nil {
+				return m.showStatusMessage(pagerStatusMessage{"invalid line number", false})
+			}
+			n = max(1, min(n, m.viewport.TotalLineCount()))
+			m.viewport.SetYOffset(n - 1) // convert 1-indexed to 0-indexed
+		}
+
+		if m.viewport.HighPerformanceRendering {
+			return viewport.Sync(m.viewport)
+		}
+		return nil
+
+	case keyEsc:
+		m.state = pagerStateBrowse
+		return nil
+	}
+
+	// Delegate to the text input
+	var cmd tea.Cmd
+	m.lineInput, cmd = m.lineInput.Update(msg)
+	return cmd
 }
 
 func (m pagerModel) View() string {
@@ -294,6 +515,26 @@ func (m pagerModel) View() string {
 }
 
 func (m pagerModel) statusBarView(b *strings.Builder) {
+	// When in search or jump input mode, replace the entire status bar
+	// with the input prompt (like less/vim).
+	if m.state == pagerStateSearch {
+		fmt.Fprint(b, m.searchInput.View())
+		// Pad to full width
+		inputWidth := ansi.PrintableRuneWidth(m.searchInput.View())
+		if pad := m.common.width - inputWidth; pad > 0 {
+			fmt.Fprint(b, statusBarNoteStyle(strings.Repeat(" ", pad)))
+		}
+		return
+	}
+	if m.state == pagerStateJumpToLine {
+		fmt.Fprint(b, m.lineInput.View())
+		inputWidth := ansi.PrintableRuneWidth(m.lineInput.View())
+		if pad := m.common.width - inputWidth; pad > 0 {
+			fmt.Fprint(b, statusBarNoteStyle(strings.Repeat(" ", pad)))
+		}
+		return
+	}
+
 	const (
 		minPercent               float64 = 0.0
 		maxPercent               float64 = 1.0
@@ -304,6 +545,32 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 
 	// Logo
 	logo := glowLogoView()
+
+	// Page indicator
+	var pageIndicator string
+	viewHeight := max(1, m.viewport.Height)
+	currentPage := m.viewport.YOffset/viewHeight + 1
+	totalPages := (m.viewport.TotalLineCount() + viewHeight - 1) / viewHeight
+	currentPage = min(currentPage, totalPages)
+	if totalPages > 1 {
+		pageIndicator = fmt.Sprintf(" pg %d/%d ", currentPage, totalPages)
+	}
+	if showStatusMessage {
+		pageIndicator = statusBarMessageScrollPosStyle(pageIndicator)
+	} else {
+		pageIndicator = statusBarScrollPosStyle(pageIndicator)
+	}
+
+	// Match counter (when search results are active)
+	var matchCounter string
+	if m.searchQuery != "" && len(m.searchMatches) > 0 {
+		matchCounter = fmt.Sprintf(" %d/%d ", m.searchIndex+1, len(m.searchMatches))
+	}
+	if showStatusMessage {
+		matchCounter = statusBarMessageScrollPosStyle(matchCounter)
+	} else {
+		matchCounter = statusBarScrollPosStyle(matchCounter)
+	}
 
 	// Scroll percent
 	percent := math.Max(minPercent, math.Min(maxPercent, m.viewport.ScrollPercent()))
@@ -332,6 +599,8 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	note = truncate.StringWithTail(" "+note+" ", uint(max(0, //nolint:gosec
 		m.common.width-
 			ansi.PrintableRuneWidth(logo)-
+			ansi.PrintableRuneWidth(matchCounter)-
+			ansi.PrintableRuneWidth(pageIndicator)-
 			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
 	)), ellipsis)
@@ -346,6 +615,8 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		m.common.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(note)-
+			ansi.PrintableRuneWidth(matchCounter)-
+			ansi.PrintableRuneWidth(pageIndicator)-
 			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
 	)
@@ -356,10 +627,12 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 		emptySpace = statusBarNoteStyle(emptySpace)
 	}
 
-	fmt.Fprintf(b, "%s%s%s%s%s",
+	fmt.Fprintf(b, "%s%s%s%s%s%s%s",
 		logo,
 		note,
 		emptySpace,
+		matchCounter,
+		pageIndicator,
 		scrollPercent,
 		helpNote,
 	)
@@ -369,6 +642,9 @@ func (m pagerModel) helpView() (s string) {
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
+		"/       search",
+		"n/N     next/prev match",
+		":       jump to line/pct",
 		"c       copy contents",
 		"e       edit this document",
 		"r       reload this document",
@@ -381,11 +657,14 @@ func (m pagerModel) helpView() (s string) {
 	s += "j/↓      down                " + col1[1] + "\n"
 	s += "b/pgup   page up             " + col1[2] + "\n"
 	s += "f/pgdn   page down           " + col1[3] + "\n"
-	s += "u        ½ page up           " + col1[4] + "\n"
-	s += "d        ½ page down         "
+	s += "←/→      page back/fwd       " + col1[4] + "\n"
+	s += "u        ½ page up           " + col1[5] + "\n"
+	s += "d        ½ page down         " + col1[6] + "\n"
+	s += "                             " + col1[7] + "\n"
+	s += "                             " + col1[8]
 
-	if len(col1) > 5 {
-		s += col1[5]
+	if len(col1) > 9 {
+		s += "\n                             " + col1[9]
 	}
 
 	s = indent(s, 2)

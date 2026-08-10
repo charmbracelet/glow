@@ -216,6 +216,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
+			if m.state == stateShowDocument && m.pager.inInputMode() {
+				break // let pager handle (cancel search/jump, or clear results)
+			}
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {
 				batch := m.unloadDocument()
 				return m, tea.Batch(batch...)
@@ -233,6 +236,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "q":
+			if m.state == stateShowDocument && m.pager.inInputMode() {
+				break // let pager handle (typing 'q' in search input, or clearing search)
+			}
+
 			var cmd tea.Cmd
 
 			switch m.state { //nolint:exhaustive
@@ -246,7 +253,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, tea.Quit
 
-		case "left", "h", "delete":
+		case "h", "delete":
+			if m.state == stateShowDocument && m.pager.inInputMode() {
+				break // let pager textinput handle cursor/delete
+			}
 			if m.state == stateShowDocument {
 				cmds = append(cmds, m.unloadDocument()...)
 				return m, tea.Batch(cmds...)
