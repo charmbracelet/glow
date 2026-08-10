@@ -63,6 +63,7 @@ type (
 	foundLocalFileMsg       gitcha.SearchResult
 	localFileSearchFinished struct{}
 	statusMessageTimeoutMsg applicationContext
+	goBackToStashMsg        struct{}
 )
 
 // applicationContext indicates the area of the application something applies
@@ -104,7 +105,7 @@ type model struct {
 
 	// Sub-models
 	stash stashModel
-	pager pagerModel
+	pager  *pagerModel
 
 	// Channel that receives paths to local markdown files
 	// (via the github.com/muesli/gitcha package)
@@ -116,6 +117,7 @@ type model struct {
 func (m *model) unloadDocument() []tea.Cmd {
 	m.state = stateShowStash
 	m.stash.viewState = stashStateReady
+	m.stash.markdowns = nil
 	m.pager.unload()
 	m.pager.showHelp = false
 
@@ -127,10 +129,16 @@ func (m *model) unloadDocument() []tea.Cmd {
 	if !m.stash.shouldSpin() {
 		batch = append(batch, m.stash.spinner.Tick)
 	}
+
+	// If we are transitioning from a document to the stash, we need to populate the stash.
+	if m.common.cwd != "" {
+		batch = append(batch, findLocalFiles(*m.common))
+	}
+
 	return batch
 }
 
-func newModel(cfg Config, content string) tea.Model {
+func newModel(cfg Config, content string) *model {
 	initSections()
 
 	if cfg.GlamourStyle == styles.AutoStyle {
@@ -156,7 +164,7 @@ func newModel(cfg Config, content string) tea.Model {
 	if path == "" && content != "" {
 		m.state = stateShowDocument
 		m.pager.currentDocument = markdown{Body: content}
-		return m
+		return &m
 	}
 
 	if path == "" {
@@ -166,43 +174,60 @@ func newModel(cfg Config, content string) tea.Model {
 	if err != nil {
 		log.Error("unable to stat file", "file", path, "error", err)
 		m.fatalErr = err
-		return m
+		return &m
 	}
 	if info.IsDir() {
 		m.state = stateShowStash
 	} else {
 		cwd, _ := os.Getwd()
+		m.common.cwd = cwd
+		if rel, err := filepath.Rel(m.common.cwd, path); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			m.common.cwd = filepath.Dir(path)
+		}
 		m.state = stateShowDocument
 		m.pager.currentDocument = markdown{
 			localPath: path,
-			Note:      stripAbsolutePath(path, cwd),
+			Note:      stripAbsolutePath(path, m.common.cwd),
 			Modtime:   info.ModTime(),
 		}
 	}
 
-	return m
+	return &m
 }
 
-func (m model) Init() tea.Cmd {
+func (m *model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.stash.spinner.Tick}
 
 	switch m.state {
 	case stateShowStash:
 		cmds = append(cmds, findLocalFiles(*m.common))
 	case stateShowDocument:
-		content, err := os.ReadFile(m.common.cfg.Path)
-		if err != nil {
-			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
-			return func() tea.Msg { return errMsg{err} }
+		var body string
+		if m.pager.currentDocument.localPath != "" {
+			content, err := os.ReadFile(m.pager.currentDocument.localPath)
+			if err != nil {
+				log.Error("unable to read file", "file", m.pager.currentDocument.localPath, "error", err)
+				return func() tea.Msg { return errMsg{err} }
+			}
+			body = string(utils.RemoveFrontmatter(content))
+		} else {
+			body = string(utils.RemoveFrontmatter([]byte(m.pager.currentDocument.Body)))
 		}
-		body := string(utils.RemoveFrontmatter(content))
-		cmds = append(cmds, renderWithGlamour(m.pager, body))
+		m.pager.currentDocument.Body = body
+		if m.pager.currentDocument.localPath != "" && m.common.cwd != "" {
+			links, err := followableLinksForDocument(m.common.cwd, m.pager.currentDocument.localPath, body)
+			if err != nil {
+				log.Debug("error extracting followable links", "error", err)
+			}
+			m.pager.links = links
+			m.pager.focusedLink = -1
+		}
 	}
 
 	return tea.Batch(cmds...)
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// If there's been an error, any key exits
 	if m.fatalErr != nil {
 		if _, ok := msg.(tea.KeyMsg); ok {
@@ -246,12 +271,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, tea.Quit
 
-		case "left", "h", "delete":
-			if m.state == stateShowDocument {
-				cmds = append(cmds, m.unloadDocument()...)
-				return m, tea.Batch(cmds...)
-			}
-
 		case "ctrl+z":
 			return m, tea.Suspend
 
@@ -276,10 +295,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// We've loaded a markdown file's contents for rendering
 		m.pager.currentDocument = *msg
 		body := string(utils.RemoveFrontmatter([]byte(msg.Body)))
+		m.pager.currentDocument.Body = body
+		if m.pager.currentDocument.localPath != "" && m.common.cwd != "" {
+			links, err := followableLinksForDocument(m.common.cwd, m.pager.currentDocument.localPath, body)
+			if err != nil {
+				log.Debug("error extracting followable links", "error", err)
+			}
+			m.pager.links = links
+			m.pager.focusedLink = -1
+		} else {
+			m.pager.links = nil
+			m.pager.focusedLink = -1
+		}
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
 
 	case contentRenderedMsg:
 		m.state = stateShowDocument
+
+	case goBackToStashMsg:
+		batch := m.unloadDocument()
+		return m, tea.Batch(batch...)
 
 	case localFileSearchFinished:
 		// Always pass these messages to the stash so we can keep it updated
@@ -324,7 +359,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m model) View() string {
+func (m *model) View() string {
 	if m.fatalErr != nil {
 		return errorView(m.fatalErr, true)
 	}
@@ -369,6 +404,9 @@ func findLocalFiles(m commonModel) tea.Cmd {
 			info, err = os.Stat(cwd)
 			if err == nil && info.IsDir() {
 				cwd, err = filepath.Abs(cwd)
+			} else if err == nil {
+				cwd = filepath.Dir(cwd)
+				cwd, err = filepath.Abs(cwd)
 			}
 		}
 
@@ -397,7 +435,7 @@ func findLocalFiles(m commonModel) tea.Cmd {
 	}
 }
 
-func findNextLocalFile(m model) tea.Cmd {
+func findNextLocalFile(m *model) tea.Cmd {
 	return func() tea.Msg {
 		res, ok := <-m.localFileFinder
 
@@ -432,9 +470,12 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 }
 
 func stripAbsolutePath(fullPath, cwd string) string {
-	fp, _ := filepath.EvalSymlinks(fullPath)
 	cp, _ := filepath.EvalSymlinks(cwd)
-	return strings.ReplaceAll(fp, cp+string(os.PathSeparator), "")
+	rel, err := filepath.Rel(cp, fullPath)
+	if err != nil {
+		return fullPath
+	}
+	return rel
 }
 
 // Lightweight version of reflow's indent function.
