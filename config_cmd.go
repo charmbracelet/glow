@@ -15,6 +15,8 @@ import (
 
 const defaultConfig = `# style name or JSON path (default "auto")
 style: "auto"
+# colorize output when piped (auto|always)
+color: "auto"
 # mouse support (TUI-mode only)
 mouse: false
 # use pager to display markdown
