@@ -9,11 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"mvdan.cc/sh/v3/shell"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/charmbracelet/glamour"
@@ -316,20 +313,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	// display
 	switch {
 	case pager || cmd.Flags().Changed("pager"):
-		pagerCmd := os.Getenv("PAGER")
-		if pagerCmd == "" {
-			pagerCmd = "less -r"
-		}
-
-		fields, err := shell.Fields(pagerCmd, os.Getenv)
-		if err != nil || len(fields) == 0 {
-			return fmt.Errorf("unable to parse PAGER command: %s", pagerCmd)
-		}
-		c := exec.Command(fields[0], fields[1:]...) //nolint:gosec
-		c.Stdin = strings.NewReader(out)
-		c.Stdout = os.Stdout
-		if err := c.Run(); err != nil {
-			return fmt.Errorf("unable to run command: %w", err)
+		if err := runPagerCommand(out); err != nil {
+			return err
 		}
 		return nil
 	case tui || cmd.Flags().Changed("tui"):
