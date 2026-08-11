@@ -15,11 +15,11 @@ import (
 
 	"mvdan.cc/sh/v3/shell"
 
-	"github.com/caarlos0/env/v11"
 	"charm.land/glamour/v2"
 	"charm.land/glamour/v2/styles"
-	"github.com/charmbracelet/glow/v2/ui"
-	"github.com/charmbracelet/glow/v2/utils"
+	"charm.land/glow/v3/ui"
+	"charm.land/glow/v3/utils"
+	"github.com/caarlos0/env/v11"
 	"github.com/charmbracelet/log"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"

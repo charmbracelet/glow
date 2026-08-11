@@ -1,8 +1,6 @@
-module github.com/charmbracelet/glow/v2
+module charm.land/glow/v3
 
-go 1.25.12
-
-toolchain go1.26.5
+go 1.26.5
 
 require (
 	charm.land/bubbles/v2 v2.1.1
