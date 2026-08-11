@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/glamour/v2"
+	"charm.land/glow/v3/utils"
+	"charm.land/lipgloss/v2"
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glow/v2/utils"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/fsnotify/fsnotify"
 	runewidth "github.com/mattn/go-runewidth"
@@ -26,56 +26,7 @@ const (
 	lineNumberWidth = 4
 )
 
-var (
-	pagerHelpHeight int
-
-	mintGreen = lipgloss.AdaptiveColor{Light: "#89F0CB", Dark: "#89F0CB"}
-	darkGreen = lipgloss.AdaptiveColor{Light: "#1C8760", Dark: "#1C8760"}
-
-	lineNumberFg = lipgloss.AdaptiveColor{Light: "#656565", Dark: "#7D7D7D"}
-
-	statusBarNoteFg = lipgloss.AdaptiveColor{Light: "#656565", Dark: "#7D7D7D"}
-	statusBarBg     = lipgloss.AdaptiveColor{Light: "#E6E6E6", Dark: "#242424"}
-
-	statusBarScrollPosStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.AdaptiveColor{Light: "#949494", Dark: "#5A5A5A"}).
-				Background(statusBarBg).
-				Render
-
-	statusBarNoteStyle = lipgloss.NewStyle().
-				Foreground(statusBarNoteFg).
-				Background(statusBarBg).
-				Render
-
-	statusBarHelpStyle = lipgloss.NewStyle().
-				Foreground(statusBarNoteFg).
-				Background(lipgloss.AdaptiveColor{Light: "#DCDCDC", Dark: "#323232"}).
-				Render
-
-	statusBarMessageStyle = lipgloss.NewStyle().
-				Foreground(mintGreen).
-				Background(darkGreen).
-				Render
-
-	statusBarMessageScrollPosStyle = lipgloss.NewStyle().
-					Foreground(mintGreen).
-					Background(darkGreen).
-					Render
-
-	statusBarMessageHelpStyle = lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#B6FFE4")).
-					Background(green).
-					Render
-
-	helpViewStyle = lipgloss.NewStyle().
-			Foreground(statusBarNoteFg).
-			Background(lipgloss.AdaptiveColor{Light: "#f2f2f2", Dark: "#1B1B1B"}).
-			Render
-
-	lineNumberStyle = lipgloss.NewStyle().
-			Foreground(lineNumberFg).
-			Render
-)
+var pagerHelpHeight int
 
 type (
 	contentRenderedMsg string
@@ -107,9 +58,7 @@ type pagerModel struct {
 
 func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
-	vp := viewport.New(0, 0)
-	vp.YPosition = 0
-	vp.HighPerformanceRendering = config.HighPerformancePager
+	vp := viewport.New()
 
 	m := pagerModel{
 		common:   common,
@@ -121,14 +70,14 @@ func newPagerModel(common *commonModel) pagerModel {
 }
 
 func (m *pagerModel) setSize(w, h int) {
-	m.viewport.Width = w
-	m.viewport.Height = h - statusBarHeight
+	m.viewport.SetWidth(w)
+	m.viewport.SetHeight(h - statusBarHeight)
 
 	if m.showHelp {
 		if pagerHelpHeight == 0 {
 			pagerHelpHeight = strings.Count(m.helpView(), "\n")
 		}
-		m.viewport.Height -= (statusBarHeight + pagerHelpHeight)
+		m.viewport.SetHeight(m.viewport.Height() - (statusBarHeight + pagerHelpHeight))
 	}
 }
 
@@ -174,7 +123,7 @@ func (m *pagerModel) unload() {
 	}
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
-	m.viewport.YOffset = 0
+	m.viewport.SetYOffset(0)
 	m.unwatchFile()
 }
 
@@ -185,7 +134,7 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q", keyEsc:
 			if m.state != pagerStateBrowse {
@@ -194,26 +143,14 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			}
 		case "home", "g":
 			m.viewport.GotoTop()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
 		case "end", "G":
 			m.viewport.GotoBottom()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
 
 		case "d":
-			m.viewport.HalfViewDown()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+			m.viewport.HalfPageDown()
 
 		case "u":
-			m.viewport.HalfViewUp()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
+			m.viewport.HalfPageUp()
 
 		case "e":
 			lineno := int(math.RoundToEven(float64(m.viewport.TotalLineCount()) * m.viewport.ScrollPercent()))
@@ -239,9 +176,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 		case "?":
 			m.toggleHelp()
-			if m.viewport.HighPerformanceRendering {
-				cmds = append(cmds, viewport.Sync(m.viewport))
-			}
 		}
 
 	// Glow has rendered the content
@@ -249,9 +183,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		log.Info("content rendered", "state", m.state)
 
 		m.setContent(string(msg))
-		if m.viewport.HighPerformanceRendering {
-			cmds = append(cmds, viewport.Sync(m.viewport))
-		}
 		cmds = append(cmds, m.watchFile)
 
 	// The file was changed on disk and we're reloading it
@@ -301,25 +232,26 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	)
 
 	showStatusMessage := m.state == pagerStateStatusMessage
+	styles := m.common.styles
 
 	// Logo
-	logo := glowLogoView()
+	logo := glowLogoView(m.common.styles)
 
 	// Scroll percent
 	percent := math.Max(minPercent, math.Min(maxPercent, m.viewport.ScrollPercent()))
 	scrollPercent := fmt.Sprintf(" %3.f%% ", percent*percentToStringMagnitude)
 	if showStatusMessage {
-		scrollPercent = statusBarMessageScrollPosStyle(scrollPercent)
+		scrollPercent = styles.statusBarMessageScrollPosStyle(scrollPercent)
 	} else {
-		scrollPercent = statusBarScrollPosStyle(scrollPercent)
+		scrollPercent = styles.statusBarScrollPosStyle(scrollPercent)
 	}
 
 	// "Help" note
 	var helpNote string
 	if showStatusMessage {
-		helpNote = statusBarMessageHelpStyle(" ? Help ")
+		helpNote = styles.statusBarMessageHelpStyle(" ? Help ")
 	} else {
-		helpNote = statusBarHelpStyle(" ? Help ")
+		helpNote = styles.statusBarHelpStyle(" ? Help ")
 	}
 
 	// Note
@@ -336,9 +268,9 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 			ansi.PrintableRuneWidth(helpNote),
 	)), ellipsis)
 	if showStatusMessage {
-		note = statusBarMessageStyle(note)
+		note = styles.statusBarMessageStyle(note)
 	} else {
-		note = statusBarNoteStyle(note)
+		note = styles.statusBarNoteStyle(note)
 	}
 
 	// Empty space
@@ -351,9 +283,9 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	)
 	emptySpace := strings.Repeat(" ", padding)
 	if showStatusMessage {
-		emptySpace = statusBarMessageStyle(emptySpace)
+		emptySpace = styles.statusBarMessageStyle(emptySpace)
 	} else {
-		emptySpace = statusBarNoteStyle(emptySpace)
+		emptySpace = styles.statusBarNoteStyle(emptySpace)
 	}
 
 	fmt.Fprintf(b, "%s%s%s%s%s",
@@ -402,7 +334,7 @@ func (m pagerModel) helpView() (s string) {
 		s = strings.Join(lines, "\n")
 	}
 
-	return helpViewStyle(s)
+	return m.common.styles.helpViewStyle(s)
 }
 
 // COMMANDS
@@ -420,14 +352,14 @@ func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 
 // This is where the magic happens.
 func glamourRender(m pagerModel, markdown string) (string, error) {
-	trunc := lipgloss.NewStyle().MaxWidth(m.viewport.Width - lineNumberWidth).Render
+	trunc := lipgloss.NewStyle().MaxWidth(m.viewport.Width() - lineNumberWidth).Render
 
-	if !config.GlamourEnabled {
+	if !m.common.cfg.GlamourEnabled {
 		return markdown, nil
 	}
 
 	isCode := !utils.IsMarkdownFile(m.currentDocument.Note)
-	width := max(0, min(int(m.common.cfg.GlamourMaxWidth), m.viewport.Width)) //nolint:gosec
+	width := max(0, min(int(m.common.cfg.GlamourMaxWidth), m.viewport.Width())) //nolint:gosec
 	if isCode {
 		width = 0
 	}
@@ -464,7 +396,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	var content strings.Builder
 	for i, s := range lines {
 		if isCode || m.common.cfg.ShowLineNumbers {
-			content.WriteString(lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
+			content.WriteString(m.common.styles.lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
 			content.WriteString(trunc(s))
 		} else {
 			content.WriteString(s)

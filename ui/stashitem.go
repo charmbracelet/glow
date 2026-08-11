@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/log"
 	"github.com/muesli/reflow/truncate"
 	"github.com/sahilm/fuzzy"
@@ -30,6 +30,7 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	isSelected := index == m.cursor()
 	isFiltering := m.filterState == filtering
 	singleFilteredItem := isFiltering && len(m.getVisibleMarkdowns()) == 1
+	styles := m.common.styles
 
 	// If there are multiple items being filtered don't highlight a selected
 	// item in the results. If we've filtered down to one item, however,
@@ -37,48 +38,48 @@ func stashItemView(b *strings.Builder, m stashModel, index int, md *markdown) {
 	if isSelected && !isFiltering || singleFilteredItem { //nolint:nestif
 		// Selected item
 		if m.statusMessage == stashingStatusMessage {
-			gutter = greenFg(verticalLine)
-			icon = dimGreenFg(icon)
-			title = greenFg(title)
-			date = semiDimGreenFg(date)
-			editedBy = semiDimGreenFg(editedBy)
-			separator = semiDimGreenFg(separator)
+			gutter = styles.greenFg(verticalLine)
+			icon = styles.dimGreenFg(icon)
+			title = styles.greenFg(title)
+			date = styles.semiDimGreenFg(date)
+			editedBy = styles.semiDimGreenFg(editedBy)
+			separator = styles.semiDimGreenFg(separator)
 		} else {
-			gutter = dullFuchsiaFg(verticalLine)
+			gutter = styles.dullFuchsiaFg(verticalLine)
 			if m.currentSection().key == filterSection &&
 				m.filterState == filterApplied || singleFilteredItem {
-				s := lipgloss.NewStyle().Foreground(fuchsia)
+				s := lipgloss.NewStyle().Foreground(styles.fuchsia)
 				title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline(true))
 			} else {
-				title = fuchsiaFg(title)
-				icon = fuchsiaFg(icon)
+				title = styles.fuchsiaFg(title)
+				icon = styles.fuchsiaFg(icon)
 			}
-			date = dimFuchsiaFg(date)
-			editedBy = dimDullFuchsiaFg(editedBy)
-			separator = dullFuchsiaFg(separator)
+			date = styles.dimFuchsiaFg(date)
+			editedBy = styles.dimDullFuchsiaFg(editedBy)
+			separator = styles.dullFuchsiaFg(separator)
 		}
 	} else {
 		gutter = " "
 		if m.statusMessage == stashingStatusMessage {
-			icon = dimGreenFg(icon)
-			title = greenFg(title)
-			date = semiDimGreenFg(date)
-			editedBy = semiDimGreenFg(editedBy)
-			separator = semiDimGreenFg(separator)
+			icon = styles.dimGreenFg(icon)
+			title = styles.greenFg(title)
+			date = styles.semiDimGreenFg(date)
+			editedBy = styles.semiDimGreenFg(editedBy)
+			separator = styles.semiDimGreenFg(separator)
 		} else if isFiltering && m.filterInput.Value() == "" {
-			icon = dimGreenFg(icon)
-			title = dimNormalFg(title)
-			date = dimBrightGrayFg(date)
-			editedBy = dimBrightGrayFg(editedBy)
-			separator = dimBrightGrayFg(separator)
+			icon = styles.dimGreenFg(icon)
+			title = styles.dimNormalFg(title)
+			date = styles.dimBrightGrayFg(date)
+			editedBy = styles.dimBrightGrayFg(editedBy)
+			separator = styles.dimBrightGrayFg(separator)
 		} else {
-			icon = greenFg(icon)
+			icon = styles.greenFg(icon)
 
-			s := lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"})
+			s := lipgloss.NewStyle().Foreground(styles.adaptive("#1a1a1a", "#dddddd"))
 			title = styleFilteredText(title, m.filterInput.Value(), s, s.Underline(true))
-			date = grayFg(date)
-			editedBy = midGrayFg(editedBy)
-			separator = brightGrayFg(separator)
+			date = styles.grayFg(date)
+			editedBy = styles.midGrayFg(editedBy)
+			separator = styles.brightGrayFg(separator)
 		}
 	}
 
