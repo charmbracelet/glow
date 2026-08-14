@@ -44,6 +44,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	hyperlinkMode    string
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -173,6 +174,7 @@ func validateOptions(cmd *cobra.Command) error {
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
+	hyperlinkMode = viper.GetString("hyperlinkMode")
 
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
@@ -297,8 +299,13 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
 	}
-	if utils.SupportsHyperlinks(os.Environ()) {
+	switch hyperlinkMode {
+	case "inline":
 		options = append(options, glamour.WithHyperlinkMode(glamsi.HyperlinkModeInline))
+	case "auto", "":
+		if utils.SupportsHyperlinks(os.Environ()) {
+			options = append(options, glamour.WithHyperlinkMode(glamsi.HyperlinkModeInline))
+		}
 	}
 	r, err := glamour.NewTermRenderer(options...)
 	if err != nil {
@@ -367,6 +374,7 @@ func runTUI(path string, content string) error {
 	cfg.GlamourMaxWidth = width
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
+	cfg.HyperlinkMode = hyperlinkMode
 
 	// Run Bubble Tea program
 	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
@@ -426,6 +434,7 @@ func init() {
 
 	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
+	viper.SetDefault("hyperlinkMode", "auto")
 	viper.SetDefault("all", true)
 
 	rootCmd.AddCommand(configCmd, manCmd)
