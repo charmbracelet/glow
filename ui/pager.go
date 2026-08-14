@@ -371,8 +371,13 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 		glamour.WithWordWrap(width),
 	}
 
-	if utils.SupportsHyperlinks(os.Environ()) {
+	switch m.common.cfg.HyperlinkMode {
+	case "inline":
 		options = append(options, glamour.WithHyperlinkMode(glamsi.HyperlinkModeInline))
+	case "auto", "":
+		if utils.SupportsHyperlinks(os.Environ()) {
+			options = append(options, glamour.WithHyperlinkMode(glamsi.HyperlinkModeInline))
+		}
 	}
 
 	if m.common.cfg.PreserveNewLines {
