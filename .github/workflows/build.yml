@@ -22,4 +22,4 @@ jobs:
   ruleguard:
     uses: charmbracelet/meta/.github/workflows/ruleguard.yml@main
     with:
-      go-version: stable
+      go-version: 1.23.6
