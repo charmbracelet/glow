@@ -73,7 +73,10 @@ func IsMarkdownFile(filename string) bool {
 func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	if !isCode {
 		if style == "auto" {
-			return glamour.WithStandardStyle("dark")
+			if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
+				return glamour.WithStandardStyle(styles.DarkStyle)
+			}
+			return glamour.WithStandardStyle(styles.LightStyle)
 		}
 		return glamour.WithStylePath(style)
 	}
