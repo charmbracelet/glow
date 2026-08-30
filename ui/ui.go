@@ -191,7 +191,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.BackgroundColorMsg:
 		m.common.styles = newStyles(msg.IsDark())
 		m.stash.stylePaginators(m.common.styles)
+		m.pager.applyHighlightStyles(m.common.styles)
 	case tea.KeyPressMsg:
+		if m.state == stateShowDocument && m.pager.state == pagerStateSearch {
+			switch msg.String() {
+			case "ctrl+c":
+				return m, tea.Quit
+			case "ctrl+z":
+				return m, tea.Suspend
+			}
+			var cmd tea.Cmd
+			m.pager, cmd = m.pager.update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "esc":
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {

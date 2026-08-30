@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/glamour/v2"
@@ -38,6 +39,7 @@ type pagerState int
 const (
 	pagerStateBrowse pagerState = iota
 	pagerStateStatusMessage
+	pagerStateSearch
 )
 
 type pagerModel struct {
@@ -54,19 +56,45 @@ type pagerModel struct {
 	currentDocument markdown
 
 	watcher *fsnotify.Watcher
+
+	// Search
+	searchInput textinput.Model
+	searchQuery string
+	searchCount int
+	searching   bool
 }
 
 func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
 	vp := viewport.New()
 
+	// Init search input
+	si := textinput.New()
+	si.Prompt = "/"
+	si.SetVirtualCursor(true)
+	tsi := si.Styles()
+	tsi.Focused.Prompt = common.styles.inputPromptStyle
+	tsi.Blurred.Prompt = common.styles.inputPromptStyle
+	tsi.Cursor.Color = common.styles.fuchsia
+	si.SetStyles(tsi)
+
 	m := pagerModel{
-		common:   common,
-		state:    pagerStateBrowse,
-		viewport: vp,
+		common:      common,
+		state:       pagerStateBrowse,
+		viewport:    vp,
+		searchInput: si,
 	}
+	m.applyHighlightStyles(common.styles)
 	m.initWatcher()
 	return m
+}
+
+// applyHighlightStyles pushes the current theme's search highlight colors
+// into the viewport. Called on init and whenever the resolved background
+// color (light/dark) changes.
+func (m *pagerModel) applyHighlightStyles(styles Styles) {
+	m.viewport.HighlightStyle = styles.searchHighlightStyle
+	m.viewport.SelectedHighlightStyle = styles.searchSelectedHighlightStyle
 }
 
 func (m *pagerModel) setSize(w, h int) {
@@ -121,10 +149,82 @@ func (m *pagerModel) unload() {
 	if m.statusMessageTimer != nil {
 		m.statusMessageTimer.Stop()
 	}
+	m.clearSearch()
+	m.searchInput.Blur()
 	m.state = pagerStateBrowse
 	m.viewport.SetContent("")
 	m.viewport.SetYOffset(0)
 	m.unwatchFile()
+}
+
+// startSearch clears any previous search and enters search-input mode.
+func (m *pagerModel) startSearch() tea.Cmd {
+	m.clearSearch()
+	m.state = pagerStateSearch
+	m.searchInput.Reset()
+	return m.searchInput.Focus()
+}
+
+// cancelSearch discards the in-progress query and returns to browsing
+// without changing any existing highlight state (there is none, since
+// startSearch already cleared it).
+func (m *pagerModel) cancelSearch() {
+	m.searchInput.Blur()
+	m.state = pagerStateBrowse
+}
+
+// confirmSearch runs the typed query against the current viewport content.
+// On success it highlights all matches; on zero matches it shows a status
+// message; either way it returns to browse state.
+func (m *pagerModel) confirmSearch() tea.Cmd {
+	query := m.searchInput.Value()
+	m.searchInput.Blur()
+	m.state = pagerStateBrowse
+
+	if query == "" {
+		return nil
+	}
+
+	matches := findMatches(m.viewport.GetContent(), query)
+	if len(matches) == 0 {
+		m.searchQuery = ""
+		m.searching = false
+		m.searchCount = 0
+		return m.showStatusMessage(pagerStatusMessage{"No matches", false})
+	}
+
+	m.searchQuery = query
+	m.searching = true
+	m.searchCount = len(matches)
+	m.viewport.SetHighlights(matches)
+	return nil
+}
+
+// clearSearch drops any active search and its highlights.
+func (m *pagerModel) clearSearch() {
+	m.searchQuery = ""
+	m.searching = false
+	m.searchCount = 0
+	m.viewport.ClearHighlights()
+}
+
+// reapplySearch re-runs the active search against the viewport's current
+// content. Needed after the document is re-rendered (e.g. on terminal
+// resize), since match byte-offsets from before the re-render no longer
+// apply to the new content string.
+func (m *pagerModel) reapplySearch() {
+	if !m.searching {
+		return
+	}
+	matches := findMatches(m.viewport.GetContent(), m.searchQuery)
+	if len(matches) == 0 {
+		m.searching = false
+		m.searchCount = 0
+		m.viewport.ClearHighlights()
+		return
+	}
+	m.searchCount = len(matches)
+	m.viewport.SetHighlights(matches)
 }
 
 func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
@@ -133,10 +233,29 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 
+	if m.state == pagerStateSearch {
+		if keyMsg, ok := msg.(tea.KeyPressMsg); ok {
+			switch keyMsg.String() {
+			case keyEsc:
+				m.cancelSearch()
+				return m, nil
+			case keyEnter:
+				return m, m.confirmSearch()
+			}
+			var inputCmd tea.Cmd
+			m.searchInput, inputCmd = m.searchInput.Update(keyMsg)
+			return m, inputCmd
+		}
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q", keyEsc:
+			if m.searching {
+				m.clearSearch()
+				return m, nil
+			}
 			if m.state != pagerStateBrowse {
 				m.state = pagerStateBrowse
 				return m, nil
@@ -172,7 +291,11 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Copied contents", false}))
 
 		case "r":
+			m.clearSearch()
 			return m, loadLocalMarkdown(&m.currentDocument)
+
+		case "/":
+			cmds = append(cmds, m.startSearch())
 
 		case "?":
 			m.toggleHelp()
@@ -183,16 +306,19 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		log.Info("content rendered", "state", m.state)
 
 		m.setContent(string(msg))
+		m.reapplySearch()
 		cmds = append(cmds, m.watchFile)
 
 	// The file was changed on disk and we're reloading it
 	case reloadMsg:
+		m.clearSearch()
 		return m, loadLocalMarkdown(&m.currentDocument)
 
 	// We've finished editing the document, potentially making changes. Let's
 	// retrieve the latest version of the document so that we display
 	// up-to-date contents.
 	case editorFinishedMsg:
+		m.clearSearch()
 		return m, loadLocalMarkdown(&m.currentDocument)
 
 	// We've received terminal dimensions, either for the first time or
