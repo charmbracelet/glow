@@ -1,6 +1,9 @@
 package ui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestFindMatches(t *testing.T) {
 	tests := []struct {
@@ -82,5 +85,51 @@ func TestFindMatches(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestFindMatchesDoesNotPanicOnAdversarialInput exercises inputs a hostile or
+// careless user could plausibly type or paste into the search box, to
+// confirm the query is always treated as a literal string (never
+// interpreted as regex syntax) and that nothing here can panic regardless
+// of query/content shape.
+func TestFindMatchesDoesNotPanicOnAdversarialInput(t *testing.T) {
+	adversarialQueries := []string{
+		`.*`,               // would match everything if treated as regex
+		`(a+)+b`,           // classic ReDoS pattern if treated as regex
+		`[`,                // unterminated character class if treated as regex
+		`\`,                // trailing backslash if treated as regex
+		strings.Repeat("a", 10_000), // very long query
+		"👍🏽日本語",             // multi-byte / combining / wide runes
+		"\x00\x01\x02",     // raw control bytes (shouldn't reach here in
+		// practice, since textinput's sanitizer strips these before they
+		// ever reach searchQuery, but findMatches itself must not assume
+		// that and must not panic if ever called directly with them)
+	}
+	adversarialContent := []string{
+		"",
+		"\n\n\n",
+		strings.Repeat("x", 50_000),
+		"\x1b[38;5;252m\x1b[m\x1b[1m\x1b[m", // ANSI codes with no visible text
+	}
+
+	for _, content := range adversarialContent {
+		for _, query := range adversarialQueries {
+			findMatches(content, query) // must not panic
+		}
+	}
+
+	// The regex-metacharacter queries must be treated as literal text, not
+	// as regex syntax: searching for ".*" in content that does NOT
+	// literally contain ".*" must yield zero matches, even though ".*" as
+	// real regex would match the entire string.
+	got := findMatches("hello world", ".*")
+	if len(got) != 0 {
+		t.Fatalf(`expected ".*" to be treated as a literal (non-matching) string, got matches: %+v`, got)
+	}
+
+	got = findMatches("literally .* here", ".*")
+	if len(got) != 1 {
+		t.Fatalf(`expected exactly one literal match of ".*", got: %+v`, got)
 	}
 }
