@@ -147,3 +147,38 @@ func TestUnloadClearsSearchState(t *testing.T) {
 		t.Fatalf("expected search state cleared after unload, got searching=%v state=%v", m.searching, m.state)
 	}
 }
+
+func TestNextAndPreviousMatchAreNoOpsWhenNotSearching(t *testing.T) {
+	m := newTestPagerModel()
+	m.viewport.SetContent("hello world\n")
+
+	// Must not panic even though there are no highlights set and no
+	// search is active.
+	m.nextMatch()
+	m.previousMatch()
+
+	if m.searching {
+		t.Fatal("expected searching to remain false")
+	}
+}
+
+func TestNextAndPreviousMatchWorkWhileSearching(t *testing.T) {
+	m := newTestPagerModel()
+	m.viewport.SetContent("hello world\nhello again\n")
+	m.startSearch()
+	m.searchInput.SetValue("hello")
+	m.confirmSearch()
+
+	// Must not panic when cycling through matches, including wrapping
+	// around past the last/first match.
+	m.nextMatch()
+	m.nextMatch()
+	m.nextMatch()
+	m.previousMatch()
+	m.previousMatch()
+	m.previousMatch()
+
+	if !m.searching {
+		t.Fatal("expected searching to remain true")
+	}
+}

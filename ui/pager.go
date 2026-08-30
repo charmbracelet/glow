@@ -227,6 +227,22 @@ func (m *pagerModel) reapplySearch() {
 	m.viewport.SetHighlights(matches)
 }
 
+// nextMatch highlights the next search match, if a search is active.
+func (m *pagerModel) nextMatch() {
+	if !m.searching {
+		return
+	}
+	m.viewport.HighlightNext()
+}
+
+// previousMatch highlights the previous search match, if a search is active.
+func (m *pagerModel) previousMatch() {
+	if !m.searching {
+		return
+	}
+	m.viewport.HighlightPrevious()
+}
+
 func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	var (
 		cmd  tea.Cmd
@@ -297,6 +313,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		case "/":
 			cmds = append(cmds, m.startSearch())
 
+		case "n":
+			m.nextMatch()
+
+		case "N":
+			m.previousMatch()
+
 		case "?":
 			m.toggleHelp()
 		}
@@ -360,8 +382,13 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	showStatusMessage := m.state == pagerStateStatusMessage
 	styles := m.common.styles
 
-	// Logo
-	logo := glowLogoView(m.common.styles)
+	// Logo, or the search input while a search is being typed
+	var logo string
+	if m.state == pagerStateSearch {
+		logo = m.searchInput.View()
+	} else {
+		logo = glowLogoView(m.common.styles)
+	}
 
 	// Scroll percent
 	percent := math.Max(minPercent, math.Min(maxPercent, m.viewport.ScrollPercent()))
@@ -382,9 +409,16 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 
 	// Note
 	var note string
-	if showStatusMessage {
+	switch {
+	case showStatusMessage:
 		note = m.statusMessage
-	} else {
+	case m.searching:
+		if m.searchCount == 1 {
+			note = "1 match"
+		} else {
+			note = fmt.Sprintf("%d matches", m.searchCount)
+		}
+	default:
 		note = m.currentDocument.Note
 	}
 	note = truncate.StringWithTail(" "+note+" ", uint(max(0, //nolint:gosec
@@ -445,6 +479,9 @@ func (m pagerModel) helpView() (s string) {
 	if len(col1) > 5 {
 		s += col1[5]
 	}
+	s += "\n"
+	s += "/        search               n       next match\n"
+	s += "                              N       prev match"
 
 	s = indent(s, 2)
 
