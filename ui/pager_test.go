@@ -6,7 +6,7 @@ import (
 )
 
 func newTestPagerModel() pagerModel {
-	common := &commonModel{styles: newStyles(true)}
+	common := &commonModel{styles: newStyles(true), width: 80, height: 24}
 	m := newPagerModel(common)
 	m.setSize(80, 24)
 	return m
@@ -231,5 +231,66 @@ func TestSearchHighlightsAreVisibleInRealGlamourRenderedContent(t *testing.T) {
 	selectedANSI := m.common.styles.searchSelectedHighlightStyle.Render("target")
 	if !strings.Contains(view, selectedANSI) {
 		t.Fatalf("expected viewport view to contain the selected-match highlight ANSI wrapping %q, got:\n%s", "target", view)
+	}
+}
+
+func TestStatusBarShowsSearchQueryAndMatchCount(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("hello world\nhello again\nhello once more\n")
+	m.startSearch()
+	m.searchInput.SetValue("hello")
+	m.confirmSearch()
+
+	var b strings.Builder
+	m.statusBarView(&b)
+	bar := b.String()
+
+	if !strings.Contains(bar, "Search: hello") {
+		t.Fatalf("expected status bar to contain the search query, got: %q", bar)
+	}
+	if !strings.Contains(bar, "1/3 matches") {
+		t.Fatalf("expected status bar to show the current match position out of the total, got: %q", bar)
+	}
+}
+
+func TestStatusBarMatchPositionAdvancesWithNextMatch(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("hello world\nhello again\nhello once more\n")
+	m.startSearch()
+	m.searchInput.SetValue("hello")
+	m.confirmSearch()
+
+	m.nextMatch()
+
+	var b strings.Builder
+	m.statusBarView(&b)
+	bar := b.String()
+
+	if !strings.Contains(bar, "2/3 matches") {
+		t.Fatalf("expected status bar to advance to the 2nd of 3 matches after nextMatch, got: %q", bar)
+	}
+}
+
+func TestStatusBarTruncatesLongSearchQuery(t *testing.T) {
+	m := newTestPagerModel()
+	longQuery := strings.Repeat("a", 100)
+	content := longQuery + "\n"
+	m.setContent(content)
+	m.startSearch()
+	m.searchInput.SetValue(longQuery)
+	m.confirmSearch()
+
+	var b strings.Builder
+	m.statusBarView(&b)
+	bar := b.String()
+
+	if strings.Contains(bar, longQuery) {
+		t.Fatalf("expected the full 100-char query not to appear verbatim in the status bar, got: %q", bar)
+	}
+	if !strings.Contains(bar, ellipsis) {
+		t.Fatalf("expected a truncated query to end with the ellipsis, got: %q", bar)
+	}
+	if !strings.Contains(bar, "1 match") {
+		t.Fatalf("expected the match count to still be visible alongside the truncated query, got: %q", bar)
 	}
 }

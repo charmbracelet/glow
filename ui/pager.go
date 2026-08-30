@@ -25,6 +25,10 @@ import (
 const (
 	statusBarHeight = 1
 	lineNumberWidth = 4
+
+	// maxSearchQueryDisplayWidth caps how much of the search query is shown
+	// in the status bar, so a long query can't crowd out the match count.
+	maxSearchQueryDisplayWidth = 30
 )
 
 var pagerHelpHeight int
@@ -461,10 +465,11 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	case showStatusMessage:
 		note = m.statusMessage
 	case m.searching:
+		query := truncate.StringWithTail(m.searchQuery, maxSearchQueryDisplayWidth, ellipsis)
 		if len(m.searchMatches) == 1 {
-			note = "1 match"
+			note = fmt.Sprintf("Search: %s — 1 match", query)
 		} else {
-			note = fmt.Sprintf("%d matches", len(m.searchMatches))
+			note = fmt.Sprintf("Search: %s — %d/%d matches", query, m.searchIndex+1, len(m.searchMatches))
 		}
 	default:
 		note = m.currentDocument.Note
