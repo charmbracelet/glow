@@ -1,6 +1,9 @@
 package ui
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func newTestPagerModel() pagerModel {
 	common := &commonModel{styles: newStyles(true)}
@@ -11,7 +14,7 @@ func newTestPagerModel() pagerModel {
 
 func TestStartSearchEntersSearchState(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\nhello again\n")
+	m.setContent("hello world\nhello again\n")
 
 	m.startSearch()
 
@@ -25,7 +28,7 @@ func TestStartSearchEntersSearchState(t *testing.T) {
 
 func TestConfirmSearchWithMatchesSetsSearchingState(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\nhello again\n")
+	m.setContent("hello world\nhello again\n")
 	m.startSearch()
 	m.searchInput.SetValue("hello")
 
@@ -34,8 +37,8 @@ func TestConfirmSearchWithMatchesSetsSearchingState(t *testing.T) {
 	if !m.searching {
 		t.Fatal("expected searching to be true")
 	}
-	if m.searchCount != 2 {
-		t.Fatalf("expected 2 matches, got %d", m.searchCount)
+	if len(m.searchMatches) != 2 {
+		t.Fatalf("expected 2 matches, got %d", len(m.searchMatches))
 	}
 	if m.state != pagerStateBrowse {
 		t.Fatalf("expected to return to browse state, got %v", m.state)
@@ -44,7 +47,7 @@ func TestConfirmSearchWithMatchesSetsSearchingState(t *testing.T) {
 
 func TestConfirmSearchWithNoMatchesClearsSearching(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\n")
+	m.setContent("hello world\n")
 	m.startSearch()
 	m.searchInput.SetValue("xyz")
 
@@ -53,14 +56,14 @@ func TestConfirmSearchWithNoMatchesClearsSearching(t *testing.T) {
 	if m.searching {
 		t.Fatal("expected searching to be false when there are no matches")
 	}
-	if m.searchCount != 0 {
-		t.Fatalf("expected 0 matches, got %d", m.searchCount)
+	if len(m.searchMatches) != 0 {
+		t.Fatalf("expected 0 matches, got %d", len(m.searchMatches))
 	}
 }
 
 func TestConfirmSearchWithEmptyQueryIsNoOp(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\n")
+	m.setContent("hello world\n")
 	m.startSearch()
 
 	m.confirmSearch()
@@ -75,7 +78,7 @@ func TestConfirmSearchWithEmptyQueryIsNoOp(t *testing.T) {
 
 func TestCancelSearchReturnsToBrowseWithoutSearching(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\n")
+	m.setContent("hello world\n")
 	m.startSearch()
 	m.searchInput.SetValue("hello")
 
@@ -91,42 +94,42 @@ func TestCancelSearchReturnsToBrowseWithoutSearching(t *testing.T) {
 
 func TestClearSearchResetsState(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\nhello again\n")
+	m.setContent("hello world\nhello again\n")
 	m.startSearch()
 	m.searchInput.SetValue("hello")
 	m.confirmSearch()
 
 	m.clearSearch()
 
-	if m.searching || m.searchQuery != "" || m.searchCount != 0 {
+	if m.searching || m.searchQuery != "" || len(m.searchMatches) != 0 {
 		t.Fatalf("expected search state fully reset, got searching=%v query=%q count=%d",
-			m.searching, m.searchQuery, m.searchCount)
+			m.searching, m.searchQuery, len(m.searchMatches))
 	}
 }
 
 func TestReapplySearchRecomputesMatchesAfterContentChanges(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\n")
+	m.setContent("hello world\n")
 	m.startSearch()
 	m.searchInput.SetValue("hello")
 	m.confirmSearch()
 
-	m.viewport.SetContent("hello world\nhello again\nhello once more\n")
+	m.setContent("hello world\nhello again\nhello once more\n")
 	m.reapplySearch()
 
-	if m.searchCount != 3 {
-		t.Fatalf("expected 3 matches after reapply, got %d", m.searchCount)
+	if len(m.searchMatches) != 3 {
+		t.Fatalf("expected 3 matches after reapply, got %d", len(m.searchMatches))
 	}
 }
 
 func TestReapplySearchClearsSearchingWhenNoLongerMatching(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\n")
+	m.setContent("hello world\n")
 	m.startSearch()
 	m.searchInput.SetValue("hello")
 	m.confirmSearch()
 
-	m.viewport.SetContent("goodbye world\n")
+	m.setContent("goodbye world\n")
 	m.reapplySearch()
 
 	if m.searching {
@@ -136,7 +139,7 @@ func TestReapplySearchClearsSearchingWhenNoLongerMatching(t *testing.T) {
 
 func TestUnloadClearsSearchState(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\n")
+	m.setContent("hello world\n")
 	m.startSearch()
 	m.searchInput.SetValue("hello")
 	m.confirmSearch()
@@ -150,7 +153,7 @@ func TestUnloadClearsSearchState(t *testing.T) {
 
 func TestNextAndPreviousMatchAreNoOpsWhenNotSearching(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\n")
+	m.setContent("hello world\n")
 
 	// Must not panic even though there are no highlights set and no
 	// search is active.
@@ -164,7 +167,7 @@ func TestNextAndPreviousMatchAreNoOpsWhenNotSearching(t *testing.T) {
 
 func TestNextAndPreviousMatchWorkWhileSearching(t *testing.T) {
 	m := newTestPagerModel()
-	m.viewport.SetContent("hello world\nhello again\n")
+	m.setContent("hello world\nhello again\n")
 	m.startSearch()
 	m.searchInput.SetValue("hello")
 	m.confirmSearch()
@@ -180,5 +183,53 @@ func TestNextAndPreviousMatchWorkWhileSearching(t *testing.T) {
 
 	if !m.searching {
 		t.Fatal("expected searching to remain true")
+	}
+}
+
+// TestSearchHighlightsAreVisibleInRealGlamourRenderedContent is the
+// regression test for the original bug: viewport.Model.SetHighlights
+// silently misattributes matches to the wrong line/column once the content
+// contains ANSI escape codes, which is always true for glamour-rendered
+// markdown. It's not enough to assert that matches are found -- we must
+// confirm the baked-in highlight styling actually wraps the matched word in
+// the rendered view.
+func TestSearchHighlightsAreVisibleInRealGlamourRenderedContent(t *testing.T) {
+	common := &commonModel{
+		styles: newStyles(true),
+		cfg: Config{
+			GlamourEnabled:  true,
+			GlamourMaxWidth: 80,
+			GlamourStyle:    "dark",
+		},
+	}
+	m := newPagerModel(common)
+	m.setSize(80, 24)
+	m.currentDocument = markdown{Note: "test.md"}
+
+	md := "Some padding text so the target word is not at the very start of the document.\n\n" +
+		"Here is the special target word we will search for.\n"
+
+	rendered, err := glamourRender(m, md)
+	if err != nil {
+		t.Fatalf("glamourRender: %v", err)
+	}
+	if !strings.Contains(rendered, "\x1b[") {
+		t.Fatal("expected glamour-rendered content to contain ANSI escape codes (sanity check for this test)")
+	}
+
+	m.setContent(rendered)
+	m.startSearch()
+	m.searchInput.SetValue("target")
+	m.confirmSearch()
+
+	if len(m.searchMatches) != 2 {
+		t.Fatalf("expected 2 matches for 'target', got %d", len(m.searchMatches))
+	}
+
+	view := m.viewport.View()
+
+	selectedANSI := m.common.styles.searchSelectedHighlightStyle.Render("target")
+	if !strings.Contains(view, selectedANSI) {
+		t.Fatalf("expected viewport view to contain the selected-match highlight ANSI wrapping %q, got:\n%s", "target", view)
 	}
 }

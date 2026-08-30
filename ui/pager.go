@@ -58,10 +58,12 @@ type pagerModel struct {
 	watcher *fsnotify.Watcher
 
 	// Search
-	searchInput textinput.Model
-	searchQuery string
-	searchCount int
-	searching   bool
+	searchInput     textinput.Model
+	searchQuery     string
+	searchMatches   []searchMatch
+	searchIndex     int // index into searchMatches currently selected; -1 if none
+	searching       bool
+	renderedContent string // last glamour-rendered content, before any search highlighting is baked in
 }
 
 func newPagerModel(common *commonModel) pagerModel {
@@ -83,18 +85,10 @@ func newPagerModel(common *commonModel) pagerModel {
 		state:       pagerStateBrowse,
 		viewport:    vp,
 		searchInput: si,
+		searchIndex: -1,
 	}
-	m.applyHighlightStyles(common.styles)
 	m.initWatcher()
 	return m
-}
-
-// applyHighlightStyles pushes the current theme's search highlight colors
-// into the viewport. Called on init and whenever the resolved background
-// color (light/dark) changes.
-func (m *pagerModel) applyHighlightStyles(styles Styles) {
-	m.viewport.HighlightStyle = styles.searchHighlightStyle
-	m.viewport.SelectedHighlightStyle = styles.searchSelectedHighlightStyle
 }
 
 func (m *pagerModel) setSize(w, h int) {
@@ -110,6 +104,7 @@ func (m *pagerModel) setSize(w, h int) {
 }
 
 func (m *pagerModel) setContent(s string) {
+	m.renderedContent = s
 	m.viewport.SetContent(s)
 }
 
@@ -185,62 +180,115 @@ func (m *pagerModel) confirmSearch() tea.Cmd {
 		return nil
 	}
 
-	matches := findMatches(m.viewport.GetContent(), query)
+	if !m.runSearch(query) {
+		return m.showStatusMessage(pagerStatusMessage{"No matches", false})
+	}
+	return nil
+}
+
+// runSearch finds every occurrence of query in the pristine rendered
+// content, stores the results, and bakes highlight styling into the
+// viewport content. Returns false if there were no matches, in which case
+// search state is left cleared and the viewport shows the plain (unhighlighted)
+// rendered content.
+func (m *pagerModel) runSearch(query string) bool {
+	matches := findMatches(m.renderedContent, query)
 	if len(matches) == 0 {
 		m.searchQuery = ""
+		m.searchMatches = nil
+		m.searchIndex = -1
 		m.searching = false
-		m.searchCount = 0
-		return m.showStatusMessage(pagerStatusMessage{"No matches", false})
+		m.viewport.SetContent(m.renderedContent)
+		return false
 	}
 
 	m.searchQuery = query
+	m.searchMatches = matches
+	m.searchIndex = nearestMatchIndex(matches, m.viewport.YOffset())
 	m.searching = true
-	m.searchCount = len(matches)
-	m.viewport.SetHighlights(matches)
-	return nil
+	m.applyHighlights()
+	return true
+}
+
+// applyHighlights rebuilds the viewport content from the pristine rendered
+// content with the current search matches baked in via lipgloss.StyleRanges
+// (grouping all matches per line into a single StyleRanges call, since
+// ranges must be passed in left-to-right, non-overlapping order), then
+// scrolls to keep the selected match visible.
+func (m *pagerModel) applyHighlights() {
+	styles := m.common.styles
+	lines := strings.Split(m.renderedContent, "\n")
+
+	rangesByLine := make(map[int][]lipgloss.Range)
+	for i, match := range m.searchMatches {
+		style := styles.searchHighlightStyle
+		if i == m.searchIndex {
+			style = styles.searchSelectedHighlightStyle
+		}
+		rangesByLine[match.line] = append(rangesByLine[match.line], lipgloss.NewRange(match.colStart, match.colEnd, style))
+	}
+	for line, ranges := range rangesByLine {
+		lines[line] = lipgloss.StyleRanges(lines[line], ranges...)
+	}
+
+	m.viewport.SetContent(strings.Join(lines, "\n"))
+	if m.searchIndex >= 0 {
+		sel := m.searchMatches[m.searchIndex]
+		m.viewport.EnsureVisible(sel.line, sel.colStart, sel.colEnd)
+	}
+}
+
+// nearestMatchIndex returns the index of the first match at or after
+// yOffset, wrapping to the first match if none qualify.
+func nearestMatchIndex(matches []searchMatch, yOffset int) int {
+	for i, sm := range matches {
+		if sm.line >= yOffset {
+			return i
+		}
+	}
+	return 0
 }
 
 // clearSearch drops any active search and its highlights.
 func (m *pagerModel) clearSearch() {
 	m.searchQuery = ""
+	m.searchMatches = nil
+	m.searchIndex = -1
 	m.searching = false
-	m.searchCount = 0
-	m.viewport.ClearHighlights()
+	if m.renderedContent != "" {
+		m.viewport.SetContent(m.renderedContent)
+	}
 }
 
-// reapplySearch re-runs the active search against the viewport's current
-// content. Needed after the document is re-rendered (e.g. on terminal
-// resize), since match byte-offsets from before the re-render no longer
-// apply to the new content string.
+// reapplySearch re-runs the active search against the current pristine
+// rendered content and re-bakes highlights. Used after the document is
+// re-rendered (e.g. on terminal resize), since previously computed match
+// coordinates don't apply to the new render. If the query no longer matches
+// anything, the search is silently dropped (no status message — this is a
+// side effect of resizing, not a user-initiated search).
 func (m *pagerModel) reapplySearch() {
 	if !m.searching {
 		return
 	}
-	matches := findMatches(m.viewport.GetContent(), m.searchQuery)
-	if len(matches) == 0 {
-		m.searching = false
-		m.searchCount = 0
-		m.viewport.ClearHighlights()
-		return
-	}
-	m.searchCount = len(matches)
-	m.viewport.SetHighlights(matches)
+	m.runSearch(m.searchQuery)
 }
 
-// nextMatch highlights the next search match, if a search is active.
+// nextMatch selects the next search match, if a search is active.
 func (m *pagerModel) nextMatch() {
-	if !m.searching {
+	if !m.searching || len(m.searchMatches) == 0 {
 		return
 	}
-	m.viewport.HighlightNext()
+	m.searchIndex = (m.searchIndex + 1) % len(m.searchMatches)
+	m.applyHighlights()
 }
 
-// previousMatch highlights the previous search match, if a search is active.
+// previousMatch selects the previous search match, if a search is active.
 func (m *pagerModel) previousMatch() {
-	if !m.searching {
+	if !m.searching || len(m.searchMatches) == 0 {
 		return
 	}
-	m.viewport.HighlightPrevious()
+	m.searchIndex = (m.searchIndex - 1 + len(m.searchMatches)) % len(m.searchMatches)
+	m.applyHighlights()
 }
 
 func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
@@ -323,8 +371,12 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case contentRenderedMsg:
 		log.Info("content rendered", "state", m.state)
 
-		m.setContent(string(msg))
-		m.reapplySearch()
+		m.renderedContent = string(msg)
+		if m.searching {
+			m.reapplySearch()
+		} else {
+			m.viewport.SetContent(m.renderedContent)
+		}
 		cmds = append(cmds, m.watchFile)
 
 	// The file was changed on disk and we're reloading it
@@ -409,10 +461,10 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	case showStatusMessage:
 		note = m.statusMessage
 	case m.searching:
-		if m.searchCount == 1 {
+		if len(m.searchMatches) == 1 {
 			note = "1 match"
 		} else {
-			note = fmt.Sprintf("%d matches", m.searchCount)
+			note = fmt.Sprintf("%d matches", len(m.searchMatches))
 		}
 	default:
 		note = m.currentDocument.Note

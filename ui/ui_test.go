@@ -61,8 +61,8 @@ func TestModelUpdateSearchLifecycleThroughRouting(t *testing.T) {
 	if !mm.pager.searching {
 		t.Fatal("expected an active/confirmed search after enter")
 	}
-	if mm.pager.searchCount != 2 {
-		t.Fatalf("expected 2 matches, got %d", mm.pager.searchCount)
+	if len(mm.pager.searchMatches) != 2 {
+		t.Fatalf("expected 2 matches, got %d", len(mm.pager.searchMatches))
 	}
 	if mm.state != stateShowDocument {
 		t.Fatalf("expected to remain in stateShowDocument after confirming search, got %v", mm.state)
