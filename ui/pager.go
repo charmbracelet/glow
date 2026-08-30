@@ -268,10 +268,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "q", keyEsc:
-			if m.searching {
-				m.clearSearch()
-				return m, nil
-			}
 			if m.state != pagerStateBrowse {
 				m.state = pagerStateBrowse
 				return m, nil
@@ -480,8 +476,8 @@ func (m pagerModel) helpView() (s string) {
 		s += col1[5]
 	}
 	s += "\n"
-	s += "/        search               n       next match\n"
-	s += "                              N       prev match"
+	s += "/        search              n       next match\n"
+	s += "                             N       prev match"
 
 	s = indent(s, 2)
 
