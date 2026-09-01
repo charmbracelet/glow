@@ -190,12 +190,17 @@ func validateOptions(cmd *cobra.Command) error {
 		style = "notty"
 	}
 
-	// Detect terminal width
+	// Detect terminal width. Prefer /dev/tty so that `glow <x.md` and
+	// `glow x.md | less` still get the real terminal size; fall back to
+	// stdout (the original behaviour) when /dev/tty isn't available.
 	if !cmd.Flags().Changed("width") { //nolint:nestif
-		if isTerminal && width == 0 {
-			w, _, err := term.GetSize(int(os.Stdout.Fd()))
-			if err == nil {
+		if width == 0 {
+			if w, ok := terminalWidthFromTTY(); ok {
 				width = uint(w) //nolint:gosec
+			} else if isTerminal {
+				if w, ok := terminalWidthFromFd(os.Stdout.Fd()); ok {
+					width = uint(w) //nolint:gosec
+				}
 			}
 
 			if width > 120 {
@@ -207,6 +212,27 @@ func validateOptions(cmd *cobra.Command) error {
 		}
 	}
 	return nil
+}
+
+// terminalWidthFromTTY reads the controlling terminal's width via
+// /dev/tty, so pipes and stdin redirection don't fool the autodetector.
+func terminalWidthFromTTY() (int, bool) {
+	tty, err := os.Open("/dev/tty")
+	if err != nil {
+		return 0, false
+	}
+	defer tty.Close() //nolint:errcheck
+	return terminalWidthFromFd(tty.Fd())
+}
+
+// terminalWidthFromFd returns the terminal width for the given fd, or
+// (0, false) when fd is not a terminal or the ioctl fails.
+func terminalWidthFromFd(fd uintptr) (int, bool) {
+	w, _, err := term.GetSize(int(fd)) //nolint:gosec
+	if err != nil || w <= 0 {
+		return 0, false
+	}
+	return w, true
 }
 
 func stdinIsPipe() (bool, error) {
