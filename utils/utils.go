@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"charm.land/glamour/v2"
 	"charm.land/glamour/v2/ansi"
@@ -69,11 +70,22 @@ func IsMarkdownFile(filename string) bool {
 	return false
 }
 
+// autoStyle resolves the "auto" style to a concrete standard style by querying
+// the terminal for its background color. The query is made at most once per
+// process: GlamourStyle is called once per rendered document, and repeatedly
+// querying the terminal would interfere with the TUI's input handling.
+var autoStyle = sync.OnceValue(func() string {
+	if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
+		return styles.DarkStyle
+	}
+	return styles.LightStyle
+})
+
 // GlamourStyle returns a glamour.TermRendererOption based on the given style.
 func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	if !isCode {
 		if style == "auto" {
-			return glamour.WithStandardStyle("dark")
+			return glamour.WithStandardStyle(autoStyle())
 		}
 		return glamour.WithStylePath(style)
 	}
@@ -85,7 +97,7 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 
 	switch style {
 	case "auto":
-		if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
+		if autoStyle() == styles.DarkStyle {
 			styleConfig = styles.DarkStyleConfig
 		} else {
 			styleConfig = styles.LightStyleConfig
