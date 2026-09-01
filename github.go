@@ -25,7 +25,7 @@ func findGitHubREADME(u *url.URL) (*source, error) {
 
 	//nolint:bodyclose
 	// it is closed on the caller
-	res, err := http.Get(apiURL) //nolint: gosec,noctx
+	res, err := httpClient.Get(apiURL) //nolint: gosec,noctx
 	if err != nil {
 		return nil, fmt.Errorf("unable to get url: %w", err)
 	}
@@ -43,7 +43,7 @@ func findGitHubREADME(u *url.URL) (*source, error) {
 	if res.StatusCode == http.StatusOK {
 		//nolint:bodyclose
 		// it is closed on the caller
-		resp, err := http.Get(result.DownloadURL) //nolint: noctx
+		resp, err := httpClient.Get(result.DownloadURL) //nolint: noctx
 		if err != nil {
 			return nil, fmt.Errorf("unable to get url: %w", err)
 		}
