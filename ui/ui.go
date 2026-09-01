@@ -207,6 +207,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, cmd
 				}
 				m.stash.markdowns = nil
+				m.stash.loaded = false // reset load state
 				return m, m.Init()
 			}
 
