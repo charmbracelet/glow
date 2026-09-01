@@ -46,7 +46,7 @@ func WrapCodeBlock(s, language string) string {
 }
 
 var markdownExtensions = []string{
-	".md", ".mdown", ".mkdn", ".mkd", ".markdown",
+	".md", ".mdown", ".mkdn", ".mkd", ".markdown", ".mmd",
 }
 
 // IsMarkdownFile returns whether the filename has a markdown extension.

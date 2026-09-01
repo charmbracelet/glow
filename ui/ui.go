@@ -19,9 +19,13 @@ const (
 	ellipsis             = "…"
 )
 
-var markdownExtensions = []string{
-	"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown",
-}
+var (
+	config Config
+
+	markdownExtensions = []string{
+		"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown", "*.mmd",
+	}
+)
 
 // NewProgram returns a new Tea program.
 func NewProgram(cfg Config, content string) *tea.Program {
