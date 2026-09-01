@@ -135,6 +135,24 @@ func TestHasDA1Response(t *testing.T) {
 	}
 }
 
+func TestFileBaseURL(t *testing.T) {
+	tests := []struct {
+		path string
+		want string
+	}{
+		// The results must be identical on all platforms, so that relative
+		// image references in documents resolve everywhere.
+		{"/tmp/docs/test.md", "file:///tmp/docs/"},
+		{"C:/Users/x/test.md", "file:///C:/Users/x/"},
+	}
+
+	for _, tc := range tests {
+		if got := FileBaseURL(tc.path); got != tc.want {
+			t.Errorf("FileBaseURL(%q) = %q, want %q", tc.path, got, tc.want)
+		}
+	}
+}
+
 func TestGraphicsQuery(t *testing.T) {
 	q := graphicsQuery()
 	if want := "\x1b_Gf=24,i=31,s=1,v=1,a=q;AAAA\x1b\\"; q != want+"\x1b[c" {

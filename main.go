@@ -292,10 +292,17 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	// render
 	var baseURL string
-	u, err := url.ParseRequestURI(src.URL)
-	if err == nil {
-		u.Path = filepath.Dir(u.Path)
-		baseURL = u.String() + "/"
+	if isURL(src.URL) {
+		if u, err := url.ParseRequestURI(src.URL); err == nil {
+			u.Path = filepath.Dir(u.Path)
+			baseURL = u.String() + "/"
+		}
+	} else {
+		// Resolve image URLs relative to the document's directory. This
+		// uses a file:// URL so that relative references also resolve on
+		// platforms where absolute paths are no valid URL paths, like
+		// Windows.
+		baseURL = utils.FileBaseURL(src.URL)
 	}
 
 	isCode := !utils.IsMarkdownFile(src.URL)

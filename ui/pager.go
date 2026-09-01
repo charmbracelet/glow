@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"math"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -435,7 +434,7 @@ func glamourRender(m pagerModel, markdown string) (string, []string, error) {
 	if m.currentDocument.localPath != "" {
 		// Resolve image URLs relative to the document's directory, the
 		// same way the CLI does.
-		options = append(options, glamour.WithBaseURL(filepath.Dir(m.currentDocument.localPath)+string(os.PathSeparator)))
+		options = append(options, glamour.WithBaseURL(utils.FileBaseURL(m.currentDocument.localPath)))
 	}
 	r, err := glamour.NewTermRenderer(options...)
 	if err != nil {

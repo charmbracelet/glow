@@ -3,7 +3,9 @@ package utils
 
 import (
 	"bytes"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -119,6 +121,15 @@ func GraphicsQuery() string {
 // successful response to [GraphicsQuery].
 func KittyGraphicsOK(optionsID int, payload []byte) bool {
 	return optionsID == kittyQueryID && bytes.HasPrefix(payload, []byte("OK"))
+}
+
+// FileBaseURL returns a file:// URL for the directory containing the given
+// file path, suitable as a glamour base URL, so that relative image
+// references resolve correctly on all platforms.
+func FileBaseURL(path string) string {
+	dir := filepath.ToSlash(filepath.Dir(path))
+	u := url.URL{Scheme: "file", Path: "/" + strings.TrimPrefix(dir, "/")}
+	return u.String() + "/"
 }
 
 // graphicsQuery returns a kitty graphics query followed by a request for the
