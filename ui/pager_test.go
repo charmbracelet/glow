@@ -26,8 +26,13 @@ func TestGlamourRenderTextSizing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out, "\x1b]66;s=3;Hello\x1b\\") {
-		t.Errorf("expected H1 at 3x scale in pager output, got %q", out)
+	// The dark style's H1 has a background color, which renders broken when
+	// scaled, so it is left at normal size.
+	if strings.Contains(out, "\x1b]66;s=3;") {
+		t.Errorf("expected H1 with background to not be scaled, got %q", out)
+	}
+	if !strings.Contains(out, "Hello") {
+		t.Errorf("expected H1 text in pager output, got %q", out)
 	}
 	if !strings.Contains(out, "\x1b]66;s=2;World\x1b\\") {
 		t.Errorf("expected H2 at 2x scale in pager output, got %q", out)

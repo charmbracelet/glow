@@ -12,8 +12,13 @@ import (
 func renderPlainAndSized(t *testing.T, markdown string, wordWrap int) (string, string) {
 	t.Helper()
 
+	cfg := styles.DarkStyleConfig
+	// Headings with a background are not scaled, so drop the dark style's
+	// H1 background to exercise H1 scaling.
+	cfg.H1.BackgroundColor = nil
+
 	r, err := glamour.NewTermRenderer(
-		glamour.WithStyles(styles.DarkStyleConfig),
+		glamour.WithStyles(cfg),
 		glamour.WithWordWrap(wordWrap),
 	)
 	if err != nil {
@@ -24,7 +29,6 @@ func renderPlainAndSized(t *testing.T, markdown string, wordWrap int) (string, s
 		t.Fatal(err)
 	}
 
-	cfg := styles.DarkStyleConfig
 	AddHeadingSizeMarkers(&cfg)
 	r, err = glamour.NewTermRenderer(
 		glamour.WithStyles(cfg),
@@ -42,6 +46,21 @@ func renderPlainAndSized(t *testing.T, markdown string, wordWrap int) (string, s
 	}
 
 	return plain, ApplyTextSizing(marked)
+}
+
+func TestAddHeadingSizeMarkersSkipsBackground(t *testing.T) {
+	cfg := styles.DarkStyleConfig
+	AddHeadingSizeMarkers(&cfg)
+
+	if strings.Contains(cfg.H1.Prefix, markerPrefix) || strings.Contains(cfg.H1.Suffix, markerPrefix) {
+		t.Errorf("expected H1 with background color to be left unmarked, got %q/%q", cfg.H1.Prefix, cfg.H1.Suffix)
+	}
+	if !strings.HasPrefix(cfg.H2.Prefix, markerOpen(2)) {
+		t.Errorf("expected H2 to be marked, got %q", cfg.H2.Prefix)
+	}
+	if !strings.HasPrefix(cfg.H3.Prefix, markerOpen(3)) {
+		t.Errorf("expected H3 to be marked, got %q", cfg.H3.Prefix)
+	}
 }
 
 func TestApplyTextSizingPassthrough(t *testing.T) {
@@ -134,7 +153,7 @@ func TestGlamourStyleTextSizing(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		out, err := r.Render("# Hello\n")
+		out, err := r.Render("# Hello\n\n## World\n")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -150,10 +169,17 @@ func TestGlamourStyleTextSizing(t *testing.T) {
 	textSizingEnabled = sync.OnceValue(detectTextSizing)
 	t.Setenv("GLOW_TEXT_SIZING", "on")
 	out := render(t)
-	if !strings.Contains(out, markerOpen(1)) {
-		t.Errorf("expected heading markers when enabled, got %q", out)
+	if strings.Contains(out, markerOpen(1)) {
+		t.Errorf("expected no H1 markers (background color), got %q", out)
 	}
-	if sized := ApplyTextSizing(out); !strings.Contains(sized, "\x1b]66;s=3;") {
+	if !strings.Contains(out, markerOpen(2)) {
+		t.Errorf("expected H2 markers when enabled, got %q", out)
+	}
+	sized := ApplyTextSizing(out)
+	if strings.Contains(sized, "\x1b]66;s=3;") {
+		t.Errorf("expected no 3x scaling for H1, got %q", sized)
+	}
+	if !strings.Contains(sized, "\x1b]66;s=2;") {
 		t.Errorf("expected OSC 66 sequences after ApplyTextSizing, got %q", sized)
 	}
 }

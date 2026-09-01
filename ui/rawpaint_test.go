@@ -70,18 +70,26 @@ func TestPaintModelRendersDocument(t *testing.T) {
 	exec(pm.Init())
 	msgCh <- tea.WindowSizeMsg{Width: 80, Height: 24}
 
-	deadline := time.After(3 * time.Second)
+	deadline := time.Now().Add(3 * time.Second)
 	for {
+		// Frames are painted asynchronously by the paint command, so poll
+		// the buffer instead of only checking after processed messages.
+		painter.mu.Lock()
+		done := strings.Contains(buf.String(), "Some text")
+		painter.mu.Unlock()
+		if done {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for content; buf=%q", buf.String())
+		}
+
 		select {
 		case msg := <-msgCh:
 			im, cmd := pm.Update(msg)
 			pm = im
 			exec(cmd)
-			if strings.Contains(buf.String(), "Some text") {
-				return
-			}
-		case <-deadline:
-			t.Fatalf("timed out waiting for content; buf=%q", buf.String())
+		case <-time.After(5 * time.Millisecond):
 		}
 	}
 }

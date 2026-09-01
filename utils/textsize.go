@@ -133,8 +133,10 @@ func markerLevel(s string) int {
 
 // AddHeadingSizeMarkers marks the heading styles of levels 1 to 3 in the
 // given style config so that ApplyTextSizing can find the rendered heading
-// text and scale it. The style config is modified in place; pass a copy if
-// the original is shared.
+// text and scale it. Headings with a background color are left unmarked:
+// the background does not cover the scaled glyphs and renders broken.
+// The style config is modified in place; pass a copy if the original is
+// shared.
 func AddHeadingSizeMarkers(cfg *ansi.StyleConfig) {
 	blocks := []struct {
 		level int
@@ -145,6 +147,9 @@ func AddHeadingSizeMarkers(cfg *ansi.StyleConfig) {
 		{3, &cfg.H3},
 	}
 	for _, b := range blocks {
+		if b.block.BackgroundColor != nil {
+			continue
+		}
 		prefix := b.block.Prefix
 		if strings.HasPrefix(prefix, "#") {
 			prefix = strings.TrimPrefix(strings.TrimLeft(prefix, "#"), " ")
