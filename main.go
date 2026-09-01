@@ -351,8 +351,13 @@ func runTUI(path string, content string) error {
 		return fmt.Errorf("error parsing config: %v", err)
 	}
 
-	// use style set in env, or auto if unset
-	if err := validateStyle(cfg.GlamourStyle); err != nil {
+	// Prefer CLI/config style (resolved in validateOptions) when it is not
+	// the default "auto". Otherwise fall back to GLAMOUR_STYLE from the
+	// environment, then to auto. Previously an env value such as "auto" or
+	// "dark" silently ignored `-s light` / config `style` in TUI mode (#953).
+	if style != styles.AutoStyle {
+		cfg.GlamourStyle = style
+	} else if err := validateStyle(cfg.GlamourStyle); err != nil || cfg.GlamourStyle == "" {
 		cfg.GlamourStyle = style
 	}
 
