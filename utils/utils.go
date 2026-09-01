@@ -111,3 +111,39 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 
 	return glamour.WithStyles(styleConfig)
 }
+
+// SupportsHyperlinks reports whether the terminal is known to support OSC 8
+// hyperlinks, based on environment variables.
+func SupportsHyperlinks(env []string) bool {
+	get := func(key string) string {
+		for _, e := range env {
+			if k, v, ok := strings.Cut(e, "="); ok && k == key {
+				return v
+			}
+		}
+		return ""
+	}
+
+	// Explicit opt-out.
+	if get("TERM_PROGRAM") == "Apple_Terminal" {
+		return false
+	}
+	// Terminals known to support OSC 8 hyperlinks.
+	switch get("TERM_PROGRAM") {
+	case "iTerm.app", "WezTerm", "kitty", "alacritty", "Hyper", "ghostty", "vscode", "Tabby", " Rio":
+		return true
+	}
+	if get("WT_SESSION") != "" { // Windows Terminal
+		return true
+	}
+	if get("KONSOLE_VERSION") != "" { // Konsole
+		return true
+	}
+	if get("VTE_VERSION") != "" { // GNOME Terminal, Tilix, etc.
+		return true
+	}
+	if get("TERM") == "xterm-kitty" {
+		return true
+	}
+	return false
+}
