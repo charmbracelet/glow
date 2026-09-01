@@ -12,10 +12,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"mvdan.cc/sh/v3/shell"
 
 	"charm.land/glamour/v2"
+	"charm.land/glamour/v2/ansi"
 	"charm.land/glamour/v2/styles"
 	"charm.land/glow/v3/ui"
 	"charm.land/glow/v3/utils"
@@ -43,6 +45,13 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	images           bool
+	imageMaxRows     int
+
+	// imageProtocol is the graphics protocol detected for the terminal. It
+	// is resolved at most once via imageProtocolForCLI.
+	imageProtocol ansi.ImageProtocol
+	detectOnce    sync.Once
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -172,6 +181,8 @@ func validateOptions(cmd *cobra.Command) error {
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
+	images = viper.GetBool("images")
+	imageMaxRows = viper.GetInt("imageMaxRows")
 
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
@@ -289,13 +300,29 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	isCode := !utils.IsMarkdownFile(src.URL)
 
+	// Only the direct output mode can display graphics protocol sequences:
+	// external pagers redraw text themselves and the TUI detects graphics
+	// support on its own.
+	useImages := images && !isCode &&
+		!(pager || cmd.Flags().Changed("pager")) &&
+		!(tui || cmd.Flags().Changed("tui"))
+
 	// initialize glamour
-	r, err := glamour.NewTermRenderer(
+	options := []glamour.TermRendererOption{
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
-	)
+	}
+	if useImages {
+		if p := imageProtocolForCLI(); p != ansi.ImageProtocolNone {
+			options = append(options,
+				glamour.WithImageProtocol(p),
+				glamour.WithMaxImageSize(0, imageMaxRows),
+			)
+		}
+	}
+	r, err := glamour.NewTermRenderer(options...)
 	if err != nil {
 		return fmt.Errorf("unable to create renderer: %w", err)
 	}
@@ -362,6 +389,8 @@ func runTUI(path string, content string) error {
 	cfg.GlamourMaxWidth = width
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
+	cfg.Images = viper.GetBool("images")
+	cfg.ImageMaxRows = viper.GetInt("imageMaxRows")
 
 	// Run Bubble Tea program
 	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
@@ -369,6 +398,19 @@ func runTUI(path string, content string) error {
 	}
 
 	return nil
+}
+
+// imageProtocolForCLI detects the terminal's graphics protocol at most once
+// per run, so rendering multiple sources doesn't query the terminal
+// repeatedly.
+func imageProtocolForCLI() ansi.ImageProtocol {
+	detectOnce.Do(func() {
+		imageProtocol = utils.DetectImageProtocol()
+		if imageProtocol != ansi.ImageProtocolNone {
+			log.Debug("terminal graphics protocol detected", "protocol", imageProtocol)
+		}
+	})
+	return imageProtocol
 }
 
 func main() {
@@ -405,6 +447,8 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
+	rootCmd.Flags().BoolVarP(&images, "images", "", true, "render images when the terminal supports it (kitty or sixel graphics; GLOW_IMAGE_PROTOCOL to override)")
+	rootCmd.Flags().IntVar(&imageMaxRows, "image-max-rows", 20, "maximum number of terminal rows an image may occupy (0 for no limit)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
@@ -418,10 +462,14 @@ func init() {
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
+	_ = viper.BindPFlag("images", rootCmd.Flags().Lookup("images"))
+	_ = viper.BindPFlag("imageMaxRows", rootCmd.Flags().Lookup("image-max-rows"))
 
 	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
+	viper.SetDefault("images", true)
+	viper.SetDefault("imageMaxRows", 20)
 
 	rootCmd.AddCommand(configCmd, manCmd)
 }

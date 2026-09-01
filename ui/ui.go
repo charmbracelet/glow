@@ -9,8 +9,10 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/glamour/v2/ansi"
 	"charm.land/glow/v3/utils"
 	"github.com/charmbracelet/log"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/muesli/gitcha"
 )
 
@@ -83,6 +85,12 @@ type commonModel struct {
 	width  int
 	height int
 	styles Styles
+
+	// imageProtocol is the graphics protocol resolved for the TUI. It is
+	// ImageProtocolNone until the terminal is known to support displaying
+	// images (see the kitty graphics query in model.Init), at which point
+	// documents are re-rendered with it.
+	imageProtocol ansi.ImageProtocol
 }
 
 type model struct {
@@ -119,6 +127,14 @@ func newModel(cfg Config, content string) tea.Model {
 		cfg:    cfg,
 		styles: newStyles(true),
 	}
+	if cfg.Images {
+		switch cfg.ImageProtocol {
+		case utils.ImageProtocolKitty:
+			common.imageProtocol = ansi.ImageProtocolKittyPlaceholders
+		case utils.ImageProtocolNone:
+			common.imageProtocol = ansi.ImageProtocolNone
+		}
+	}
 
 	m := model{
 		common: &common,
@@ -148,10 +164,19 @@ func newModel(cfg Config, content string) tea.Model {
 	} else {
 		cwd, _ := os.Getwd()
 		m.state = stateShowDocument
+		// Keep the raw body around so the pager can re-render the document
+		// on resize or when image support gets enabled mid-session.
+		body := content
+		if body == "" {
+			if b, err := os.ReadFile(path); err == nil {
+				body = string(b)
+			}
+		}
 		m.pager.currentDocument = markdown{
 			localPath: path,
 			Note:      stripAbsolutePath(path, cwd),
 			Modtime:   info.ModTime(),
+			Body:      string(utils.RemoveFrontmatter([]byte(body))),
 		}
 	}
 
@@ -160,6 +185,12 @@ func newModel(cfg Config, content string) tea.Model {
 
 func (m model) Init() tea.Cmd {
 	cmds := []tea.Cmd{m.stash.spinner.Tick, tea.RequestBackgroundColor}
+
+	// Detect support for the kitty graphics protocol by querying the
+	// terminal. The response arrives as a uv.KittyGraphicsEvent.
+	if m.common.cfg.Images && m.common.cfg.ImageProtocol == utils.ImageProtocolAuto {
+		cmds = append(cmds, tea.Raw(utils.GraphicsQuery()))
+	}
 
 	switch m.state {
 	case stateShowStash:
@@ -255,6 +286,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.pager.currentDocument = *msg
 		body := string(utils.RemoveFrontmatter([]byte(msg.Body)))
 		cmds = append(cmds, renderWithGlamour(m.pager, body))
+
+	case uv.KittyGraphicsEvent:
+		// The terminal answered our kitty graphics query from Init. Enable
+		// images and re-render the current document, if any, with them.
+		if m.common.cfg.Images && m.common.imageProtocol == ansi.ImageProtocolNone &&
+			utils.KittyGraphicsOK(msg.Options.ID, msg.Payload) {
+			m.common.imageProtocol = ansi.ImageProtocolKittyPlaceholders
+			log.Debug("terminal supports the kitty graphics protocol")
+			if m.state == stateShowDocument {
+				body := string(utils.RemoveFrontmatter([]byte(m.pager.currentDocument.Body)))
+				cmds = append(cmds, renderWithGlamour(m.pager, body))
+			}
+		}
 
 	case contentRenderedMsg:
 		m.state = stateShowDocument
