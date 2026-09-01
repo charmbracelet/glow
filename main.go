@@ -43,6 +43,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	follow           bool
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -221,6 +222,10 @@ func stdinIsPipe() (bool, error) {
 }
 
 func execute(cmd *cobra.Command, args []string) error {
+	if follow {
+		return executeFollow(cmd, args)
+	}
+
 	// if stdin is a pipe then use stdin for input. note that you can also
 	// explicitly use a - to read from stdin.
 	if yes, err := stdinIsPipe(); err != nil {
@@ -259,6 +264,32 @@ func execute(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func executeFollow(cmd *cobra.Command, args []string) error {
+	if pager || cmd.Flags().Changed("pager") || tui || cmd.Flags().Changed("tui") {
+		return errors.New("--follow cannot be combined with --pager or --tui")
+	}
+	if yes, err := stdinIsPipe(); err != nil {
+		return err
+	} else if yes {
+		return errors.New("--follow requires a local file, not stdin")
+	}
+	if len(args) != 1 {
+		return errors.New("--follow requires exactly one local file")
+	}
+	if isURL(args[0]) {
+		return errors.New("--follow requires a local file, not a URL")
+	}
+	path := utils.ExpandPath(args[0])
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("unable to follow %s: %w", args[0], err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("unable to follow %s: it is a directory", args[0])
+	}
+	return runFollow(path, os.Stdout)
 }
 
 func executeArg(cmd *cobra.Command, arg string, w io.Writer) error {
@@ -405,6 +436,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
+	rootCmd.Flags().BoolVarP(&follow, "follow", "f", false, "render new content appended to a file as it grows (like tail -f)")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
