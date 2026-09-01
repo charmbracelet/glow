@@ -3,17 +3,17 @@ module charm.land/glow/v3
 go 1.26.6
 
 require (
-	charm.land/bubbles/v2 v2.1.1
-	charm.land/bubbletea/v2 v2.0.8
+	charm.land/bubbles/v2 v2.2.1
+	charm.land/bubbletea/v2 v2.0.9
 	charm.land/glamour/v2 v2.0.1
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/atotto/clipboard v0.1.4
-	github.com/caarlos0/env/v11 v11.3.1
-	github.com/charmbracelet/log v0.4.2
-	github.com/charmbracelet/x/editor v0.1.0
+	github.com/caarlos0/env/v11 v11.4.1
+	github.com/charmbracelet/log v1.0.0
+	github.com/charmbracelet/x/editor v0.2.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/fsnotify/fsnotify v1.9.0
-	github.com/mattn/go-runewidth v0.0.24
+	github.com/fsnotify/fsnotify v1.10.1
+	github.com/mattn/go-runewidth v0.0.27
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/gitcha v0.3.0
 	github.com/muesli/go-app-paths v0.2.2
@@ -25,9 +25,9 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	golang.org/x/sys v0.47.0
-	golang.org/x/term v0.43.0
-	golang.org/x/text v0.39.0
-	mvdan.cc/sh/v3 v3.13.1
+	golang.org/x/term v0.45.0
+	golang.org/x/text v0.41.0
+	mvdan.cc/sh/v3 v3.14.0
 )
 
 require (
@@ -46,7 +46,7 @@ require (
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
-	github.com/go-logfmt/logfmt v0.6.0 // indirect
+	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
