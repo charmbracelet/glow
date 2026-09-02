@@ -168,6 +168,13 @@ func newModel(cfg Config, content string) tea.Model {
 			Note:      stripAbsolutePath(path, cwd),
 			Modtime:   info.ModTime(),
 		}
+		content, err := os.ReadFile(path)
+		if err != nil {
+			log.Error("unable to read file", "file", path, "error", err)
+			m.fatalErr = err
+			return m
+		}
+		m.pager.currentDocument.Body = string(utils.RemoveFrontmatter(content))
 	}
 
 	return m
@@ -180,13 +187,7 @@ func (m model) Init() tea.Cmd {
 	case stateShowStash:
 		cmds = append(cmds, findLocalFiles(*m.common))
 	case stateShowDocument:
-		content, err := os.ReadFile(m.common.cfg.Path)
-		if err != nil {
-			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
-			return func() tea.Msg { return errMsg{err} }
-		}
-		body := string(utils.RemoveFrontmatter(content))
-		cmds = append(cmds, renderWithGlamour(m.pager, body))
+		cmds = append(cmds, renderWithGlamour(m.pager, m.pager.currentDocument.Body))
 	}
 
 	return tea.Batch(cmds...)
