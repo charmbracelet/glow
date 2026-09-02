@@ -310,6 +310,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("unable to render markdown: %w", err)
 	}
+	out = bidiReorder(out)
 
 	// display
 	switch {
