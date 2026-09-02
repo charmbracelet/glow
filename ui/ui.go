@@ -269,6 +269,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case foundLocalFileMsg:
 		newMd := localFileToMarkdown(m.common.cwd, gitcha.SearchResult(msg))
+		if newMd == nil {
+			cmds = append(cmds, findNextLocalFile(m))
+			break
+		}
 		m.stash.addMarkdowns(newMd)
 		if m.stash.filterApplied() {
 			newMd.buildFilterValue()
@@ -405,9 +409,13 @@ func waitForStatusMessageTimeout(appCtx applicationContext, t *time.Timer) tea.C
 // ETC
 
 // Convert a Gitcha result to an internal representation of a markdown
-// document. Note that we could be doing things like checking if the file is
-// a directory, but we trust that gitcha has already done that.
+// document.
 func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
+	if _, err := os.Stat(res.Path); err != nil {
+		log.Debug("skipping unreadable local markdown", "file", res.Path, "error", err)
+		return nil
+	}
+
 	return &markdown{
 		localPath: res.Path,
 		Note:      stripAbsolutePath(res.Path, cwd),
