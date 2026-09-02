@@ -75,7 +75,7 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 		if style == "auto" {
 			return glamour.WithStandardStyle("dark")
 		}
-		return glamour.WithStylePath(style)
+		return glamour.WithStylePath(ExpandPath(style))
 	}
 
 	// If we are rendering a pure code block, we need to modify the style to
