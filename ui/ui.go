@@ -165,13 +165,15 @@ func (m model) Init() tea.Cmd {
 	case stateShowStash:
 		cmds = append(cmds, findLocalFiles(*m.common))
 	case stateShowDocument:
-		content, err := os.ReadFile(m.common.cfg.Path)
-		if err != nil {
-			log.Error("unable to read file", "file", m.common.cfg.Path, "error", err)
-			return func() tea.Msg { return errMsg{err} }
+		// If we have a local path, load via the shared loadLocalMarkdown
+		// command so currentDocument.Body is populated on the model. This is
+		// required for the WindowSizeMsg handler to re-render the document at
+		// the new width when the terminal is resized (SIGWINCH).
+		if m.pager.currentDocument.localPath != "" {
+			cmds = append(cmds, loadLocalMarkdown(&m.pager.currentDocument))
+		} else if m.pager.currentDocument.Body != "" {
+			cmds = append(cmds, renderWithGlamour(m.pager, m.pager.currentDocument.Body))
 		}
-		body := string(utils.RemoveFrontmatter(content))
-		cmds = append(cmds, renderWithGlamour(m.pager, body))
 	}
 
 	return tea.Batch(cmds...)
@@ -251,10 +253,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, findNextLocalFile(m))
 
 	case fetchedMarkdownMsg:
-		// We've loaded a markdown file's contents for rendering
+		// We've loaded a markdown file's contents for rendering. Strip the
+		// frontmatter once here and store the renderable body on the document
+		// so resize re-renders (WindowSizeMsg) use the same content.
 		m.pager.currentDocument = *msg
-		body := string(utils.RemoveFrontmatter([]byte(msg.Body)))
-		cmds = append(cmds, renderWithGlamour(m.pager, body))
+		m.pager.currentDocument.Body = string(utils.RemoveFrontmatter([]byte(msg.Body)))
+		cmds = append(cmds, renderWithGlamour(m.pager, m.pager.currentDocument.Body))
 
 	case contentRenderedMsg:
 		m.state = stateShowDocument
