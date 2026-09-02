@@ -10,6 +10,7 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/glamour/v2"
+	glamansi "charm.land/glamour/v2/ansi"
 	"charm.land/glow/v3/utils"
 	"charm.land/lipgloss/v2"
 	"github.com/atotto/clipboard"
@@ -29,8 +30,15 @@ const (
 var pagerHelpHeight int
 
 type (
-	contentRenderedMsg string
-	reloadMsg          struct{}
+	// contentRenderedMsg is sent when the glamour rendering of a document
+	// finishes. graphics holds the graphics protocol sequences that must be
+	// written to the terminal before the content, which references them via
+	// unicode placeholders, is displayed.
+	contentRenderedMsg struct {
+		content  string
+		graphics []string
+	}
+	reloadMsg struct{}
 )
 
 type pagerState int
@@ -52,6 +60,11 @@ type pagerModel struct {
 	// Current document being rendered, sans-glamour rendering. We cache
 	// it here so we can re-render it on resize.
 	currentDocument markdown
+
+	// pendingContent is content that is waiting on its graphics protocol
+	// sequences to be written to the terminal before it can be displayed.
+	// See the contentRenderedMsg handling in update.
+	pendingContent string
 
 	watcher *fsnotify.Watcher
 }
@@ -182,8 +195,25 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case contentRenderedMsg:
 		log.Info("content rendered", "state", m.state)
 
-		m.setContent(string(msg))
+		if len(msg.graphics) > 0 {
+			// The content references images via unicode placeholders, so the
+			// graphics sequences must be written to the terminal before it
+			// can be displayed. RawMsg is written out-of-band right before
+			// this model sees it, so stash the content and wait for it.
+			m.pendingContent = msg.content
+			return m, tea.Raw(strings.Join(msg.graphics, ""))
+		}
+
+		m.setContent(msg.content)
 		cmds = append(cmds, m.watchFile)
+
+	// The graphics sequences for the pending content have been written
+	case tea.RawMsg:
+		if m.pendingContent != "" {
+			m.setContent(m.pendingContent)
+			m.pendingContent = ""
+			cmds = append(cmds, m.watchFile)
+		}
 
 	// The file was changed on disk and we're reloading it
 	case reloadMsg:
@@ -341,21 +371,29 @@ func (m pagerModel) helpView() (s string) {
 
 func renderWithGlamour(m pagerModel, md string) tea.Cmd {
 	return func() tea.Msg {
-		s, err := glamourRender(m, md)
+		s, graphics, err := glamourRender(m, md)
 		if err != nil {
 			log.Error("error rendering with Glamour", "error", err)
 			return errMsg{err}
 		}
-		return contentRenderedMsg(s)
+		return contentRenderedMsg{content: s, graphics: graphics}
 	}
 }
 
+// glamourImages reports whether to render images in the pager using the
+// terminal's graphics protocol.
+func glamourImages(m pagerModel) bool {
+	return m.common.cfg.GlamourEnabled && m.common.cfg.Images &&
+		m.common.imageProtocol != glamansi.ImageProtocolNone
+}
+
 // This is where the magic happens.
-func glamourRender(m pagerModel, markdown string) (string, error) {
+func glamourRender(m pagerModel, markdown string) (string, []string, error) {
+	images := glamourImages(m)
 	trunc := lipgloss.NewStyle().MaxWidth(m.viewport.Width() - lineNumberWidth).Render
 
 	if !m.common.cfg.GlamourEnabled {
-		return markdown, nil
+		return markdown, nil, nil
 	}
 
 	isCode := !utils.IsMarkdownFile(m.currentDocument.Note)
@@ -369,12 +407,38 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 		glamour.WithWordWrap(width),
 	}
 
+	if images && !isCode {
+		if width == 0 {
+			// Without a wrap width, images would be sized to their
+			// natural dimensions, which can be far larger than the
+			// viewport.
+			width = m.viewport.Width()
+			options[1] = glamour.WithWordWrap(width)
+		}
+		if m.common.cfg.ShowLineNumbers {
+			// Leave room for the line number gutter so the rendered
+			// content, including image placeholder grids, doesn't get
+			// truncated.
+			width = max(0, width-lineNumberWidth)
+			options[1] = glamour.WithWordWrap(width)
+		}
+		options = append(options,
+			glamour.WithImageProtocol(m.common.imageProtocol),
+			glamour.WithMaxImageSize(0, m.common.cfg.ImageMaxRows),
+		)
+	}
+
 	if m.common.cfg.PreserveNewLines {
 		options = append(options, glamour.WithPreservedNewLines())
 	}
+	if m.currentDocument.localPath != "" {
+		// Resolve image URLs relative to the document's directory, the
+		// same way the CLI does.
+		options = append(options, glamour.WithBaseURL(utils.FileBaseURL(m.currentDocument.localPath)))
+	}
 	r, err := glamour.NewTermRenderer(options...)
 	if err != nil {
-		return "", fmt.Errorf("error creating glamour renderer: %w", err)
+		return "", nil, fmt.Errorf("error creating glamour renderer: %w", err)
 	}
 
 	if isCode {
@@ -383,8 +447,12 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	out, err := r.Render(markdown)
 	if err != nil {
-		return "", fmt.Errorf("error rendering markdown: %w", err)
+		return "", nil, fmt.Errorf("error rendering markdown: %w", err)
 	}
+
+	// The graphics commands are out-of-band sequences the caller must write
+	// to the terminal before displaying the rendered content.
+	graphics := r.GraphicsCommands()
 
 	if isCode {
 		out = strings.TrimSpace(out)
@@ -408,7 +476,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 		}
 	}
 
-	return content.String(), nil
+	return content.String(), graphics, nil
 }
 
 func (m *pagerModel) initWatcher() {

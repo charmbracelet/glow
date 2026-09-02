@@ -5,11 +5,13 @@ go 1.26.6
 require (
 	charm.land/bubbles/v2 v2.1.1
 	charm.land/bubbletea/v2 v2.0.8
-	charm.land/glamour/v2 v2.0.1
+	charm.land/glamour/v2 v2.0.2-0.20260901102741-b3c8bce099d4
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/atotto/clipboard v0.1.4
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/charmbracelet/log v0.4.2
+	github.com/charmbracelet/ultraviolet v0.0.0-20260811164956-006e29f97886
+	github.com/charmbracelet/x/ansi v0.11.8
 	github.com/charmbracelet/x/editor v0.1.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.9.0
@@ -26,7 +28,7 @@ require (
 	github.com/spf13/viper v1.21.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/term v0.43.0
-	golang.org/x/text v0.39.0
+	golang.org/x/text v0.41.0
 	mvdan.cc/sh/v3 v3.13.1
 )
 
@@ -34,10 +36,9 @@ require (
 	github.com/alecthomas/chroma/v2 v2.14.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/bits-and-blooms/bitset v1.24.6 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/lipgloss v1.1.1-0.20250404203927-76690c660834 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260811164956-006e29f97886 // indirect
-	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/cellbuf v0.0.15 // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20250327172914-2fdc97757edf // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
@@ -66,7 +67,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	github.com/yuin/goldmark v1.7.17 // indirect
+	github.com/yuin/goldmark v1.8.5 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect

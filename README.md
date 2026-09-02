@@ -163,6 +163,25 @@ glow -w 60
 CLI output can be displayed in your preferred pager with the `-p` flag. This defaults
 to the ANSI-aware `less -r` if `$PAGER` is not explicitly set.
 
+### Images
+
+If your terminal supports the kitty graphics protocol (e.g. kitty, Ghostty,
+WezTerm) or sixel, images in the document are rendered right in the terminal:
+
+```bash
+glow README.md
+```
+
+Support is detected automatically, both in the CLI and in the TUI pager, where
+images scroll with the text. Images can be turned off with the `--images=false`
+flag, or forced with the `GLOW_IMAGE_PROTOCOL` environment variable (`auto`,
+`kitty`, `sixel`, or `none`).
+
+Large images are automatically downscaled to what the terminal can actually
+display before being transmitted, so even huge photos render quickly. Their
+size can also be limited with `--image-max-rows` (default 20 terminal rows, 0
+for no limit), or the `imageMaxRows` config key.
+
 ### Styles
 
 You can choose a style with the `-s` flag. When no flag is provided `glow` tries
@@ -213,6 +232,10 @@ all: false
 showLineNumbers: false
 # preserve newlines in the output
 preserveNewLines: false
+# render images when the terminal supports it (kitty or sixel graphics)
+images: true
+# maximum number of terminal rows an image may occupy (0 for no limit)
+imageMaxRows: 20
 ```
 
 ## Contributing
