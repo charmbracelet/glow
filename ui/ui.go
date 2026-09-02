@@ -416,7 +416,11 @@ func localFileToMarkdown(cwd string, res gitcha.SearchResult) *markdown {
 }
 
 func stripAbsolutePath(fullPath, cwd string) string {
-	fp, _ := filepath.EvalSymlinks(fullPath)
+	// Don't resolve symlinks on fullPath — use the original path so that
+	// symlinked files display under their own name (e.g. AGENTS.md) instead
+	// of their target's name (e.g. CLAUDE.md).
+	// We still resolve cwd in case the working directory itself is a symlink.
+	fp := fullPath
 	cp, _ := filepath.EvalSymlinks(cwd)
 	return strings.ReplaceAll(fp, cp+string(os.PathSeparator), "")
 }
