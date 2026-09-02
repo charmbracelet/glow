@@ -149,18 +149,22 @@ func sourceFromArg(arg string) (*source, error) {
 	return &source{r, u}, nil
 }
 
-// validateStyle checks if the style is a default style, if not, checks that
-// the custom style exists.
-func validateStyle(style string) error {
-	if style != "auto" && styles.DefaultStyles[style] == nil {
-		style = utils.ExpandPath(style)
-		if _, err := os.Stat(style); errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("specified style does not exist: %s", style)
-		} else if err != nil {
-			return fmt.Errorf("unable to stat file: %w", err)
-		}
+// validateStyle checks if the style is a default style, otherwise treats it
+// as a path to a custom style file and verifies it exists. Custom paths are
+// expanded (so a leading ~ becomes the user's home directory) and the
+// expanded path is returned, since the caller needs that value to load the
+// file later.
+func validateStyle(style string) (string, error) {
+	if style == "auto" || styles.DefaultStyles[style] != nil {
+		return style, nil
 	}
-	return nil
+	expanded := utils.ExpandPath(style)
+	if _, err := os.Stat(expanded); errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("specified style does not exist: %s", expanded)
+	} else if err != nil {
+		return "", fmt.Errorf("unable to stat file: %w", err)
+	}
+	return expanded, nil
 }
 
 func validateOptions(cmd *cobra.Command) error {
@@ -178,10 +182,11 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	// validate the glamour style
-	style = viper.GetString("style")
-	if err := validateStyle(style); err != nil {
+	resolved, err := validateStyle(viper.GetString("style"))
+	if err != nil {
 		return err
 	}
+	style = resolved
 
 	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
 	// We want to use a special no-TTY style, when stdout is not a terminal
@@ -352,8 +357,10 @@ func runTUI(path string, content string) error {
 	}
 
 	// use style set in env, or auto if unset
-	if err := validateStyle(cfg.GlamourStyle); err != nil {
+	if resolved, err := validateStyle(cfg.GlamourStyle); err != nil {
 		cfg.GlamourStyle = style
+	} else {
+		cfg.GlamourStyle = resolved
 	}
 
 	cfg.Path = path
