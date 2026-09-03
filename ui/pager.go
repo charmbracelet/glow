@@ -298,27 +298,48 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 }
 
 func (m pagerModel) helpView() (s string) {
+	// Column widths, in cells.
+	const col0Width = 29
+
+	col0 := []string{
+		"k/↑      up",
+		"j/↓      down",
+		"b/pgup   page up",
+		"f/pgdn   page down",
+		"u        ½ page up",
+		"d        ½ page down",
+		"l/→      scroll right",
+		"h/←      scroll left",
+	}
 	col1 := []string{
 		"g/home  go to top",
 		"G/end   go to bottom",
 		"c       copy contents",
 		"e       edit this document",
 		"r       reload this document",
-		"esc     back to files",
-		"q       quit",
+	}
+	if !m.common.documentOnly {
+		col1 = append(col1, "esc/h   back to files")
+	}
+	col1 = append(col1, "q       quit")
+
+	rows := max(len(col0), len(col1))
+	rowLines := make([]string, 0, rows)
+	for i := 0; i < rows; i++ {
+		var left, right string
+		if i < len(col0) {
+			left = col0[i]
+		}
+		if i < len(col1) {
+			right = col1[i]
+		}
+		if right != "" {
+			left += strings.Repeat(" ", max(col0Width-runewidth.StringWidth(left), 0))
+		}
+		rowLines = append(rowLines, left+right)
 	}
 
-	s += "\n"
-	s += "k/↑      up                  " + col1[0] + "\n"
-	s += "j/↓      down                " + col1[1] + "\n"
-	s += "b/pgup   page up             " + col1[2] + "\n"
-	s += "f/pgdn   page down           " + col1[3] + "\n"
-	s += "u        ½ page up           " + col1[4] + "\n"
-	s += "d        ½ page down         "
-
-	if len(col1) > 5 {
-		s += col1[5]
-	}
+	s += "\n" + strings.Join(rowLines, "\n")
 
 	s = indent(s, 2)
 
