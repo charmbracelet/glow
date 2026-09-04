@@ -83,6 +83,10 @@ type commonModel struct {
 	width  int
 	height int
 	styles Styles
+
+	// documentOnly reports whether Glow was started on a single document. In
+	// that case there is no file listing to go back to.
+	documentOnly bool
 }
 
 type model struct {
@@ -130,6 +134,7 @@ func newModel(cfg Config, content string) tea.Model {
 	path := cfg.Path
 	if path == "" && content != "" {
 		m.state = stateShowDocument
+		m.common.documentOnly = true
 		m.pager.currentDocument = markdown{Body: content}
 		return m
 	}
@@ -148,6 +153,7 @@ func newModel(cfg Config, content string) tea.Model {
 	} else {
 		cwd, _ := os.Getwd()
 		m.state = stateShowDocument
+		m.common.documentOnly = true
 		m.pager.currentDocument = markdown{
 			localPath: path,
 			Note:      stripAbsolutePath(path, cwd),
@@ -194,6 +200,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "esc":
+			if m.common.documentOnly {
+				break
+			}
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {
 				batch := m.unloadDocument()
 				return m, tea.Batch(batch...)
@@ -226,6 +235,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "left", "h", "delete":
 			if m.state == stateShowDocument {
+				// If the document is scrolled horizontally, scroll back left
+				// instead of leaving the document. The pager handles the
+				// actual scrolling, so just pass the key through.
+				if m.pager.viewport.XOffset() > 0 || m.common.documentOnly {
+					break
+				}
 				cmds = append(cmds, m.unloadDocument()...)
 				return m, tea.Batch(cmds...)
 			}
