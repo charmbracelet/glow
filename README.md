@@ -110,7 +110,7 @@ Or just install it with `go`:
 go install charm.land/glow/v3@latest
 ```
 
-### Build (requires Go 1.21+)
+### Build (requires Go 1.26+)
 
 ```bash
 git clone https://github.com/charmbracelet/glow.git
