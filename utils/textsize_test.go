@@ -70,6 +70,17 @@ func TestApplyTextSizingPassthrough(t *testing.T) {
 	}
 }
 
+func TestApplyTextSizingMalformedMarker(t *testing.T) {
+	in := "a" + markerPrefix // truncated marker at end of string
+	if got := ApplyTextSizing(in); got != in {
+		t.Errorf("expected malformed marker preserved verbatim, got %q", got)
+	}
+	in = "a" + markerPrefix + "x" // non-digit level
+	if got := ApplyTextSizing(in); got != in {
+		t.Errorf("expected malformed marker preserved verbatim, got %q", got)
+	}
+}
+
 func TestApplyTextSizingLevels(t *testing.T) {
 	_, sized := renderPlainAndSized(t, "# Hello\n\n## World\n\n### Third\n", 80)
 

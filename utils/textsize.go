@@ -188,7 +188,12 @@ func ApplyTextSizing(s string) string {
 		s = s[i:]
 
 		level := markerLevel(s)
-		s = s[len(markerOpen(0)):]
+		if level < 0 {
+			b.WriteString(markerPrefix)
+			s = s[len(markerPrefix):]
+			continue
+		}
+		s = s[len(markerOpen(level)):]
 		if level < 1 || level > 3 {
 			continue
 		}
