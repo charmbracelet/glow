@@ -411,15 +411,28 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	return content.String(), nil
 }
 
+// newWatcher creates the file watcher. It's a variable so tests can simulate
+// the watcher failing to initialize.
+var newWatcher = fsnotify.NewWatcher
+
 func (m *pagerModel) initWatcher() {
-	var err error
-	m.watcher, err = fsnotify.NewWatcher()
+	watcher, err := newWatcher()
 	if err != nil {
-		log.Error("error creating fsnotify watcher", "error", err)
+		// This happens when the system runs out of inotify instances (or the
+		// platform equivalent). It isn't fatal: we just lose live reloading,
+		// so leave the watcher nil and carry on.
+		log.Error("error creating fsnotify watcher, live reload is disabled", "error", err)
+		m.watcher = nil
+		return
 	}
+	m.watcher = watcher
 }
 
 func (m *pagerModel) watchFile() tea.Msg {
+	if m.watcher == nil {
+		return nil
+	}
+
 	dir := m.localDir()
 
 	if err := m.watcher.Add(dir); err != nil {
@@ -452,6 +465,10 @@ func (m *pagerModel) watchFile() tea.Msg {
 }
 
 func (m *pagerModel) unwatchFile() {
+	if m.watcher == nil {
+		return
+	}
+
 	dir := m.localDir()
 
 	err := m.watcher.Remove(dir)
