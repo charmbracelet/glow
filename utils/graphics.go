@@ -125,11 +125,32 @@ func KittyGraphicsOK(optionsID int, payload []byte) bool {
 
 // FileBaseURL returns a file:// URL for the directory containing the given
 // file path, suitable as a glamour base URL, so that relative image
-// references resolve correctly on all platforms.
+// references resolve correctly on all platforms. Relative paths are
+// resolved against the current working directory.
 func FileBaseURL(path string) string {
-	dir := filepath.ToSlash(filepath.Dir(path))
-	u := url.URL{Scheme: "file", Path: "/" + strings.TrimPrefix(dir, "/")}
+	dir := filepath.Dir(path)
+	if !isWindowsDrivePath(dir) {
+		if abs, err := filepath.Abs(dir); err == nil {
+			dir = abs
+		}
+	}
+	s := filepath.ToSlash(dir)
+	if !strings.HasPrefix(s, "/") {
+		// A Windows drive letter, e.g. C:/Users/x, needs a leading slash to
+		// form a valid file URL path: /C:/Users/x.
+		s = "/" + s
+	}
+	u := url.URL{Scheme: "file", Path: s}
 	return u.String() + "/"
+}
+
+// isWindowsDrivePath reports whether the path starts with a Windows drive
+// letter, like C:/Users/x. Such paths are absolute on Windows, and treated
+// as absolute everywhere, so that documents render identically on all
+// platforms.
+func isWindowsDrivePath(path string) bool {
+	return len(path) >= 3 && path[1] == ':' && (path[2] == '/' || path[2] == '\\') &&
+		(path[0] >= 'a' && path[0] <= 'z' || path[0] >= 'A' && path[0] <= 'Z')
 }
 
 // graphicsQuery returns a kitty graphics query followed by a request for the

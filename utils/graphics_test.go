@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"net/url"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"charm.land/glamour/v2/ansi"
@@ -149,6 +152,38 @@ func TestFileBaseURL(t *testing.T) {
 	for _, tc := range tests {
 		if got := FileBaseURL(tc.path); got != tc.want {
 			t.Errorf("FileBaseURL(%q) = %q, want %q", tc.path, got, tc.want)
+		}
+	}
+
+	// Relative paths resolve against the working directory. The expected
+	// URL is built from os.Getwd, since the working directory is only
+	// known at runtime, and may differ from the temp dir path on platforms
+	// with symlinked temporary directories, like macOS.
+	dir := t.TempDir()
+	t.Chdir(dir)
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := (&url.URL{Scheme: "file", Path: filepath.ToSlash(wd)}).String() + "/"
+	for _, path := range []string{"", "test.md", "./test.md", "sub/../test.md"} {
+		if got := FileBaseURL(path); got != want {
+			t.Errorf("FileBaseURL(%q) = %q, want %q", path, got, want)
+		}
+	}
+
+	want = (&url.URL{Scheme: "file", Path: filepath.ToSlash(filepath.Join(wd, "img"))}).String() + "/"
+	for _, path := range []string{"sub/../img/test.md"} {
+		if got := FileBaseURL(path); got != want {
+			t.Errorf("FileBaseURL(%q) = %q, want %q", path, got, want)
+		}
+	}
+
+	want = (&url.URL{Scheme: "file", Path: filepath.ToSlash(filepath.Join(wd, "..", "img"))}).String() + "/"
+	for _, path := range []string{"../img/test.md"} {
+		if got := FileBaseURL(path); got != want {
+			t.Errorf("FileBaseURL(%q) = %q, want %q", path, got, want)
 		}
 	}
 }
