@@ -131,6 +131,17 @@ Markdown files can be read with Glow's high-performance pager. Most of the
 keystrokes you know from `less` are the same, but you can press `?` to list
 the hotkeys.
 
+Use the `-d`/`--max-depth` flag to limit how many levels of subdirectories
+Glow searches for markdown files:
+
+```bash
+# Only show markdown files in the current directory
+glow -d 0
+
+# Show markdown files up to one subdirectory deep
+glow -d 1
+```
+
 ## The CLI
 
 In addition to a TUI, Glow has a CLI for working with Markdown. To format a
