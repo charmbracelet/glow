@@ -269,6 +269,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case foundLocalFileMsg:
 		newMd := localFileToMarkdown(m.common.cwd, gitcha.SearchResult(msg))
+		if exceedsMaxDepth(newMd.Note, m.common.cfg.MaxDepth) {
+			cmds = append(cmds, findNextLocalFile(m))
+			break
+		}
 		m.stash.addMarkdowns(newMd)
 		if m.stash.filterApplied() {
 			newMd.buildFilterValue()
@@ -419,6 +423,17 @@ func stripAbsolutePath(fullPath, cwd string) string {
 	fp, _ := filepath.EvalSymlinks(fullPath)
 	cp, _ := filepath.EvalSymlinks(cwd)
 	return strings.ReplaceAll(fp, cp+string(os.PathSeparator), "")
+}
+
+// exceedsMaxDepth reports whether relPath, a file path relative to the
+// search's working directory, lives more than maxDepth subdirectories deep.
+// A maxDepth less than zero means "unlimited".
+func exceedsMaxDepth(relPath string, maxDepth int) bool {
+	if maxDepth < 0 {
+		return false
+	}
+	depth := strings.Count(filepath.ToSlash(relPath), "/")
+	return depth > maxDepth
 }
 
 // Lightweight version of reflow's indent function.

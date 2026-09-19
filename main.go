@@ -43,6 +43,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	maxDepth         int
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -170,6 +171,7 @@ func validateOptions(cmd *cobra.Command) error {
 	pager = viper.GetBool("pager")
 	tui = viper.GetBool("tui")
 	showAllFiles = viper.GetBool("all")
+	maxDepth = viper.GetInt("maxDepth")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
 
@@ -358,6 +360,7 @@ func runTUI(path string, content string) error {
 
 	cfg.Path = path
 	cfg.ShowAllFiles = showAllFiles
+	cfg.MaxDepth = maxDepth
 	cfg.ShowLineNumbers = showLineNumbers
 	cfg.GlamourMaxWidth = width
 	cfg.EnableMouse = mouse
@@ -403,6 +406,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width (set to 0 to disable)")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
+	rootCmd.Flags().IntVarP(&maxDepth, "max-depth", "d", -1, "maximum depth of subdirectories to show markdown files from (TUI-mode only, -1 for unlimited)")
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
@@ -418,10 +422,12 @@ func init() {
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
+	_ = viper.BindPFlag("maxDepth", rootCmd.Flags().Lookup("max-depth"))
 
 	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
+	viper.SetDefault("maxDepth", -1)
 
 	rootCmd.AddCommand(configCmd, manCmd)
 }

@@ -23,6 +23,8 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# maximum depth of subdirectories to show markdown files from (TUI-mode only, -1 for unlimited)
+maxDepth: -1
 `
 
 var configCmd = &cobra.Command{
