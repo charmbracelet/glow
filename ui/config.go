@@ -20,6 +20,14 @@ type Config struct {
 	ImageProtocol string `env:"GLOW_IMAGE_PROTOCOL" envDefault:"auto"`
 	ImageMaxRows  int    `env:"GLOW_IMAGE_MAX_ROWS" envDefault:"20"`
 
+	// LoadRemoteImages controls whether images referenced by http(s) URLs
+	// are fetched and rendered. It is disabled by default: fetching remote
+	// images reveals your IP address to the image's host and uses
+	// bandwidth, much like a tracking pixel would. While disabled, remote
+	// images render as a link followed by a note saying they were not
+	// loaded.
+	LoadRemoteImages bool `env:"GLOW_LOAD_REMOTE_IMAGES" envDefault:"false"`
+
 	// Working directory or file path
 	Path string
 

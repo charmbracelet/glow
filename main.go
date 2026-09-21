@@ -47,6 +47,7 @@ var (
 	mouse            bool
 	images           bool
 	imageMaxRows     int
+	loadRemoteImages bool
 
 	// imageProtocol is the graphics protocol detected for the terminal. It
 	// is resolved at most once via imageProtocolForCLI.
@@ -183,6 +184,7 @@ func validateOptions(cmd *cobra.Command) error {
 	showLineNumbers = viper.GetBool("showLineNumbers")
 	images = viper.GetBool("images")
 	imageMaxRows = viper.GetInt("imageMaxRows")
+	loadRemoteImages = viper.GetBool("loadRemoteImages")
 
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
@@ -327,6 +329,11 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 				glamour.WithImageProtocol(p),
 				glamour.WithMaxImageSize(0, imageMaxRows),
 			)
+			if loadRemoteImages {
+				options = append(options, glamour.WithRemoteImages())
+			} else {
+				options = append(options, glamour.WithRemoteImageNotLoadedNote(ui.RemoteImageNotLoadedNote))
+			}
 		}
 	}
 	r, err := glamour.NewTermRenderer(options...)
@@ -398,6 +405,8 @@ func runTUI(path string, content string) error {
 	cfg.PreserveNewLines = preserveNewLines
 	cfg.Images = viper.GetBool("images")
 	cfg.ImageMaxRows = viper.GetInt("imageMaxRows")
+	// The env var is read by env.ParseAs, the config file by Viper.
+	cfg.LoadRemoteImages = cfg.LoadRemoteImages || viper.GetBool("loadRemoteImages")
 
 	// Run Bubble Tea program
 	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
@@ -477,6 +486,7 @@ func init() {
 	viper.SetDefault("all", true)
 	viper.SetDefault("images", true)
 	viper.SetDefault("imageMaxRows", 20)
+	viper.SetDefault("loadRemoteImages", false)
 
 	rootCmd.AddCommand(configCmd, manCmd)
 }

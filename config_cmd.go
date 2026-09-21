@@ -23,6 +23,10 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# load images over the network, i.e. from http(s) URLs. Disabled by default,
+# as fetching them shares your IP address with the image's host. While
+# disabled, remote images render as their URL with a note.
+loadRemoteImages: false
 `
 
 var configCmd = &cobra.Command{

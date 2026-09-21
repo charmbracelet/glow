@@ -1,6 +1,6 @@
 module charm.land/glow/v3
 
-go 1.26.6
+go 1.26.7
 
 require (
 	charm.land/bubbles/v2 v2.1.1
@@ -75,3 +75,5 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
+
+replace charm.land/glamour/v2 => ../glamour

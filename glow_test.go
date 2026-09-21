@@ -2,6 +2,9 @@ package main
 
 import (
 	"testing"
+
+	"charm.land/glow/v3/ui"
+	"github.com/caarlos0/env/v11"
 )
 
 func TestGlowFlags(t *testing.T) {
@@ -37,5 +40,27 @@ func TestGlowFlags(t *testing.T) {
 		if !v.check() {
 			t.Errorf("Parsing flag failed: %s", v.args)
 		}
+	}
+}
+
+// TestLoadRemoteImagesEnv checks the environment variable that enables
+// loading remote images.
+func TestLoadRemoteImagesEnv(t *testing.T) {
+	t.Setenv("GLOW_LOAD_REMOTE_IMAGES", "false")
+	cfg, err := env.ParseAs[ui.Config]()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.LoadRemoteImages {
+		t.Error("expected remote image loading to be disabled by default")
+	}
+
+	t.Setenv("GLOW_LOAD_REMOTE_IMAGES", "true")
+	cfg, err = env.ParseAs[ui.Config]()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.LoadRemoteImages {
+		t.Error("expected GLOW_LOAD_REMOTE_IMAGES to enable remote image loading")
 	}
 }
