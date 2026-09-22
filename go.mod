@@ -4,7 +4,7 @@ go 1.26.7
 
 require (
 	charm.land/bubbles/v2 v2.1.1
-	charm.land/bubbletea/v2 v2.0.8
+	charm.land/bubbletea/v2 v2.0.9
 	charm.land/glamour/v2 v2.0.2-0.20260914112920-7bb50a2ac56e
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/atotto/clipboard v0.1.4

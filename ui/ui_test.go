@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -415,4 +417,141 @@ func TestPagerRemoteImagesLoading(t *testing.T) {
 	if strings.Contains(m.View(), "Loading remote images") {
 		t.Errorf("expected the loading indicator to be gone, got: %q", m.View())
 	}
+}
+
+// TestViewsFillScreen checks that the views shown between documents (loading,
+// error) and the pager before it has been sized fill the terminal height.
+// Views that don't cover the whole screen leave whatever the previous frame
+// drew on it, e.g. a document's status bar stuck at the bottom after going
+// back to the stash.
+func TestViewsFillScreen(t *testing.T) {
+	const height = 24
+	common := commonModel{cfg: Config{GlamourEnabled: true}, styles: newStyles(true), width: 80, height: height}
+
+	check := func(name, view string) {
+		t.Helper()
+		if got := strings.Count(view, "\n") + 1; got != height {
+			t.Errorf("expected the %s view to fill the screen, got %d lines, want %d", name, got, height)
+		}
+	}
+
+	stash := newStashModel(&common)
+	stash.setSize(80, height)
+	stash.loaded = true
+	check("stash", stash.view())
+
+	stash.viewState = stashStateLoadingDocument
+	check("loading", stash.view())
+
+	stash.viewState = stashStateShowingError
+	stash.err = errMsg{err: errors.New("boom")}
+	check("error", stash.view())
+
+	pager := newPagerModel(&common)
+	check("unsized pager", pager.View())
+	pager.setSize(80, height)
+	check("empty pager", pager.View())
+	pager.setContent("hello\nworld")
+	check("pager", pager.View())
+}
+
+// TestPagerRemoteImagesLoadError checks that a failed loading pass clears the
+// loading indicator and reports the error, rather than leaving the indicator
+// in the status bar forever.
+func TestPagerRemoteImagesLoadError(t *testing.T) {
+	common := commonModel{cfg: Config{GlamourEnabled: true}, styles: newStyles(true), width: 80, height: 24}
+	m := newPagerModel(&common)
+	m.setSize(80, 24)
+	m.currentDocument = markdown{Note: "test.md", Body: "![](https://example.com/img.png)"}
+
+	m, _ = m.update(contentRenderedMsg{
+		content:             "text without images",
+		body:                m.currentDocument.Body,
+		remoteImagesPending: true,
+	})
+	if !m.remoteImagesLoading {
+		t.Fatal("expected the remote images to be reported as loading")
+	}
+
+	m, cmd := m.update(errMsg{err: errors.New("boom")})
+	if m.remoteImagesLoading {
+		t.Error("expected the loading indicator to be cleared")
+	}
+	if strings.Contains(m.View(), "Loading remote images") {
+		t.Errorf("expected the loading indicator to be gone, got: %q", m.View())
+	}
+	if !strings.Contains(m.View(), "boom") {
+		t.Errorf("expected the error to be reported, got: %q", m.View())
+	}
+	if cmd == nil {
+		t.Error("expected a status message timeout")
+	}
+}
+
+// staticViewModel renders a view that never changes, like the loading
+// indicator between documents.
+type staticViewModel struct{}
+
+func (staticViewModel) Init() tea.Cmd                         { return nil }
+func (m staticViewModel) Update(tea.Msg) (tea.Model, tea.Cmd) { return m, nil }
+func (staticViewModel) View() tea.View {
+	v := tea.NewView("static")
+	v.AltScreen = true
+	return v
+}
+
+// syncBuffer is a buffer that can be read while the program writes to it.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+// TestResizeRedrawsUnchangedView checks that a window resize redraws the
+// screen even when the view doesn't change, e.g. while a document loads. The
+// renderer must not skip the screen erase queued by the resize, or the
+// terminal keeps whatever the previous frame drew, like a document's status
+// bar left stuck at the bottom (fixed in bubbletea v2.0.9, see
+// charmbracelet/bubbletea#1755).
+func TestResizeRedrawsUnchangedView(t *testing.T) {
+	var out syncBuffer
+	p := tea.NewProgram(staticViewModel{},
+		tea.WithOutput(&out),
+		tea.WithInput(strings.NewReader("")),
+		tea.WithWindowSize(80, 24),
+	)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+
+		// Wait for the initial frame, then resize to the same dimensions so
+		// that only the resize can redraw the screen.
+		time.Sleep(250 * time.Millisecond)
+		before := strings.Count(out.String(), "static")
+
+		p.Send(tea.WindowSizeMsg{Width: 80, Height: 24})
+		time.Sleep(250 * time.Millisecond)
+
+		if after := strings.Count(out.String(), "static"); after <= before {
+			t.Errorf("expected the screen to be redrawn on resize, got no redraw (frames before=%d, after=%d)",
+				before, after)
+		}
+		p.Send(tea.Quit())
+	}()
+	if _, err := p.Run(); err != nil {
+		t.Fatal(err)
+	}
+	<-done
 }

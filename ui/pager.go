@@ -153,7 +153,7 @@ func newPagerModel(common *commonModel) pagerModel {
 
 	sp := spinner.New()
 	sp.Spinner = spinner.Line
-	sp.Style = common.styles.stashSpinnerStyle
+	sp.Style = common.styles.statusBarSpinnerStyle
 
 	m := pagerModel{
 		common:        common,
@@ -317,6 +317,16 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		}
 		m.setContent(msg.content)
 
+	// A rendering pass failed, e.g. while fetching the document's remote
+	// images. Report it and stop the loading indicator, which would
+	// otherwise stay in the status bar forever.
+	case errMsg:
+		var wasLoading bool
+		wasLoading, m.remoteImagesLoading = m.remoteImagesLoading, false
+		if wasLoading {
+			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{msg.Error(), true}))
+		}
+
 	// Keep the loading indicator spinning while the remote images load.
 	case spinner.TickMsg:
 		if m.remoteImagesLoading {
@@ -360,7 +370,17 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 func (m pagerModel) View() string {
 	var b strings.Builder
-	fmt.Fprint(&b, m.viewport.View()+"\n")
+
+	// The viewport pads its content to the height it was given, but it draws
+	// nothing at all until it has been sized, i.e. before the first window
+	// size message. The status bar would then end up at the top of the screen,
+	// and the lines it doesn't cover would keep the previous frame on screen.
+	// Fill the gap so the bar always stays at the bottom.
+	content := m.viewport.View()
+	if missing := m.common.height - statusBarHeight - (strings.Count(content, "\n") + 1); m.common.height > 0 && missing > 0 {
+		content += strings.Repeat("\n", missing)
+	}
+	fmt.Fprint(&b, content+"\n")
 
 	// Footer
 	m.statusBarView(&b)
@@ -403,28 +423,32 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	}
 
 	// Note
-	var note string
-	switch {
-	case m.remoteImagesLoading:
-		note = m.remoteSpinner.View() + " Loading remote images..."
-	case showStatusMessage:
-		note = m.statusMessage
-	default:
-		note = m.currentDocument.Note
-	}
-	note = truncate.StringWithTail(" "+note+" ", uint(max(0, //nolint:gosec
+	noteWidth := max(0,
 		m.common.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
-	)), ellipsis)
+	)
 	// The loading indicator takes the place of the status message, so it's
 	// styled like the file name rather than like a message.
 	showMessage := showStatusMessage && !m.remoteImagesLoading
-	if showMessage {
-		note = styles.statusBarMessageStyle(note)
-	} else {
-		note = styles.statusBarNoteStyle(note)
+	var note string
+	switch {
+	case m.remoteImagesLoading:
+		// The spinner's own styling ends in an ANSI reset which would wipe
+		// the status bar background of everything after it, so the note is
+		// styled in segments around the spinner.
+		spinnerView := m.remoteSpinner.View()
+		textWidth := max(0, noteWidth-ansi.PrintableRuneWidth(spinnerView)-1)
+		note = styles.statusBarNoteStyle(" ") + spinnerView +
+			styles.statusBarNoteStyle(truncate.StringWithTail( //nolint:gosec
+				" Loading remote images... ", uint(textWidth), ellipsis))
+	case showMessage:
+		note = styles.statusBarMessageStyle(truncate.StringWithTail( //nolint:gosec
+			" "+m.statusMessage+" ", uint(noteWidth), ellipsis))
+	default:
+		note = styles.statusBarNoteStyle(truncate.StringWithTail( //nolint:gosec
+			" "+m.currentDocument.Note+" ", uint(noteWidth), ellipsis))
 	}
 
 	// Empty space

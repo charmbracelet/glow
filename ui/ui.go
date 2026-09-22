@@ -350,7 +350,7 @@ func (m model) View() tea.View {
 	var content string
 	switch {
 	case m.fatalErr != nil:
-		content = errorView(m.common.styles, m.fatalErr, true)
+		content = fillHeight(errorView(m.common.styles, m.fatalErr, true), m.common.height)
 	case m.state == stateShowDocument:
 		content = m.pager.View()
 	default:
@@ -463,6 +463,18 @@ func stripAbsolutePath(fullPath, cwd string) string {
 	fp, _ := filepath.EvalSymlinks(fullPath)
 	cp, _ := filepath.EvalSymlinks(cwd)
 	return strings.ReplaceAll(fp, cp+string(os.PathSeparator), "")
+}
+
+// fillHeight pads a view with newlines so that it fills the given number of
+// terminal lines. Views that don't cover the whole terminal leave whatever the
+// previous frame drew on screen, which is visible as stale lines, e.g. the
+// status bar of a document stuck at the bottom after going back to the stash.
+func fillHeight(s string, height int) string {
+	missing := height - (strings.Count(s, "\n") + 1)
+	if height <= 0 || missing <= 0 {
+		return s
+	}
+	return s + strings.Repeat("\n", missing)
 }
 
 // Lightweight version of reflow's indent function.
