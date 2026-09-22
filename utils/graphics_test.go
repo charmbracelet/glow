@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"charm.land/glamour/v2/ansi"
@@ -143,10 +144,16 @@ func TestFileBaseURL(t *testing.T) {
 		path string
 		want string
 	}{
-		// The results must be identical on all platforms, so that relative
-		// image references in documents resolve everywhere.
-		{"/tmp/docs/test.md", "file:///tmp/docs/"},
+		// Windows-style absolute paths resolve the same everywhere.
 		{"C:/Users/x/test.md", "file:///C:/Users/x/"},
+	}
+	// Unix-style absolute paths are absolute only on Unix; on Windows they
+	// resolve against the current drive.
+	if runtime.GOOS != "windows" {
+		tests = append(tests, struct {
+			path string
+			want string
+		}{"/tmp/docs/test.md", "file:///tmp/docs/"})
 	}
 
 	for _, tc := range tests {
@@ -166,21 +173,23 @@ func TestFileBaseURL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := (&url.URL{Scheme: "file", Path: filepath.ToSlash(wd)}).String() + "/"
+	// Build the expected URL the same way FileBaseURL does: the path is
+	// slash-separated, and drive-letter paths get a leading slash.
+	want := fileURL(wd) + "/"
 	for _, path := range []string{"", "test.md", "./test.md", "sub/../test.md"} {
 		if got := FileBaseURL(path); got != want {
 			t.Errorf("FileBaseURL(%q) = %q, want %q", path, got, want)
 		}
 	}
 
-	want = (&url.URL{Scheme: "file", Path: filepath.ToSlash(filepath.Join(wd, "img"))}).String() + "/"
+	want = fileURL(filepath.Join(wd, "img")) + "/"
 	for _, path := range []string{"sub/../img/test.md"} {
 		if got := FileBaseURL(path); got != want {
 			t.Errorf("FileBaseURL(%q) = %q, want %q", path, got, want)
 		}
 	}
 
-	want = (&url.URL{Scheme: "file", Path: filepath.ToSlash(filepath.Join(wd, "..", "img"))}).String() + "/"
+	want = fileURL(filepath.Join(wd, "..", "img")) + "/"
 	for _, path := range []string{"../img/test.md"} {
 		if got := FileBaseURL(path); got != want {
 			t.Errorf("FileBaseURL(%q) = %q, want %q", path, got, want)
@@ -193,4 +202,14 @@ func TestGraphicsQuery(t *testing.T) {
 	if want := "\x1b_Gf=24,i=31,s=1,v=1,a=q;AAAA\x1b\\"; q != want+"\x1b[c" {
 		t.Errorf("unexpected query %q", q)
 	}
+}
+
+// fileURL returns the file URL of a slash-separated path, adding the leading
+// slash that drive-letter paths need (see FileBaseURL).
+func fileURL(path string) string {
+	s := filepath.ToSlash(path)
+	if isWindowsDrivePath(s) {
+		s = "/" + s
+	}
+	return (&url.URL{Scheme: "file", Path: s}).String()
 }
