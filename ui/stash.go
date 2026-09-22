@@ -660,7 +660,7 @@ func (m stashModel) view() string {
 	var s string
 	switch m.viewState {
 	case stashStateShowingError:
-		return errorView(m.common.styles, m.err, false)
+		return fillHeight(errorView(m.common.styles, m.err, false), m.common.height)
 	case stashStateLoadingDocument:
 		s += " " + m.spinner.View() + " Loading document..."
 	case stashStateReady:
@@ -733,7 +733,7 @@ func (m stashModel) view() string {
 			help,
 		)
 	}
-	return "\n" + indent(s, stashIndent)
+	return fillHeight("\n"+indent(s, stashIndent), m.common.height)
 }
 
 func glowLogoView(styles Styles) string {

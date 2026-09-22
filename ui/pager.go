@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/glamour/v2"
+	glamansi "charm.land/glamour/v2/ansi"
 	"charm.land/glow/v3/utils"
 	"charm.land/lipgloss/v2"
 	"github.com/atotto/clipboard"
@@ -26,11 +29,85 @@ const (
 	lineNumberWidth = 4
 )
 
+// RemoteImageNotLoadedNote is appended to the URL of a remote image when
+// loading remote images is disabled, pointing at the config setting that
+// loads them.
+const RemoteImageNotLoadedNote = ` (not loaded. Set "loadRemoteImages: true" in your glow config to load remote images)`
+
+// remoteImagePattern matches inline markdown images, i.e.
+// ![alt](https://...), and HTML ones, i.e. <img src="https://...">, that are
+// fetched over the network.
+var remoteImagePattern = regexp.MustCompile(`(?i)!\[[^\]]*\]\(\s*["']?https?://|<img[^>]+src\s*=\s*["']?https?://`)
+
+var (
+	// referenceImagePattern matches markdown images that point at a link
+	// reference, i.e. ![alt][badge].
+	referenceImagePattern = regexp.MustCompile(`!\[[^\]]*\]\[([^\]]*)\]`)
+	// referenceDefinitionPattern matches the definition of a link
+	// reference, i.e. [badge]: https://example.com/badge.svg.
+	referenceDefinitionPattern = regexp.MustCompile(`(?m)^ {0,3}\[([^\]]+)\]:\s*<?(\S+)`)
+)
+
+// hasRemoteImages reports whether the markdown references any image by
+// http(s) URL, i.e. whether rendering it involves fetching images.
+func hasRemoteImages(md string) bool {
+	if remoteImagePattern.MatchString(md) {
+		return true
+	}
+
+	// Images can also point at a link reference, e.g. a badge in a README:
+	// ![build][badge] with [badge]: https://example.com/badge.svg. Match the
+	// references that are known to be remote; link labels are
+	// case-insensitive.
+	var remoteReferences map[string]bool
+	for _, m := range referenceDefinitionPattern.FindAllStringSubmatch(md, -1) {
+		if isRemoteURL(m[2]) {
+			if remoteReferences == nil {
+				remoteReferences = make(map[string]bool)
+			}
+			remoteReferences[strings.ToLower(m[1])] = true
+		}
+	}
+	if len(remoteReferences) == 0 {
+		return false
+	}
+	for _, m := range referenceImagePattern.FindAllStringSubmatch(md, -1) {
+		if remoteReferences[strings.ToLower(m[1])] {
+			return true
+		}
+	}
+	return false
+}
+
+// isRemoteURL reports whether the given URL is served over http(s).
+func isRemoteURL(u string) bool {
+	return strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://")
+}
+
 var pagerHelpHeight int
 
 type (
-	contentRenderedMsg string
-	reloadMsg          struct{}
+	// contentRenderedMsg is sent when the glamour rendering of a document
+	// finishes. graphics holds the graphics protocol sequences that must be
+	// written to the terminal before the content, which references them via
+	// unicode placeholders, is displayed. body is the markdown that was
+	// rendered, and remoteImagesPending reports that it was rendered without
+	// its remote images, which the pager then loads in a second pass.
+	contentRenderedMsg struct {
+		content             string
+		graphics            []string
+		body                string
+		remoteImagesPending bool
+	}
+	// remoteImagesLoadedMsg is sent when the second rendering pass, which
+	// loads the document's remote images, finishes. token identifies the
+	// pass, so a result that was superseded, e.g. by a resize, is ignored.
+	remoteImagesLoadedMsg struct {
+		content  string
+		graphics []string
+		token    int
+	}
+	reloadMsg struct{}
 )
 
 type pagerState int
@@ -53,6 +130,20 @@ type pagerModel struct {
 	// it here so we can re-render it on resize.
 	currentDocument markdown
 
+	// pendingContent is content that is waiting on its graphics protocol
+	// sequences to be written to the terminal before it can be displayed.
+	// See the contentRenderedMsg handling in update.
+	pendingContent string
+
+	// remoteImagesLoading reports whether the remote images of the current
+	// document are still being fetched, and remoteSpinner spins while they
+	// are; the text is displayed without them in the meantime.
+	// remoteImagesPass identifies the running fetching pass, so that its
+	// result can be told apart from those of older passes.
+	remoteImagesLoading bool
+	remoteImagesPass    int
+	remoteSpinner       spinner.Model
+
 	watcher *fsnotify.Watcher
 }
 
@@ -60,10 +151,15 @@ func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
 	vp := viewport.New()
 
+	sp := spinner.New()
+	sp.Spinner = spinner.Line
+	sp.Style = common.styles.statusBarSpinnerStyle
+
 	m := pagerModel{
-		common:   common,
-		state:    pagerStateBrowse,
-		viewport: vp,
+		common:        common,
+		state:         pagerStateBrowse,
+		viewport:      vp,
+		remoteSpinner: sp,
 	}
 	m.initWatcher()
 	return m
@@ -122,6 +218,7 @@ func (m *pagerModel) unload() {
 		m.statusMessageTimer.Stop()
 	}
 	m.state = pagerStateBrowse
+	m.remoteImagesLoading = false
 	m.viewport.SetContent("")
 	m.viewport.SetYOffset(0)
 	m.unwatchFile()
@@ -182,8 +279,69 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case contentRenderedMsg:
 		log.Info("content rendered", "state", m.state)
 
-		m.setContent(string(msg))
+		if msg.remoteImagesPending {
+			// The remote images are still being fetched; the content shown
+			// in the meantime is the text without them. Start the second
+			// rendering pass that loads and renders them.
+			m.remoteImagesLoading = true
+			m.remoteImagesPass++
+			cmds = append(cmds, m.remoteSpinner.Tick,
+				loadRemoteImagesCmd(m, msg.body, m.remoteImagesPass))
+		}
+
+		if len(msg.graphics) > 0 {
+			// The content references images via unicode placeholders, so the
+			// graphics sequences must be written to the terminal before it
+			// can be displayed. RawMsg is written out-of-band right before
+			// this model sees it, so stash the content and wait for it.
+			m.pendingContent = msg.content
+			return m, tea.Batch(append(cmds, tea.Raw(strings.Join(msg.graphics, "")))...)
+		}
+
+		m.setContent(msg.content)
 		cmds = append(cmds, m.watchFile)
+
+	// The remote images of the current document have been fetched and
+	// rendered; swap in the content that displays them.
+	case remoteImagesLoadedMsg:
+		if !m.remoteImagesLoading || msg.token != m.remoteImagesPass {
+			// A newer rendering pass took over, or the user left the
+			// document while its images were loading; keep what's on screen.
+			return m, nil
+		}
+
+		m.remoteImagesLoading = false
+		if len(msg.graphics) > 0 {
+			m.pendingContent = msg.content
+			return m, tea.Raw(strings.Join(msg.graphics, ""))
+		}
+		m.setContent(msg.content)
+
+	// A rendering pass failed, e.g. while fetching the document's remote
+	// images. Report it and stop the loading indicator, which would
+	// otherwise stay in the status bar forever.
+	case errMsg:
+		var wasLoading bool
+		wasLoading, m.remoteImagesLoading = m.remoteImagesLoading, false
+		if wasLoading {
+			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{msg.Error(), true}))
+		}
+
+	// Keep the loading indicator spinning while the remote images load.
+	case spinner.TickMsg:
+		if m.remoteImagesLoading {
+			var cmd tea.Cmd
+			m.remoteSpinner, cmd = m.remoteSpinner.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+
+	// The graphics sequences for the pending content have been written
+	case tea.RawMsg:
+		if m.pendingContent != "" {
+			m.setContent(m.pendingContent)
+			m.pendingContent = ""
+			cmds = append(cmds, m.watchFile)
+		}
 
 	// The file was changed on disk and we're reloading it
 	case reloadMsg:
@@ -212,7 +370,17 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 func (m pagerModel) View() string {
 	var b strings.Builder
-	fmt.Fprint(&b, m.viewport.View()+"\n")
+
+	// The viewport pads its content to the height it was given, but it draws
+	// nothing at all until it has been sized, i.e. before the first window
+	// size message. The status bar would then end up at the top of the screen,
+	// and the lines it doesn't cover would keep the previous frame on screen.
+	// Fill the gap so the bar always stays at the bottom.
+	content := m.viewport.View()
+	if missing := m.common.height - statusBarHeight - (strings.Count(content, "\n") + 1); m.common.height > 0 && missing > 0 {
+		content += strings.Repeat("\n", missing)
+	}
+	fmt.Fprint(&b, content+"\n")
 
 	// Footer
 	m.statusBarView(&b)
@@ -255,22 +423,32 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 	}
 
 	// Note
-	var note string
-	if showStatusMessage {
-		note = m.statusMessage
-	} else {
-		note = m.currentDocument.Note
-	}
-	note = truncate.StringWithTail(" "+note+" ", uint(max(0, //nolint:gosec
+	noteWidth := max(0,
 		m.common.width-
 			ansi.PrintableRuneWidth(logo)-
 			ansi.PrintableRuneWidth(scrollPercent)-
 			ansi.PrintableRuneWidth(helpNote),
-	)), ellipsis)
-	if showStatusMessage {
-		note = styles.statusBarMessageStyle(note)
-	} else {
-		note = styles.statusBarNoteStyle(note)
+	)
+	// The loading indicator takes the place of the status message, so it's
+	// styled like the file name rather than like a message.
+	showMessage := showStatusMessage && !m.remoteImagesLoading
+	var note string
+	switch {
+	case m.remoteImagesLoading:
+		// The spinner's own styling ends in an ANSI reset which would wipe
+		// the status bar background of everything after it, so the note is
+		// styled in segments around the spinner.
+		spinnerView := m.remoteSpinner.View()
+		textWidth := max(0, noteWidth-ansi.PrintableRuneWidth(spinnerView)-1)
+		note = styles.statusBarNoteStyle(" ") + spinnerView +
+			styles.statusBarNoteStyle(truncate.StringWithTail( //nolint:gosec
+				" Loading remote images... ", uint(textWidth), ellipsis))
+	case showMessage:
+		note = styles.statusBarMessageStyle(truncate.StringWithTail( //nolint:gosec
+			" "+m.statusMessage+" ", uint(noteWidth), ellipsis))
+	default:
+		note = styles.statusBarNoteStyle(truncate.StringWithTail( //nolint:gosec
+			" "+m.currentDocument.Note+" ", uint(noteWidth), ellipsis))
 	}
 
 	// Empty space
@@ -282,7 +460,7 @@ func (m pagerModel) statusBarView(b *strings.Builder) {
 			ansi.PrintableRuneWidth(helpNote),
 	)
 	emptySpace := strings.Repeat(" ", padding)
-	if showStatusMessage {
+	if showMessage {
 		emptySpace = styles.statusBarMessageStyle(emptySpace)
 	} else {
 		emptySpace = styles.statusBarNoteStyle(emptySpace)
@@ -339,23 +517,73 @@ func (m pagerModel) helpView() (s string) {
 
 // COMMANDS
 
+// renderWithGlamour renders the document for the pager. When remote images
+// are enabled and the document references any, the text is rendered without
+// them first so it can be displayed right away: fetching them takes a while,
+// and the document would otherwise stay off the screen until it's done. The
+// pager then starts a second pass that loads and renders the images, see the
+// contentRenderedMsg handling in update.
 func renderWithGlamour(m pagerModel, md string) tea.Cmd {
+	pending := remoteImagesEnabled(m) && hasRemoteImages(md)
+
+	// Images that don't need fetching are loaded in the first pass.
+	return renderContent(m, md, m.common.cfg.LoadRemoteImages && !pending, pending)
+}
+
+// renderContent renders a document with glamour and reports the result to
+// the pager. remote loads images referenced by http(s) URLs; pending marks a
+// render that leaves the remote images to a follow-up pass.
+func renderContent(m pagerModel, md string, remote, pending bool) tea.Cmd {
 	return func() tea.Msg {
-		s, err := glamourRender(m, md)
+		s, graphics, err := glamourRender(m, md, remote)
 		if err != nil {
 			log.Error("error rendering with Glamour", "error", err)
 			return errMsg{err}
 		}
-		return contentRenderedMsg(s)
+		return contentRenderedMsg{
+			content:             s,
+			graphics:            graphics,
+			body:                md,
+			remoteImagesPending: pending,
+		}
 	}
 }
 
+// remoteImagesEnabled reports whether remote images should be loaded when
+// rendering the current document.
+func remoteImagesEnabled(m pagerModel) bool {
+	return m.common.cfg.LoadRemoteImages && glamourImages(m) &&
+		utils.IsMarkdownFile(m.currentDocument.Note)
+}
+
+// loadRemoteImagesCmd renders a document a second time, fetching and
+// rendering its remote images. token identifies the pass, so a result that a
+// newer pass has superseded can be discarded.
+func loadRemoteImagesCmd(m pagerModel, md string, token int) tea.Cmd {
+	return func() tea.Msg {
+		s, graphics, err := glamourRender(m, md, true)
+		if err != nil {
+			log.Error("error loading remote images", "error", err)
+			return errMsg{err}
+		}
+		return remoteImagesLoadedMsg{content: s, graphics: graphics, token: token}
+	}
+}
+
+// glamourImages reports whether to render images in the pager using the
+// terminal's graphics protocol.
+func glamourImages(m pagerModel) bool {
+	return m.common.cfg.GlamourEnabled && m.common.cfg.Images &&
+		m.common.imageProtocol != glamansi.ImageProtocolNone
+}
+
 // This is where the magic happens.
-func glamourRender(m pagerModel, markdown string) (string, error) {
+func glamourRender(m pagerModel, markdown string, loadRemoteImages bool) (string, []string, error) {
+	images := glamourImages(m)
 	trunc := lipgloss.NewStyle().MaxWidth(m.viewport.Width() - lineNumberWidth).Render
 
 	if !m.common.cfg.GlamourEnabled {
-		return markdown, nil
+		return markdown, nil, nil
 	}
 
 	isCode := !utils.IsMarkdownFile(m.currentDocument.Note)
@@ -369,12 +597,48 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 		glamour.WithWordWrap(width),
 	}
 
+	if images && !isCode {
+		if width == 0 {
+			// Without a wrap width, images would be sized to their
+			// natural dimensions, which can be far larger than the
+			// viewport.
+			width = m.viewport.Width()
+			options[1] = glamour.WithWordWrap(width)
+		}
+		if m.common.cfg.ShowLineNumbers {
+			// Leave room for the line number gutter so the rendered
+			// content, including image placeholder grids, doesn't get
+			// truncated.
+			width = max(0, width-lineNumberWidth)
+			options[1] = glamour.WithWordWrap(width)
+		}
+		options = append(options,
+			glamour.WithImageProtocol(m.common.imageProtocol),
+			glamour.WithMaxImageSize(0, m.common.cfg.ImageMaxRows),
+		)
+		switch {
+		case loadRemoteImages:
+			options = append(options, glamour.WithRemoteImages())
+		case m.common.cfg.LoadRemoteImages:
+			// This is the text-only render that precedes the remote image
+			// loading one, so don't claim the images were not loaded.
+			options = append(options, glamour.WithRemoteImageNotLoadedNote(""))
+		default:
+			options = append(options, glamour.WithRemoteImageNotLoadedNote(RemoteImageNotLoadedNote))
+		}
+	}
+
 	if m.common.cfg.PreserveNewLines {
 		options = append(options, glamour.WithPreservedNewLines())
 	}
+	if m.currentDocument.localPath != "" {
+		// Resolve image URLs relative to the document's directory, the
+		// same way the CLI does.
+		options = append(options, glamour.WithBaseURL(utils.FileBaseURL(m.currentDocument.localPath)))
+	}
 	r, err := glamour.NewTermRenderer(options...)
 	if err != nil {
-		return "", fmt.Errorf("error creating glamour renderer: %w", err)
+		return "", nil, fmt.Errorf("error creating glamour renderer: %w", err)
 	}
 
 	if isCode {
@@ -383,8 +647,12 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 
 	out, err := r.Render(markdown)
 	if err != nil {
-		return "", fmt.Errorf("error rendering markdown: %w", err)
+		return "", nil, fmt.Errorf("error rendering markdown: %w", err)
 	}
+
+	// The graphics commands are out-of-band sequences the caller must write
+	// to the terminal before displaying the rendered content.
+	graphics := r.GraphicsCommands()
 
 	if isCode {
 		out = strings.TrimSpace(out)
@@ -408,7 +676,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 		}
 	}
 
-	return content.String(), nil
+	return content.String(), graphics, nil
 }
 
 func (m *pagerModel) initWatcher() {

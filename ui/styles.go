@@ -42,6 +42,7 @@ type Styles struct {
 	statusBarMessageStyle          func(...string) string
 	statusBarMessageScrollPosStyle func(...string) string
 	statusBarMessageHelpStyle      func(...string) string
+	statusBarSpinnerStyle          lipgloss.Style
 	helpViewStyle                  func(...string) string
 	lineNumberStyle                func(...string) string
 
@@ -134,6 +135,10 @@ func newStyles(isDark bool) Styles {
 		Foreground(lipgloss.Color("#B6FFE4")).
 		Background(green).
 		Render
+
+	s.statusBarSpinnerStyle = lipgloss.NewStyle().
+		Foreground(gray).
+		Background(statusBarBg)
 
 	s.helpViewStyle = lipgloss.NewStyle().
 		Foreground(statusBarNoteFg).

@@ -163,6 +163,33 @@ glow -w 60
 CLI output can be displayed in your preferred pager with the `-p` flag. This defaults
 to the ANSI-aware `less -r` if `$PAGER` is not explicitly set.
 
+### Images
+
+If your terminal supports the kitty graphics protocol (e.g. kitty, Ghostty,
+WezTerm) or sixel, images in the document are rendered right in the terminal:
+
+```bash
+glow README.md
+```
+
+Support is detected automatically, both in the CLI and in the TUI pager, where
+images scroll with the text. Images can be turned off with the `--images=false`
+flag, or forced with the `GLOW_IMAGE_PROTOCOL` environment variable (`auto`,
+`kitty`, `sixel`, or `none`).
+
+Large images are automatically downscaled to what the terminal can actually
+display before being transmitted, so even huge photos render quickly. Their
+size can also be limited with `--image-max-rows` (default 20 terminal rows, 0
+for no limit), or the `imageMaxRows` config key.
+
+Images referenced by an `http(s)` URL are not loaded by default: fetching them
+would reveal your IP address to the image's host, much like a tracking pixel
+would. Instead, the URL is rendered as a link followed by a note saying the
+image wasn't loaded. Set `loadRemoteImages: true` in your config (or
+`GLOW_LOAD_REMOTE_IMAGES=true`) to fetch and render them. In the TUI the
+document's text appears right away, and a spinner in the status bar spins while
+the remote images are being fetched.
+
 ### Styles
 
 You can choose a style with the `-s` flag. When no flag is provided `glow` tries
@@ -213,6 +240,12 @@ all: false
 showLineNumbers: false
 # preserve newlines in the output
 preserveNewLines: false
+# render images when the terminal supports it (kitty or sixel graphics)
+images: true
+# maximum number of terminal rows an image may occupy (0 for no limit)
+imageMaxRows: 20
+# load images referenced by http(s) URLs, disabled to avoid leaking your IP
+loadRemoteImages: false
 ```
 
 ## Contributing
