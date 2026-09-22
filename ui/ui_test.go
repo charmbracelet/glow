@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -554,4 +555,165 @@ func TestResizeRedrawsUnchangedView(t *testing.T) {
 		t.Fatal(err)
 	}
 	<-done
+}
+
+// testSVG is a small SVG document used in the SVG tests.
+const testSVG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">
+	<rect width="40" height="20" fill="red"/>
+	<circle cx="20" cy="10" r="8" fill="blue"/>
+</svg>
+`
+
+// TestPagerKittySVGImages runs the pager on a document with an SVG image and
+// checks that the vector image is rasterized and displayed like other
+// images.
+func TestPagerKittySVGImages(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "test.svg"), []byte(testSVG), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mdPath := filepath.Join(dir, "test.md")
+	if err := os.WriteFile(mdPath, []byte("# Hello\n\n![red](test.svg)\n\nBye!\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := Config{
+		GlamourEnabled:  true,
+		GlamourStyle:    "dark",
+		GlamourMaxWidth: 80,
+		Images:          true,
+		ImageProtocol:   "kitty",
+		Path:            mdPath,
+	}
+
+	m := newModel(cfg, "")
+
+	var out bytes.Buffer
+	p := tea.NewProgram(m,
+		tea.WithOutput(&out),
+		tea.WithInput(strings.NewReader("")),
+		tea.WithWindowSize(80, 24),
+	)
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		p.Send(tea.Quit())
+	}()
+	if _, err := p.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	got := out.String()
+	// The SVG must be rasterized and transmitted as a PNG, and displayed via
+	// unicode placeholders.
+	if !strings.Contains(got, "\x1b_G") {
+		t.Errorf("expected the SVG to be transmitted, got: %q", got)
+	}
+	if !strings.ContainsRune(got, 0x10EEEE) {
+		t.Errorf("expected the SVG to be displayed via placeholders, got: %q", got)
+	}
+	// Displayed images don't render their URL next to them.
+	if strings.Contains(got, "test.svg") {
+		t.Errorf("expected the SVG URL not to be rendered next to the image, got: %q", got)
+	}
+}
+
+// kittyPlaceholder is the unicode placeholder cell that anchors an image to
+// the text grid.
+const kittyPlaceholder = '\U0010EEEE'
+
+// escapeSequencePattern matches ANSI SGR, OSC 8 hyperlink, and graphics
+// protocol sequences.
+var escapeSequencePattern = regexp.MustCompile(`\x1b\]8;[^\x07\x9c]*(\x07|\x9c)|\x1b\[[0-9;:]*[a-zA-Z]|\x1b_G[^\x1b]*\x1b\\|\x1bP[^\x1b]*\x1b\\`)
+
+// visibleText returns the text a terminal would display for the given
+// rendered output, i.e. with all escape sequences removed.
+func visibleText(s string) string {
+	return escapeSequencePattern.ReplaceAllString(s, "")
+}
+
+// testBadgeSVG is a badge in the shape of the ones served by shields.io: a
+// background split in two, and text drawn in scaled groups.
+const testBadgeSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="94" height="20">` +
+	`<g><rect width="49" height="20" fill="#555"/>` +
+	`<rect x="49" width="45" height="20" fill="#007ec6"/></g>` +
+	`<g fill="#fff" text-anchor="middle" font-size="110">` +
+	`<g transform="scale(.1)"><text x="255" y="140">release</text></g>` +
+	`<g transform="scale(.1)"><text x="705" y="140">v3.0.0</text></g></g></svg>`
+
+// testPathBadgeSVG is a badge whose text is drawn as path outlines, and which
+// uses arcs, like the badges served by godoc.org.
+const testPathBadgeSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="90" height="20">` +
+	`<path d="M2 0h26v20H2a2 2 0 01-2-2V2a2 2 0 012-2z" fill="#5C5C5C"/>` +
+	`<path d="M87.99 0H28v20h59.99a2 2 0 002-2V2a2 2 0 00-2-2z" fill="#007D9C"/>` +
+	`<path d="M35 14v-3c0-2 2-3 4-3l1 0V14H35z" fill="#FAFAFA"/></svg>`
+
+// TestPagerKittyBadges runs the pager on a README-style list of badges and
+// checks that they are rasterized, drawn in the text flow, and rendered next
+// to each other on one line, the way a browser renders them.
+func TestPagerKittyBadges(t *testing.T) {
+	dir := t.TempDir()
+	for name, content := range map[string]string{
+		"release.svg": testBadgeSVG,
+		"doc.svg":     testPathBadgeSVG,
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mdPath := filepath.Join(dir, "test.md")
+	body := "<p>\n" +
+		"  <a href=\"https://example.com\"><img src=\"release.svg\" alt=\"release\"></a>\n" +
+		"  <a href=\"https://example.com\"><img src=\"doc.svg\" alt=\"doc\"></a>\n" +
+		"</p>\n"
+	if err := os.WriteFile(mdPath, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := Config{
+		GlamourEnabled:  true,
+		GlamourStyle:    "dark",
+		GlamourMaxWidth: 80,
+		Images:          true,
+		ImageProtocol:   "kitty",
+	}
+	common := commonModel{cfg: cfg, styles: newStyles(true), width: 80, height: 24}
+	common.imageProtocol = ansi.ImageProtocolKittyPlaceholders
+	pager := newPagerModel(&common)
+	pager.setSize(80, 24)
+	pager.currentDocument = markdown{Note: "test.md", localPath: mdPath, Body: body}
+
+	content, graphics, err := glamourRender(pager, body, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The two badges are rasterized and transmitted, and their placeholder
+	// grids are placed on the same line, separated by a space, the way a
+	// browser renders them.
+	if len(graphics) != 4 {
+		t.Errorf("expected transmit and place commands for both badges, got %d", len(graphics))
+	}
+	gridLines := 0
+	for _, line := range strings.Split(content, "\n") {
+		if !strings.ContainsRune(line, kittyPlaceholder) {
+			continue
+		}
+		gridLines++
+
+		grid := strings.TrimLeft(visibleText(line), " ")
+		if !strings.HasPrefix(grid, string(kittyPlaceholder)) {
+			t.Errorf("expected the line to start with a badge, got: %q", grid)
+		}
+		if got := strings.Count(grid, string(kittyPlaceholder)); got != 19 {
+			t.Errorf("expected 19 placeholder cells for both badges, got %d", got)
+		}
+		if !strings.Contains(grid, string(kittyPlaceholder)+" ") {
+			t.Errorf("expected a space between the badges, got: %q", grid)
+		}
+	}
+	if gridLines != 1 {
+		t.Fatalf("expected both badges on one line, got %d lines", gridLines)
+	}
 }
