@@ -68,13 +68,21 @@ func newSections() map[sectionKey]section {
 	return map[sectionKey]section{
 		documentsSection: {
 			key:       documentsSection,
-			paginator: paginator.Model{Type: paginator.Dots},
+			paginator: newStashPaginator(),
 		},
 		filterSection: {
 			key:       filterSection,
-			paginator: paginator.Model{Type: paginator.Dots},
+			paginator: newStashPaginator(),
 		},
 	}
+}
+
+// newStashPaginator returns a dots paginator with the default key map and
+// arabic format.
+func newStashPaginator() paginator.Model {
+	p := paginator.New()
+	p.Type = paginator.Dots
+	return p
 }
 
 // stylePaginators updates the paginators with the current styles.
