@@ -12,6 +12,53 @@ func newTestPagerModel() pagerModel {
 	return m
 }
 
+// TestGlamourRenderTextSizing must run before any other test in this package
+// that calls glamourRender (e.g. TestSearchHighlightsAreVisibleInRealGlamourRenderedContent
+// below): utils.TextSizingEnabled() caches its result for the lifetime of the
+// test binary via sync.OnceValue, so whichever test calls glamourRender first
+// permanently determines that value for every subsequent test. This test
+// relies on overriding it to "on" via GLOW_TEXT_SIZING, so it's declared
+// first to win that race deterministically (Go runs tests within a file in
+// declaration order). Content without headings, like the other glamourRender
+// callers in this file use, is unaffected either way -- AddHeadingSizeMarkers
+// only touches heading styling.
+func TestGlamourRenderTextSizing(t *testing.T) {
+	t.Setenv("GLOW_TEXT_SIZING", "on")
+
+	common := &commonModel{
+		cfg: Config{
+			GlamourEnabled:  true,
+			GlamourStyle:    "dark",
+			GlamourMaxWidth: 80,
+		},
+		styles: newStyles(true),
+		width:  80,
+		height: 24,
+	}
+	m := newPagerModel(common)
+	m.currentDocument = markdown{Note: "test.md"}
+	m.setSize(80, 24)
+
+	out, err := glamourRender(m, "# Hello\n\n## World\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The dark style's H1 has a background color, which renders broken when
+	// scaled, so it is left at normal size.
+	if strings.Contains(out, "\x1b]66;s=3;") {
+		t.Errorf("expected H1 with background to not be scaled, got %q", out)
+	}
+	if !strings.Contains(out, "Hello") {
+		t.Errorf("expected H1 text in pager output, got %q", out)
+	}
+	if !strings.Contains(out, "\x1b]66;s=2;World\x1b\\") {
+		t.Errorf("expected H2 at 2x scale in pager output, got %q", out)
+	}
+	if strings.Contains(out, "\x1b]6666;") {
+		t.Errorf("expected no leftover markers in pager output, got %q", out)
+	}
+}
+
 func TestStartSearchEntersSearchState(t *testing.T) {
 	m := newTestPagerModel()
 	m.setContent("hello world\nhello again\n")
