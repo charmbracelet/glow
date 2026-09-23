@@ -373,8 +373,8 @@ func newStashModel(common *commonModel) stashModel {
 	// the cursor as part of the string rather than moving the real one.
 	si.SetVirtualCursor(true)
 	tsi := si.Styles()
-	tsi.Focused.Prompt = styles.stashInputPromptStyle
-	tsi.Blurred.Prompt = styles.stashInputPromptStyle
+	tsi.Focused.Prompt = styles.inputPromptStyle
+	tsi.Blurred.Prompt = styles.inputPromptStyle
 	tsi.Cursor.Color = styles.fuchsia
 	si.SetStyles(tsi)
 	si.Focus()
