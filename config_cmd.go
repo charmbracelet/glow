@@ -23,13 +23,16 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# editor used to open files (defaults to $EDITOR, or "nano" if unset).
+# Accepts an editor name or a command with flags, e.g. "code --wait".
+editor: ""
 `
 
 var configCmd = &cobra.Command{
 	Use:     "config",
 	Hidden:  false,
 	Short:   "Edit the glow config file",
-	Long:    paragraph(fmt.Sprintf("\n%s the glow config file. We’ll use EDITOR to determine which editor to use. If the config file doesn't exist, it will be created.", keyword("Edit"))),
+	Long:    paragraph(fmt.Sprintf("\n%s the glow config file. The editor is chosen from the `editor` config key, falling back to $EDITOR (and finally nano) if unset. If the config file doesn't exist, it will be created.", keyword("Edit"))),
 	Example: paragraph("glow config\nglow config --config path/to/config.yml"),
 	Args:    cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
