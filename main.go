@@ -328,8 +328,16 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		c := exec.Command(fields[0], fields[1:]...) //nolint:gosec
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
+		// Capture stderr so we can include the pager's own complaint in
+		// our error. Without this you just get "exit status 1" from
+		// pagers like `most` that reject input they don't like (#153).
+		var stderr strings.Builder
+		c.Stderr = &stderr
 		if err := c.Run(); err != nil {
-			return fmt.Errorf("unable to run command: %w", err)
+			if msg := strings.TrimSpace(stderr.String()); msg != "" {
+				return fmt.Errorf("pager %q failed: %w: %s", fields[0], err, msg)
+			}
+			return fmt.Errorf("pager %q failed: %w", fields[0], err)
 		}
 		return nil
 	case tui || cmd.Flags().Changed("tui"):
