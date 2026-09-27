@@ -1,6 +1,6 @@
 package main
 
-import "github.com/charmbracelet/lipgloss"
+import "charm.land/lipgloss/v2"
 
 var (
 	keyword = lipgloss.NewStyle().
