@@ -213,6 +213,9 @@ all: false
 showLineNumbers: false
 # preserve newlines in the output
 preserveNewLines: false
+# reorder right-to-left text, such as Arabic and Hebrew. Turn this off if your
+# terminal already displays bidirectional text (e.g. GNOME Terminal, Konsole).
+bidi: true
 ```
 
 ## Contributing
