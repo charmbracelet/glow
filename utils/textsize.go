@@ -238,7 +238,7 @@ func writeSizedLine(b *strings.Builder, level int, ln string, continuation bool)
 			ln = ln[i:]
 			continue
 		}
-		seq := scanEscape(ln)
+		seq := ScanEscape(ln)
 		segs = append(segs, segment{escape: true, value: seq})
 		ln = ln[len(seq):]
 	}
@@ -285,7 +285,13 @@ func writeSizedLine(b *strings.Builder, level int, ln string, continuation bool)
 	}
 }
 
-func scanEscape(s string) string {
+// ScanEscape returns the single escape sequence (CSI, OSC, or any other
+// ESC-prefixed sequence) starting at the beginning of s. Exported so other
+// packages that need to tokenize rendered terminal output byte-for-byte
+// alongside this one (e.g. ui's search/highlight code, which must treat OSC
+// 66 sequences specially) don't need to reimplement the same scanning
+// logic.
+func ScanEscape(s string) string {
 	if len(s) < 2 {
 		return s
 	}

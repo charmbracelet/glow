@@ -187,3 +187,30 @@ func TestUnwrapTextSizingPayloadsLeavesPlainContentUnchanged(t *testing.T) {
 		t.Fatalf("expected content without OSC 66 sequences to be returned unchanged, got %q", got)
 	}
 }
+
+// TestByteRangeToCellRangeHandlesGraphemeClusterBoundaries is the regression
+// test for a critical bug found in review: regexp matches are only
+// guaranteed to align to rune boundaries, not grapheme cluster boundaries.
+// "e" followed by a combining acute accent (U+0301) forms a single
+// grapheme cluster "é", so a match ending right after the "e" (e.g.
+// searching "cafe" in NFD-normalized "café") ends mid-cluster. The old
+// implementation required byte position equality to set colEnd, which that
+// match's end byte never satisfied, silently leaving colEnd at its zero
+// value -- producing an invalid (colEnd < colStart) range that, fed to
+// lipgloss.StyleRanges, corrupted the rendered line by duplicating it in
+// full (see TestSearchHighlightDoesNotCorruptLineOnGraphemeClusterBoundary
+// in pager_test.go for the end-to-end symptom).
+func TestByteRangeToCellRangeHandlesGraphemeClusterBoundaries(t *testing.T) {
+	// "cafe" + combining acute accent + " now": the match for "cafe" ends
+	// mid-cluster (before the combining accent completes the "é").
+	line := "café now"
+
+	got := findMatches(line, "cafe")
+	if len(got) != 1 {
+		t.Fatalf("expected 1 match, got %d: %+v", len(got), got)
+	}
+	m := got[0]
+	if m.colEnd <= m.colStart {
+		t.Fatalf("expected a valid (colEnd > colStart) range, got colStart=%d colEnd=%d", m.colStart, m.colEnd)
+	}
+}

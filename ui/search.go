@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strings"
 
+	"charm.land/glow/v3/utils"
 	"charm.land/lipgloss/v2"
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rivo/uniseg"
@@ -81,17 +82,33 @@ func findMatches(content, query string) []searchMatch {
 // byteRangeToCellRange converts a [byteStart, byteEnd) byte range within a
 // plain-text line into a cell-width [colStart, colEnd) range, accounting for
 // wide runes (e.g. CJK) the same way viewport's own highlighting logic does.
+//
+// byteStart/byteEnd come from regexp matches, which only guarantee alignment
+// to rune boundaries, not grapheme cluster boundaries -- a multi-rune
+// cluster (e.g. "e" + a combining accent, forming one visual "é") can have a
+// match end partway through it. Snapping outward (colStart to the start of
+// the cluster containing byteStart, colEnd to the end of the cluster
+// containing byteEnd) rather than requiring exact equality keeps the
+// resulting range valid -- colEnd >= colStart -- for every match, instead of
+// silently leaving colEnd at its zero value when byteEnd never lines up
+// exactly with a cluster boundary. An invalid (colEnd < colStart) range
+// passed to lipgloss.StyleRanges doesn't just fail to highlight: it
+// corrupts the rendered line, duplicating it in full (see lipgloss/v2's
+// ranges.go -- StyleRanges sets lastIdx = rng.End unconditionally, so an End
+// smaller than a prior Start rewinds lastIdx backward, and the final
+// TruncateLeft(s, lastIdx, "") then re-emits content already written).
 func byteRangeToCellRange(line string, byteStart, byteEnd int) (colStart, colEnd int) {
 	bytePos, cellPos := 0, 0
 	gr := uniseg.NewGraphemes(line)
 	for gr.Next() {
-		if bytePos == byteStart {
+		if bytePos <= byteStart {
 			colStart = cellPos
 		}
 		bytePos += len(gr.Str())
 		cellPos += max(1, gr.Width())
-		if bytePos == byteEnd {
+		if bytePos >= byteEnd {
 			colEnd = cellPos
+			break
 		}
 	}
 	return colStart, colEnd
@@ -136,49 +153,11 @@ func tokenizeRenderedLine(line string) []lineToken {
 			line = line[loc[1]:]
 			continue
 		}
-		seq := scanAnsiEscape(line)
+		seq := utils.ScanEscape(line)
 		tokens = append(tokens, lineToken{text: seq})
 		line = line[len(seq):]
 	}
 	return tokens
-}
-
-// scanAnsiEscape returns the single escape sequence starting at the
-// beginning of s (CSI, OSC, or any other ESC-prefixed sequence), the same
-// way utils/textsize.go's own (unexported) scanEscape does for this exact
-// class of rendered content.
-func scanAnsiEscape(s string) string {
-	if len(s) < 2 {
-		return s
-	}
-	switch s[1] {
-	case '[':
-		for i := 2; i < len(s); i++ {
-			if s[i] >= 0x40 && s[i] <= 0x7e {
-				return s[:i+1]
-			}
-		}
-		return s
-	case ']':
-		for i := 2; i < len(s); i++ {
-			if s[i] == '\a' {
-				return s[:i+1]
-			}
-			if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '\\' {
-				return s[:i+2]
-			}
-		}
-		return s
-	default:
-		i := 1
-		for i < len(s) && s[i] >= 0x20 && s[i] <= 0x2f {
-			i++
-		}
-		if i < len(s) {
-			i++
-		}
-		return s[:i]
-	}
 }
 
 // highlightLineWithTextSizing bakes the given (non-overlapping, left-to-
@@ -201,13 +180,23 @@ func highlightLineWithTextSizing(line string, ranges []lipgloss.Range) string {
 			continue
 		}
 
-		var plain strings.Builder
-		flushPlain := func() {
-			if plain.Len() == 0 {
+		// Accumulate consecutive graphemes that share the same highlight
+		// state (plain, or highlighted by the same range) into one run, so
+		// e.g. a multi-character match gets wrapped in a single OSC 66
+		// sequence rather than one per grapheme.
+		var run strings.Builder
+		runHighlighted := false
+		runRangeIdx := -1
+		flush := func() {
+			if run.Len() == 0 {
 				return
 			}
-			b.WriteString(wrapVisible(plain.String(), tok.osc66Meta))
-			plain.Reset()
+			wrapped := wrapVisible(run.String(), tok.osc66Meta)
+			if runHighlighted {
+				wrapped = ranges[runRangeIdx].Style.Render(wrapped)
+			}
+			b.WriteString(wrapped)
+			run.Reset()
 		}
 
 		gr := uniseg.NewGraphemes(tok.text)
@@ -221,15 +210,15 @@ func highlightLineWithTextSizing(line string, ranges []lipgloss.Range) string {
 			inRange := rangeIdx < len(ranges) &&
 				cellPos >= ranges[rangeIdx].Start && cellPos < ranges[rangeIdx].End
 
-			if inRange {
-				flushPlain()
-				b.WriteString(ranges[rangeIdx].Style.Render(wrapVisible(cluster, tok.osc66Meta)))
-			} else {
-				plain.WriteString(cluster)
+			if inRange != runHighlighted || (inRange && rangeIdx != runRangeIdx) {
+				flush()
+				runHighlighted = inRange
+				runRangeIdx = rangeIdx
 			}
+			run.WriteString(cluster)
 			cellPos += width
 		}
-		flushPlain()
+		flush()
 	}
 
 	return b.String()

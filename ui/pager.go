@@ -226,6 +226,14 @@ func (m *pagerModel) hasLineNumberGutter() bool {
 	return !utils.IsMarkdownFile(m.currentDocument.Note) || m.common.cfg.ShowLineNumbers
 }
 
+// lineNumberDigits formats a 1-based line number the same way glamourRender
+// does for its gutter, so blankLineNumberGutter can reconstruct and strip
+// that exact text -- kept as the single source of truth for this format
+// rather than duplicating the Sprintf verb in both places.
+func lineNumberDigits(n int) string {
+	return fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", n)
+}
+
 // blankLineNumberGutter replaces each rendered line's styled line-number
 // gutter prefix (as built by glamourRender) with equal-width blanks, so a
 // search can't match against gutter digits -- e.g. searching "12" would
@@ -238,7 +246,7 @@ func (m *pagerModel) hasLineNumberGutter() bool {
 func blankLineNumberGutter(content string, styles Styles) string {
 	lines := strings.Split(content, "\n")
 	for i, line := range lines {
-		digits := fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)
+		digits := lineNumberDigits(i + 1)
 		prefix := styles.lineNumberStyle(digits)
 		if strings.HasPrefix(line, prefix) {
 			lines[i] = styles.lineNumberStyle(strings.Repeat(" ", len(digits))) + line[len(prefix):]
@@ -561,7 +569,7 @@ func (m pagerModel) helpView() (s string) {
 		"c       copy contents",
 		"e       edit this document",
 		"r       reload this document",
-		"esc     back to files",
+		"esc     clear search / back to files",
 		"q       quit",
 	}
 
@@ -658,7 +666,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	var content strings.Builder
 	for i, s := range lines {
 		if isCode || m.common.cfg.ShowLineNumbers {
-			content.WriteString(m.common.styles.lineNumberStyle(fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)))
+			content.WriteString(m.common.styles.lineNumberStyle(lineNumberDigits(i + 1)))
 			content.WriteString(trunc(s))
 		} else {
 			content.WriteString(s)

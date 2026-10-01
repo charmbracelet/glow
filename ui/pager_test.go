@@ -343,6 +343,32 @@ func TestSearchHighlightsAreVisibleInRealGlamourRenderedContent(t *testing.T) {
 	}
 }
 
+// TestSearchHighlightDoesNotCorruptLineOnGraphemeClusterBoundary is the
+// end-to-end regression test for the critical bug found in review: a match
+// ending mid-grapheme-cluster (e.g. right after the "e" in NFD-normalized
+// "café", before the combining accent) used to produce an invalid
+// (colEnd < colStart) range. Fed to lipgloss.StyleRanges, that didn't just
+// fail to highlight -- StyleRanges unconditionally sets its internal
+// lastIdx to the invalid (too-small) End, so its final TruncateLeft call
+// re-emitted content already written, duplicating the entire line in the
+// rendered output.
+func TestSearchHighlightDoesNotCorruptLineOnGraphemeClusterBoundary(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("see café now\nsecond line here\n")
+	m.startSearch()
+	m.searchInput.SetValue("cafe")
+	m.confirmSearch()
+
+	view := m.viewport.View()
+
+	if n := strings.Count(view, "now"); n != 1 {
+		t.Fatalf("expected the line to appear exactly once (not duplicated), found %d occurrences of \"now\" in:\n%s", n, view)
+	}
+	if n := strings.Count(view, "second line here"); n != 1 {
+		t.Fatalf("expected the following line to appear exactly once, found %d occurrences in:\n%s", n, view)
+	}
+}
+
 // TestSearchFindsAndHighlightsTextSizedHeading is the end-to-end regression
 // test for the heading/text-sizing bug reported on the PR: with kitty text
 // sizing enabled, heading text renders inside OSC 66 sequences, which both
@@ -386,17 +412,17 @@ func TestSearchFindsAndHighlightsTextSizedHeading(t *testing.T) {
 
 	view := m.viewport.View()
 
-	// Each character of "Installation" should be individually re-wrapped in
-	// its own OSC 66 sequence (preserving the "s=2" size) with the
-	// selected-highlight style applied around it.
-	for _, ch := range "Installation" {
-		wantFragment := m.common.styles.searchSelectedHighlightStyle.Render(
-			"\x1b]66;s=2;" + string(ch) + "\x1b\\",
-		)
-		if !strings.Contains(view, wantFragment) {
-			t.Fatalf("expected view to contain highlighted, size-preserved heading character %q as %q, got:\n%s",
-				string(ch), wantFragment, view)
-		}
+	// The whole matched word should be re-wrapped as a single OSC 66
+	// sequence (preserving the "s=2" size) with the selected-highlight style
+	// applied around it -- not one OSC 66 sequence per character, which
+	// would still render correctly but needlessly multiply escape-sequence
+	// overhead for longer matches.
+	wantFragment := m.common.styles.searchSelectedHighlightStyle.Render(
+		"\x1b]66;s=2;Installation\x1b\\",
+	)
+	if !strings.Contains(view, wantFragment) {
+		t.Fatalf("expected view to contain the heading word highlighted as a single size-preserved run %q, got:\n%s",
+			wantFragment, view)
 	}
 }
 
