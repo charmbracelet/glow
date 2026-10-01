@@ -232,7 +232,16 @@ func (m *pagerModel) applyHighlights() {
 		rangesByLine[match.line] = append(rangesByLine[match.line], lipgloss.NewRange(match.colStart, match.colEnd, style))
 	}
 	for line, ranges := range rangesByLine {
-		lines[line] = lipgloss.StyleRanges(lines[line], ranges...)
+		if strings.Contains(lines[line], "\x1b]66;") {
+			// lipgloss.StyleRanges strips ANSI internally to compute cell
+			// positions, which has the same blind spot as xansi.Strip in
+			// ui/search.go for OSC 66 text-sizing payloads (see
+			// unwrapTextSizingPayloads) -- it would misplace or drop the
+			// highlight entirely on a text-sized heading line.
+			lines[line] = highlightLineWithTextSizing(lines[line], ranges)
+		} else {
+			lines[line] = lipgloss.StyleRanges(lines[line], ranges...)
+		}
 	}
 
 	m.viewport.SetContent(strings.Join(lines, "\n"))
@@ -355,7 +364,6 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			cmds = append(cmds, m.showStatusMessage(pagerStatusMessage{"Copied contents", false}))
 
 		case "r":
-			m.clearSearch()
 			return m, loadLocalMarkdown(&m.currentDocument)
 
 		case "/":
@@ -383,16 +391,19 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		}
 		cmds = append(cmds, m.watchFile)
 
-	// The file was changed on disk and we're reloading it
+	// The file was changed on disk and we're reloading it. Deliberately not
+	// clearing an in-progress search here: contentRenderedMsg's
+	// m.reapplySearch() call re-runs it against the freshly reloaded
+	// content once it arrives, which is friendlier than discarding the
+	// user's search every time the watched file changes underneath them.
 	case reloadMsg:
-		m.clearSearch()
 		return m, loadLocalMarkdown(&m.currentDocument)
 
 	// We've finished editing the document, potentially making changes. Let's
 	// retrieve the latest version of the document so that we display
-	// up-to-date contents.
+	// up-to-date contents. Same reasoning as reloadMsg above: an active
+	// search survives and is re-run once the new content renders.
 	case editorFinishedMsg:
-		m.clearSearch()
 		return m, loadLocalMarkdown(&m.currentDocument)
 
 	// We've received terminal dimensions, either for the first time or

@@ -184,6 +184,67 @@ func TestReapplySearchClearsSearchingWhenNoLongerMatching(t *testing.T) {
 	}
 }
 
+// TestReloadMsgDoesNotClearActiveSearch is the regression test for a
+// reviewer suggestion: a reload triggered by the file watcher shouldn't
+// discard the user's in-progress search. contentRenderedMsg's own
+// m.reapplySearch() call re-runs it once the reloaded content actually
+// renders (see TestContentRenderedMsgReappliesActiveSearchAfterReload
+// below), so reloadMsg itself just needs to leave the search state alone.
+func TestReloadMsgDoesNotClearActiveSearch(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("hello world\n")
+	m.startSearch()
+	m.searchInput.SetValue("hello")
+	m.confirmSearch()
+
+	updated, _ := m.update(reloadMsg{})
+
+	if !updated.searching {
+		t.Fatal("expected an active search to survive a reloadMsg")
+	}
+	if updated.searchQuery != "hello" {
+		t.Fatalf("expected the search query to be preserved across reload, got %q", updated.searchQuery)
+	}
+}
+
+// TestEditorFinishedMsgDoesNotClearActiveSearch mirrors
+// TestReloadMsgDoesNotClearActiveSearch for the other reload path: returning
+// from $EDITOR.
+func TestEditorFinishedMsgDoesNotClearActiveSearch(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("hello world\n")
+	m.startSearch()
+	m.searchInput.SetValue("hello")
+	m.confirmSearch()
+
+	updated, _ := m.update(editorFinishedMsg{})
+
+	if !updated.searching {
+		t.Fatal("expected an active search to survive returning from the editor")
+	}
+}
+
+// TestContentRenderedMsgReappliesActiveSearchAfterReload confirms the other
+// half of the reload-preserves-search behavior: once the reloaded content
+// actually renders, the preserved query is re-run against it (rather than
+// just sitting there pointing at stale, now-incorrect match positions).
+func TestContentRenderedMsgReappliesActiveSearchAfterReload(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("hello world\n")
+	m.startSearch()
+	m.searchInput.SetValue("hello")
+	m.confirmSearch()
+
+	updated, _ := m.update(contentRenderedMsg("hello again\nhello once more\n"))
+
+	if !updated.searching {
+		t.Fatal("expected the search to remain active after the reload re-renders")
+	}
+	if len(updated.searchMatches) != 2 {
+		t.Fatalf("expected the search to be re-run against the new content, got %d matches", len(updated.searchMatches))
+	}
+}
+
 func TestUnloadClearsSearchState(t *testing.T) {
 	m := newTestPagerModel()
 	m.setContent("hello world\n")
@@ -278,6 +339,63 @@ func TestSearchHighlightsAreVisibleInRealGlamourRenderedContent(t *testing.T) {
 	selectedANSI := m.common.styles.searchSelectedHighlightStyle.Render("target")
 	if !strings.Contains(view, selectedANSI) {
 		t.Fatalf("expected viewport view to contain the selected-match highlight ANSI wrapping %q, got:\n%s", "target", view)
+	}
+}
+
+// TestSearchFindsAndHighlightsTextSizedHeading is the end-to-end regression
+// test for the heading/text-sizing bug reported on the PR: with kitty text
+// sizing enabled, heading text renders inside OSC 66 sequences, which both
+// xansi.Strip (used for matching) and lipgloss.StyleRanges' internal
+// stripping (used for highlighting) mishandle, since neither understands
+// that protocol's payload is visible text. This exercises the full
+// startSearch -> confirmSearch -> applyHighlights path against a real
+// glamour-rendered heading, rather than just the lower-level findMatches
+// unit tests.
+func TestSearchFindsAndHighlightsTextSizedHeading(t *testing.T) {
+	t.Setenv("GLOW_TEXT_SIZING", "on")
+
+	common := &commonModel{
+		styles: newStyles(true),
+		cfg: Config{
+			GlamourEnabled:  true,
+			GlamourMaxWidth: 80,
+			GlamourStyle:    "dark",
+		},
+	}
+	m := newPagerModel(common)
+	m.setSize(80, 24)
+	m.currentDocument = markdown{Note: "test.md"}
+
+	rendered, err := glamourRender(m, "## Installation\n\nSome body text.\n")
+	if err != nil {
+		t.Fatalf("glamourRender: %v", err)
+	}
+	if !strings.Contains(rendered, "\x1b]66;") {
+		t.Fatal("expected text-sizing OSC 66 sequences in rendered output (sanity check)")
+	}
+
+	m.setContent(rendered)
+	m.startSearch()
+	m.searchInput.SetValue("installation")
+	m.confirmSearch()
+
+	if len(m.searchMatches) != 1 {
+		t.Fatalf("expected 1 match inside the heading, got %d", len(m.searchMatches))
+	}
+
+	view := m.viewport.View()
+
+	// Each character of "Installation" should be individually re-wrapped in
+	// its own OSC 66 sequence (preserving the "s=2" size) with the
+	// selected-highlight style applied around it.
+	for _, ch := range "Installation" {
+		wantFragment := m.common.styles.searchSelectedHighlightStyle.Render(
+			"\x1b]66;s=2;" + string(ch) + "\x1b\\",
+		)
+		if !strings.Contains(view, wantFragment) {
+			t.Fatalf("expected view to contain highlighted, size-preserved heading character %q as %q, got:\n%s",
+				string(ch), wantFragment, view)
+		}
 	}
 }
 

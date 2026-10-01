@@ -4,9 +4,24 @@ import (
 	"regexp"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	xansi "github.com/charmbracelet/x/ansi"
 	"github.com/rivo/uniseg"
 )
+
+// osc66ST is the string terminator used by kitty's OSC 66 text-sizing
+// protocol (see utils/textsize.go, which this package deliberately doesn't
+// import from since these constants/helpers are unexported there).
+const osc66ST = "\x1b\\"
+
+// osc66Pattern matches a single kitty text-sizing (OSC 66) sequence as
+// emitted by utils.ApplyTextSizing: ESC ] 66 ; <meta> ; <payload> ESC \.
+// The payload is guaranteed not to contain further escape sequences --
+// utils/textsize.go's sizedChunk strips control characters (including ESC)
+// from heading text before wrapping it -- so matching up to the next ESC is
+// safe and unambiguous. Go's regexp package interprets \x1b as the escape
+// byte directly, so this is written as a plain raw string.
+var osc66Pattern = regexp.MustCompile(`\x1b\]66;([^;\x1b]*);([^\x1b]*)\x1b\\`)
 
 // searchMatch is one match location, in the coordinate system
 // lipgloss.StyleRanges and viewport.Model.EnsureVisible expect: a zero-based
@@ -17,12 +32,27 @@ type searchMatch struct {
 	colStart, colEnd int
 }
 
+// unwrapTextSizingPayloads replaces each OSC 66 text-sizing sequence with
+// just its visible text payload. Generic ANSI strippers (including
+// xansi.Strip) don't know this kitty protocol embeds real, visible heading
+// text inside its payload -- they delete the whole sequence, payload
+// included. Without this step, any heading rendered with text sizing
+// enabled (GLOW_TEXT_SIZING=on, or auto-detected kitty support) becomes
+// entirely invisible to search.
+func unwrapTextSizingPayloads(content string) string {
+	if !strings.Contains(content, "\x1b]66;") {
+		return content
+	}
+	return osc66Pattern.ReplaceAllString(content, "$2")
+}
+
 // findMatches returns every case-insensitive, literal occurrence of query
 // within the plain-text rendering of content (content with ANSI escape
-// sequences stripped), in document order.
+// sequences stripped, and OSC 66 text-sizing payloads unwrapped to plain
+// text), in document order.
 //
-// Matches are computed entirely within the ANSI-stripped domain, one line at
-// a time, deliberately avoiding viewport.Model.SetHighlights: that API has a
+// Matches are computed entirely within the stripped domain, one line at a
+// time, deliberately avoiding viewport.Model.SetHighlights: that API has a
 // correctness bug for content containing ANSI escape codes (its internal
 // line-boundary detection reads bytes from the wrong string once escape
 // codes are present, silently misattributing matches to the wrong line).
@@ -38,7 +68,7 @@ func findMatches(content, query string) []searchMatch {
 	re := regexp.MustCompile("(?i)" + regexp.QuoteMeta(query))
 
 	var matches []searchMatch
-	lines := strings.Split(xansi.Strip(content), "\n")
+	lines := strings.Split(xansi.Strip(unwrapTextSizingPayloads(content)), "\n")
 	for lineIdx, line := range lines {
 		for _, loc := range re.FindAllStringIndex(line, -1) {
 			colStart, colEnd := byteRangeToCellRange(line, loc[0], loc[1])
@@ -65,4 +95,152 @@ func byteRangeToCellRange(line string, byteStart, byteEnd int) (colStart, colEnd
 		}
 	}
 	return colStart, colEnd
+}
+
+// lineToken is one piece of a rendered line, produced by tokenizeRenderedLine:
+// either raw bytes to pass through unchanged (any escape sequence other than
+// an OSC 66 text-sizing wrapper), or a run of visible text. A visible token
+// whose osc66Meta is non-empty originated as the payload of an OSC 66
+// sequence and must be re-wrapped with the same meta string to preserve its
+// size when reassembled.
+type lineToken struct {
+	text      string
+	visible   bool
+	osc66Meta string
+}
+
+// tokenizeRenderedLine splits a rendered line into alternating escape and
+// visible tokens, treating OSC 66 (kitty text-sizing) payloads as visible
+// text rather than opaque escape sequences. This is what lets us bake search
+// highlights into a line that contains a text-sized heading: lipgloss's own
+// ansi-stripping (used internally by lipgloss.StyleRanges) has the same
+// blind spot as xansi.Strip above and would misplace or drop highlights on
+// such a line, so those lines are handled via highlightLineWithTextSizing
+// instead of lipgloss.StyleRanges.
+func tokenizeRenderedLine(line string) []lineToken {
+	var tokens []lineToken
+	for len(line) > 0 {
+		i := strings.IndexByte(line, '\x1b')
+		if i < 0 {
+			tokens = append(tokens, lineToken{text: line, visible: true})
+			break
+		}
+		if i > 0 {
+			tokens = append(tokens, lineToken{text: line[:i], visible: true})
+			line = line[i:]
+		}
+		if loc := osc66Pattern.FindStringSubmatchIndex(line); loc != nil && loc[0] == 0 {
+			meta := line[loc[2]:loc[3]]
+			payload := line[loc[4]:loc[5]]
+			tokens = append(tokens, lineToken{text: payload, visible: true, osc66Meta: meta})
+			line = line[loc[1]:]
+			continue
+		}
+		seq := scanAnsiEscape(line)
+		tokens = append(tokens, lineToken{text: seq})
+		line = line[len(seq):]
+	}
+	return tokens
+}
+
+// scanAnsiEscape returns the single escape sequence starting at the
+// beginning of s (CSI, OSC, or any other ESC-prefixed sequence), the same
+// way utils/textsize.go's own (unexported) scanEscape does for this exact
+// class of rendered content.
+func scanAnsiEscape(s string) string {
+	if len(s) < 2 {
+		return s
+	}
+	switch s[1] {
+	case '[':
+		for i := 2; i < len(s); i++ {
+			if s[i] >= 0x40 && s[i] <= 0x7e {
+				return s[:i+1]
+			}
+		}
+		return s
+	case ']':
+		for i := 2; i < len(s); i++ {
+			if s[i] == '\a' {
+				return s[:i+1]
+			}
+			if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '\\' {
+				return s[:i+2]
+			}
+		}
+		return s
+	default:
+		i := 1
+		for i < len(s) && s[i] >= 0x20 && s[i] <= 0x2f {
+			i++
+		}
+		if i < len(s) {
+			i++
+		}
+		return s[:i]
+	}
+}
+
+// highlightLineWithTextSizing bakes the given (non-overlapping, left-to-
+// right ordered) highlight ranges into a rendered line that contains one or
+// more OSC 66 text-sizing sequences, used in place of lipgloss.StyleRanges
+// for such lines (see tokenizeRenderedLine for why). Matched visible text
+// that came from an OSC 66 payload is re-wrapped in its own OSC 66 sequence
+// (preserving the original meta/size) with the highlight style applied
+// around it, so the terminal still renders it at the correct size.
+func highlightLineWithTextSizing(line string, ranges []lipgloss.Range) string {
+	tokens := tokenizeRenderedLine(line)
+
+	var b strings.Builder
+	rangeIdx := 0
+	cellPos := 0
+
+	for _, tok := range tokens {
+		if !tok.visible {
+			b.WriteString(tok.text)
+			continue
+		}
+
+		var plain strings.Builder
+		flushPlain := func() {
+			if plain.Len() == 0 {
+				return
+			}
+			b.WriteString(wrapVisible(plain.String(), tok.osc66Meta))
+			plain.Reset()
+		}
+
+		gr := uniseg.NewGraphemes(tok.text)
+		for gr.Next() {
+			cluster := gr.Str()
+			width := max(1, gr.Width())
+
+			for rangeIdx < len(ranges) && cellPos >= ranges[rangeIdx].End {
+				rangeIdx++
+			}
+			inRange := rangeIdx < len(ranges) &&
+				cellPos >= ranges[rangeIdx].Start && cellPos < ranges[rangeIdx].End
+
+			if inRange {
+				flushPlain()
+				b.WriteString(ranges[rangeIdx].Style.Render(wrapVisible(cluster, tok.osc66Meta)))
+			} else {
+				plain.WriteString(cluster)
+			}
+			cellPos += width
+		}
+		flushPlain()
+	}
+
+	return b.String()
+}
+
+// wrapVisible re-wraps text in an OSC 66 text-sizing sequence using meta,
+// or returns it unchanged if meta is empty (meaning it was already plain
+// text, not an OSC 66 payload).
+func wrapVisible(text, meta string) string {
+	if meta == "" {
+		return text
+	}
+	return "\x1b]66;" + meta + ";" + text + osc66ST
 }
