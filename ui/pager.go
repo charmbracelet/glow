@@ -196,7 +196,11 @@ func (m *pagerModel) confirmSearch() tea.Cmd {
 // search state is left cleared and the viewport shows the plain (unhighlighted)
 // rendered content.
 func (m *pagerModel) runSearch(query string) bool {
-	matches := findMatches(m.renderedContent, query)
+	content := m.renderedContent
+	if m.hasLineNumberGutter() {
+		content = blankLineNumberGutter(content, m.common.styles)
+	}
+	matches := findMatches(content, query)
 	if len(matches) == 0 {
 		m.searchQuery = ""
 		m.searchMatches = nil
@@ -212,6 +216,35 @@ func (m *pagerModel) runSearch(query string) bool {
 	m.searching = true
 	m.applyHighlights()
 	return true
+}
+
+// hasLineNumberGutter reports whether the currently rendered document shows
+// a line-number gutter -- always for non-markdown/code files, or for
+// markdown when ShowLineNumbers is set. Mirrors glamourRender's own
+// isCode/ShowLineNumbers check.
+func (m *pagerModel) hasLineNumberGutter() bool {
+	return !utils.IsMarkdownFile(m.currentDocument.Note) || m.common.cfg.ShowLineNumbers
+}
+
+// blankLineNumberGutter replaces each rendered line's styled line-number
+// gutter prefix (as built by glamourRender) with equal-width blanks, so a
+// search can't match against gutter digits -- e.g. searching "12" would
+// otherwise also match the gutter of line 12, 120-129, 212, etc. The gutter
+// is reconstructed and matched byte-for-byte using the same style and width
+// glamourRender used, so this never misfires on a line that merely happens
+// to start with similar-looking plain text, and preserves column alignment
+// for everything after it (blanks are the same width as the digits they
+// replace, even for line numbers wider than lineNumberWidth).
+func blankLineNumberGutter(content string, styles Styles) string {
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		digits := fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", i+1)
+		prefix := styles.lineNumberStyle(digits)
+		if strings.HasPrefix(line, prefix) {
+			lines[i] = styles.lineNumberStyle(strings.Repeat(" ", len(digits))) + line[len(prefix):]
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // applyHighlights rebuilds the viewport content from the pristine rendered

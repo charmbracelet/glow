@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -396,6 +397,104 @@ func TestSearchFindsAndHighlightsTextSizedHeading(t *testing.T) {
 			t.Fatalf("expected view to contain highlighted, size-preserved heading character %q as %q, got:\n%s",
 				string(ch), wantFragment, view)
 		}
+	}
+}
+
+// TestSearchIgnoresLineNumberGutterDigits is the regression test for another
+// reviewer-reported edge case: on code files (or markdown with
+// ShowLineNumbers), each rendered line is prefixed with a styled
+// line-number gutter. Since that gutter is ordinary styled text (not
+// something xansi.Strip removes), searching for a short numeric string like
+// "12" used to also match the gutter of line 12 (and 120-129, 212, etc.),
+// not just real occurrences of "12" in the document's actual content.
+func TestSearchIgnoresLineNumberGutterDigits(t *testing.T) {
+	common := &commonModel{
+		styles: newStyles(true),
+		cfg: Config{
+			GlamourEnabled:  true,
+			GlamourMaxWidth: 80,
+			GlamourStyle:    "dark",
+		},
+	}
+	m := newPagerModel(common)
+	m.setSize(80, 24)
+	m.currentDocument = markdown{Note: "test.go"} // non-markdown -> gutter shown
+
+	var md string
+	for i := 1; i <= 20; i++ {
+		md += fmt.Sprintf("line number %d here\n", i)
+	}
+
+	rendered, err := glamourRender(m, md)
+	if err != nil {
+		t.Fatalf("glamourRender: %v", err)
+	}
+
+	m.setContent(rendered)
+	m.startSearch()
+	m.searchInput.SetValue("12")
+	m.confirmSearch()
+
+	// Without the gutter fix this would be 2: the real "12" in "line number
+	// 12 here", plus a false positive on line 12's own gutter digits.
+	if len(m.searchMatches) != 1 {
+		t.Fatalf("expected exactly 1 match (ignoring gutter digits), got %d: %+v", len(m.searchMatches), m.searchMatches)
+	}
+
+	view := m.viewport.View()
+	wantFragment := m.common.styles.searchSelectedHighlightStyle.Render("12")
+	if !strings.Contains(view, wantFragment) {
+		t.Fatalf("expected the real '12' in the body text to be highlighted, got:\n%s", view)
+	}
+}
+
+// TestSearchFindsGutterLikeDigitsInPlainMarkdown confirms the gutter fix is
+// scoped correctly: plain markdown (no line numbers shown) must still find
+// numeric matches normally, since there's no gutter to confuse them with.
+func TestSearchFindsGutterLikeDigitsInPlainMarkdown(t *testing.T) {
+	common := &commonModel{
+		styles: newStyles(true),
+		cfg: Config{
+			GlamourEnabled:  true,
+			GlamourMaxWidth: 80,
+			GlamourStyle:    "dark",
+		},
+	}
+	m := newPagerModel(common)
+	m.setSize(80, 24)
+	m.currentDocument = markdown{Note: "test.md"} // markdown, no gutter
+
+	rendered, err := glamourRender(m, "See line 12 for details.\n")
+	if err != nil {
+		t.Fatalf("glamourRender: %v", err)
+	}
+
+	m.setContent(rendered)
+	m.startSearch()
+	m.searchInput.SetValue("12")
+	m.confirmSearch()
+
+	if len(m.searchMatches) != 1 {
+		t.Fatalf("expected 1 match in plain markdown with no gutter, got %d", len(m.searchMatches))
+	}
+}
+
+// TestBlankLineNumberGutterPreservesAlignment confirms blankLineNumberGutter
+// only touches the gutter prefix of each line, leaving everything else
+// (including lines without a matching gutter, e.g. a mismatched/already
+// mutated line) unchanged, and that the blanked gutter is the same width as
+// what it replaced.
+func TestBlankLineNumberGutterPreservesAlignment(t *testing.T) {
+	styles := newStyles(true)
+	content := styles.lineNumberStyle("   1") + "first line\n" +
+		styles.lineNumberStyle("   2") + "second line"
+
+	got := blankLineNumberGutter(content, styles)
+
+	want := styles.lineNumberStyle("    ") + "first line\n" +
+		styles.lineNumberStyle("    ") + "second line"
+	if got != want {
+		t.Fatalf("blankLineNumberGutter mismatch:\ngot:  %q\nwant: %q", got, want)
 	}
 }
 
