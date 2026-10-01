@@ -24,7 +24,7 @@ func RemoveFrontmatter(content []byte) []byte {
 	return content
 }
 
-var yamlPattern = regexp.MustCompile(`(?m)^---\r?\n(\s*\r?\n)?`)
+var yamlPattern = regexp.MustCompile(`(?m)^---\r?(?:\n|\z)(\s*\r?\n)?`)
 
 func detectFrontmatter(c []byte) []int {
 	if matches := yamlPattern.FindAllIndex(c, 2); len(matches) > 1 {
