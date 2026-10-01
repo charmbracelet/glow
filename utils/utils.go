@@ -2,15 +2,17 @@
 package utils
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/ansi"
-	"github.com/charmbracelet/glamour/styles"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/glamour/v2"
+	"charm.land/glamour/v2/ansi"
+	"charm.land/glamour/v2/styles"
+	"charm.land/lipgloss/v2"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -71,43 +73,66 @@ func IsMarkdownFile(filename string) bool {
 
 // GlamourStyle returns a glamour.TermRendererOption based on the given style.
 func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
-	if !isCode {
-		if style == styles.AutoStyle {
-			return glamour.WithAutoStyle()
+	return func(tr *glamour.TermRenderer) error {
+		styleConfig, err := styleConfigFor(style, isCode)
+		if err != nil {
+			return err
 		}
-		return glamour.WithStylePath(style)
+		if !isCode && TextSizingEnabled() {
+			AddHeadingSizeMarkers(&styleConfig)
+		}
+		if err := glamour.WithStyles(styleConfig)(tr); err != nil {
+			return fmt.Errorf("glamour: error applying styles: %w", err)
+		}
+		return nil
+	}
+}
+
+func styleConfigFor(style string, isCode bool) (ansi.StyleConfig, error) {
+	if !isCode {
+		if style == "auto" {
+			style = styles.DarkStyle
+		}
+		if cfg, ok := styles.DefaultStyles[style]; ok {
+			return *cfg, nil
+		}
+		return styleConfigFromFile(style)
 	}
 
 	// If we are rendering a pure code block, we need to modify the style to
 	// remove the indentation.
-
-	var styleConfig ansi.StyleConfig
-
 	switch style {
-	case styles.AutoStyle:
-		if lipgloss.HasDarkBackground() {
-			styleConfig = styles.DarkStyleConfig
+	case "auto":
+		if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
+			style = styles.DarkStyle
 		} else {
-			styleConfig = styles.LightStyleConfig
+			style = styles.LightStyle
 		}
-	case styles.DarkStyle:
-		styleConfig = styles.DarkStyleConfig
-	case styles.LightStyle:
-		styleConfig = styles.LightStyleConfig
-	case styles.PinkStyle:
-		styleConfig = styles.PinkStyleConfig
-	case styles.NoTTYStyle:
-		styleConfig = styles.NoTTYStyleConfig
-	case styles.DraculaStyle:
-		styleConfig = styles.DraculaStyleConfig
 	case styles.TokyoNightStyle:
-		styleConfig = styles.DraculaStyleConfig
+		style = styles.DraculaStyle
+	case styles.DarkStyle, styles.LightStyle, styles.PinkStyle,
+		styles.NoTTYStyle, styles.DraculaStyle:
 	default:
-		return glamour.WithStylesFromJSONFile(style)
+		return styleConfigFromFile(style)
 	}
+
+	styleConfig := *styles.DefaultStyles[style]
 
 	var margin uint
 	styleConfig.CodeBlock.Margin = &margin
 
-	return glamour.WithStyles(styleConfig)
+	return styleConfig, nil
+}
+
+func styleConfigFromFile(path string) (ansi.StyleConfig, error) {
+	jsonBytes, err := os.ReadFile(path) //nolint:gosec
+	if err != nil {
+		return ansi.StyleConfig{}, fmt.Errorf("glamour: error reading file: %w", err)
+	}
+
+	var styleConfig ansi.StyleConfig
+	if err := json.Unmarshal(jsonBytes, &styleConfig); err != nil {
+		return ansi.StyleConfig{}, fmt.Errorf("glamour: error parsing style file: %w", err)
+	}
+	return styleConfig, nil
 }

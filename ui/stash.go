@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/paginator"
-	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/paginator"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/log"
+	"github.com/dustin/go-humanize/english"
 	"github.com/muesli/reflow/ansi"
 	"github.com/muesli/reflow/truncate"
 	"github.com/sahilm/fuzzy"
@@ -28,25 +28,6 @@ const (
 )
 
 var stashingStatusMessage = statusMessage{normalStatusMessage, "Stashing..."}
-
-var (
-	dividerDot = darkGrayFg.SetString(" • ")
-	dividerBar = darkGrayFg.SetString(" │ ")
-
-	logoStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#ECFD65")).
-			Background(fuchsia).
-			Bold(true)
-
-	stashSpinnerStyle = lipgloss.NewStyle().
-				Foreground(gray)
-	stashInputPromptStyle = lipgloss.NewStyle().
-				Foreground(yellowGreen).
-				MarginRight(1)
-	stashInputCursorStyle = lipgloss.NewStyle().
-				Foreground(fuchsia).
-				MarginRight(1)
-)
 
 // MSG
 
@@ -82,8 +63,28 @@ type section struct {
 	cursor    int
 }
 
-// map sections to their associated types.
-var sections = map[sectionKey]section{}
+// newSections returns the default set of sections.
+func newSections() map[sectionKey]section {
+	return map[sectionKey]section{
+		documentsSection: {
+			key:       documentsSection,
+			paginator: paginator.Model{Type: paginator.Dots},
+		},
+		filterSection: {
+			key:       filterSection,
+			paginator: paginator.Model{Type: paginator.Dots},
+		},
+	}
+}
+
+// stylePaginators updates the paginators with the current styles.
+func (m *stashModel) stylePaginators(styles Styles) {
+	for i := range m.sections {
+		p := &m.sections[i].paginator
+		p.ActiveDot = styles.brightGrayFg("•")
+		p.InactiveDot = styles.darkGrayFg.Render("•")
+	}
+}
 
 // filterState is the current filtering state in the file listing.
 type filterState int
@@ -110,29 +111,16 @@ type statusMessage struct {
 	message string
 }
 
-func initSections() {
-	sections = map[sectionKey]section{
-		documentsSection: {
-			key:       documentsSection,
-			paginator: newStashPaginator(),
-		},
-		filterSection: {
-			key:       filterSection,
-			paginator: newStashPaginator(),
-		},
-	}
-}
-
 // String returns a styled version of the status message appropriate for the
 // given context.
-func (s statusMessage) String() string {
+func (s statusMessage) String(styles Styles) string {
 	switch s.status { //nolint:exhaustive
 	case subtleStatusMessage:
-		return dimGreenFg(s.message)
+		return styles.dimGreenFg(s.message)
 	case errorStatusMessage:
-		return redFg(s.message)
+		return styles.redFg(s.message)
 	default:
-		return greenFg(s.message)
+		return styles.greenFg(s.message)
 	}
 }
 
@@ -208,9 +196,9 @@ func (m *stashModel) setSize(width, height int) {
 	m.common.width = width
 	m.common.height = height
 
-	m.filterInput.Width = width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(
+	m.filterInput.SetWidth(width - stashViewHorizontalPadding*2 - ansi.PrintableRuneWidth(
 		m.filterInput.Prompt,
-	)
+	))
 
 	m.updatePagination()
 }
@@ -374,16 +362,24 @@ func (m *stashModel) moveCursorDown() {
 // INIT
 
 func newStashModel(common *commonModel) stashModel {
+	styles := common.styles
 	sp := spinner.New()
 	sp.Spinner = spinner.Line
-	sp.Style = stashSpinnerStyle
+	sp.Style = styles.stashSpinnerStyle
 
 	si := textinput.New()
 	si.Prompt = "Find:"
-	si.PromptStyle = stashInputPromptStyle
-	si.Cursor.Style = stashInputCursorStyle
+	// The filter input is rendered inline into the larger stash view, so draw
+	// the cursor as part of the string rather than moving the real one.
+	si.SetVirtualCursor(true)
+	tsi := si.Styles()
+	tsi.Focused.Prompt = styles.stashInputPromptStyle
+	tsi.Blurred.Prompt = styles.stashInputPromptStyle
+	tsi.Cursor.Color = styles.fuchsia
+	si.SetStyles(tsi)
 	si.Focus()
 
+	sections := newSections()
 	s := []section{
 		sections[documentsSection],
 	}
@@ -395,16 +391,9 @@ func newStashModel(common *commonModel) stashModel {
 		serverPage:  1,
 		sections:    s,
 	}
+	m.stylePaginators(styles)
 
 	return m
-}
-
-func newStashPaginator() paginator.Model {
-	p := paginator.New()
-	p.Type = paginator.Dots
-	p.ActiveDot = brightGrayFg("•")
-	p.InactiveDot = darkGrayFg.Render("•")
-	return p
 }
 
 // UPDATE
@@ -449,7 +438,7 @@ func (m stashModel) update(msg tea.Msg) (stashModel, tea.Cmd) {
 		cmds = append(cmds, m.handleDocumentBrowsing(msg))
 	case stashStateShowingError:
 		// Any key exists the error view
-		if _, ok := msg.(tea.KeyMsg); ok {
+		if _, ok := msg.(tea.KeyPressMsg); ok {
 			m.viewState = stashStateReady
 		}
 	}
@@ -465,7 +454,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 
 	switch msg := msg.(type) {
 	// Handle keys
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "k", "ctrl+k", "up":
 			m.moveCursorUp()
@@ -579,7 +568,7 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 	cmds = append(cmds, cmd)
 
 	// Extra paginator keystrokes
-	if key, ok := msg.(tea.KeyMsg); ok {
+	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.String() {
 		case "b", "u":
 			m.paginator().PrevPage()
@@ -602,7 +591,7 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 
 	// Handle keys
-	if msg, ok := msg.(tea.KeyMsg); ok { //nolint:nestif
+	if msg, ok := msg.(tea.KeyPressMsg); ok { //nolint:nestif
 		switch msg.String() {
 		case keyEsc:
 			// Cancel filtering
@@ -634,7 +623,7 @@ func (m *stashModel) handleFiltering(msg tea.Msg) tea.Cmd {
 
 			// Add new section if it's not present
 			if m.sections[len(m.sections)-1].key != filterSection {
-				m.sections = append(m.sections, sections[filterSection])
+				m.sections = append(m.sections, newSections()[filterSection])
 			}
 			m.sectionIndex = len(m.sections) - 1
 
@@ -671,7 +660,7 @@ func (m stashModel) view() string {
 	var s string
 	switch m.viewState {
 	case stashStateShowingError:
-		return errorView(m.err, false)
+		return errorView(m.common.styles, m.err, false)
 	case stashStateLoadingDocument:
 		s += " " + m.spinner.View() + " Loading document..."
 	case stashStateReady:
@@ -687,13 +676,13 @@ func (m stashModel) view() string {
 		// Rules for the logo, filter and status message.
 		logoOrFilter := " "
 		if m.showStatusMessage && m.filterState == filtering {
-			logoOrFilter += m.statusMessage.String()
+			logoOrFilter += m.statusMessage.String(m.common.styles)
 		} else if m.filterState == filtering {
 			logoOrFilter += m.filterInput.View()
 		} else {
-			logoOrFilter += glowLogoView()
+			logoOrFilter += glowLogoView(m.common.styles)
 			if m.showStatusMessage {
-				logoOrFilter += "  " + m.statusMessage.String()
+				logoOrFilter += "  " + m.statusMessage.String(m.common.styles)
 			}
 		}
 		logoOrFilter = truncate.StringWithTail(logoOrFilter, uint(m.common.width-1), ellipsis) //nolint:gosec
@@ -727,9 +716,9 @@ func (m stashModel) view() string {
 				// One could argue, in fact, that using pointers in
 				// a functional framework is an antipattern and our use of
 				// pointers in our model should be refactored away.
-				p := *(m.paginator())
+				p := *m.paginator()
 				p.Type = paginator.Arabic
-				pagination = paginationStyle.Render(p.View())
+				pagination = m.common.styles.paginationStyle.Render(p.View())
 			}
 		}
 
@@ -747,11 +736,12 @@ func (m stashModel) view() string {
 	return "\n" + indent(s, stashIndent)
 }
 
-func glowLogoView() string {
-	return logoStyle.Render(" Glow ")
+func glowLogoView(styles Styles) string {
+	return styles.logoStyle.Render(" Glow ")
 }
 
 func (m stashModel) headerView() string {
+	styles := m.common.styles
 	localCount := len(m.markdowns)
 
 	var sections []string //nolint:prealloc
@@ -759,17 +749,17 @@ func (m stashModel) headerView() string {
 	// Filter results
 	if m.filterState == filtering {
 		if localCount == 0 {
-			return grayFg("Nothing found.")
+			return styles.grayFg("Nothing found.")
 		}
 		if localCount > 0 {
 			sections = append(sections, fmt.Sprintf("%d local", localCount))
 		}
 
 		for i := range sections {
-			sections[i] = grayFg(sections[i])
+			sections[i] = styles.grayFg(sections[i])
 		}
 
-		return strings.Join(sections, dividerDot.String())
+		return strings.Join(sections, styles.dividerDot.String())
 	}
 
 	// Tabs
@@ -778,21 +768,20 @@ func (m stashModel) headerView() string {
 
 		switch v.key {
 		case documentsSection:
-			s = fmt.Sprintf("%d documents", localCount)
-
+			s = fmt.Sprintf("%s", english.Plural(localCount, "document", ""))
 		case filterSection:
 			s = fmt.Sprintf("%d “%s”", len(m.filteredMarkdowns), m.filterInput.Value())
 		}
 
 		if m.sectionIndex == i && len(m.sections) > 1 {
-			s = selectedTabStyle.Render(s)
+			s = styles.selectedTabStyle.Render(s)
 		} else {
-			s = tabStyle.Render(s)
+			s = styles.tabStyle.Render(s)
 		}
 		sections = append(sections, s)
 	}
 
-	return strings.Join(sections, dividerBar.String())
+	return strings.Join(sections, styles.dividerBar.String())
 }
 
 func (m stashModel) populatedView() string {
@@ -803,7 +792,7 @@ func (m stashModel) populatedView() string {
 	// Empty states
 	if len(mds) == 0 {
 		f := func(s string) {
-			b.WriteString("  " + grayFg(s))
+			b.WriteString("  " + m.common.styles.grayFg(s))
 		}
 
 		switch m.sections[m.sectionIndex].key {

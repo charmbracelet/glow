@@ -15,12 +15,11 @@ import (
 
 	"mvdan.cc/sh/v3/shell"
 
+	"charm.land/glamour/v2"
+	"charm.land/glamour/v2/styles"
+	"charm.land/glow/v3/ui"
+	"charm.land/glow/v3/utils"
 	"github.com/caarlos0/env/v11"
-	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/glamour/styles"
-	"github.com/charmbracelet/glow/v2/ui"
-	"github.com/charmbracelet/glow/v2/utils"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	gap "github.com/muesli/go-app-paths"
 	"github.com/spf13/cobra"
@@ -318,7 +317,6 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(
-		glamour.WithColorProfile(lipgloss.ColorProfile()),
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
@@ -338,6 +336,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("unable to render markdown: %w", err)
 	}
+
+	out = utils.ApplyTextSizing(out)
 
 	// display
 	switch {
@@ -373,6 +373,9 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 }
 
 func runTUI(path string, content string) error {
+	// detect text sizing support before bubbletea takes over the terminal
+	_ = utils.TextSizingEnabled()
+
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
 	if err != nil {
@@ -392,7 +395,9 @@ func runTUI(path string, content string) error {
 	cfg.PreserveNewLines = preserveNewLines
 
 	// Run Bubble Tea program
-	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
+	prog, cleanup := ui.NewProgram(cfg, content)
+	defer cleanup()
+	if _, err := prog.Run(); err != nil {
 		return fmt.Errorf("unable to run tui program: %w", err)
 	}
 
@@ -428,7 +433,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().BoolVarP(&tui, "tui", "t", false, "display with tui")
-	rootCmd.Flags().StringVarP(&style, "style", "s", styles.AutoStyle, "style name or JSON path")
+	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
 	rootCmd.Flags().UintVarP(&width, "width", "w", 0, "word-wrap at width (set to 0 to disable)")
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
@@ -447,7 +452,7 @@ func init() {
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
-	viper.SetDefault("style", styles.AutoStyle)
+	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
