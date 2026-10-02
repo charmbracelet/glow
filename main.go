@@ -295,6 +295,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
+		glamour.WithAlerts(),
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create renderer: %w", err)
