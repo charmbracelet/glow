@@ -188,6 +188,20 @@ glow --help
 Check out the [Glamour Style Section](https://github.com/charmbracelet/glamour/blob/master/styles/gallery/README.md)
 to find more styles. Or [make your own](https://github.com/charmbracelet/glamour/tree/master/styles)!
 
+### GitHub Alerts
+
+GitHub [alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts)
+render as callouts, so the READMEs that use them read the way they do on GitHub:
+
+```markdown
+> [!NOTE]
+> Useful information that users should know, even when skimming content.
+```
+
+Alert icons use the same octicons GitHub does when your terminal renders Nerd
+Font glyphs, and fall back to Unicode icons otherwise. Set `NERDFONT=1` or
+`NERDFONT=0` to override the detection.
+
 ## The Config File
 
 If you find yourself supplying the same flags to `glow` all the time, it's

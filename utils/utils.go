@@ -13,6 +13,7 @@ import (
 	"charm.land/glamour/v2/ansi"
 	"charm.land/glamour/v2/styles"
 	"charm.land/lipgloss/v2"
+	"charm.land/x/nerdfont"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -94,7 +95,9 @@ func styleConfigFor(style string, isCode bool) (ansi.StyleConfig, error) {
 			style = styles.DarkStyle
 		}
 		if cfg, ok := styles.DefaultStyles[style]; ok {
-			return *cfg, nil
+			builtin := *cfg
+			useNerdFontAlertIcons(&builtin, style)
+			return builtin, nil
 		}
 		return styleConfigFromFile(style)
 	}
@@ -135,4 +138,38 @@ func styleConfigFromFile(path string) (ansi.StyleConfig, error) {
 		return ansi.StyleConfig{}, fmt.Errorf("glamour: error parsing style file: %w", err)
 	}
 	return styleConfig, nil
+}
+
+// Nerd Font glyphs for the GitHub alerts, matching the octicons GitHub itself
+// uses. Each one is followed by a space, like the Unicode fallback.
+const (
+	nerdFontNote      = "\uf449 " // nf-oct-info
+	nerdFontTip       = "\uf400 " // nf-oct-light_bulb
+	nerdFontImportant = "\uf50a " // nf-oct-report
+	nerdFontWarning   = "\uf421 " // nf-oct-alert
+	nerdFontCaution   = "\uf46e " // nf-oct-stop
+)
+
+// useNerdFontAlertIcons swaps the alert icons of a built-in style for their
+// Nerd Font counterparts when the terminal renders them, keeping the style's
+// Unicode icon as the fallback. The plain styles are left alone, since they
+// are meant to be portable.
+func useNerdFontAlertIcons(cfg *ansi.StyleConfig, style string) {
+	if style == styles.NoTTYStyle || style == styles.AsciiStyle {
+		return
+	}
+
+	icons := []struct {
+		alert *ansi.StyleAlert
+		icon  string
+	}{
+		{&cfg.Alerts.Note, nerdFontNote},
+		{&cfg.Alerts.Tip, nerdFontTip},
+		{&cfg.Alerts.Important, nerdFontImportant},
+		{&cfg.Alerts.Warning, nerdFontWarning},
+		{&cfg.Alerts.Caution, nerdFontCaution},
+	}
+	for _, i := range icons {
+		i.alert.Title.Prefix = nerdfont.Glyph(i.icon, i.alert.Title.Prefix)
+	}
 }
