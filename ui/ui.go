@@ -208,8 +208,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.common.styles = newStyles(msg.IsDark())
 		m.stash.stylePaginators(m.common.styles)
 	case tea.KeyPressMsg:
+		if m.state == stateShowDocument && m.pager.state == pagerStateSearch {
+			switch msg.String() {
+			case "ctrl+c":
+				return m, tea.Quit
+			case "ctrl+z":
+				return m, tea.Suspend
+			}
+			var cmd tea.Cmd
+			m.pager, cmd = m.pager.update(msg)
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "esc":
+			if m.state == stateShowDocument && m.pager.searching {
+				m.pager.clearSearch()
+				return m, nil
+			}
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {
 				batch := m.unloadDocument()
 				return m, tea.Batch(batch...)

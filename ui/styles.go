@@ -45,11 +45,14 @@ type Styles struct {
 	helpViewStyle                  func(...string) string
 	lineNumberStyle                func(...string) string
 
-	dividerDot            lipgloss.Style
-	dividerBar            lipgloss.Style
-	logoStyle             lipgloss.Style
-	stashSpinnerStyle     lipgloss.Style
-	stashInputPromptStyle lipgloss.Style
+	dividerDot        lipgloss.Style
+	dividerBar        lipgloss.Style
+	logoStyle         lipgloss.Style
+	stashSpinnerStyle lipgloss.Style
+	inputPromptStyle  lipgloss.Style
+
+	searchHighlightStyle         lipgloss.Style
+	searchSelectedHighlightStyle lipgloss.Style
 }
 
 // newStyles builds all styles for the given terminal background.
@@ -155,9 +158,16 @@ func newStyles(isDark bool) Styles {
 
 	s.stashSpinnerStyle = lipgloss.NewStyle().
 		Foreground(gray)
-	s.stashInputPromptStyle = lipgloss.NewStyle().
+	s.inputPromptStyle = lipgloss.NewStyle().
 		Foreground(yellowGreen).
 		MarginRight(1)
+
+	s.searchHighlightStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#000000")).
+		Background(yellowGreen)
+	s.searchSelectedHighlightStyle = lipgloss.NewStyle().
+		Foreground(cream).
+		Background(s.fuchsia)
 
 	return s
 }
