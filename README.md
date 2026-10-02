@@ -131,6 +131,31 @@ Markdown files can be read with Glow's high-performance pager. Most of the
 keystrokes you know from `less` are the same, but you can press `?` to list
 the hotkeys.
 
+## Mermaid Diagrams
+
+Glow renders [mermaid](https://mermaid.js.org/) flowchart blocks as diagrams
+right in your terminal:
+
+````markdown
+```mermaid
+flowchart TD
+    A[Commit] --> B{CI Pass?}
+    B -->|yes| C[Deploy]
+```
+````
+
+```mermaid
+flowchart TD
+    A[Commit] --> B{CI Pass?}
+    B -->|yes| C[Deploy]
+```
+
+Flowcharts with `graph TD`, `graph LR` (and their `BT`/`RL`/`TB` variants),
+node shapes, edge labels and chained statements are supported. Statements
+inside `subgraph` blocks are rendered, but without a grouping box. Diagram
+types that Glow can't render (sequence diagrams, gantt charts, …) are shown
+as plain code blocks.
+
 ## The CLI
 
 In addition to a TUI, Glow has a CLI for working with Markdown. To format a
