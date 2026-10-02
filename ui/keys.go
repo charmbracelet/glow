@@ -1,6 +1,9 @@
 package ui
 
 const (
-	keyEnter = "enter"
-	keyEsc   = "esc"
+	keyTab       = "tab"
+	keyShiftTab  = "shift+tab"
+	keyEnter     = "enter"
+	keyBackspace = "backspace"
+	keyEsc       = "esc"
 )
