@@ -304,6 +304,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	ext := filepath.Ext(src.URL)
 	if isCode {
 		content = utils.WrapCodeBlock(string(b), ext)
+	} else {
+		content = utils.ReplaceMermaidBlocks(content)
 	}
 
 	out, err := r.Render(content)
