@@ -158,6 +158,8 @@ The `-w` flag lets you set a maximum width at which the output will be wrapped:
 glow -w 60
 ```
 
+When `-w` is not provided, Glow will use your terminal's current width when possible.
+
 ### Paging
 
 CLI output can be displayed in your preferred pager with the `-p` flag. This defaults
