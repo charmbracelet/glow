@@ -19,9 +19,13 @@ const (
 	ellipsis             = "…"
 )
 
-var markdownExtensions = []string{
-	"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown",
-}
+var (
+	config Config
+
+	markdownExtensions = []string{
+		"*.md", "*.mdown", "*.mkdn", "*.mkd", "*.markdown", "*.mmd",
+	}
+)
 
 // NewProgram returns a new Tea program. The returned cleanup function
 // restores the terminal state and must be called after the program exits.
