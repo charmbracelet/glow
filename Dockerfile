@@ -1,3 +1,4 @@
 FROM gcr.io/distroless/static
 COPY glow /usr/local/bin/glow
+USER nonroot
 ENTRYPOINT [ "/usr/local/bin/glow" ]
