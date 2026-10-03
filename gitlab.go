@@ -42,7 +42,7 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 		return nil, fmt.Errorf("unable to parse json: %w", err)
 	}
 
-	readmeRawURL := strings.ReplaceAll(result.ReadmeURL, "blob", "raw")
+	readmeRawURL := gitLabRawURL(result.ReadmeURL)
 
 	if res.StatusCode == http.StatusOK {
 		//nolint:bodyclose
@@ -58,4 +58,8 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 	}
 
 	return nil, errors.New("can't find README in GitLab repository")
+}
+
+func gitLabRawURL(readmeURL string) string {
+	return strings.Replace(readmeURL, "/-/blob/", "/-/raw/", 1)
 }
