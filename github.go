@@ -49,7 +49,7 @@ func findGitHubREADME(u *url.URL) (*source, error) {
 		}
 
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, result.DownloadURL}, nil
+			return &source{reader: resp.Body, URL: result.DownloadURL}, nil
 		}
 	}
 

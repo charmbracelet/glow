@@ -53,7 +53,7 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 		}
 
 		if resp.StatusCode == http.StatusOK {
-			return &source{resp.Body, readmeRawURL}, nil
+			return &source{reader: resp.Body, URL: readmeRawURL}, nil
 		}
 	}
 
