@@ -8,7 +8,7 @@ import (
 )
 
 // helpEntry is a entry in a help menu containing values for a keystroke and
-// it's associated action.
+// its associated action.
 type helpEntry struct{ key, val string }
 
 // helpColumn is a group of helpEntries which will be rendered into a column.
