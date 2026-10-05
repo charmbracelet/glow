@@ -217,10 +217,11 @@ preserveNewLines: false
 mermaid: true
 ```
 
-Mermaid support is on by default: ` ```mermaid ` flowchart blocks are drawn
-as diagrams sized to the terminal width. Set `mermaid: false` to render them
-as regular code blocks instead. Flowcharts (nodes, shapes, labelled edges,
-top-down and left-to-right layouts) are supported; any other mermaid diagram
+Mermaid support is on by default: ` ```mermaid ` blocks are drawn as
+diagrams sized to the terminal width. Set `mermaid: false` to render them
+as regular code blocks instead. Flowcharts (including cyclic ones),
+sequence, state, class, ER, gantt, pie, mindmap, timeline, journey,
+quadrant, xychart and gitGraph diagrams are supported; the rare remainder
 falls back to its source with a note explaining why.
 
 ## Contributing
