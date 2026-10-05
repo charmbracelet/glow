@@ -42,6 +42,7 @@ var (
 	showAllFiles     bool
 	showLineNumbers  bool
 	preserveNewLines bool
+	mermaid          bool
 	mouse            bool
 
 	rootCmd = &cobra.Command{
@@ -172,6 +173,7 @@ func validateOptions(cmd *cobra.Command) error {
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
+	mermaid = viper.GetBool("mermaid")
 
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
@@ -295,6 +297,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
+		glamour.WithMermaid(mermaid),
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create renderer: %w", err)
@@ -367,6 +370,7 @@ func runTUI(path string, content string) error {
 	cfg.GlamourMaxWidth = width
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
+	cfg.Mermaid = mermaid
 
 	// Run Bubble Tea program
 	prog, cleanup := ui.NewProgram(cfg, content)
@@ -429,6 +433,7 @@ func init() {
 	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
+	viper.SetDefault("mermaid", true)
 
 	rootCmd.AddCommand(configCmd, manCmd)
 }
