@@ -62,6 +62,12 @@ var (
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			// glow config creates the file passed with --config, so it may not exist yet.
+			if cmd.Flags().Changed("config") && cmd != configCmd {
+				if err := loadConfigFile(viper.GetViper(), configFile); err != nil {
+					return err
+				}
+			}
 			return validateOptions(cmd)
 		},
 		RunE: execute,
@@ -494,6 +500,17 @@ func setupConfig(v *viper.Viper, dirs []string) error {
 		configFile = used
 		log.Debug("Using configuration file", "path", used)
 	}
+	return nil
+}
+
+// loadConfigFile replaces the configuration found in the default places with
+// the one at path.
+func loadConfigFile(v *viper.Viper, path string) error {
+	v.SetConfigFile(path)
+	if err := v.ReadInConfig(); err != nil {
+		return fmt.Errorf("could not read configuration file: %w", err)
+	}
+	log.Debug("Using configuration file", "path", path)
 	return nil
 }
 

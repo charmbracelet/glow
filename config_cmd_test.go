@@ -123,3 +123,28 @@ func TestSetupConfigWarnsOnInvalidConfig(t *testing.T) {
 		t.Errorf("style = %q, want %q", got, "auto")
 	}
 }
+
+// TestLoadConfigFile makes sure --config is honored when rendering, not only
+// by glow config.
+func TestLoadConfigFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "other.yml")
+	if err := os.WriteFile(path, []byte("style: dark\nall: true\n"), 0o600); err != nil {
+		t.Fatalf("unable to write config: %v", err)
+	}
+
+	v := viper.New()
+	setDefaults(v)
+	if err := loadConfigFile(v, path); err != nil {
+		t.Fatalf("unable to load config: %v", err)
+	}
+	if got := v.GetString("style"); got != "dark" {
+		t.Errorf("style = %q, want %q", got, "dark")
+	}
+	if !v.GetBool("all") {
+		t.Error("all = false, want true")
+	}
+
+	if err := loadConfigFile(v, filepath.Join(t.TempDir(), "missing.yml")); err == nil {
+		t.Error("loading a missing config file returned nil, want an error")
+	}
+}
