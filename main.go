@@ -27,6 +27,10 @@ import (
 	"golang.org/x/term"
 )
 
+// defaultMaxWidth is the maximum width the output is wrapped at when no width
+// is configured and stdout is a terminal.
+const defaultMaxWidth = 120
+
 var (
 	// Version as provided by goreleaser.
 	Version = ""
@@ -58,6 +62,12 @@ var (
 			return nil, cobra.ShellCompDirectiveDefault
 		},
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			// glow config creates the file passed with --config, so it may not exist yet.
+			if cmd.Flags().Changed("config") && cmd != configCmd {
+				if err := loadConfigFile(viper.GetViper(), configFile); err != nil {
+					return err
+				}
+			}
 			return validateOptions(cmd)
 		},
 		RunE: execute,
@@ -198,8 +208,8 @@ func validateOptions(cmd *cobra.Command) error {
 				width = uint(w) //nolint:gosec
 			}
 
-			if width > 120 {
-				width = 120
+			if width > defaultMaxWidth {
+				width = defaultMaxWidth
 			}
 		}
 		if width == 0 {
@@ -404,7 +414,7 @@ func init() {
 	rootCmd.InitDefaultCompletionCmd()
 
 	// "Glow Classic" cli arguments
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", fmt.Sprintf("config file (default %s)", viper.GetViper().ConfigFileUsed()))
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", configFile, "config file")
 	rootCmd.Flags().BoolVarP(&pager, "pager", "p", false, "display with pager")
 	rootCmd.Flags().BoolVarP(&tui, "tui", "t", false, "display with tui")
 	rootCmd.Flags().StringVarP(&style, "style", "s", "auto", "style name or JSON path")
@@ -426,11 +436,18 @@ func init() {
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
-	viper.SetDefault("style", "auto")
-	viper.SetDefault("width", 0)
-	viper.SetDefault("all", true)
+	setDefaults(viper.GetViper())
 
 	rootCmd.AddCommand(configCmd, manCmd)
+}
+
+// setDefaults registers the settings glow uses when neither a flag nor a
+// configuration file provides them. They must stay in sync with the config file
+// written on first run, see defaultConfig.
+func setDefaults(v *viper.Viper) {
+	v.SetDefault("style", "auto")
+	v.SetDefault("width", 0)
+	v.SetDefault("all", false)
 }
 
 func tryLoadConfigFromDefaultPlaces() {
@@ -449,30 +466,64 @@ func tryLoadConfigFromDefaultPlaces() {
 		dirs = append([]string{c}, dirs...)
 	}
 
-	for _, v := range dirs {
-		viper.AddConfigPath(v)
+	if err := setupConfig(viper.GetViper(), dirs); err != nil {
+		log.Error("Could not load configuration", "error", err)
+	}
+}
+
+// setupConfig looks for a configuration file in dirs, writing the default one
+// to the first directory when there is none. A freshly written config is read
+// back in, so the run that created it uses the same settings as the ones after
+// it.
+func setupConfig(v *viper.Viper, dirs []string) error {
+	for _, dir := range dirs {
+		v.AddConfigPath(dir)
 	}
 
-	viper.SetConfigName("glow")
-	viper.SetConfigType("yaml")
-	viper.SetEnvPrefix("glow")
-	viper.AutomaticEnv()
+	v.SetConfigName("glow")
+	v.SetConfigType("yaml")
+	v.SetEnvPrefix("glow")
+	v.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+	if err := v.ReadInConfig(); err != nil {
+		var notFound viper.ConfigFileNotFoundError
+		if !errors.As(err, &notFound) {
+			// A config file is there but couldn't be parsed: warn about it and
+			// keep running with the defaults.
 			log.Warn("Could not parse configuration file", "err", err)
+		} else if err := createDefaultConfig(v, dirs); err != nil {
+			return err
 		}
 	}
 
-	if used := viper.ConfigFileUsed(); used != "" {
-		log.Debug("Using configuration file", "path", viper.ConfigFileUsed())
-		return
+	if used := v.ConfigFileUsed(); used != "" {
+		configFile = used
+		log.Debug("Using configuration file", "path", used)
 	}
+	return nil
+}
 
-	if viper.ConfigFileUsed() == "" {
-		configFile = filepath.Join(dirs[0], "glow.yml")
+// loadConfigFile replaces the configuration found in the default places with
+// the one at path.
+func loadConfigFile(v *viper.Viper, path string) error {
+	v.SetConfigFile(path)
+	if err := v.ReadInConfig(); err != nil {
+		return fmt.Errorf("could not read configuration file: %w", err)
 	}
+	log.Debug("Using configuration file", "path", path)
+	return nil
+}
+
+// createDefaultConfig writes the default config to the first config directory
+// and reads it back in, so that the run creating it uses the same settings as
+// the runs after it.
+func createDefaultConfig(v *viper.Viper, dirs []string) error {
+	configFile = filepath.Join(dirs[0], "glow.yml")
 	if err := ensureConfigFile(); err != nil {
-		log.Error("Could not create default configuration", "error", err)
+		return fmt.Errorf("could not create default configuration: %w", err)
 	}
+	if err := v.ReadInConfig(); err != nil {
+		return fmt.Errorf("could not read configuration file: %w", err)
+	}
+	return nil
 }

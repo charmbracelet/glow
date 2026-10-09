@@ -13,17 +13,26 @@ import (
 	"github.com/spf13/viper"
 )
 
-const defaultConfig = `# style name or JSON path (default "auto")
+const defaultConfigTmpl = `# style name or JSON path (default "auto")
 style: "auto"
 # mouse support (TUI-mode only)
 mouse: false
 # use pager to display markdown
 pager: false
-# word-wrap at width
-width: 80
+# word-wrap at width (0 = fit the terminal, up to %d columns)
+width: 0
 # show all files, including hidden and ignored.
 all: false
+# show line numbers (TUI-mode only)
+showLineNumbers: false
+# preserve newlines in the output
+preserveNewLines: false
 `
+
+// defaultConfig is the configuration written on first run. Its values must
+// match the defaults glow uses when no configuration file is present, otherwise
+// the first run behaves differently from every subsequent one.
+var defaultConfig = fmt.Sprintf(defaultConfigTmpl, defaultMaxWidth)
 
 var configCmd = &cobra.Command{
 	Use:     "config",
