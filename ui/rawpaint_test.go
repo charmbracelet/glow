@@ -100,7 +100,7 @@ func TestPaintModelZeroSizeSubstitution(t *testing.T) {
 	pm := paintModel{inner: newModel(Config{}, "body"), painter: painter}
 
 	im, _ := pm.Update(tea.WindowSizeMsg{Width: 0, Height: 0})
-	m := im.(paintModel).inner.(model)
+	m := im.(paintModel).inner.(*model)
 	if m.common.width != 80 || m.common.height != 24 {
 		t.Errorf("expected fallback size 80x24, got %dx%d", m.common.width, m.common.height)
 	}
