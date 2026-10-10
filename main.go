@@ -293,6 +293,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	r, err := glamour.NewTermRenderer(
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
+		// Glamour's table footnotes truncate destinations to zero at width 0.
+		glamour.WithInlineTableLinks(width == 0),
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
 	)
