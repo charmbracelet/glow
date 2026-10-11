@@ -3,6 +3,8 @@ package ui
 import (
 	"strings"
 	"testing"
+
+	"charm.land/lipgloss/v2"
 )
 
 func TestFindMatches(t *testing.T) {
@@ -212,5 +214,53 @@ func TestByteRangeToCellRangeHandlesGraphemeClusterBoundaries(t *testing.T) {
 	m := got[0]
 	if m.colEnd <= m.colStart {
 		t.Fatalf("expected a valid (colEnd > colStart) range, got colStart=%d colEnd=%d", m.colStart, m.colEnd)
+	}
+}
+
+// TestByteRangeToCellRangeTabsAreZeroWidth is the regression test for a
+// reviewer-reported bug: forcing a minimum width of 1 per grapheme made a
+// leading tab count as 1 cell here, but lipgloss.StyleRanges' internal cell
+// counting (via charmbracelet/x/ansi's Cut/Truncate) counts a tab as 0,
+// since it only advances on PrintAction, not the ExecuteAction a tab
+// triggers. That mismatch drifted every highlight one cell to the right
+// per leading tab -- e.g. highlighting "oo " instead of "foo" after one tab.
+func TestByteRangeToCellRangeTabsAreZeroWidth(t *testing.T) {
+	line := "\tfoo bar"
+
+	got := findMatches(line, "foo")
+	if len(got) != 1 {
+		t.Fatalf("expected 1 match, got %d: %+v", len(got), got)
+	}
+	// With the tab correctly contributing 0 cells, "foo" starts at column 0
+	// (immediately after the zero-width tab), not column 1.
+	if got[0].colStart != 0 || got[0].colEnd != 3 {
+		t.Fatalf("expected colStart=0 colEnd=3, got colStart=%d colEnd=%d", got[0].colStart, got[0].colEnd)
+	}
+
+	// Confirm this actually agrees with the real lipgloss.StyleRanges, not
+	// just our own internal bookkeeping: styling that exact range should
+	// still wrap "foo" intact.
+	rng := lipgloss.NewRange(got[0].colStart, got[0].colEnd, lipgloss.NewStyle().Bold(true))
+	styled := lipgloss.StyleRanges(line, rng)
+	if !strings.Contains(styled, "foo") {
+		t.Fatalf("expected styled output to still contain \"foo\" intact, got %q", styled)
+	}
+}
+
+// TestFindMatchesDedupesOverlappingGraphemeClusterMatches is the regression
+// test for a reviewer-reported bug: a rune can appear more than once within
+// a single grapheme cluster, e.g. a ZWJ-joined "family" emoji containing
+// the same person emoji twice. Two distinct regexp matches at different
+// byte offsets both snapped (via byteRangeToCellRange's grapheme-boundary
+// snapping) to the exact same cell range, which inflated the match count
+// and rendered the cluster twice when highlighted.
+func TestFindMatchesDedupesOverlappingGraphemeClusterMatches(t *testing.T) {
+	// "fam " + man-ZWJ-man-ZWJ-boy family emoji + " x", searching for the
+	// "man" emoji, which appears twice inside that one cluster.
+	line := "fam \U0001F468‍\U0001F468‍\U0001F466 x"
+
+	got := findMatches(line, "\U0001F468")
+	if len(got) != 1 {
+		t.Fatalf("expected the two overlapping matches to be deduped to 1, got %d: %+v", len(got), got)
 	}
 }

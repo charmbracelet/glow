@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 func newTestPagerModel() pagerModel {
@@ -246,6 +249,55 @@ func TestContentRenderedMsgReappliesActiveSearchAfterReload(t *testing.T) {
 	}
 }
 
+// TestStatusMessageTimeoutDoesNotExitSearchPrompt is the regression test for
+// a reviewer-reported bug: statusMessageTimeoutMsg unconditionally reset the
+// pager to browse state, even if the user had since started typing a search
+// query (e.g. after a "No matches" message's timer fires mid-typing). That
+// silently closed the search prompt, after which keys like "q"/"j"/"k"
+// reached the pager's normal keybindings instead of the search input.
+func TestStatusMessageTimeoutDoesNotExitSearchPrompt(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("hello world\n")
+	m.startSearch()
+
+	updated, _ := m.update(statusMessageTimeoutMsg(pagerContext))
+
+	if updated.state != pagerStateSearch {
+		t.Fatalf("expected to remain in pagerStateSearch, got %v", updated.state)
+	}
+}
+
+// TestStatusMessageTimeoutStillExitsStatusMessage confirms the fix above
+// didn't just disable statusMessageTimeoutMsg's handling outright: it
+// should still return to browse state from an actual status message.
+func TestStatusMessageTimeoutStillExitsStatusMessage(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("hello world\n")
+	m.state = pagerStateStatusMessage
+
+	updated, _ := m.update(statusMessageTimeoutMsg(pagerContext))
+
+	if updated.state != pagerStateBrowse {
+		t.Fatalf("expected to return to pagerStateBrowse, got %v", updated.state)
+	}
+}
+
+// TestPasteMsgReachesSearchInput is the regression test for a reviewer-
+// reported bug: only tea.KeyPressMsg was forwarded to the search input
+// while typing, so bracketed paste (which arrives as tea.PasteMsg) was
+// silently dropped.
+func TestPasteMsgReachesSearchInput(t *testing.T) {
+	m := newTestPagerModel()
+	m.setContent("hello world\n")
+	m.startSearch()
+
+	updated, _ := m.update(tea.PasteMsg{Content: "pasted text"})
+
+	if updated.searchInput.Value() != "pasted text" {
+		t.Fatalf("expected pasted text in the search input, got %q", updated.searchInput.Value())
+	}
+}
+
 func TestUnloadClearsSearchState(t *testing.T) {
 	m := newTestPagerModel()
 	m.setContent("hello world\n")
@@ -426,6 +478,47 @@ func TestSearchFindsAndHighlightsTextSizedHeading(t *testing.T) {
 	}
 }
 
+// TestHeadingStylePreservedAfterHighlightedMatch is the regression test for
+// a reviewer-reported bug: text-sized headings originally emit only one
+// color/bold SGR code before a whole chunk of OSC 66-wrapped text (e.g.
+// "Hello world" as a single chunk). Splitting that chunk into a highlighted
+// sub-run ("Hello") and a plain one (" world") meant the plain sub-run,
+// coming right after a highlight style's Render() call (which always ends
+// in a reset), lost the heading's styling entirely -- " world" rendered as
+// plain unstyled text instead of bold/colored.
+func TestHeadingStylePreservedAfterHighlightedMatch(t *testing.T) {
+	t.Setenv("GLOW_TEXT_SIZING", "on")
+	common := &commonModel{
+		styles: newStyles(true),
+		cfg: Config{
+			GlamourEnabled:  true,
+			GlamourMaxWidth: 80,
+			GlamourStyle:    "dark",
+		},
+	}
+	m := newPagerModel(common)
+	m.setSize(80, 24)
+	m.currentDocument = markdown{Note: "test.md"}
+
+	rendered, err := glamourRender(m, "## Hello world heading\n")
+	if err != nil {
+		t.Fatalf("glamourRender: %v", err)
+	}
+	m.setContent(rendered)
+	m.startSearch()
+	m.searchInput.SetValue("Hello")
+	m.confirmSearch()
+
+	view := m.viewport.View()
+
+	// " world" must still be wrapped in the heading's own color/bold SGR
+	// code (38;5;39;1 in the dark style) immediately before its OSC 66
+	// sequence, not left bare after the highlighted "Hello" resets state.
+	if !strings.Contains(view, "\x1b[38;5;39;1m\x1b]66;s=2; world\x1b\\") {
+		t.Fatalf("expected heading style restored before ' world', got view:\n%s", view)
+	}
+}
+
 // TestSearchIgnoresLineNumberGutterDigits is the regression test for another
 // reviewer-reported edge case: on code files (or markdown with
 // ShowLineNumbers), each rendered line is prefixed with a styled
@@ -474,6 +567,44 @@ func TestSearchIgnoresLineNumberGutterDigits(t *testing.T) {
 	}
 }
 
+// TestSearchIgnoresGutterDigitsAfterStyleChanges is the regression test for
+// a bug in the original gutter fix, reported by the same reviewer: it
+// blanked the gutter by reconstructing and matching its exact styled text,
+// which only works if m.common.styles at search time matches whatever
+// Styles were current when the content was actually rendered. Those can
+// genuinely differ in the running app (e.g. tea.BackgroundColorMsg replaces
+// m.common.styles after the initial render), which made gutter digits leak
+// through as false matches intermittently. Simulated here by changing
+// styles between render and search.
+func TestSearchIgnoresGutterDigitsAfterStyleChanges(t *testing.T) {
+	m := newTestPagerModel()
+	m.currentDocument = markdown{Note: "test.go"}
+
+	var md string
+	for i := 1; i <= 20; i++ {
+		md += fmt.Sprintf("line number %d here\n", i)
+	}
+	rendered, err := glamourRender(m, md)
+	if err != nil {
+		t.Fatalf("glamourRender: %v", err)
+	}
+	m.setContent(rendered)
+
+	// The content above was rendered with the dark styles newTestPagerModel
+	// sets up. Now simulate the terminal's background color being detected
+	// afterward, which replaces m.common.styles with a different instance
+	// (light, here) before the user searches.
+	m.common.styles = newStyles(false)
+
+	m.startSearch()
+	m.searchInput.SetValue("12")
+	m.confirmSearch()
+
+	if len(m.searchMatches) != 1 {
+		t.Fatalf("expected exactly 1 match even after a styles change, got %d: %+v", len(m.searchMatches), m.searchMatches)
+	}
+}
+
 // TestSearchFindsGutterLikeDigitsInPlainMarkdown confirms the gutter fix is
 // scoped correctly: plain markdown (no line numbers shown) must still find
 // numeric matches normally, since there's no gutter to confuse them with.
@@ -515,12 +646,35 @@ func TestBlankLineNumberGutterPreservesAlignment(t *testing.T) {
 	content := styles.lineNumberStyle("   1") + "first line\n" +
 		styles.lineNumberStyle("   2") + "second line"
 
-	got := blankLineNumberGutter(content, styles)
+	got := blankLineNumberGutter(content)
 
 	want := styles.lineNumberStyle("    ") + "first line\n" +
 		styles.lineNumberStyle("    ") + "second line"
 	if got != want {
 		t.Fatalf("blankLineNumberGutter mismatch:\ngot:  %q\nwant: %q", got, want)
+	}
+}
+
+// TestBlankLineNumberGutterIgnoresStyleUsedToRenderIt is the regression test
+// for a bug in the original gutter fix: it blanked the gutter by
+// reconstructing and matching its exact styled text, which only worked if
+// the Styles in effect when blanking ran were the same ones the content was
+// originally rendered with. Those can differ in practice (e.g. if the
+// terminal's background color is detected, replacing m.common.styles, in
+// between a render and a search), silently leaking gutter digits through.
+// Blanking by column position instead doesn't care what styled the gutter
+// at all -- exercised here by using a style ("bold red") that
+// lineNumberStyle would never actually produce, confirming the result
+// doesn't depend on matching any particular styling.
+func TestBlankLineNumberGutterIgnoresStyleUsedToRenderIt(t *testing.T) {
+	unexpectedStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("1"))
+	content := unexpectedStyle.Render("   1") + "first line"
+
+	got := blankColumnRange(content, 0, lineNumberWidth)
+
+	want := unexpectedStyle.Render("    ") + "first line"
+	if got != want {
+		t.Fatalf("expected gutter blanked regardless of which style rendered it, got %q want %q", got, want)
 	}
 }
 

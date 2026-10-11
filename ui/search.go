@@ -73,7 +73,20 @@ func findMatches(content, query string) []searchMatch {
 	for lineIdx, line := range lines {
 		for _, loc := range re.FindAllStringIndex(line, -1) {
 			colStart, colEnd := byteRangeToCellRange(line, loc[0], loc[1])
-			matches = append(matches, searchMatch{line: lineIdx, colStart: colStart, colEnd: colEnd})
+			m := searchMatch{line: lineIdx, colStart: colStart, colEnd: colEnd}
+			// A rune can appear more than once within a single grapheme
+			// cluster (e.g. a ZWJ-joined emoji sequence like a "family"
+			// emoji containing the same person emoji twice): distinct
+			// regexp matches at different byte offsets can both snap
+			// (via byteRangeToCellRange) to the exact same cell range.
+			// Since matches are found in order, such duplicates are always
+			// adjacent, so checking just the last appended entry is
+			// enough to drop them -- otherwise the same cluster would be
+			// counted and rendered twice.
+			if n := len(matches); n > 0 && matches[n-1] == m {
+				continue
+			}
+			matches = append(matches, m)
 		}
 	}
 	return matches
@@ -105,7 +118,15 @@ func byteRangeToCellRange(line string, byteStart, byteEnd int) (colStart, colEnd
 			colStart = cellPos
 		}
 		bytePos += len(gr.Str())
-		cellPos += max(1, gr.Width())
+		// Deliberately not forcing a minimum width of 1 here: a tab has
+		// width 0 per uniseg, and lipgloss.StyleRanges' internal cell
+		// counting (via charmbracelet/x/ansi's Cut/Truncate, which only
+		// advances its width counter on PrintAction, not the ExecuteAction
+		// a tab triggers) agrees that it's 0. Forcing 1 here would disagree
+		// with what StyleRanges actually does when it later renders this
+		// line, drifting every highlight after a leading tab one cell to
+		// the right.
+		cellPos += gr.Width()
 		if bytePos >= byteEnd {
 			colEnd = cellPos
 			break
@@ -174,9 +195,21 @@ func highlightLineWithTextSizing(line string, ranges []lipgloss.Range) string {
 	rangeIdx := 0
 	cellPos := 0
 
+	// ambient accumulates every escape token seen so far (e.g. the heading's
+	// own color/bold SGR code). A highlight style's Render() call always
+	// ends in a reset, which otherwise leaves any *plain* text that follows
+	// within the same originally-styled run -- e.g. part of a heading after
+	// a highlighted match -- rendered with no styling at all, since nothing
+	// else re-establishes it. Replaying ambient before such a run fixes
+	// that; it's safe to replay repeatedly since SGR codes are idempotent.
+	var ambient strings.Builder
+	needsAmbientReplay := false
+
 	for _, tok := range tokens {
 		if !tok.visible {
 			b.WriteString(tok.text)
+			ambient.WriteString(tok.text)
+			needsAmbientReplay = false
 			continue
 		}
 
@@ -194,6 +227,12 @@ func highlightLineWithTextSizing(line string, ranges []lipgloss.Range) string {
 			wrapped := wrapVisible(run.String(), tok.osc66Meta)
 			if runHighlighted {
 				wrapped = ranges[runRangeIdx].Style.Render(wrapped)
+				needsAmbientReplay = true
+			} else {
+				if needsAmbientReplay {
+					wrapped = ambient.String() + wrapped
+					needsAmbientReplay = false
+				}
 			}
 			b.WriteString(wrapped)
 			run.Reset()
@@ -202,7 +241,10 @@ func highlightLineWithTextSizing(line string, ranges []lipgloss.Range) string {
 		gr := uniseg.NewGraphemes(tok.text)
 		for gr.Next() {
 			cluster := gr.Str()
-			width := max(1, gr.Width())
+			// See byteRangeToCellRange for why this isn't max(1, ...): a
+			// tab has width 0 to stay consistent with how these same
+			// ranges were computed there.
+			width := gr.Width()
 
 			for rangeIdx < len(ranges) && cellPos >= ranges[rangeIdx].End {
 				rangeIdx++
@@ -232,4 +274,43 @@ func wrapVisible(text, meta string) string {
 		return text
 	}
 	return "\x1b]66;" + meta + ";" + text + osc66ST
+}
+
+// blankColumnRange replaces the visible text in [start, end) cell-width
+// columns of a rendered line with ordinary spaces, preserving every escape
+// code (including OSC 66 wrappers, re-wrapped with their original meta)
+// exactly. Used to blank the line-number gutter by position rather than by
+// matching a specific styled string: the gutter's byte representation
+// depends on the Styles in effect when the line was rendered, which can
+// differ from the Styles current when a search runs (e.g. if the
+// terminal's background color is detected in between) -- matching by
+// position is immune to that, where matching by reconstructed string isn't.
+func blankColumnRange(line string, start, end int) string {
+	tokens := tokenizeRenderedLine(line)
+
+	var b strings.Builder
+	cellPos := 0
+
+	for _, tok := range tokens {
+		if !tok.visible {
+			b.WriteString(tok.text)
+			continue
+		}
+
+		var out strings.Builder
+		gr := uniseg.NewGraphemes(tok.text)
+		for gr.Next() {
+			cluster := gr.Str()
+			width := gr.Width()
+			if cellPos >= start && cellPos < end {
+				out.WriteString(strings.Repeat(" ", width))
+			} else {
+				out.WriteString(cluster)
+			}
+			cellPos += width
+		}
+		b.WriteString(wrapVisible(out.String(), tok.osc66Meta))
+	}
+
+	return b.String()
 }

@@ -198,7 +198,7 @@ func (m *pagerModel) confirmSearch() tea.Cmd {
 func (m *pagerModel) runSearch(query string) bool {
 	content := m.renderedContent
 	if m.hasLineNumberGutter() {
-		content = blankLineNumberGutter(content, m.common.styles)
+		content = blankLineNumberGutter(content)
 	}
 	matches := findMatches(content, query)
 	if len(matches) == 0 {
@@ -234,23 +234,19 @@ func lineNumberDigits(n int) string {
 	return fmt.Sprintf("%"+fmt.Sprint(lineNumberWidth)+"d", n)
 }
 
-// blankLineNumberGutter replaces each rendered line's styled line-number
-// gutter prefix (as built by glamourRender) with equal-width blanks, so a
-// search can't match against gutter digits -- e.g. searching "12" would
-// otherwise also match the gutter of line 12, 120-129, 212, etc. The gutter
-// is reconstructed and matched byte-for-byte using the same style and width
-// glamourRender used, so this never misfires on a line that merely happens
-// to start with similar-looking plain text, and preserves column alignment
-// for everything after it (blanks are the same width as the digits they
-// replace, even for line numbers wider than lineNumberWidth).
-func blankLineNumberGutter(content string, styles Styles) string {
+// blankLineNumberGutter replaces the first lineNumberWidth columns of every
+// rendered line (the line-number gutter, as built by glamourRender -- always
+// exactly that many columns, for every line, whenever a gutter is shown at
+// all) with blanks, so a search can't match against gutter digits -- e.g.
+// searching "12" would otherwise also match the gutter of line 12, 120-129,
+// 212, etc. Blanking by column position rather than by matching the gutter's
+// exact styled text means this is unaffected by which Styles were current
+// when the content was rendered vs. when the search runs (those can differ,
+// e.g. if the terminal's background color is detected in between).
+func blankLineNumberGutter(content string) string {
 	lines := strings.Split(content, "\n")
 	for i, line := range lines {
-		digits := lineNumberDigits(i + 1)
-		prefix := styles.lineNumberStyle(digits)
-		if strings.HasPrefix(line, prefix) {
-			lines[i] = styles.lineNumberStyle(strings.Repeat(" ", len(digits))) + line[len(prefix):]
-		}
+		lines[i] = blankColumnRange(line, 0, lineNumberWidth)
 	}
 	return strings.Join(lines, "\n")
 }
@@ -364,6 +360,14 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 			m.searchInput, inputCmd = m.searchInput.Update(keyMsg)
 			return m, inputCmd
 		}
+		// Bracketed paste arrives as tea.PasteMsg, not tea.KeyPressMsg, so
+		// without this it never reaches the search input -- textinput
+		// handles tea.PasteMsg itself, we just need to route it there.
+		if _, ok := msg.(tea.PasteMsg); ok {
+			var inputCmd tea.Cmd
+			m.searchInput, inputCmd = m.searchInput.Update(msg)
+			return m, inputCmd
+		}
 	}
 
 	switch msg := msg.(type) {
@@ -453,7 +457,15 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		return m, renderWithGlamour(m, m.currentDocument.Body)
 
 	case statusMessageTimeoutMsg:
-		m.state = pagerStateBrowse
+		// Only drop back to browse if we're actually showing a status
+		// message. Without this guard, a status message's timer firing
+		// while the user has since started typing a search query would
+		// unconditionally kick them out of the search prompt -- after
+		// which further keystrokes (including "q") reach the pager's
+		// normal keybindings instead of the search input.
+		if m.state == pagerStateStatusMessage {
+			m.state = pagerStateBrowse
+		}
 	}
 
 	m.viewport, cmd = m.viewport.Update(msg)
