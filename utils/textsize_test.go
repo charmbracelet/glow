@@ -204,8 +204,8 @@ func TestScanEscape(t *testing.T) {
 		{"\x1b(B", "\x1b(B"},
 	}
 	for _, tc := range tt {
-		if got := scanEscape(tc.in); got != tc.want {
-			t.Errorf("scanEscape(%q) = %q, want %q", tc.in, got, tc.want)
+		if got := ScanEscape(tc.in); got != tc.want {
+			t.Errorf("ScanEscape(%q) = %q, want %q", tc.in, got, tc.want)
 		}
 	}
 }
