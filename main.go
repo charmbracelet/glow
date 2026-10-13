@@ -149,6 +149,13 @@ func sourceFromArg(arg string) (*source, error) {
 	return &source{r, u}, nil
 }
 
+// styleConfigured reports whether a style was chosen, either by flag or as a
+// style other than "auto" in the config file or GLOW_STYLE. The generated
+// config file sets "auto", so that doesn't count.
+func styleConfigured(cmd *cobra.Command) bool {
+	return cmd.Flags().Changed("style") || viper.GetString("style") != "auto"
+}
+
 // validateStyle checks if the style is a default style, if not, checks that
 // the custom style exists.
 func validateStyle(style string) error {
@@ -184,9 +191,9 @@ func validateOptions(cmd *cobra.Command) error {
 	}
 
 	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
-	// We want to use a special no-TTY style, when stdout is not a terminal
-	// and there was no specific style passed by arg
-	if !isTerminal && !cmd.Flags().Changed("style") {
+	// We want to use a special no-TTY style when stdout is not a terminal and
+	// no style was set, neither by flag nor in the config file or environment.
+	if !isTerminal && !styleConfigured(cmd) {
 		style = "notty"
 	}
 
