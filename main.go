@@ -70,6 +70,20 @@ type source struct {
 	URL    string
 }
 
+// markdownAccept is the Accept header sent when fetching a URL. It asks
+// servers that can serve the same page in several formats for markdown.
+const markdownAccept = "text/markdown, text/plain;q=0.9, */*;q=0.8"
+
+// fetchMarkdown requests url, preferring a markdown response.
+func fetchMarkdown(url string) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil) //nolint: noctx
+	if err != nil {
+		return nil, err //nolint: wrapcheck
+	}
+	req.Header.Set("Accept", markdownAccept)
+	return http.DefaultClient.Do(req) //nolint: wrapcheck
+}
+
 // sourceFromArg parses an argument and creates a readable source for it.
 func sourceFromArg(arg string) (*source, error) {
 	// from stdin
@@ -91,7 +105,7 @@ func sourceFromArg(arg string) (*source, error) {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
 			}
 			// consumer of the source is responsible for closing the ReadCloser.
-			resp, err := http.Get(u.String()) //nolint: noctx,bodyclose
+			resp, err := fetchMarkdown(u.String()) //nolint: bodyclose
 			if err != nil {
 				return nil, fmt.Errorf("unable to get url: %w", err)
 			}
