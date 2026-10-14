@@ -33,6 +33,10 @@ var (
 	// CommitSHA as provided by goreleaser.
 	CommitSHA = ""
 
+	isTerminal = func(fd int) bool {
+		return term.IsTerminal(fd)
+	}
+
 	readmeNames      = []string{"README.md", "README", "Readme.md", "Readme", "readme.md", "readme"}
 	configFile       string
 	pager            bool
@@ -183,16 +187,16 @@ func validateOptions(cmd *cobra.Command) error {
 		return err
 	}
 
-	isTerminal := term.IsTerminal(int(os.Stdout.Fd()))
+	isTerm := isTerminal(int(os.Stdout.Fd()))
 	// We want to use a special no-TTY style, when stdout is not a terminal
-	// and there was no specific style passed by arg
-	if !isTerminal && !cmd.Flags().Changed("style") {
+	// and there was no specific style passed by arg or configured.
+	if !isTerm && !cmd.Flags().Changed("style") && style == "auto" {
 		style = "notty"
 	}
 
 	// Detect terminal width
 	if !cmd.Flags().Changed("width") { //nolint:nestif
-		if isTerminal && width == 0 {
+		if isTerm && width == 0 {
 			w, _, err := term.GetSize(int(os.Stdout.Fd()))
 			if err == nil {
 				width = uint(w) //nolint:gosec
