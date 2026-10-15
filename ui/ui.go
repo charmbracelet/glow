@@ -187,7 +187,7 @@ func (m model) Init() tea.Cmd {
 	case stateShowStash:
 		cmds = append(cmds, findLocalFiles(*m.common))
 	case stateShowDocument:
-		cmds = append(cmds, renderWithGlamour(m.pager, m.pager.currentDocument.Body))
+		// The initial WindowSizeMsg renders the document once its width is known.
 	}
 
 	return tea.Batch(cmds...)
@@ -269,10 +269,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fetchedMarkdownMsg:
 		// We've loaded a markdown file's contents for rendering
 		m.pager.currentDocument = *msg
-		body := string(utils.RemoveFrontmatter([]byte(msg.Body)))
-		cmds = append(cmds, renderWithGlamour(m.pager, body))
+		m.pager.currentDocument.Body = string(utils.RemoveFrontmatter([]byte(msg.Body)))
+		cmds = append(cmds, renderWithGlamour(&m.pager, m.pager.currentDocument.Body))
 
 	case contentRenderedMsg:
+		if msg.id != m.pager.renderID {
+			return m, nil
+		}
 		m.state = stateShowDocument
 
 	case localFileSearchFinished:

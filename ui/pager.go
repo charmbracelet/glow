@@ -29,8 +29,11 @@ const (
 var pagerHelpHeight int
 
 type (
-	contentRenderedMsg string
-	reloadMsg          struct{}
+	contentRenderedMsg struct {
+		content string
+		id      uint64
+	}
+	reloadMsg struct{}
 )
 
 type pagerState int
@@ -52,6 +55,9 @@ type pagerModel struct {
 	// Current document being rendered, sans-glamour rendering. We cache
 	// it here so we can re-render it on resize.
 	currentDocument markdown
+
+	// Invalidates renders still running when the document or dimensions change.
+	renderID uint64
 
 	watcher *fsnotify.Watcher
 }
@@ -114,6 +120,7 @@ func (m *pagerModel) showStatusMessage(msg pagerStatusMessage) tea.Cmd {
 }
 
 func (m *pagerModel) unload() {
+	m.renderID++
 	log.Debug("unload")
 	if m.showHelp {
 		m.toggleHelp()
@@ -182,7 +189,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case contentRenderedMsg:
 		log.Info("content rendered", "state", m.state)
 
-		m.setContent(string(msg))
+		if msg.id != m.renderID {
+			return m, nil
+		}
+		m.setContent(msg.content)
 		cmds = append(cmds, m.watchFile)
 
 	// The file was changed on disk and we're reloading it
@@ -198,7 +208,8 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	// We've received terminal dimensions, either for the first time or
 	// after a resize
 	case tea.WindowSizeMsg:
-		return m, renderWithGlamour(m, m.currentDocument.Body)
+		cmd := renderWithGlamour(&m, m.currentDocument.Body)
+		return m, cmd
 
 	case statusMessageTimeoutMsg:
 		m.state = pagerStateBrowse
@@ -339,14 +350,22 @@ func (m pagerModel) helpView() (s string) {
 
 // COMMANDS
 
-func renderWithGlamour(m pagerModel, md string) tea.Cmd {
+func renderWithGlamour(pager *pagerModel, md string) tea.Cmd {
+	pager.renderID++
+	if pager.viewport.Width() <= 0 {
+		return nil
+	}
+	// Capture the dimensions and styles before the asynchronous render starts.
+	m := *pager
+	common := *pager.common
+	m.common = &common
 	return func() tea.Msg {
 		s, err := glamourRender(m, md)
 		if err != nil {
 			log.Error("error rendering with Glamour", "error", err)
 			return errMsg{err}
 		}
-		return contentRenderedMsg(s)
+		return contentRenderedMsg{content: s, id: m.renderID}
 	}
 }
 
@@ -359,7 +378,14 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 
 	isCode := !utils.IsMarkdownFile(m.currentDocument.Note)
-	width := max(0, min(int(m.common.cfg.GlamourMaxWidth), m.viewport.Width())) //nolint:gosec
+	availableWidth := m.viewport.Width()
+	if m.common.cfg.ShowLineNumbers {
+		availableWidth -= lineNumberWidth
+	}
+	width := max(1, min(int(m.common.cfg.GlamourMaxWidth), availableWidth))
+	if m.common.cfg.GlamourMaxWidth == 0 {
+		width = 0
+	}
 	if isCode {
 		width = 0
 	}
