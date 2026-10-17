@@ -213,6 +213,8 @@ all: false
 showLineNumbers: false
 # preserve newlines in the output
 preserveNewLines: false
+# draw lines between table rows
+tableRowBorders: false
 ```
 
 ## Contributing

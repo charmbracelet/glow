@@ -23,6 +23,8 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# draw lines between table rows
+tableRowBorders: false
 `
 
 var configCmd = &cobra.Command{

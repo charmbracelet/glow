@@ -365,7 +365,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	}
 
 	options := []glamour.TermRendererOption{
-		utils.GlamourStyle(m.common.cfg.GlamourStyle, isCode),
+		utils.GlamourStyle(m.common.cfg.GlamourStyle, isCode, m.common.cfg.TableRowBorders),
 		glamour.WithWordWrap(width),
 	}
 

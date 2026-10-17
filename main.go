@@ -42,6 +42,7 @@ var (
 	showAllFiles     bool
 	showLineNumbers  bool
 	preserveNewLines bool
+	tableRowBorders  bool
 	mouse            bool
 
 	rootCmd = &cobra.Command{
@@ -171,6 +172,7 @@ func validateOptions(cmd *cobra.Command) error {
 	tui = viper.GetBool("tui")
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
+	tableRowBorders = viper.GetBool("tableRowBorders")
 	showLineNumbers = viper.GetBool("showLineNumbers")
 
 	if pager && tui {
@@ -291,7 +293,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(
-		utils.GlamourStyle(style, isCode),
+		utils.GlamourStyle(style, isCode, tableRowBorders),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
@@ -367,6 +369,7 @@ func runTUI(path string, content string) error {
 	cfg.GlamourMaxWidth = width
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
+	cfg.TableRowBorders = tableRowBorders
 
 	// Run Bubble Tea program
 	prog, cleanup := ui.NewProgram(cfg, content)
@@ -412,6 +415,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showAllFiles, "all", "a", false, "show system files and directories (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
+	rootCmd.Flags().BoolVar(&tableRowBorders, "table-row-borders", false, "draw lines between table rows")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
@@ -423,6 +427,7 @@ func init() {
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
+	_ = viper.BindPFlag("tableRowBorders", rootCmd.Flags().Lookup("table-row-borders"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
