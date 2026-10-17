@@ -72,11 +72,16 @@ func IsMarkdownFile(filename string) bool {
 }
 
 // GlamourStyle returns a glamour.TermRendererOption based on the given style.
-func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
+// tableRowBorders forces a rule between table body rows.
+func GlamourStyle(style string, isCode bool, tableRowBorders bool) glamour.TermRendererOption {
 	return func(tr *glamour.TermRenderer) error {
 		styleConfig, err := styleConfigFor(style, isCode)
 		if err != nil {
 			return err
+		}
+		if tableRowBorders {
+			on := true
+			styleConfig.Table.BorderRows = &on
 		}
 		if !isCode && TextSizingEnabled() {
 			AddHeadingSizeMarkers(&styleConfig)

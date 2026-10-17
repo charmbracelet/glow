@@ -158,7 +158,7 @@ func TestGlamourStyleTextSizing(t *testing.T) {
 	render := func(t *testing.T) string {
 		t.Helper()
 		r, err := glamour.NewTermRenderer(
-			GlamourStyle(styles.DarkStyle, false),
+			GlamourStyle(styles.DarkStyle, false, false),
 			glamour.WithWordWrap(80),
 		)
 		if err != nil {
