@@ -53,7 +53,7 @@ var (
 		SilenceErrors:    false,
 		SilenceUsage:     true,
 		TraverseChildren: true,
-		Args:             cobra.MaximumNArgs(1),
+		Args:             cobra.ArbitraryArgs,
 		ValidArgsFunction: func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveDefault
 		},
