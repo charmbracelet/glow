@@ -173,6 +173,11 @@ func validateOptions(cmd *cobra.Command) error {
 	preserveNewLines = viper.GetBool("preserveNewLines")
 	showLineNumbers = viper.GetBool("showLineNumbers")
 
+	// An explicit TUI request overrides a configured pager, but not an explicit pager flag.
+	if tui && cmd.Flags().Changed("tui") && !cmd.Flags().Changed("pager") {
+		pager = false
+	}
+
 	if pager && tui {
 		return errors.New("cannot use both pager and tui")
 	}
