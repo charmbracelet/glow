@@ -8,11 +8,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"charm.land/glamour/v2"
 	"charm.land/glamour/v2/ansi"
 	"charm.land/glamour/v2/styles"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -84,8 +86,18 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 		if err := glamour.WithStyles(styleConfig)(tr); err != nil {
 			return fmt.Errorf("glamour: error applying styles: %w", err)
 		}
-		return nil
+		return glamour.WithChromaFormatter(chromaFormatter())(tr)
 	}
+}
+
+var chromaFormatter = sync.OnceValue(detectChromaFormatter)
+
+// glamour defaults to terminal256, which rounds hex colors even on true color terminals.
+func detectChromaFormatter() string {
+	if colorprofile.Detect(os.Stdout, os.Environ()) == colorprofile.TrueColor {
+		return "terminal16m"
+	}
+	return "terminal256"
 }
 
 func styleConfigFor(style string, isCode bool) (ansi.StyleConfig, error) {
