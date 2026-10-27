@@ -5,6 +5,29 @@ import (
 	"testing"
 )
 
+func TestPagerWrapsLinesWiderThanViewport(t *testing.T) {
+	common := &commonModel{
+		cfg:    Config{},
+		styles: newStyles(true),
+		width:  10,
+		height: 4,
+	}
+	m := newPagerModel(common)
+	m.setSize(10, 4)
+	m.setContent("one\ntwo\n0123456789abcdefghij\nthree\nfour")
+
+	// The over-wide line occupies two rows, so the viewport has six rows in
+	// total and scrolling must not skip any of them.
+	if got, want := m.viewport.TotalLineCount(), 6; got != want {
+		t.Fatalf("expected %d lines, got %d", want, got)
+	}
+
+	m.viewport.GotoBottom()
+	if got := m.viewport.View(); !strings.Contains(got, "cdefghij") {
+		t.Errorf("expected the wrapped end of the long line to be visible, got %q", got)
+	}
+}
+
 func TestGlamourRenderTextSizing(t *testing.T) {
 	t.Setenv("GLOW_TEXT_SIZING", "on")
 

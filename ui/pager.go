@@ -59,6 +59,10 @@ type pagerModel struct {
 func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
 	vp := viewport.New()
+	// Content can be wider than the viewport when word wrap is disabled, or
+	// when it contains long unbreakable tokens. Wrap it here so the viewport
+	// accounts for the extra rows when scrolling instead of clipping it.
+	vp.SoftWrap = true
 
 	m := pagerModel{
 		common:   common,
