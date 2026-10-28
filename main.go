@@ -428,7 +428,7 @@ func init() {
 
 	viper.SetDefault("style", "auto")
 	viper.SetDefault("width", 0)
-	viper.SetDefault("all", true)
+	viper.SetDefault("all", false)
 
 	rootCmd.AddCommand(configCmd, manCmd)
 }
