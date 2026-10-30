@@ -456,10 +456,10 @@ func (m *stashModel) handleDocumentBrowsing(msg tea.Msg) tea.Cmd {
 	// Handle keys
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "k", "ctrl+k", "up":
+		case "k", "ctrl+k", "ctrl+p", "up":
 			m.moveCursorUp()
 
-		case "j", "ctrl+j", "down":
+		case "j", "ctrl+j", "ctrl+n", "down":
 			m.moveCursorDown()
 
 		// Go to the very start

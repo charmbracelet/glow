@@ -14,6 +14,10 @@ type Config struct {
 	// Working directory or file path
 	Path string
 
+	// InitialSearch is a keyword to highlight and jump to when the pager opens.
+	// Set by --search/-S flag when targeting a document.
+	InitialSearch string
+
 	// For debugging the UI
 	GlamourEnabled bool `env:"GLOW_ENABLE_GLAMOUR" envDefault:"true"`
 }

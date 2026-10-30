@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/glamour/v2"
@@ -38,6 +39,7 @@ type pagerState int
 const (
 	pagerStateBrowse pagerState = iota
 	pagerStateStatusMessage
+	pagerStateSearch // user is actively typing a search query
 )
 
 type pagerModel struct {
@@ -54,16 +56,34 @@ type pagerModel struct {
 	currentDocument markdown
 
 	watcher *fsnotify.Watcher
+
+	// Search state
+	searchInput   textinput.Model // bottom search bar input
+	searchQuery   string          // last applied query
+	searchMatches []int           // line indices (0-based) containing a match
+	searchCursor  int             // index into searchMatches for current highlighted match
+	rawContent    string          // glamour-rendered content without search highlights
 }
 
 func newPagerModel(common *commonModel) pagerModel {
 	// Init viewport
 	vp := viewport.New()
 
+	// Init search input
+	si := textinput.New()
+	si.Prompt = "/"
+	si.SetVirtualCursor(true)
+	tsi := si.Styles()
+	tsi.Focused.Prompt = common.styles.stashInputPromptStyle
+	tsi.Blurred.Prompt = common.styles.stashInputPromptStyle
+	tsi.Cursor.Color = common.styles.fuchsia
+	si.SetStyles(tsi)
+
 	m := pagerModel{
-		common:   common,
-		state:    pagerStateBrowse,
-		viewport: vp,
+		common:      common,
+		state:       pagerStateBrowse,
+		viewport:    vp,
+		searchInput: si,
 	}
 	m.initWatcher()
 	return m
@@ -71,7 +91,11 @@ func newPagerModel(common *commonModel) pagerModel {
 
 func (m *pagerModel) setSize(w, h int) {
 	m.viewport.SetWidth(w)
-	m.viewport.SetHeight(h - statusBarHeight)
+	vh := h - statusBarHeight
+	if m.state == pagerStateSearch {
+		vh-- // reserve one line for the search bar
+	}
+	m.viewport.SetHeight(vh)
 
 	if m.showHelp {
 		if pagerHelpHeight == 0 {
@@ -82,6 +106,7 @@ func (m *pagerModel) setSize(w, h int) {
 }
 
 func (m *pagerModel) setContent(s string) {
+	m.rawContent = s
 	m.viewport.SetContent(s)
 }
 
@@ -125,6 +150,12 @@ func (m *pagerModel) unload() {
 	m.viewport.SetContent("")
 	m.viewport.SetYOffset(0)
 	m.unwatchFile()
+	// Reset search state
+	m.searchQuery = ""
+	m.searchMatches = nil
+	m.searchCursor = 0
+	m.rawContent = ""
+	m.searchInput.Reset()
 }
 
 func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
@@ -135,6 +166,39 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
+		// --- Search mode: intercept all keys ---
+		if m.state == pagerStateSearch {
+			switch msg.String() {
+			case keyEsc:
+				// Exit search: restore un-highlighted content
+				m.state = pagerStateBrowse
+				m.searchQuery = ""
+				m.searchMatches = nil
+				m.searchCursor = 0
+				m.searchInput.Reset()
+				m.setSize(m.common.width, m.common.height)
+				m.viewport.SetContent(m.rawContent)
+				return m, nil
+			case keyEnter:
+				// Apply search
+				q := m.searchInput.Value()
+				if q != "" {
+					m.searchQuery = q
+					m.applySearch()
+				}
+				m.state = pagerStateBrowse
+				m.setSize(m.common.width, m.common.height)
+				return m, nil
+			default:
+				// Forward remaining keys to textinput
+				var inputCmd tea.Cmd
+				m.searchInput, inputCmd = m.searchInput.Update(msg)
+				cmds = append(cmds, inputCmd)
+				return m, tea.Batch(cmds...)
+			}
+		}
+
+		// --- Normal browse mode ---
 		switch msg.String() {
 		case "q", keyEsc:
 			if m.state != pagerStateBrowse {
@@ -174,6 +238,28 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		case "r":
 			return m, loadLocalMarkdown(&m.currentDocument)
 
+		case "/":
+			// Enter search mode
+			m.state = pagerStateSearch
+			m.searchInput.Reset()
+			m.searchInput.Focus()
+			m.setSize(m.common.width, m.common.height)
+			return m, textinput.Blink
+
+		case "n":
+			// Jump to next search match
+			if len(m.searchMatches) > 0 {
+				m.searchCursor = (m.searchCursor + 1) % len(m.searchMatches)
+				m.viewport.SetYOffset(m.searchMatches[m.searchCursor])
+			}
+
+		case "N":
+			// Jump to previous search match
+			if len(m.searchMatches) > 0 {
+				m.searchCursor = (m.searchCursor - 1 + len(m.searchMatches)) % len(m.searchMatches)
+				m.viewport.SetYOffset(m.searchMatches[m.searchCursor])
+			}
+
 		case "?":
 			m.toggleHelp()
 		}
@@ -183,6 +269,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		log.Info("content rendered", "state", m.state)
 
 		m.setContent(string(msg))
+		// Re-apply search highlights if a query is active (e.g. after resize)
+		if m.searchQuery != "" {
+			m.applySearch()
+		}
 		cmds = append(cmds, m.watchFile)
 
 	// The file was changed on disk and we're reloading it
@@ -213,6 +303,11 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 func (m pagerModel) View() string {
 	var b strings.Builder
 	fmt.Fprint(&b, m.viewport.View()+"\n")
+
+	// Search bar (shown between viewport and status bar during search mode)
+	if m.state == pagerStateSearch {
+		fmt.Fprint(&b, m.searchBarView()+"\n")
+	}
 
 	// Footer
 	m.statusBarView(&b)
@@ -304,6 +399,8 @@ func (m pagerModel) helpView() (s string) {
 		"c       copy contents",
 		"e       edit this document",
 		"r       reload this document",
+		"/       search in document",
+		"n/N     next/prev match",
 		"esc     back to files",
 		"q       quit",
 	}
@@ -314,11 +411,9 @@ func (m pagerModel) helpView() (s string) {
 	s += "b/pgup   page up             " + col1[2] + "\n"
 	s += "f/pgdn   page down           " + col1[3] + "\n"
 	s += "u        ½ page up           " + col1[4] + "\n"
-	s += "d        ½ page down         "
-
-	if len(col1) > 5 {
-		s += col1[5]
-	}
+	s += "d        ½ page down         " + col1[5] + "\n"
+	s += "                             " + col1[6] + "\n"
+	s += "                             " + col1[7]
 
 	s = indent(s, 2)
 
@@ -362,10 +457,12 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 	width := max(0, min(int(m.common.cfg.GlamourMaxWidth), m.viewport.Width())) //nolint:gosec
 	if isCode {
 		width = 0
+	} else if m.common.cfg.ShowLineNumbers && width > lineNumberWidth {
+		width -= lineNumberWidth
 	}
 
 	options := []glamour.TermRendererOption{
-		utils.GlamourStyle(m.common.cfg.GlamourStyle, isCode),
+		utils.GlamourStyle(m.common.cfg.GlamourStyle, isCode, width),
 		glamour.WithWordWrap(width),
 	}
 
@@ -390,6 +487,7 @@ func glamourRender(m pagerModel, markdown string) (string, error) {
 		out = strings.TrimSpace(out)
 	} else {
 		out = utils.ApplyTextSizing(out)
+		out = utils.ApplyCodeBlockBackground(out)
 	}
 
 	// trim lines
@@ -466,4 +564,71 @@ func (m *pagerModel) unwatchFile() {
 
 func (m *pagerModel) localDir() string {
 	return filepath.Dir(m.currentDocument.localPath)
+}
+
+// applySearch scans rawContent for lines matching searchQuery (case-insensitive),
+// injects lipgloss highlight spans, updates viewport content, and records match line
+// indices so that n/N can jump between them.
+func (m *pagerModel) applySearch() {
+	if m.searchQuery == "" || m.rawContent == "" {
+		return
+	}
+
+	hlStyle := m.common.styles.searchHighlightStyle
+	q := strings.ToLower(m.searchQuery)
+
+	lines := strings.Split(m.rawContent, "\n")
+	m.searchMatches = m.searchMatches[:0] // reset, reuse slice
+
+	var highlighted strings.Builder
+	for i, line := range lines {
+		// We search in the raw line (which may contain ANSI codes from glamour).
+		// User-typed queries never contain escape codes, so a case-insensitive
+		// strings.Index on the lowercased line is sufficient for matching.
+		lineLower := strings.ToLower(line)
+
+		if idx := strings.Index(lineLower, q); idx >= 0 {
+			// Record this line as a match (0-based)
+			m.searchMatches = append(m.searchMatches, i)
+
+			// Inject highlight around the found substring in the raw line.
+			// The byte offset is valid because q is ASCII-range text.
+			before := line[:idx]
+			match := line[idx : idx+len(m.searchQuery)]
+			after := line[idx+len(m.searchQuery):]
+			highlighted.WriteString(before + hlStyle.Render(match) + after)
+		} else {
+			highlighted.WriteString(line)
+		}
+
+		if i+1 < len(lines) {
+			highlighted.WriteRune('\n')
+		}
+	}
+
+	m.viewport.SetContent(highlighted.String())
+
+	// Jump to first match
+	if len(m.searchMatches) > 0 {
+		m.searchCursor = 0
+		m.viewport.SetYOffset(m.searchMatches[0])
+	}
+}
+
+// searchBarView renders the one-line search input bar shown above the status bar.
+func (m pagerModel) searchBarView() string {
+	styles := m.common.styles
+	w := m.common.width
+
+	prompt := styles.searchBarPromptStyle("/ Search: ")
+	input := m.searchInput.View()
+
+	// ansi.PrintableRuneWidth strips ANSI codes internally when measuring width,
+	// so we can measure prompt and input directly.
+	promptW := ansi.PrintableRuneWidth(prompt)
+	inputW := ansi.PrintableRuneWidth(input)
+	pad := max(0, w-promptW-inputW)
+	padding := strings.Repeat(" ", pad)
+
+	return styles.searchBarStyle(prompt + input + padding)
 }

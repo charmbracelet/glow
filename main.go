@@ -19,6 +19,7 @@ import (
 	"charm.land/glamour/v2/styles"
 	"charm.land/glow/v3/ui"
 	"charm.land/glow/v3/utils"
+	"charm.land/lipgloss/v2"
 	"github.com/caarlos0/env/v11"
 	"github.com/charmbracelet/log"
 	gap "github.com/muesli/go-app-paths"
@@ -43,6 +44,7 @@ var (
 	showLineNumbers  bool
 	preserveNewLines bool
 	mouse            bool
+	searchPattern    string // keyword to highlight in CLI output
 
 	rootCmd = &cobra.Command{
 		Use:   "glow [SOURCE|DIR]",
@@ -291,7 +293,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(
-		utils.GlamourStyle(style, isCode),
+		utils.GlamourStyle(style, isCode, int(width)),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
 		glamour.WithPreservedNewLines(),
@@ -312,6 +314,12 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 
 	out = utils.ApplyTextSizing(out)
+	out = utils.ApplyCodeBlockBackground(out)
+
+	// Highlight search pattern in rendered output if requested.
+	if searchPattern != "" {
+		out = highlightOutput(out, searchPattern)
+	}
 
 	// display
 	switch {
@@ -339,11 +347,43 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 		return runTUI(path, content)
 	default:
+		// --search with default (stdout) mode: switch to TUI so the viewport
+		// can actually hold the document and jump to the first match.
+		if searchPattern != "" {
+			path := ""
+			if !isURL(src.URL) {
+				path = src.URL
+			}
+			return runTUI(path, content)
+		}
 		if _, err = fmt.Fprint(w, out); err != nil {
 			return fmt.Errorf("unable to write to writer: %w", err)
 		}
 		return nil
 	}
+}
+
+// highlightOutput scans each line of the rendered output for pattern
+// (case-insensitive) and wraps the first match per line with an ANSI
+// yellow-background highlight. This is used by the --search/-S flag.
+func highlightOutput(out, pattern string) string {
+	hl := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#1a1a1a")).
+		Background(lipgloss.Color("#FFEA00")).
+		Bold(true).
+		Render
+	q := strings.ToLower(pattern)
+	lines := strings.Split(out, "\n")
+	for i, line := range lines {
+		idx := strings.Index(strings.ToLower(line), q)
+		if idx < 0 {
+			continue
+		}
+		// Preserve original casing of the matched text.
+		match := line[idx : idx+len(pattern)]
+		lines[i] = line[:idx] + hl(match) + line[idx+len(pattern):]
+	}
+	return strings.Join(lines, "\n")
 }
 
 func runTUI(path string, content string) error {
@@ -367,6 +407,7 @@ func runTUI(path string, content string) error {
 	cfg.GlamourMaxWidth = width
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
+	cfg.InitialSearch = searchPattern // auto-highlight and jump on open
 
 	// Run Bubble Tea program
 	prog, cleanup := ui.NewProgram(cfg, content)
@@ -414,6 +455,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
 	_ = rootCmd.Flags().MarkHidden("mouse")
+	rootCmd.Flags().StringVarP(&searchPattern, "search", "S", "", "highlight pattern in rendered output (CLI mode)")
 
 	// Config bindings
 	_ = viper.BindPFlag("pager", rootCmd.Flags().Lookup("pager"))
@@ -430,7 +472,7 @@ func init() {
 	viper.SetDefault("width", 0)
 	viper.SetDefault("all", true)
 
-	rootCmd.AddCommand(configCmd, manCmd)
+	rootCmd.AddCommand(configCmd, manCmd, projectCmd)
 }
 
 func tryLoadConfigFromDefaultPlaces() {

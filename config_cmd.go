@@ -23,6 +23,8 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# markdown project directories managed by "glow project"
+projects: []
 `
 
 var configCmd = &cobra.Command{

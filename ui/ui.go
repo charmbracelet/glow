@@ -142,6 +142,11 @@ func newModel(cfg Config, content string) tea.Model {
 		stash:  newStashModel(&common),
 	}
 
+	// Propagate initial search query so the pager auto-jumps on first render.
+	if cfg.InitialSearch != "" {
+		m.pager.searchQuery = cfg.InitialSearch
+	}
+
 	path := cfg.Path
 	if path == "" && content != "" {
 		m.state = stateShowDocument
@@ -208,6 +213,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.common.styles = newStyles(msg.IsDark())
 		m.stash.stylePaginators(m.common.styles)
 	case tea.KeyPressMsg:
+		// Focused search input consumes keys before document navigation shortcuts.
+		if m.state == stateShowDocument && m.pager.state == pagerStateSearch && msg.String() != "ctrl+c" {
+			newPagerModel, cmd := m.pager.update(msg)
+			m.pager = newPagerModel
+			return m, cmd
+		}
+
 		switch msg.String() {
 		case "esc":
 			if m.state == stateShowDocument || m.stash.viewState == stashStateLoadingDocument {

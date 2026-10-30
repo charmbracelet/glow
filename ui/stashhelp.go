@@ -109,7 +109,7 @@ func (m stashModel) helpView() (string, int) {
 	)
 
 	if numDocs > 0 && m.showFullHelp {
-		navHelp = []string{"enter", "open", "j/k ↑/↓", "choose"}
+		navHelp = []string{"enter", "open", "j/k ctrl+n/p ↑/↓", "choose"}
 	}
 
 	if len(m.sections) > 1 {

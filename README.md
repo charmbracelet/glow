@@ -215,6 +215,26 @@ showLineNumbers: false
 preserveNewLines: false
 ```
 
+### Markdown projects
+
+Keep frequently used Markdown directories in the Glow config and open them
+from a searchable project picker:
+
+```bash
+glow project add
+glow project
+```
+
+When arguments are omitted, Glow prompts for project details or opens the
+project picker. Projects are stored in `glow.yml` and can also be managed
+non-interactively:
+
+```bash
+glow project list
+glow project open "My Notes"
+glow project remove "My Notes"
+```
+
 ## Contributing
 
 See [contributing][contribute].
