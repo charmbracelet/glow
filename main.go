@@ -85,7 +85,7 @@ func sourceFromArg(arg string) (*source, error) {
 	}
 
 	// HTTP(S) URLs:
-	if u, err := url.ParseRequestURI(arg); err == nil && strings.Contains(arg, "://") { //nolint:nestif
+	if u, err := url.Parse(arg); err == nil && strings.Contains(arg, "://") { //nolint:nestif
 		if u.Scheme != "" {
 			if u.Scheme != "http" && u.Scheme != "https" {
 				return nil, fmt.Errorf("%s is not a supported protocol", u.Scheme)
@@ -287,7 +287,11 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		baseURL = u.String() + "/"
 	}
 
-	isCode := !utils.IsMarkdownFile(src.URL)
+	sourcePath := src.URL
+	if u, err := url.Parse(src.URL); err == nil && (u.Scheme == "http" || u.Scheme == "https") {
+		sourcePath = u.Path
+	}
+	isCode := !utils.IsMarkdownFile(sourcePath)
 
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(
@@ -301,7 +305,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	}
 
 	content := string(b)
-	ext := filepath.Ext(src.URL)
+	ext := filepath.Ext(sourcePath)
 	if isCode {
 		content = utils.WrapCodeBlock(string(b), ext)
 	}
