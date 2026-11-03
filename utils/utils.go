@@ -125,6 +125,12 @@ func styleConfigFor(style string, isCode bool) (ansi.StyleConfig, error) {
 }
 
 func styleConfigFromFile(path string) (ansi.StyleConfig, error) {
+	// A style path from glow.yml (or the GLAMOUR_STYLE env var) may contain
+	// a tilde or environment variables. Expand it here, at the single point
+	// where style files are loaded, so it matches the expansion validateStyle
+	// already applies for its existence check and covers both the CLI and
+	// TUI render paths.
+	path = ExpandPath(path)
 	jsonBytes, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		return ansi.StyleConfig{}, fmt.Errorf("glamour: error reading file: %w", err)
