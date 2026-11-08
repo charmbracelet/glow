@@ -277,7 +277,10 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to read from reader: %w", err)
 	}
 
-	b = utils.RemoveFrontmatter(b)
+	isCode := !utils.IsMarkdownFile(src.URL)
+	if !isCode {
+		b = utils.RemoveFrontmatter(b)
+	}
 
 	// render
 	var baseURL string
@@ -286,8 +289,6 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		u.Path = filepath.Dir(u.Path)
 		baseURL = u.String() + "/"
 	}
-
-	isCode := !utils.IsMarkdownFile(src.URL)
 
 	// initialize glamour
 	r, err := glamour.NewTermRenderer(
