@@ -311,6 +311,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		return fmt.Errorf("unable to render markdown: %w", err)
 	}
 
+	out = utils.ApplyTextSizing(out)
+
 	// display
 	switch {
 	case pager || cmd.Flags().Changed("pager"):
@@ -345,6 +347,9 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 }
 
 func runTUI(path string, content string) error {
+	// detect text sizing support before bubbletea takes over the terminal
+	_ = utils.TextSizingEnabled()
+
 	// Read environment to get debugging stuff
 	cfg, err := env.ParseAs[ui.Config]()
 	if err != nil {
@@ -364,7 +369,9 @@ func runTUI(path string, content string) error {
 	cfg.PreserveNewLines = preserveNewLines
 
 	// Run Bubble Tea program
-	if _, err := ui.NewProgram(cfg, content).Run(); err != nil {
+	prog, cleanup := ui.NewProgram(cfg, content)
+	defer cleanup()
+	if _, err := prog.Run(); err != nil {
 		return fmt.Errorf("unable to run tui program: %w", err)
 	}
 
