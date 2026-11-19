@@ -25,12 +25,11 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 
 	apiURL := fmt.Sprintf("https://%s/api/v4/projects/%s", u.Hostname(), projectPath)
 
-	//nolint:bodyclose
-	// it is closed on the caller
 	res, err := http.Get(apiURL) //nolint: gosec,noctx
 	if err != nil {
 		return nil, fmt.Errorf("unable to get url: %w", err)
 	}
+	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -42,7 +41,7 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 		return nil, fmt.Errorf("unable to parse json: %w", err)
 	}
 
-	readmeRawURL := strings.ReplaceAll(result.ReadmeURL, "blob", "raw")
+	readmeRawURL := strings.Replace(result.ReadmeURL, "/-/blob/", "/-/raw/", 1)
 
 	if res.StatusCode == http.StatusOK {
 		//nolint:bodyclose
@@ -55,6 +54,7 @@ func findGitLabREADME(u *url.URL) (*source, error) {
 		if resp.StatusCode == http.StatusOK {
 			return &source{resp.Body, readmeRawURL}, nil
 		}
+		resp.Body.Close()
 	}
 
 	return nil, errors.New("can't find README in GitLab repository")
