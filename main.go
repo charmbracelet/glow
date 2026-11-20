@@ -321,17 +321,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 			pagerCmd = "less -r"
 		}
 
-		fields, err := shell.Fields(pagerCmd, os.Getenv)
-		if err != nil || len(fields) == 0 {
-			return fmt.Errorf("unable to parse PAGER command: %s", pagerCmd)
-		}
-		c := exec.Command(fields[0], fields[1:]...) //nolint:gosec
-		c.Stdin = strings.NewReader(out)
-		c.Stdout = os.Stdout
-		if err := c.Run(); err != nil {
-			return fmt.Errorf("unable to run command: %w", err)
-		}
-		return nil
+		return runPager(pagerCmd, out)
 	case tui || cmd.Flags().Changed("tui"):
 		path := ""
 		if !isURL(src.URL) {
@@ -344,6 +334,28 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		}
 		return nil
 	}
+}
+
+// runPager runs the given pager command, feeding it rendered output on stdin.
+//
+// os/exec sends a child's stderr to the null device when Cmd.Stderr is left
+// unset, so the pager is wired to the same stdin, stdout and stderr as glow.
+// Without this, pagers like less cannot talk to the controlling terminal:
+// their prompts and screen-size queries are discarded, which corrupts
+// positioning and line wrapping as soon as the user scrolls backwards.
+func runPager(pagerCmd, out string) error {
+	fields, err := shell.Fields(pagerCmd, os.Getenv)
+	if err != nil || len(fields) == 0 {
+		return fmt.Errorf("unable to parse PAGER command: %s", pagerCmd)
+	}
+	c := exec.Command(fields[0], fields[1:]...) //nolint:gosec
+	c.Stdin = strings.NewReader(out)
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	if err := c.Run(); err != nil {
+		return fmt.Errorf("unable to run command: %w", err)
+	}
+	return nil
 }
 
 func runTUI(path string, content string) error {
