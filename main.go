@@ -328,6 +328,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		c := exec.Command(fields[0], fields[1:]...) //nolint:gosec
 		c.Stdin = strings.NewReader(out)
 		c.Stdout = os.Stdout
+		c.Stderr = os.Stderr
 		if err := c.Run(); err != nil {
 			return fmt.Errorf("unable to run command: %w", err)
 		}
