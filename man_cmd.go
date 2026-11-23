@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/charmbracelet/x/ansi"
 	mcobra "github.com/muesli/mango-cobra"
 	"github.com/muesli/roff"
 	"github.com/spf13/cobra"
@@ -17,6 +18,9 @@ var manCmd = &cobra.Command{
 	Hidden:                true,
 	Args:                  cobra.NoArgs,
 	RunE: func(*cobra.Command, []string) error {
+		// Styled help text must not leak terminal escape codes into roff.
+		rootCmd.Long = ansi.Strip(rootCmd.Long)
+
 		manPage, err := mcobra.NewManPage(1, rootCmd)
 		if err != nil {
 			return fmt.Errorf("unable to instantiate man page: %w", err)
