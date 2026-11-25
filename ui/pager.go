@@ -98,6 +98,9 @@ type (
 		graphics            []string
 		body                string
 		remoteImagesPending bool
+		// width is the viewport width the content was rendered for, so a
+		// render that a resize has made stale can be dropped.
+		width int
 	}
 	// remoteImagesLoadedMsg is sent when the second rendering pass, which
 	// loads the document's remote images, finishes. token identifies the
@@ -144,6 +147,16 @@ type pagerModel struct {
 	remoteImagesPass    int
 	remoteSpinner       spinner.Model
 
+	// imageCache keeps the current document's images across renders, so
+	// re-rendering it, e.g. on resize, doesn't load them again.
+	// remoteImagesLoaded reports that its remote images have been fetched
+	// once, so re-renders include them right away. sentGraphics holds the
+	// graphics sequences last written to the terminal, which aren't written
+	// again.
+	imageCache         *glamansi.ImageCache
+	remoteImagesLoaded bool
+	sentGraphics       map[string]bool
+
 	watcher *fsnotify.Watcher
 }
 
@@ -160,6 +173,7 @@ func newPagerModel(common *commonModel) pagerModel {
 		state:         pagerStateBrowse,
 		viewport:      vp,
 		remoteSpinner: sp,
+		imageCache:    glamansi.NewImageCache(),
 	}
 	m.initWatcher()
 	return m
@@ -179,6 +193,41 @@ func (m *pagerModel) setSize(w, h int) {
 
 func (m *pagerModel) setContent(s string) {
 	m.viewport.SetContent(s)
+}
+
+// setDocument sets the document to display. A different document starts
+// with fresh images; reloading the same one keeps them.
+func (m *pagerModel) setDocument(md markdown) {
+	if md.localPath != m.currentDocument.localPath || md.Note != m.currentDocument.Note {
+		m.imageCache = glamansi.NewImageCache()
+		m.remoteImagesLoaded = false
+		m.sentGraphics = nil
+	}
+	m.currentDocument = md
+}
+
+// showContent displays rendered content. Content that references images
+// waits for their graphics sequences to be written to the terminal first;
+// the returned command writes those that weren't written before.
+func (m *pagerModel) showContent(content string, graphics []string) tea.Cmd {
+	sent := make(map[string]bool, len(graphics))
+	var raw strings.Builder
+	for _, g := range graphics {
+		sent[g] = true
+		if !m.sentGraphics[g] {
+			raw.WriteString(g)
+		}
+	}
+	m.sentGraphics = sent
+
+	if raw.Len() == 0 {
+		m.setContent(content)
+		return nil
+	}
+	// RawMsg is written out-of-band right before this model sees it, so
+	// stash the content and wait for it.
+	m.pendingContent = content
+	return tea.Raw(raw.String())
 }
 
 func (m *pagerModel) toggleHelp() {
@@ -279,6 +328,11 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	case contentRenderedMsg:
 		log.Info("content rendered", "state", m.state)
 
+		if msg.width != m.viewport.Width() {
+			// Rendered before a resize; the render for the new size follows.
+			return m, nil
+		}
+
 		if msg.remoteImagesPending {
 			// The remote images are still being fetched; the content shown
 			// in the meantime is the text without them. Start the second
@@ -289,16 +343,9 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 				loadRemoteImagesCmd(m, msg.body, m.remoteImagesPass))
 		}
 
-		if len(msg.graphics) > 0 {
-			// The content references images via unicode placeholders, so the
-			// graphics sequences must be written to the terminal before it
-			// can be displayed. RawMsg is written out-of-band right before
-			// this model sees it, so stash the content and wait for it.
-			m.pendingContent = msg.content
-			return m, tea.Batch(append(cmds, tea.Raw(strings.Join(msg.graphics, "")))...)
+		if cmd := m.showContent(msg.content, msg.graphics); cmd != nil {
+			return m, tea.Batch(append(cmds, cmd)...)
 		}
-
-		m.setContent(msg.content)
 		cmds = append(cmds, m.watchFile)
 
 	// The remote images of the current document have been fetched and
@@ -311,11 +358,10 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 		}
 
 		m.remoteImagesLoading = false
-		if len(msg.graphics) > 0 {
-			m.pendingContent = msg.content
-			return m, tea.Raw(strings.Join(msg.graphics, ""))
+		m.remoteImagesLoaded = true
+		if cmd := m.showContent(msg.content, msg.graphics); cmd != nil {
+			return m, cmd
 		}
-		m.setContent(msg.content)
 
 	// A rendering pass failed, e.g. while fetching the document's remote
 	// images. Report it and stop the loading indicator, which would
@@ -356,6 +402,8 @@ func (m pagerModel) update(msg tea.Msg) (pagerModel, tea.Cmd) {
 	// We've received terminal dimensions, either for the first time or
 	// after a resize
 	case tea.WindowSizeMsg:
+		// Remote images being fetched for the old size are stale now.
+		m.remoteImagesPass++
 		return m, renderWithGlamour(m, m.currentDocument.Body)
 
 	case statusMessageTimeoutMsg:
@@ -524,7 +572,7 @@ func (m pagerModel) helpView() (s string) {
 // pager then starts a second pass that loads and renders the images, see the
 // contentRenderedMsg handling in update.
 func renderWithGlamour(m pagerModel, md string) tea.Cmd {
-	pending := remoteImagesEnabled(m) && hasRemoteImages(md)
+	pending := remoteImagesEnabled(m) && !m.remoteImagesLoaded && hasRemoteImages(md)
 
 	// Images that don't need fetching are loaded in the first pass.
 	return renderContent(m, md, m.common.cfg.LoadRemoteImages && !pending, pending)
@@ -545,6 +593,7 @@ func renderContent(m pagerModel, md string, remote, pending bool) tea.Cmd {
 			graphics:            graphics,
 			body:                md,
 			remoteImagesPending: pending,
+			width:               m.viewport.Width(),
 		}
 	}
 }
@@ -615,6 +664,7 @@ func glamourRender(m pagerModel, markdown string, loadRemoteImages bool) (string
 		options = append(options,
 			glamour.WithImageProtocol(m.common.imageProtocol),
 			glamour.WithMaxImageSize(0, m.common.cfg.ImageMaxRows),
+			glamour.WithImageCache(m.imageCache),
 		)
 		switch {
 		case loadRemoteImages:

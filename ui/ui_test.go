@@ -351,6 +351,14 @@ func TestPagerLoadRemoteImages(t *testing.T) {
 	go func() {
 		// Leave room for the second rendering pass that fetches the image.
 		time.Sleep(time.Second)
+		// Resizing re-renders with the image right away, without fetching
+		// it again.
+		fetched := requests.Load()
+		p.Send(tea.WindowSizeMsg{Width: 60, Height: 24})
+		time.Sleep(250 * time.Millisecond)
+		if n := requests.Load(); n != fetched {
+			t.Errorf("expected no new requests on resize, got %d more", n-fetched)
+		}
 		p.Send(tea.Quit())
 	}()
 	if _, err := p.Run(); err != nil {
@@ -387,6 +395,7 @@ func TestPagerRemoteImagesLoading(t *testing.T) {
 		content:             "text without images",
 		body:                m.currentDocument.Body,
 		remoteImagesPending: true,
+		width:               80,
 	})
 	if !m.remoteImagesLoading {
 		t.Error("expected the remote images to be reported as loading")
@@ -469,6 +478,7 @@ func TestPagerRemoteImagesLoadError(t *testing.T) {
 		content:             "text without images",
 		body:                m.currentDocument.Body,
 		remoteImagesPending: true,
+		width:               80,
 	})
 	if !m.remoteImagesLoading {
 		t.Fatal("expected the remote images to be reported as loading")
@@ -715,5 +725,72 @@ func TestPagerKittyBadges(t *testing.T) {
 	}
 	if gridLines != 1 {
 		t.Fatalf("expected both badges on one line, got %d lines", gridLines)
+	}
+}
+
+// TestPagerResizeKeepsImages checks that re-rendering a document on resize
+// doesn't load its images again, that graphics already written to the
+// terminal aren't written again, and that renders made stale by a resize are
+// dropped.
+func TestPagerResizeKeepsImages(t *testing.T) {
+	dir := t.TempDir()
+	imgPath := filepath.Join(dir, "big.png")
+	f, err := os.Create(imgPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Too large to be transmitted by file path, so it is decoded.
+	if err := png.Encode(f, image.NewRGBA(image.Rect(0, 0, 2000, 1000))); err != nil {
+		t.Fatal(err)
+	}
+	_ = f.Close()
+	body := "# Hello\n\n![big](big.png)\n"
+
+	common := commonModel{cfg: Config{GlamourEnabled: true, GlamourStyle: "dark", Images: true}, styles: newStyles(true), width: 80, height: 24}
+	common.imageProtocol = ansi.ImageProtocolKittyPlaceholders
+	m := newPagerModel(&common)
+	m.setSize(80, 24)
+	m.currentDocument = markdown{Note: "test.md", localPath: filepath.Join(dir, "test.md"), Body: body}
+
+	render := func() contentRenderedMsg {
+		t.Helper()
+		msg, ok := renderWithGlamour(m, body)().(contentRenderedMsg)
+		if !ok || !strings.ContainsRune(msg.content, kittyPlaceholder) {
+			t.Fatalf("expected the image to be rendered, got %#v", msg)
+		}
+		return msg
+	}
+
+	m, cmd := m.update(render())
+	if cmd == nil {
+		t.Fatal("expected the graphics to be written to the terminal")
+	}
+	m, _ = m.update(tea.RawMsg{})
+
+	// The image is not read again for the new size.
+	if err := os.Remove(imgPath); err != nil {
+		t.Fatal(err)
+	}
+	m.setSize(60, 24)
+	m, cmd = m.update(tea.WindowSizeMsg{Width: 60, Height: 24})
+	resized, ok := cmd().(contentRenderedMsg)
+	if !ok || !strings.ContainsRune(resized.content, kittyPlaceholder) {
+		t.Fatalf("expected the image to be rendered after the resize, got %#v", resized)
+	}
+
+	// A render for the old size arriving late is dropped.
+	stale := resized
+	stale.content, stale.width = "stale", 80
+	m, _ = m.update(stale)
+	if m.viewport.GetContent() == "stale" {
+		t.Error("expected the stale render to be dropped")
+	}
+
+	// Graphics already written for this size aren't written again.
+	m, _ = m.update(resized)
+	m, _ = m.update(tea.RawMsg{})
+	m, _ = m.update(render())
+	if m.pendingContent != "" || !strings.ContainsRune(m.viewport.GetContent(), kittyPlaceholder) {
+		t.Error("expected the content to be shown without rewriting its graphics")
 	}
 }

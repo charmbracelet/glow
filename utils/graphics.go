@@ -3,6 +3,7 @@ package utils
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -179,12 +180,12 @@ func queryTerminal(out, in *os.File, query string, timeout time.Duration) (strin
 	fd := int(in.Fd())
 	oldState, err := term.MakeRaw(fd)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to put the terminal into raw mode: %w", err)
 	}
 	defer term.Restore(fd, oldState) //nolint:errcheck
 
 	if _, err := out.WriteString(query); err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to query the terminal: %w", err)
 	}
 
 	type result struct {

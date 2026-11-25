@@ -5,17 +5,17 @@ go 1.26.7
 require (
 	charm.land/bubbles/v2 v2.1.1
 	charm.land/bubbletea/v2 v2.0.9
-	charm.land/glamour/v2 v2.0.2-0.20260922094102-70fab824e2ec
-	charm.land/lipgloss/v2 v2.0.6
+	charm.land/glamour/v2 v2.0.2-0.20261125143641-1dec67b96dcb
+	charm.land/lipgloss/v2 v2.1.1
 	github.com/atotto/clipboard v0.1.4
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/charmbracelet/log v0.4.2
 	github.com/charmbracelet/ultraviolet v0.0.0-20260811164956-006e29f97886
-	github.com/charmbracelet/x/ansi v0.11.8
+	github.com/charmbracelet/x/ansi v0.11.10
 	github.com/charmbracelet/x/editor v0.1.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/mattn/go-runewidth v0.0.24
+	github.com/mattn/go-runewidth v0.0.27
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/gitcha v0.3.0
 	github.com/muesli/go-app-paths v0.2.2
@@ -27,7 +27,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	golang.org/x/sys v0.47.0
-	golang.org/x/term v0.43.0
+	golang.org/x/term v0.44.0
 	golang.org/x/text v0.41.0
 	mvdan.cc/sh/v3 v3.13.1
 )
@@ -74,7 +74,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8 // indirect
 	golang.org/x/image v0.45.0 // indirect
-	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

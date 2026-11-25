@@ -313,8 +313,8 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 	// external pagers redraw text themselves and the TUI detects graphics
 	// support on its own.
 	useImages := images && !isCode &&
-		!(pager || cmd.Flags().Changed("pager")) &&
-		!(tui || cmd.Flags().Changed("tui"))
+		!pager && !cmd.Flags().Changed("pager") &&
+		!tui && !cmd.Flags().Changed("tui")
 
 	// initialize glamour
 	options := []glamour.TermRendererOption{
