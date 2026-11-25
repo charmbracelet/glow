@@ -1,21 +1,21 @@
 module charm.land/glow/v3
 
-go 1.26.7
+go 1.27.4
 
 require (
-	charm.land/bubbles/v2 v2.1.1
-	charm.land/bubbletea/v2 v2.0.9
+	charm.land/bubbles/v2 v2.2.2
+	charm.land/bubbletea/v2 v2.1.3
 	charm.land/glamour/v2 v2.0.2-0.20261125143641-1dec67b96dcb
 	charm.land/lipgloss/v2 v2.1.1
 	github.com/atotto/clipboard v0.1.4
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/charmbracelet/log v0.4.2
-	github.com/charmbracelet/ultraviolet v0.0.0-20260811164956-006e29f97886
+	github.com/charmbracelet/ultraviolet v0.0.0-20261008173134-6b8d4baf91b4
 	github.com/charmbracelet/x/ansi v0.11.10
 	github.com/charmbracelet/x/editor v0.1.0
-	github.com/dustin/go-humanize v1.0.1
+	github.com/dustin/go-humanize v1.1.0
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/mattn/go-runewidth v0.0.27
+	github.com/mattn/go-runewidth v0.0.31
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/muesli/gitcha v0.3.0
 	github.com/muesli/go-app-paths v0.2.2
@@ -58,7 +58,7 @@ require (
 	github.com/muesli/mango v0.2.0 // indirect
 	github.com/muesli/mango-pflag v0.1.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rivo/uniseg v0.4.8-0.20261110175422-3a370411ca06 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
@@ -68,7 +68,7 @@ require (
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
+	github.com/xo/terminfo v1.0.0 // indirect
 	github.com/yuin/goldmark v1.8.5 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
