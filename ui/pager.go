@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -431,26 +432,50 @@ func (m *pagerModel) watchFile() tea.Msg {
 
 	log.Info("fsnotify watching dir", "dir", dir)
 
+	return waitForFileChange(m.watcher, m.currentDocument.localPath)
+}
+
+func waitForFileChange(watcher *fsnotify.Watcher, path string) tea.Msg {
+	path = filepath.Clean(path)
 	for {
 		select {
-		case event, ok := <-m.watcher.Events:
-			if !ok || event.Name != m.currentDocument.localPath {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return nil
+			}
+			if !event.Has(fsnotify.Write) && !event.Has(fsnotify.Create) {
 				continue
 			}
-
-			if !event.Has(fsnotify.Write) && !event.Has(fsnotify.Create) {
+			if !sameWatchedFile(path, filepath.Clean(event.Name)) {
 				continue
 			}
 
 			log.Debug("fsnotify event", "file", event.Name, "event", event.Op)
 			return reloadMsg{}
-		case err, ok := <-m.watcher.Errors:
+		case err, ok := <-watcher.Errors:
 			if !ok {
-				continue
+				return nil
 			}
-			log.Debug("fsnotify error", "dir", dir, "error", err)
+			log.Debug("fsnotify error", "file", path, "error", err)
 		}
 	}
+}
+
+func sameWatchedFile(path, eventPath string) bool {
+	if path == eventPath {
+		return true
+	}
+	if !strings.EqualFold(path, eventPath) {
+		return false
+	}
+
+	// Check identity so distinct files on a case-sensitive volume stay distinct.
+	file, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	changedFile, err := os.Stat(eventPath)
+	return err == nil && os.SameFile(file, changedFile)
 }
 
 func (m *pagerModel) unwatchFile() {
