@@ -213,7 +213,11 @@ all: false
 showLineNumbers: false
 # preserve newlines in the output
 preserveNewLines: false
+# show clickable link labels without printing destinations (requires OSC 8 support)
+inlineLinks: false
 ```
+
+Use `glow --inline-links README.md` or set `inlineLinks: true` to show clickable link labels in prose and tables. Bare URL autolinks remain visible. Your terminal and any external pager must support OSC 8 hyperlinks.
 
 ## Contributing
 
