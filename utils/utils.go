@@ -88,6 +88,18 @@ func GlamourStyle(style string, isCode bool) glamour.TermRendererOption {
 	}
 }
 
+// GlamourInlineLinks shows link labels as OSC 8 hyperlinks in prose and tables when enabled.
+func GlamourInlineLinks(enabled bool) glamour.TermRendererOption {
+	mode := ansi.HyperlinkModeAuto
+	if enabled {
+		mode = ansi.HyperlinkModeInline
+	}
+	return glamour.WithOptions(
+		glamour.WithHyperlinkMode(mode),
+		glamour.WithInlineTableLinks(enabled),
+	)
+}
+
 func styleConfigFor(style string, isCode bool) (ansi.StyleConfig, error) {
 	if !isCode {
 		if style == "auto" {

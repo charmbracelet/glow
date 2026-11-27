@@ -23,6 +23,8 @@ pager: false
 width: 80
 # show all files, including hidden and ignored.
 all: false
+# show clickable link labels without printing destinations (requires OSC 8 support)
+inlineLinks: false
 `
 
 var configCmd = &cobra.Command{

@@ -42,6 +42,7 @@ var (
 	showAllFiles     bool
 	showLineNumbers  bool
 	preserveNewLines bool
+	inlineLinks      bool
 	mouse            bool
 
 	rootCmd = &cobra.Command{
@@ -164,6 +165,13 @@ func validateStyle(style string) error {
 }
 
 func validateOptions(cmd *cobra.Command) error {
+	if cmd != configCmd && cmd.Flags().Changed("config") {
+		viper.SetConfigFile(configFile)
+		if err := viper.ReadInConfig(); err != nil {
+			return fmt.Errorf("unable to read config file: %w", err)
+		}
+	}
+
 	// grab config values from Viper
 	width = viper.GetUint("width")
 	mouse = viper.GetBool("mouse")
@@ -171,6 +179,7 @@ func validateOptions(cmd *cobra.Command) error {
 	tui = viper.GetBool("tui")
 	showAllFiles = viper.GetBool("all")
 	preserveNewLines = viper.GetBool("preserveNewLines")
+	inlineLinks = viper.GetBool("inlineLinks")
 	showLineNumbers = viper.GetBool("showLineNumbers")
 
 	if pager && tui {
@@ -294,6 +303,7 @@ func executeCLI(cmd *cobra.Command, src *source, w io.Writer) error {
 		utils.GlamourStyle(style, isCode),
 		glamour.WithWordWrap(int(width)), //nolint:gosec
 		glamour.WithBaseURL(baseURL),
+		utils.GlamourInlineLinks(inlineLinks),
 		glamour.WithPreservedNewLines(),
 	)
 	if err != nil {
@@ -367,6 +377,7 @@ func runTUI(path string, content string) error {
 	cfg.GlamourMaxWidth = width
 	cfg.EnableMouse = mouse
 	cfg.PreserveNewLines = preserveNewLines
+	cfg.InlineLinks = inlineLinks
 
 	// Run Bubble Tea program
 	prog, cleanup := ui.NewProgram(cfg, content)
@@ -413,6 +424,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showLineNumbers, "line-numbers", "l", false, "show line numbers (TUI-mode only)")
 	rootCmd.Flags().BoolVarP(&preserveNewLines, "preserve-new-lines", "n", false, "preserve newlines in the output")
 	rootCmd.Flags().BoolVarP(&mouse, "mouse", "m", false, "enable mouse wheel (TUI-mode only)")
+	rootCmd.Flags().BoolVar(&inlineLinks, "inline-links", false, "show links as OSC 8 hyperlinks without printing destinations")
 	_ = rootCmd.Flags().MarkHidden("mouse")
 
 	// Config bindings
@@ -423,6 +435,7 @@ func init() {
 	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
 	_ = viper.BindPFlag("mouse", rootCmd.Flags().Lookup("mouse"))
 	_ = viper.BindPFlag("preserveNewLines", rootCmd.Flags().Lookup("preserve-new-lines"))
+	_ = viper.BindPFlag("inlineLinks", rootCmd.Flags().Lookup("inline-links"))
 	_ = viper.BindPFlag("showLineNumbers", rootCmd.Flags().Lookup("line-numbers"))
 	_ = viper.BindPFlag("all", rootCmd.Flags().Lookup("all"))
 
